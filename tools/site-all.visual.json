@@ -1,0 +1,273 @@
+{
+  "name": "site-all",
+  "pages": [
+    {
+      "name": "overview",
+      "url": "http://localhost:5191/#/overview",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "getting-started",
+      "url": "http://localhost:5191/#/getting-started",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "static-sites",
+      "url": "http://localhost:5191/#/static-sites",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "changelog",
+      "url": "http://localhost:5191/#/changelog",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "themes",
+      "url": "http://localhost:5191/#/themes",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "color",
+      "url": "http://localhost:5191/#/color",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "typography",
+      "url": "http://localhost:5191/#/typography",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "spacing",
+      "url": "http://localhost:5191/#/spacing",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "elevation",
+      "url": "http://localhost:5191/#/elevation",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "z-index",
+      "url": "http://localhost:5191/#/z-index",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "button",
+      "url": "http://localhost:5191/#/components/button",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "icon-button",
+      "url": "http://localhost:5191/#/components/icon-button",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "card",
+      "url": "http://localhost:5191/#/components/card",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "badge",
+      "url": "http://localhost:5191/#/components/badge",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "input",
+      "url": "http://localhost:5191/#/components/input",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "select",
+      "url": "http://localhost:5191/#/components/select",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "label",
+      "url": "http://localhost:5191/#/components/label",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "skeleton",
+      "url": "http://localhost:5191/#/components/skeleton",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "empty-state",
+      "url": "http://localhost:5191/#/components/empty-state",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "error-state",
+      "url": "http://localhost:5191/#/components/error-state",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "toast",
+      "url": "http://localhost:5191/#/components/toast",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "modal",
+      "url": "http://localhost:5191/#/components/modal",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "tooltip",
+      "url": "http://localhost:5191/#/components/tooltip",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "theme-toggle",
+      "url": "http://localhost:5191/#/components/theme-toggle",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "patterns",
+      "url": "http://localhost:5191/#/patterns",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "button-themes",
+      "url": "http://localhost:5191/#/components/button/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "icon-button-themes",
+      "url": "http://localhost:5191/#/components/icon-button/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "card-themes",
+      "url": "http://localhost:5191/#/components/card/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "badge-themes",
+      "url": "http://localhost:5191/#/components/badge/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "input-themes",
+      "url": "http://localhost:5191/#/components/input/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "select-themes",
+      "url": "http://localhost:5191/#/components/select/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "label-themes",
+      "url": "http://localhost:5191/#/components/label/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "skeleton-themes",
+      "url": "http://localhost:5191/#/components/skeleton/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "empty-state-themes",
+      "url": "http://localhost:5191/#/components/empty-state/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "error-state-themes",
+      "url": "http://localhost:5191/#/components/error-state/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "toast-themes",
+      "url": "http://localhost:5191/#/components/toast/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "modal-themes",
+      "url": "http://localhost:5191/#/components/modal/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "tooltip-themes",
+      "url": "http://localhost:5191/#/components/tooltip/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "theme-toggle-themes",
+      "url": "http://localhost:5191/#/components/theme-toggle/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
+      "name": "patterns-themes",
+      "url": "http://localhost:5191/#/patterns/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ]
+    }
+  ],
+  "viewports": [
+    "desktop",
+    "phone"
+  ],
+  "themes": [
+    "dark",
+    "light"
+  ],
+  "fullPage": true
+}

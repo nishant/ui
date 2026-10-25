@@ -4,3 +4,4 @@ dist/
 visual-out/
 *.log
 .DS_Store
+site-dist/

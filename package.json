@@ -35,6 +35,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "npm run build && vite --config demo/vite.config.ts",
+    "dev:site": "npm run build && vite --config site/vite.config.ts",
+    "build:site": "npm run build && vite build --config site/vite.config.ts",
+    "preview:site": "vite preview --config site/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "contrast": "node tools/contrast.mjs",
     "check": "npm run typecheck && npm run contrast && npm run build",
