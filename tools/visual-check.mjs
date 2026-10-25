@@ -205,7 +205,27 @@ for (const pg of config.pages) {
             shot.note = `clipped at ${MAX_HEIGHT}px of ${height}px`;
           }
         }
-        await page.screenshot(opts);
+        // A full-page capture draws position:fixed bars (bottom navs, toolbars) where the
+        // first screen ended, mid-image. When the page has any, grow the viewport to the
+        // whole page instead, so they sit where a reader sees them at the end of the page.
+        const tall = fullPage && !opts.clip && (await page.evaluate((vh) => {
+          const h = Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0);
+          if (h <= vh + 1) return 0;
+          const hasFixed = [...document.querySelectorAll('body *')].some((el) => {
+            const s = getComputedStyle(el);
+            return s.position === 'fixed' && s.display !== 'none' && el.getBoundingClientRect().height > 0;
+          });
+          return hasFixed ? h : 0;
+        }, vp.height));
+        if (tall) {
+          await page.setViewportSize({ width: vp.width, height: tall });
+          await page.waitForTimeout(150);
+          await page.screenshot({ ...opts, fullPage: false });
+          await page.setViewportSize({ width: vp.width, height: vp.height });
+          shot.note = [shot.note, 'captured with a page-tall viewport (fixed bars)'].filter(Boolean).join('; ');
+        } else {
+          await page.screenshot(opts);
+        }
         shot.file = file;
         shot.bytes = fileSize(opts.path);
         if (vpName === 'desktop' && theme === (pg.themes ?? themes)[0]) shot.focusMissing = await focusCheck(page);
