@@ -93,7 +93,9 @@ function inspect() {
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       const s = getComputedStyle(p);
       const ox = s.overflowX;
-      const pageLike = s.overflowY === 'auto' || s.overflowY === 'scroll';
+      // overflow-x:auto forces overflow-y to auto too, so only a box that really scrolls
+      // vertically and fills most of the screen counts as the page.
+      const pageLike = (s.overflowY === 'auto' || s.overflowY === 'scroll') && p.scrollHeight > p.clientHeight + 1 && p.clientHeight > window.innerHeight * 0.5;
       if (ox === 'hidden' || ox === 'clip') return true;
       if ((ox === 'auto' || ox === 'scroll') && !pageLike) return true;
     }
@@ -104,7 +106,7 @@ function inspect() {
   const innerScrollers = [...document.querySelectorAll('body *')]
     .filter((p) => {
       const s = getComputedStyle(p);
-      return (s.overflowY === 'auto' || s.overflowY === 'scroll') && (s.overflowX === 'auto' || s.overflowX === 'scroll') && p.scrollWidth > p.clientWidth + 1 && p.clientHeight > window.innerHeight * 0.5;
+      return (s.overflowY === 'auto' || s.overflowY === 'scroll') && (s.overflowX === 'auto' || s.overflowX === 'scroll') && p.scrollWidth > p.clientWidth + 1 && p.scrollHeight > p.clientHeight + 1 && p.clientHeight > window.innerHeight * 0.5;
     })
     .slice(0, 3)
     .map((p) => `${sel(p)} (${p.scrollWidth} > ${p.clientWidth})`);
