@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 1. Before any stylesheet: applies the saved theme, so the first paint is right. -->
+  <script src="nish/theme-init.js"></script>
+  <!-- 2. Tokens, the Inter font and base styles in one file. -->
+  <link rel="stylesheet" href="nish/nish.css">
+  <title>Smokies trip (classic script)</title>
+  <style>
+    body { margin: 0; padding: 20px 16px; }
+    .card {
+      max-width: 520px; margin: 0 auto; padding: 18px 20px;
+      background: var(--nish-surface); border: 1px solid var(--nish-line);
+      border-radius: var(--nish-radius-md); box-shadow: var(--nish-shadow-card);
+    }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    h1 { margin: 0; font-size: var(--nish-text-xl); line-height: var(--nish-text-xl-lh); letter-spacing: var(--nish-tracking-tight); }
+    .meta { margin: 2px 0 0; color: var(--nish-hi3); font-size: var(--nish-text-sm); }
+    p { color: var(--nish-hi2); font-size: var(--nish-text-sm); line-height: var(--nish-text-sm-lh); }
+    .chip {
+      display: inline-block; padding: 2px 8px; border-radius: var(--nish-radius-pill); font-size: var(--nish-text-xs); font-weight: 500;
+      color: var(--nish-ok); background: var(--nish-ok-soft); border: 1px solid color-mix(in srgb, var(--nish-ok) 30%, transparent);
+    }
+    button {
+      font: inherit; font-size: var(--nish-text-sm); font-weight: 500; min-height: 36px; padding: 0 12px; cursor: pointer;
+      color: var(--nish-hi); background: var(--nish-elevated); border: 1px solid var(--nish-line-strong); border-radius: var(--nish-radius-sm);
+    }
+    button:hover { background: var(--nish-overlay); }
+    @media (pointer: coarse) { button { min-height: var(--nish-tap-min); } }
+    .days { display: grid; gap: 8px; margin-top: 14px; }
+    .day { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: var(--nish-radius-sm); background: var(--nish-elevated); font-size: var(--nish-text-sm); }
+    .day span:last-child { color: var(--nish-hi3); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <header>
+      <div>
+        <h1>Great Smoky Mountains</h1>
+        <p class="meta">Nov 6 to 9 · 3 nights in Gatlinburg</p>
+      </div>
+      <button id="theme" type="button">Theme: <span id="choice">system</span></button>
+    </header>
+    <p><span class="chip">Booked</span> Cabin, rental car and the Cades Cove pass are confirmed.</p>
+    <div class="days">
+      <div class="day"><span>Thu · Fly into Knoxville</span><span>2 h drive</span></div>
+      <div class="day"><span>Fri · Alum Cave to Mount LeConte</span><span>11 mi</span></div>
+      <div class="day"><span>Sat · Cades Cove loop at sunrise</span><span>11 mi drive</span></div>
+    </div>
+  </main>
+  <!-- 3. Theme switching as a classic script: window.nishTheme, for pages that cannot use modules. -->
+  <script src="nish/theme.global.js"></script>
+  <script>
+    var t = window.nishTheme;
+    var initTheme = t.initTheme, cycleTheme = t.cycleTheme, getThemeChoice = t.getThemeChoice, onThemeChange = t.onThemeChange;
+    var label = document.querySelector('#choice');
+    onThemeChange(function (choice) { label.textContent = choice; });
+    initTheme();
+    document.querySelector('#theme').addEventListener('click', cycleTheme);
+    label.textContent = getThemeChoice();
+  </script>
+</body>
+</html>
