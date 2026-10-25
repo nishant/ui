@@ -1,0 +1,1182 @@
+/* @nish/ui component classes for static pages (mc, trips, the hub, trip gates).
+   Shipped as dist/nish-components.css (@nish/ui/nish-components.css) and listed in
+   dist/files.json "static", so hosting's sync-ui.mjs vendors it. Link it after nish.css:
+
+     <script src="nish/theme-init.js"></script>
+     <link rel="stylesheet" href="nish/nish.css">
+     <link rel="stylesheet" href="nish/nish-components.css">
+
+   Every recipe mirrors a React component (same sizes, roles and touch rule) and uses
+   roles only. Every selector is wrapped in :where(), so it has zero specificity and a
+   site's own CSS always wins; nothing changes on a page until it uses a nish-* class.
+   The build fails if a selector here is not wrapped in :where(). */
+
+/* --- Button (.nish-btn) -------------------------------------------------------------
+   <button class="nish-btn nish-btn--primary">Save</button>, also on <a>. */
+:where(.nish-btn) {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-surface);
+  color: var(--nish-hi);
+  font: inherit;
+  font-size: var(--nish-text-sm);
+  font-weight: var(--nish-weight-medium);
+  line-height: 1.25rem;
+  white-space: nowrap;
+  text-decoration: none;
+  user-select: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+:where(.nish-btn) > :where(svg) {
+  flex-shrink: 0;
+}
+:where(.nish-btn:hover) {
+  background: var(--nish-elevated);
+}
+:where(.nish-btn--primary) {
+  border-color: transparent;
+  background: var(--nish-accent);
+  color: var(--nish-on-accent);
+}
+:where(.nish-btn--primary:hover) {
+  background: color-mix(in srgb, var(--nish-accent) 90%, transparent);
+}
+:where(.nish-btn--primary:active) {
+  background: color-mix(in srgb, var(--nish-accent) 80%, transparent);
+}
+:where(.nish-btn--ghost) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--nish-hi2);
+}
+:where(.nish-btn--ghost:hover) {
+  background: var(--nish-elevated);
+  color: var(--nish-hi);
+}
+:where(.nish-btn--danger) {
+  border-color: transparent;
+  background: var(--nish-loss);
+  color: var(--nish-on-loss);
+}
+:where(.nish-btn--danger:hover) {
+  background: color-mix(in srgb, var(--nish-loss) 90%, transparent);
+}
+:where(.nish-btn--danger:active) {
+  background: color-mix(in srgb, var(--nish-loss) 80%, transparent);
+}
+:where(.nish-btn--soft) {
+  border-color: transparent;
+  background: var(--nish-accent-soft);
+  color: var(--nish-accent);
+}
+:where(.nish-btn--soft:hover) {
+  background: color-mix(in srgb, var(--nish-accent) 20%, transparent);
+}
+:where(.nish-btn--soft:active) {
+  background: color-mix(in srgb, var(--nish-accent) 25%, transparent);
+}
+:where(.nish-btn--subtle) {
+  border-color: transparent;
+  background: var(--nish-elevated);
+  color: var(--nish-hi);
+}
+:where(.nish-btn--subtle:hover) {
+  background: var(--nish-overlay);
+}
+/* A toggle button that is on: the Segmented/Chip selected look. */
+:where(.nish-btn[aria-pressed='true']) {
+  border-color: color-mix(in srgb, var(--nish-accent) 40%, transparent);
+  background: var(--nish-accent-soft);
+  color: var(--nish-accent);
+}
+:where(.nish-btn--xs) {
+  height: 24px;
+  gap: 4px;
+  padding: 0 8px;
+  font-size: var(--nish-text-2xs, 0.6875rem);
+  line-height: 1rem;
+}
+:where(.nish-btn--sm) {
+  height: 28px;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: var(--nish-text-xs);
+  line-height: 1rem;
+}
+:where(.nish-btn--lg) {
+  height: 44px;
+  padding: 0 20px;
+  font-size: var(--nish-text-base);
+  line-height: 1.5rem;
+}
+/* Inline in text: no box, no min height, no touch growth. */
+:where(.nish-btn--link) {
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--nish-accent);
+  text-underline-offset: 2px;
+}
+:where(.nish-btn--link:hover) {
+  background: none;
+  text-decoration: underline;
+}
+/* Disabled reads as disabled in every theme: a flat quiet fill and faint text. */
+:where(.nish-btn:disabled, .nish-btn[aria-disabled='true']) {
+  pointer-events: none;
+  border-color: var(--nish-line);
+  background: var(--nish-elevated);
+  color: var(--nish-ghost);
+  box-shadow: none;
+}
+:where(.nish-btn--link:disabled, .nish-btn--link[aria-disabled='true']) {
+  border: 0;
+  background: none;
+}
+
+/* --- IconButton (.nish-icon-btn) ----------------------------------------------------
+   <button class="nish-icon-btn" aria-label="Refresh" title="Refresh"><svg …></button> */
+:where(.nish-icon-btn) {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nish-radius-sm);
+  background: transparent;
+  color: var(--nish-hi3);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+:where(.nish-icon-btn:hover, .nish-icon-btn[aria-pressed='true']) {
+  background: var(--nish-elevated);
+  color: var(--nish-hi);
+}
+:where(.nish-icon-btn:disabled, .nish-icon-btn[aria-disabled='true']) {
+  pointer-events: none;
+  color: var(--nish-ghost);
+}
+:where(.nish-icon-btn--sm) {
+  width: 28px;
+  height: 28px;
+}
+:where(.nish-icon-btn--xs) {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+:where(.nish-icon-btn--round) {
+  border-radius: var(--nish-radius-pill);
+}
+
+/* --- Theme button (.nish-theme-btn) -------------------------------------------------
+   The button mountThemeToggle() fills: an icon button holding one SVG per choice,
+   <svg data-icon="system|light|dark">. It sets data-choice; CSS shows that icon. A
+   preset saved on another site (data-choice="mocha") shows the icon of its scheme. */
+:where(.nish-theme-btn) {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nish-radius-sm);
+  background: transparent;
+  color: var(--nish-hi3);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+:where(.nish-theme-btn:hover) {
+  background: var(--nish-elevated);
+  color: var(--nish-hi);
+}
+:where(.nish-theme-btn) :where([data-icon]) {
+  display: none;
+}
+:where(.nish-theme-btn[data-choice='system']) :where([data-icon='system']),
+:where(.nish-theme-btn[data-choice='light']) :where([data-icon='light']),
+:where(.nish-theme-btn[data-choice='dark']) :where([data-icon='dark']),
+:where([data-scheme='light'] .nish-theme-btn:not([data-choice='system'], [data-choice='light'], [data-choice='dark'])) :where([data-icon='light']),
+:where([data-scheme='dark'] .nish-theme-btn:not([data-choice='system'], [data-choice='light'], [data-choice='dark'])) :where([data-icon='dark']) {
+  display: block;
+}
+
+/* --- Card (.nish-card) --------------------------------------------------------------
+   <section class="nish-card nish-card--padded">…</section>, or <a class="nish-card nish-card--interactive"> */
+:where(.nish-card) {
+  box-sizing: border-box;
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-card, 12px);
+  background: var(--nish-surface);
+  box-shadow: var(--nish-shadow-card);
+}
+:where(.nish-card--padded) {
+  padding: 16px;
+}
+@media (min-width: 640px) {
+  :where(.nish-card--padded) {
+    padding: 20px;
+  }
+}
+:where(.nish-card--interactive) {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+:where(.nish-card--interactive:hover) {
+  border-color: var(--nish-line-strong);
+  background: color-mix(in srgb, var(--nish-elevated) 60%, var(--nish-surface));
+}
+/* A box inside a card: raised fill, no border color, no shadow. */
+:where(.nish-card--inset) {
+  border-color: transparent;
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-elevated);
+  box-shadow: none;
+}
+
+/* --- Badge (.nish-badge) ------------------------------------------------------------
+   <span class="nish-badge nish-badge--ok">Booked</span> */
+:where(.nish-badge) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-pill);
+  background: var(--nish-elevated);
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-xs);
+  font-weight: var(--nish-weight-medium);
+  line-height: 1rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+:where(.nish-badge--accent) {
+  border-color: color-mix(in srgb, var(--nish-accent) 30%, transparent);
+  background: var(--nish-accent-soft);
+  color: var(--nish-accent);
+}
+:where(.nish-badge--ok) {
+  border-color: color-mix(in srgb, var(--nish-ok) 30%, transparent);
+  background: var(--nish-ok-soft);
+  color: var(--nish-ok);
+}
+:where(.nish-badge--loss) {
+  border-color: color-mix(in srgb, var(--nish-loss) 30%, transparent);
+  background: var(--nish-loss-soft);
+  color: var(--nish-loss);
+}
+:where(.nish-badge--warn) {
+  border-color: color-mix(in srgb, var(--nish-warn) 30%, transparent);
+  background: var(--nish-warn-soft);
+  color: var(--nish-warn);
+}
+:where(.nish-badge--info) {
+  border-color: color-mix(in srgb, var(--nish-info) 30%, transparent);
+  background: var(--nish-info-soft);
+  color: var(--nish-info);
+}
+/* Hues (no meaning: stores, categories, tags). Text stays hi, so contrast holds. */
+:where(.nish-badge--emerald) {
+  border-color: color-mix(in srgb, var(--nish-emerald) 30%, transparent);
+  background: var(--nish-emerald-soft, color-mix(in srgb, var(--nish-emerald) 14%, transparent));
+  color: var(--nish-hi);
+}
+:where(.nish-badge--indigo) {
+  border-color: color-mix(in srgb, var(--nish-indigo) 30%, transparent);
+  background: var(--nish-indigo-soft, color-mix(in srgb, var(--nish-indigo) 14%, transparent));
+  color: var(--nish-hi);
+}
+:where(.nish-badge--amber) {
+  border-color: color-mix(in srgb, var(--nish-amber) 30%, transparent);
+  background: var(--nish-amber-soft, color-mix(in srgb, var(--nish-amber) 14%, transparent));
+  color: var(--nish-hi);
+}
+:where(.nish-badge--lime) {
+  border-color: color-mix(in srgb, var(--nish-lime) 30%, transparent);
+  background: var(--nish-lime-soft, color-mix(in srgb, var(--nish-lime) 14%, transparent));
+  color: var(--nish-hi);
+}
+:where(.nish-badge--rose) {
+  border-color: color-mix(in srgb, var(--nish-rose) 30%, transparent);
+  background: var(--nish-rose-soft, color-mix(in srgb, var(--nish-rose) 14%, transparent));
+  color: var(--nish-hi);
+}
+:where(.nish-badge--sky) {
+  border-color: color-mix(in srgb, var(--nish-sky) 30%, transparent);
+  background: var(--nish-sky-soft, color-mix(in srgb, var(--nish-sky) 14%, transparent));
+  color: var(--nish-hi);
+}
+:where(.nish-badge--violet) {
+  border-color: color-mix(in srgb, var(--nish-violet) 30%, transparent);
+  background: var(--nish-violet-soft, color-mix(in srgb, var(--nish-violet) 14%, transparent));
+  color: var(--nish-hi);
+}
+:where(.nish-badge--teal) {
+  border-color: color-mix(in srgb, var(--nish-teal) 30%, transparent);
+  background: var(--nish-teal-soft, color-mix(in srgb, var(--nish-teal) 14%, transparent));
+  color: var(--nish-hi);
+}
+/* Solid: the tone's fill with its on-* text. Neutral solid is the inverted pill. */
+:where(.nish-badge--solid) {
+  border-color: transparent;
+  background: var(--nish-invert-bg);
+  color: var(--nish-invert-text);
+}
+:where(.nish-badge--solid.nish-badge--accent) {
+  background: var(--nish-accent);
+  color: var(--nish-on-accent);
+}
+:where(.nish-badge--solid.nish-badge--ok) {
+  background: var(--nish-ok-fill);
+  color: var(--nish-on-ok);
+}
+:where(.nish-badge--solid.nish-badge--loss) {
+  background: var(--nish-loss-fill);
+  color: var(--nish-on-loss);
+}
+:where(.nish-badge--solid.nish-badge--warn) {
+  background: var(--nish-warn-fill);
+  color: var(--nish-on-warn);
+}
+:where(.nish-badge--solid.nish-badge--info) {
+  background: var(--nish-info-fill);
+  color: var(--nish-on-info);
+}
+/* Tag-shaped label: square-ish corners, caps. */
+:where(.nish-badge--tag) {
+  border-color: transparent;
+  border-radius: var(--nish-radius-xs);
+  font-weight: var(--nish-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+:where(.nish-badge--xs) {
+  padding: 0 6px;
+  font-size: var(--nish-text-3xs, 0.625rem);
+  line-height: 1rem;
+}
+
+/* --- Fields (.nish-input, .nish-select, .nish-textarea) ------------------------------
+   16px text on phones and touch screens (no iOS zoom), 44px tall on touch. The focus
+   ring is base.css's outline, drawn on the border edge in a soft accent. */
+:where(.nish-input, .nish-select, .nish-textarea) {
+  --nish-focus: color-mix(in srgb, var(--nish-accent) 25%, transparent);
+  --nish-focus-offset: 0px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-sm);
+  background-color: var(--nish-elevated);
+  color: var(--nish-hi);
+  font: inherit;
+  font-size: var(--nish-text-sm);
+  line-height: 1.25rem;
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
+}
+:where(.nish-input, .nish-textarea)::placeholder {
+  color: var(--nish-ghost);
+  opacity: 1;
+}
+:where(.nish-input:hover, .nish-select:hover, .nish-textarea:hover) {
+  border-color: color-mix(in srgb, var(--nish-hi3) 60%, transparent);
+}
+:where(.nish-input:focus, .nish-select:focus, .nish-textarea:focus) {
+  border-color: var(--nish-accent);
+  outline: var(--nish-focus-width) solid var(--nish-focus);
+  outline-offset: 0;
+}
+:where(.nish-input[aria-invalid='true'], .nish-select[aria-invalid='true'], .nish-textarea[aria-invalid='true']) {
+  --nish-focus: color-mix(in srgb, var(--nish-loss) 25%, transparent);
+  border-color: var(--nish-loss);
+}
+:where(.nish-input:disabled, .nish-select:disabled, .nish-textarea:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+/* Native select with a chevron drawn from two gradients, so it follows the theme. */
+:where(.nish-select) {
+  appearance: none;
+  padding-right: 32px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--nish-hi3) 50%),
+    linear-gradient(135deg, var(--nish-hi3) 50%, transparent 50%);
+  background-position:
+    calc(100% - 17px) 50%,
+    calc(100% - 12px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+:where(.nish-textarea) {
+  display: block;
+  height: auto;
+  padding: 8px 12px;
+  line-height: 1.625;
+  resize: vertical;
+}
+@media (max-width: 639.98px), (pointer: coarse) {
+  :where(.nish-input, .nish-select, .nish-textarea) {
+    font-size: var(--nish-text-base);
+  }
+}
+
+/* --- Label and Field (.nish-label, .nish-field) --------------------------------------
+   <label class="nish-field">
+     <span class="nish-field-label">Stack size</span>
+     <input class="nish-input" aria-describedby="stack-hint">
+     <small class="nish-hint" id="stack-hint">Up to 64</small>
+   </label>
+   .nish-label is the small uppercase label for sections and card headings. */
+:where(.nish-label) {
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
+  font-weight: var(--nish-weight-medium);
+  line-height: 1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+:where(.nish-field) {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+:where(.nish-field-label) {
+  color: var(--nish-hi);
+  font-size: var(--nish-text-sm);
+  font-weight: var(--nish-weight-medium);
+  line-height: 1.25rem;
+}
+:where(.nish-optional) {
+  margin-left: 6px;
+  color: var(--nish-ghost);
+  font-size: var(--nish-text-xs);
+  font-weight: var(--nish-weight-normal);
+}
+:where(.nish-hint) {
+  margin: 0;
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
+  line-height: 1rem;
+}
+:where(.nish-error) {
+  margin: 0;
+  color: var(--nish-loss);
+  font-size: var(--nish-text-xs);
+  line-height: 1rem;
+}
+/* Label beside the control; hint and error indent under the control. */
+:where(.nish-field--inline) {
+  grid-template-columns: var(--nish-field-label-width, 7rem) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+}
+:where(.nish-field--inline) > :where(.nish-field-label, .nish-label) {
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
+  font-weight: var(--nish-weight-normal);
+  letter-spacing: normal;
+  text-transform: none;
+}
+:where(.nish-field--inline) > :where(.nish-hint, .nish-error) {
+  grid-column: 2;
+}
+
+/* --- Search (.nish-search) ----------------------------------------------------------
+   <label class="nish-search"><svg …></svg><input class="nish-input" type="search" aria-label="Search"></label>
+   A leading icon, and an optional trailing <kbd> hint or clear button. */
+:where(.nish-search) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+:where(.nish-search) > :where(svg) {
+  position: absolute;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  color: var(--nish-hi3);
+  pointer-events: none;
+}
+:where(.nish-search) > :where(input) {
+  padding-left: 32px;
+}
+:where(.nish-search) > :where(input:not(:last-child)) {
+  padding-right: 40px;
+}
+:where(.nish-search) > :where(kbd, button) {
+  position: absolute;
+  right: 6px;
+}
+:where(.nish-search) > :where(kbd) {
+  pointer-events: none;
+}
+:where(.nish-search--bare) > :where(input) {
+  border-color: transparent;
+  background-color: transparent;
+}
+
+/* --- Segmented (.nish-seg) ----------------------------------------------------------
+   <div class="nish-seg" role="group" aria-label="Mode">
+     <button type="button" aria-pressed="true">Survival</button><button type="button" aria-pressed="false">Creative</button>
+   </div>
+   Children may also be [role=radio][aria-checked] (a radiogroup with arrow keys).
+   Default: a track holding the segments (the React look). --joined: bordered buttons
+   sharing edges. --pills: separate pills with a gap. */
+:where(.nish-seg) {
+  box-sizing: border-box;
+  display: inline-flex;
+  max-width: 100%;
+  padding: 2px;
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-elevated);
+}
+:where(.nish-seg) > :where(button, a, [role='radio']) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nish-hi2);
+  font: inherit;
+  font-size: var(--nish-text-xs);
+  font-weight: var(--nish-weight-medium);
+  font-variant-numeric: tabular-nums;
+  line-height: 1rem;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+:where(.nish-seg > button:hover, .nish-seg > a:hover, .nish-seg > [role='radio']:hover) {
+  color: var(--nish-hi);
+}
+:where(.nish-seg) > :where([aria-pressed='true'], [aria-checked='true'], [aria-current='page']) {
+  background: var(--nish-accent-soft);
+  color: var(--nish-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nish-accent) 40%, transparent);
+}
+:where(.nish-seg) > :where(:disabled, [aria-disabled='true']) {
+  pointer-events: none;
+  color: var(--nish-ghost);
+}
+:where(.nish-seg--joined) {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+:where(.nish-seg--joined) > :where(button, a, [role='radio']) {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: 0;
+  background: var(--nish-surface);
+  font-size: var(--nish-text-sm);
+}
+:where(.nish-seg--joined) > :where(:not(:first-child)) {
+  margin-left: -1px;
+}
+:where(.nish-seg--joined) > :where(:first-child) {
+  border-radius: var(--nish-radius-sm) 0 0 var(--nish-radius-sm);
+}
+:where(.nish-seg--joined) > :where(:last-child) {
+  border-radius: 0 var(--nish-radius-sm) var(--nish-radius-sm) 0;
+}
+:where(.nish-seg--joined) > :where([aria-pressed='true'], [aria-checked='true'], [aria-current='page']) {
+  position: relative;
+  border-color: color-mix(in srgb, var(--nish-accent) 40%, transparent);
+  box-shadow: none;
+}
+:where(.nish-seg--pills) {
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+:where(.nish-seg--pills) > :where(button, a, [role='radio']) {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-pill);
+  font-size: var(--nish-text-sm);
+}
+:where(.nish-seg--pills) > :where([aria-pressed='true'], [aria-checked='true'], [aria-current='page']) {
+  border-color: color-mix(in srgb, var(--nish-accent) 60%, transparent);
+  box-shadow: none;
+}
+
+/* --- Chip (.nish-chip) --------------------------------------------------------------
+   A multi-select filter toggle: <button class="nish-chip" aria-pressed="false">Iron</button>.
+   Group them in <div role="group" aria-label="…" class="nish-chips">. */
+:where(.nish-chips) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+:where(.nish-chip) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-pill);
+  background: transparent;
+  color: var(--nish-hi2);
+  font: inherit;
+  font-size: var(--nish-text-sm);
+  line-height: 1.25rem;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+:where(.nish-chip:hover) {
+  background: var(--nish-elevated);
+}
+:where(.nish-chip[aria-pressed='true']) {
+  border-color: color-mix(in srgb, var(--nish-accent) 60%, transparent);
+  background: var(--nish-accent-soft);
+  color: var(--nish-accent);
+}
+:where(.nish-chip:disabled, .nish-chip[aria-disabled='true']) {
+  pointer-events: none;
+  color: var(--nish-ghost);
+}
+:where(.nish-chip--suggestion) {
+  border-style: dashed;
+  color: var(--nish-hi3);
+}
+:where(.nish-chip--suggestion)::before {
+  content: '+';
+  font-weight: var(--nish-weight-medium);
+}
+:where(.nish-chip--sm) {
+  height: 28px;
+  padding: 0 10px;
+  font-size: var(--nish-text-xs);
+  line-height: 1rem;
+}
+
+/* --- Callout (.nish-callout) --------------------------------------------------------
+   <div class="nish-callout nish-callout--warn">
+     <span class="nish-callout-icon" aria-hidden="true">!</span>
+     <div><p class="nish-callout-title">Heads up</p><p>Body text.</p></div>
+   </div>
+   The icon square is the tone's fill with on-* text. */
+:where(.nish-callout) {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-card, 12px);
+  background: var(--nish-elevated);
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
+  line-height: 1.35rem;
+}
+:where(.nish-callout) > :where(div) {
+  min-width: 0;
+  flex: 1;
+}
+:where(.nish-callout) :where(p) {
+  margin: 0;
+}
+:where(.nish-callout) :where(p + p) {
+  margin-top: 4px;
+}
+:where(.nish-callout-title) {
+  color: var(--nish-hi);
+  font-weight: var(--nish-weight-medium);
+}
+:where(.nish-callout-icon) {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--nish-overlay);
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-xs);
+  font-weight: var(--nish-weight-bold);
+  line-height: 1;
+}
+:where(.nish-callout-icon) > :where(svg) {
+  width: 14px;
+  height: 14px;
+}
+:where(.nish-callout--accent) {
+  border-color: color-mix(in srgb, var(--nish-accent) 30%, transparent);
+  background: var(--nish-accent-soft);
+}
+:where(.nish-callout--accent) :where(.nish-callout-icon) {
+  background: var(--nish-accent);
+  color: var(--nish-on-accent);
+}
+:where(.nish-callout--info) {
+  border-color: color-mix(in srgb, var(--nish-info) 30%, transparent);
+  background: var(--nish-info-soft);
+}
+:where(.nish-callout--info) :where(.nish-callout-icon) {
+  background: var(--nish-info-fill);
+  color: var(--nish-on-info);
+}
+:where(.nish-callout--ok) {
+  border-color: color-mix(in srgb, var(--nish-ok) 30%, transparent);
+  background: var(--nish-ok-soft);
+}
+:where(.nish-callout--ok) :where(.nish-callout-icon) {
+  background: var(--nish-ok-fill);
+  color: var(--nish-on-ok);
+}
+:where(.nish-callout--warn) {
+  border-color: color-mix(in srgb, var(--nish-warn) 30%, transparent);
+  background: var(--nish-warn-soft);
+}
+:where(.nish-callout--warn) :where(.nish-callout-icon) {
+  background: var(--nish-warn-fill);
+  color: var(--nish-on-warn);
+}
+:where(.nish-callout--loss) {
+  border-color: color-mix(in srgb, var(--nish-loss) 30%, transparent);
+  background: var(--nish-loss-soft);
+}
+:where(.nish-callout--loss) :where(.nish-callout-icon) {
+  background: var(--nish-loss-fill);
+  color: var(--nish-on-loss);
+}
+
+/* --- Stats (.nish-stats > .nish-stat) -----------------------------------------------
+   <dl class="nish-stats">
+     <div class="nish-stat"><dt class="nish-stat-label">Blocks</dt><dd class="nish-stat-value">1,284</dd></div>
+   </dl>
+   --tinted: raised fill instead of a card. --sm: denser, smaller values. */
+:where(.nish-stats) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+:where(.nish-stat) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-card, 12px);
+  background: var(--nish-surface);
+  box-shadow: var(--nish-shadow-card);
+}
+:where(.nish-stat-label) {
+  margin: 0;
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
+  line-height: 1rem;
+}
+:where(.nish-stat-value) {
+  margin: 0;
+  color: var(--nish-hi);
+  font-size: var(--nish-text-xl);
+  font-weight: var(--nish-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.75rem;
+  letter-spacing: var(--nish-tracking-tight);
+  overflow-wrap: anywhere;
+}
+:where(.nish-stat-sub) {
+  margin: 0;
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
+  line-height: 1rem;
+}
+:where(.nish-stat-value--ok) {
+  color: var(--nish-ok);
+}
+:where(.nish-stat-value--loss) {
+  color: var(--nish-loss);
+}
+:where(.nish-stat-value--warn) {
+  color: var(--nish-warn);
+}
+:where(.nish-stats--tinted) > :where(.nish-stat),
+:where(.nish-stat--tinted) {
+  border-color: transparent;
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-elevated);
+  box-shadow: none;
+}
+:where(.nish-stats--sm) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+  gap: 8px;
+}
+:where(.nish-stats--sm) > :where(.nish-stat) {
+  padding: 8px 10px;
+}
+:where(.nish-stats--sm) :where(.nish-stat-value) {
+  font-size: var(--nish-text-base);
+  line-height: 1.5rem;
+}
+
+/* --- Table (.nish-table-wrap) -------------------------------------------------------
+   <div class="nish-table-wrap"><table>…</table></div>. Zebra rows, a quiet caps
+   header, td.num / th.num right-aligned. --sticky keeps the header in view inside a
+   box capped at --nish-table-max-h (default 28rem). */
+:where(.nish-table-wrap) {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-card, 12px);
+  background: var(--nish-surface);
+}
+:where(.nish-table-wrap) > :where(table) {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: var(--nish-text-sm);
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+:where(.nish-table-wrap) :where(th, td) {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--nish-line);
+  text-align: left;
+  vertical-align: top;
+}
+:where(.nish-table-wrap) :where(thead th) {
+  background: var(--nish-surface);
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
+  font-weight: var(--nish-weight-medium);
+  line-height: 1rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+:where(.nish-table-wrap) :where(tbody th) {
+  color: var(--nish-hi);
+  font-weight: var(--nish-weight-medium);
+}
+:where(.nish-table-wrap) :where(td) {
+  color: var(--nish-hi2);
+}
+:where(.nish-table-wrap) :where(tbody tr:nth-child(even)) {
+  background: color-mix(in srgb, var(--nish-elevated) 55%, transparent);
+}
+:where(.nish-table-wrap) :where(tbody tr:last-child) > :where(th, td) {
+  border-bottom: 0;
+}
+:where(.nish-table-wrap) :where(.num) {
+  text-align: right;
+  white-space: nowrap;
+}
+:where(.nish-table-wrap) :where(caption) {
+  padding: 8px 12px;
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
+  text-align: left;
+}
+:where(.nish-table-wrap--sticky) {
+  max-height: var(--nish-table-max-h, 28rem);
+}
+:where(.nish-table-wrap--sticky) :where(thead th) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-shadow: inset 0 -1px 0 var(--nish-line);
+}
+
+/* --- Meter (.nish-meter > i) --------------------------------------------------------
+   <div class="nish-meter nish-meter--ok" role="meter" aria-label="Durability"
+        aria-valuemin="0" aria-valuemax="100" aria-valuenow="64"><i style="width:64%"></i></div>
+   The fill width can also come from --value: <div class="nish-meter" style="--value:64%">. */
+:where(.nish-meter) {
+  box-sizing: border-box;
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--nish-radius-pill);
+  background: var(--nish-elevated);
+}
+:where(.nish-card, .nish-stat, .nish-callout) :where(.nish-meter) {
+  background: var(--nish-overlay);
+}
+:where(.nish-meter) > :where(i) {
+  display: block;
+  width: var(--value, 0%);
+  max-width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--nish-accent);
+  transition: width var(--nish-dur-med) var(--nish-ease-out);
+}
+:where(.nish-meter--sm) {
+  height: 4px;
+}
+:where(.nish-meter--lg) {
+  height: 12px;
+}
+:where(.nish-meter--ok) > :where(i) {
+  background: var(--nish-ok-fill);
+}
+:where(.nish-meter--warn) > :where(i) {
+  background: var(--nish-warn-fill);
+}
+:where(.nish-meter--loss) > :where(i) {
+  background: var(--nish-loss-fill);
+}
+:where(.nish-meter--info) > :where(i) {
+  background: var(--nish-info-fill);
+}
+
+/* --- Disclosure (details.nish-disclosure) --------------------------------------------
+   <details class="nish-disclosure"><summary>Sources</summary><div>…</div></details>
+   Native semantics, no script. A chevron turns when open. --card boxes it. */
+:where(.nish-disclosure) {
+  min-width: 0;
+}
+:where(.nish-disclosure) > :where(summary) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--nish-hi);
+  font-size: var(--nish-text-sm);
+  font-weight: var(--nish-weight-medium);
+  line-height: 1.25rem;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+:where(.nish-disclosure) > :where(summary)::-webkit-details-marker {
+  display: none;
+}
+:where(.nish-disclosure) > :where(summary)::after {
+  content: '';
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  margin: 0 4px 3px;
+  border-right: 2px solid var(--nish-hi3);
+  border-bottom: 2px solid var(--nish-hi3);
+  transform: rotate(45deg);
+  transition: transform var(--nish-dur-fast) var(--nish-ease-out);
+}
+:where(.nish-disclosure[open]) > :where(summary)::after {
+  margin-bottom: -3px;
+  transform: rotate(-135deg);
+}
+:where(.nish-disclosure) > :where(summary:hover) {
+  color: var(--nish-accent);
+}
+:where(.nish-disclosure) > :where(:not(summary)) {
+  margin-top: 8px;
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
+  line-height: 1.35rem;
+}
+:where(.nish-disclosure--card) {
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-card, 12px);
+  background: var(--nish-surface);
+  box-shadow: var(--nish-shadow-card);
+}
+:where(.nish-disclosure--card) > :where(summary) {
+  min-height: 44px;
+  padding: 0 16px;
+}
+:where(.nish-disclosure--card) > :where(:not(summary)) {
+  margin-top: 0;
+  padding: 0 16px 14px;
+}
+
+/* --- Status dot (.nish-dot) ---------------------------------------------------------
+   <span class="nish-dot nish-dot--ok" aria-hidden="true"></span> next to visible text,
+   or with a visually hidden label. 8px; --xs 6, --md 10, --lg 14. */
+:where(.nish-dot) {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nish-ghost);
+  vertical-align: middle;
+}
+:where(.nish-dot--accent) {
+  background: var(--nish-accent);
+}
+:where(.nish-dot--ok) {
+  background: var(--nish-ok-fill);
+}
+:where(.nish-dot--warn) {
+  background: var(--nish-warn-fill);
+}
+:where(.nish-dot--loss) {
+  background: var(--nish-loss-fill);
+}
+:where(.nish-dot--info) {
+  background: var(--nish-info-fill);
+}
+:where(.nish-dot--xs) {
+  width: 6px;
+  height: 6px;
+}
+:where(.nish-dot--md) {
+  width: 10px;
+  height: 10px;
+}
+:where(.nish-dot--lg) {
+  width: 14px;
+  height: 14px;
+}
+/* Halo: a 4px ring of the dot's own fill at 25%. */
+:where(.nish-dot--halo) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nish-ghost) 25%, transparent);
+}
+:where(.nish-dot--halo.nish-dot--accent) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nish-accent) 25%, transparent);
+}
+:where(.nish-dot--halo.nish-dot--ok) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nish-ok-fill) 25%, transparent);
+}
+:where(.nish-dot--halo.nish-dot--warn) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nish-warn-fill) 25%, transparent);
+}
+:where(.nish-dot--halo.nish-dot--loss) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nish-loss-fill) 25%, transparent);
+}
+:where(.nish-dot--halo.nish-dot--info) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--nish-info-fill) 25%, transparent);
+}
+:where(.nish-dot--pulse) {
+  animation: nish-dot-pulse 1.6s ease-in-out infinite;
+}
+@keyframes nish-dot-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* --- Empty and error states (.nish-empty, .nish-error-state) -------------------------
+   <div class="nish-empty"><p class="nish-empty-title">No trips yet</p><p>Plan one with /trip-plan.</p></div>
+   <div class="nish-error-state" role="alert"><p>Failed to load</p><button class="nish-btn nish-btn--sm">Retry</button></div> */
+:where(.nish-empty, .nish-error-state) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 24px;
+  border: 1px dashed var(--nish-line);
+  border-radius: var(--nish-radius-card, 12px);
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
+  line-height: 1rem;
+  text-align: center;
+}
+:where(.nish-empty, .nish-error-state) :where(p) {
+  max-width: 24rem;
+  margin: 0;
+}
+:where(.nish-empty-title) {
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
+  font-weight: var(--nish-weight-medium);
+  line-height: 1.25rem;
+}
+:where(.nish-empty, .nish-error-state) > :where(button, a, .nish-btn) {
+  margin-top: 8px;
+}
+:where(.nish-error-state) {
+  padding: 40px 24px;
+  border: 1px solid color-mix(in srgb, var(--nish-loss) 30%, transparent);
+  background: var(--nish-loss-soft);
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
+  line-height: 1.25rem;
+}
+
+/* --- Touch: every control is a 44px target under a coarse pointer ---------------------- */
+@media (pointer: coarse) {
+  :where(.nish-btn, .nish-input, .nish-select, .nish-chip, .nish-disclosure > summary) {
+    min-height: var(--nish-tap-min);
+  }
+  :where(.nish-icon-btn, .nish-theme-btn, .nish-seg > button, .nish-seg > a, .nish-seg > [role='radio']) {
+    min-width: var(--nish-tap-min);
+    min-height: var(--nish-tap-min);
+  }
+  :where(.nish-btn--link) {
+    min-height: 0;
+  }
+}

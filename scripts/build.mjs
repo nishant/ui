@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import vm from 'node:vm';
 import { COLOR_ROLES, DEFAULT_THEME, SCALE, SHADOWS, SOFT_ROLES, THEMES } from '../src/tokens.mjs';
+import { buildComponentsCss } from './build-components.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = join(root, 'src');
@@ -86,6 +87,8 @@ const baseCss = readFileSync(join(src, 'css/base.css'), 'utf8');
 writeFileSync(join(dist, 'fonts.css'), fontsCss);
 writeFileSync(join(dist, 'base.css'), baseCss);
 writeFileSync(join(dist, 'nish.css'), [HEADER, tokensCss, fontsCss, baseCss].join('\n'));
+// Opt-in component classes for static pages (not part of nish.css).
+const componentsCss = buildComponentsCss(src, dist);
 
 // --- tailwind.css ------------------------------------------------------------------
 // Consumers: @import "tailwindcss"; @import "@nish/ui/tailwind.css";
@@ -143,7 +146,7 @@ testGlobal(readFileSync(join(dist, 'theme.global.js'), 'utf8'));
 // to guess them (hosting's scripts/sync-ui.mjs can read this instead of a fixed list).
 writeFileSync(
   join(dist, 'files.json'),
-  JSON.stringify({ static: ['nish.css', 'theme-init.js', 'theme.js', 'theme.global.js', ...fontFiles] }, null, 2) + '\n',
+  JSON.stringify({ static: ['nish.css', componentsCss, 'theme-init.js', 'theme.js', 'theme.global.js', ...fontFiles] }, null, 2) + '\n',
 );
 
 console.log('built dist/');
