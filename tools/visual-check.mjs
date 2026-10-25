@@ -15,7 +15,7 @@
 //   "setTheme": "localStorage.setItem('nish-theme','{theme}')",     // optional; runs before page scripts
 //   "fullPage": true,
 //   "maxHeight": 16000,                                            // optional; full-page shots stop here
-//   "ignoreConsole": ["regex", ...]                                 // optional
+//   "ignoreConsole": ["regex", ...]                                 // optional; also per page
 // }
 //
 // Writes <out>/<page>/<viewport>-<theme>.jpg and <out>/report.json. Exit 1 when any
@@ -160,6 +160,8 @@ const report = { name: config.name, outDir, generated: new Date().toISOString(),
 let failed = 0;
 
 for (const pg of config.pages) {
+  // A page that fails on purpose (a missing record) can ignore its own expected errors.
+  const pageIgnore = (pg.ignoreConsole ?? []).map((r) => new RegExp(r));
   if (only && !only.includes(pg.name)) continue;
   mkdirSync(join(outDir, pg.name), { recursive: true });
   for (const vpName of pg.viewports ?? viewports) {
@@ -178,7 +180,7 @@ for (const pg of config.pages) {
       const page = await ctx.newPage();
       const consoleErrors = [];
       page.on('console', (m) => {
-        if (m.type() === 'error' && !ignoreConsole.some((r) => r.test(m.text()))) consoleErrors.push(m.text().slice(0, 300));
+        if (m.type() === 'error' && !ignoreConsole.some((r) => r.test(m.text())) && !pageIgnore.some((r) => r.test(m.text()))) consoleErrors.push(m.text().slice(0, 300));
       });
       page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${String(e.message).slice(0, 300)}`));
 
