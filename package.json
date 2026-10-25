@@ -28,6 +28,7 @@
     "./fonts.css": "./dist/fonts.css",
     "./base.css": "./dist/base.css",
     "./fonts/*": "./dist/fonts/*",
+    "./files.json": "./dist/files.json",
     "./package.json": "./package.json"
   },
   "scripts": {

@@ -1,6 +1,7 @@
 // Builds dist/: generated CSS from src/tokens.mjs, the copied fonts, theme-init.js
 // with the theme list baked in, and the JS/types via tsup.
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
@@ -66,11 +67,20 @@ const tokensCss = parts.join('\n');
 writeFileSync(join(dist, 'tokens.css'), tokensCss);
 
 // --- fonts, base, nish.css (everything a static page links) -------------------
+// Font files get content-hashed names (inter-latin-wght-normal.1a2b3c4d.woff2), so a
+// static site can serve /assets with a one-year immutable cache.
 const fontDir = join(root, 'node_modules/@fontsource-variable/inter/files');
+let fontsCss = readFileSync(join(src, 'css/fonts.css'), 'utf8');
+const fontFiles = [];
 for (const f of ['inter-latin-wght-normal.woff2', 'inter-latin-ext-wght-normal.woff2']) {
-  cpSync(join(fontDir, f), join(dist, 'fonts', f));
+  const buf = readFileSync(join(fontDir, f));
+  const hashed = f.replace(/\.woff2$/, `.${createHash('sha256').update(buf).digest('hex').slice(0, 8)}.woff2`);
+  writeFileSync(join(dist, 'fonts', hashed), buf);
+  const ref = `./fonts/${f}`;
+  if (!fontsCss.includes(ref)) throw new Error(`src/css/fonts.css does not reference ${ref}`);
+  fontsCss = fontsCss.replaceAll(ref, `./fonts/${hashed}`);
+  fontFiles.push(`fonts/${hashed}`);
 }
-const fontsCss = readFileSync(join(src, 'css/fonts.css'), 'utf8');
 const baseCss = readFileSync(join(src, 'css/base.css'), 'utf8');
 writeFileSync(join(dist, 'fonts.css'), fontsCss);
 writeFileSync(join(dist, 'base.css'), baseCss);
@@ -125,6 +135,13 @@ const init = readFileSync(join(src, 'theme-init.js'), 'utf8')
   .replace('var DEFAULT = __DEFAULT__;', `var DEFAULT = ${JSON.stringify(DEFAULT_THEME)};`);
 testInit(init);
 writeFileSync(join(dist, 'theme-init.js'), init);
+
+// What a static site vendors, with the hashed font names, so a sync script never has
+// to guess them (hosting's scripts/sync-ui.mjs can read this instead of a fixed list).
+writeFileSync(
+  join(dist, 'files.json'),
+  JSON.stringify({ static: ['nish.css', 'theme-init.js', 'theme.js', ...fontFiles] }, null, 2) + '\n',
+);
 
 console.log('built dist/');
 
