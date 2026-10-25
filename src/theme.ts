@@ -8,7 +8,8 @@
  */
 import { DEFAULT_THEME, THEMES, type Scheme } from './tokens.mjs';
 
-export type ThemeName = keyof typeof THEMES;
+/** A shared theme, or an app's own one added with registerThemes(). */
+export type ThemeName = keyof typeof THEMES | (string & {});
 export type ThemeChoice = ThemeName | 'system';
 
 export interface ThemePreset {
@@ -18,7 +19,7 @@ export interface ThemePreset {
   colors: Record<string, string>;
 }
 
-export const PRESETS: ThemePreset[] = (Object.keys(THEMES) as ThemeName[]).map((id) => ({
+export const PRESETS: ThemePreset[] = (Object.keys(THEMES) as (keyof typeof THEMES)[]).map((id) => ({
   id,
   label: THEMES[id].label,
   scheme: THEMES[id].scheme,
@@ -29,13 +30,27 @@ const KEY = 'nish-theme';
 const SHARED_DOMAIN = 'nish.software';
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
+// App-defined themes ({ id: 'dark' | 'light' }). The app styles them itself with
+// [data-theme='<id>'] blocks that set --nish-* variables; this only teaches the theme
+// logic that the names are valid and which scheme each one is.
+const extra: Record<string, Scheme> = {};
+
+/** Let an app offer its own themes next to the shared ones. Call it before
+ *  initTheme(), and set the same map on window.__nishExtraThemes before theme-init.js
+ *  runs, so the first paint knows them too. */
+export function registerThemes(themes: Record<string, Scheme>): void {
+  Object.assign(extra, themes);
+}
+
+const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
+
 export function isThemeName(v: unknown): v is ThemeName {
-  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(THEMES, v);
+  return typeof v === 'string' && (has(THEMES, v) || has(extra, v));
 }
 
 function readCookie(): string | null {
   if (typeof document === 'undefined') return null;
-  const m = document.cookie.match(/(?:^|;\s*)nish-theme=([a-z-]+)/);
+  const m = document.cookie.match(/(?:^|;\s*)nish-theme=([a-z0-9-]+)/);
   return m ? m[1] : null;
 }
 
@@ -70,12 +85,12 @@ function allowedThemes(): ThemeName[] | null {
 export function resolveTheme(choice: ThemeChoice = getThemeChoice()): ThemeName {
   let theme: ThemeName = choice === 'system' ? systemTheme() : choice;
   const allowed = typeof document === 'undefined' ? null : allowedThemes();
-  if (allowed && !allowed.includes(theme)) theme = THEMES[theme].scheme;
+  if (allowed && !allowed.includes(theme)) theme = schemeOf(theme);
   return theme;
 }
 
 export function schemeOf(theme: ThemeName): Scheme {
-  return THEMES[theme].scheme;
+  return has(THEMES, theme) ? THEMES[theme as keyof typeof THEMES].scheme : (extra[theme] ?? 'dark');
 }
 
 /** Paint a choice onto <html> without saving it. */

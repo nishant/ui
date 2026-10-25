@@ -57,6 +57,27 @@ initTheme();
 // <ThemeToggle presets /> in the header, <Toaster /> once at the root
 ```
 
+For bars, meters and chart lines use the fill versions of the status colors
+(`bg-th-ok-fill`, `bg-th-warn-fill`, `stroke-[var(--nish-loss-fill)]`): in light themes they are
+brighter than the text-safe `th-ok`/`th-warn`, which look muddy as large fills.
+
+### An app's own themes
+
+Shared themes cover most apps. To offer extra ones, style them with `[data-theme='<id>']`
+blocks that set every `--nish-*` color, then register them so the theme logic accepts the
+names:
+
+```html
+<script>window.__nishExtraThemes = { rose: 'dark', paper: 'light' };</script>
+<!-- then theme-init.js -->
+```
+
+```ts
+import { registerThemes, initTheme } from '@nish/ui';
+registerThemes({ rose: 'dark', paper: 'light' });
+initTheme();
+```
+
 Colors are Tailwind classes named by role: `bg-th-bg`, `bg-th-surface`, `bg-th-elevated`,
 `border-th-line`, `text-th-hi`, `text-th-hi2`, `text-th-hi3`, `text-th-ghost`, `bg-th-accent`
 `text-th-on-accent`, `text-th-ok`, `text-th-loss`, `text-th-warn`, `text-th-info`, each status

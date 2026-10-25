@@ -42,6 +42,7 @@ const RULES = [
   ['info', ['bg', 'surface'], TEXT],
   ['invert-text', ['invert-bg'], TEXT],
   ['line-strong', ['surface'], 1.6],
+  ...['ok-fill', 'loss-fill', 'warn-fill', 'info-fill'].map((f) => [f, ['bg', 'surface', 'elevated'], UI]),
   ...Array.from({ length: 8 }, (_, i) => [`chart-${i + 1}`, ['bg', 'surface'], UI]),
   ...['emerald', 'indigo', 'amber', 'lime', 'rose', 'sky', 'violet', 'teal'].map((h) => [h, ['bg', 'surface'], UI]),
 ];

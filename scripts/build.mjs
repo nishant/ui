@@ -128,6 +128,8 @@ function testInit(code) {
     { cookie: '', expect: DEFAULT_THEME },
     { cookie: 'nish-theme=bogus', expect: DEFAULT_THEME },
     { cookie: 'nish-theme=mocha', allowed: 'dark light', expect: 'dark' },
+    { cookie: 'nish-theme=rose', extra: { rose: 'light' }, expect: 'rose', scheme: 'light' },
+    { cookie: 'nish-theme=rose', expect: DEFAULT_THEME },
   ];
   for (const c of cases) {
     const attrs = { 'data-nish-themes': c.allowed ?? null };
@@ -139,10 +141,10 @@ function testInit(code) {
     const ctx = {
       document: { cookie: c.cookie, documentElement: root },
       localStorage: { getItem: () => c.stored ?? null },
-      window: { matchMedia: () => ({ matches: !!c.light }) },
+      window: { matchMedia: () => ({ matches: !!c.light }), __nishExtraThemes: c.extra },
     };
     new Function('document', 'localStorage', 'window', code)(ctx.document, ctx.localStorage, ctx.window);
-    if (attrs['data-theme'] !== c.expect || attrs['data-scheme'] !== THEMES[c.expect].scheme) {
+    if (attrs['data-theme'] !== c.expect || attrs['data-scheme'] !== (c.scheme ?? THEMES[c.expect].scheme)) {
       throw new Error(`theme-init.js: ${JSON.stringify(c)} gave ${attrs['data-theme']}/${attrs['data-scheme']}`);
     }
   }

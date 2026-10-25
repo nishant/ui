@@ -4,12 +4,15 @@
 // { name: scheme } for every theme in src/tokens.mjs.
 (function () {
   var THEMES = __THEMES__;
+  // An app's own themes: window.__nishExtraThemes = { rose: 'dark', paper: 'light' }.
+  var extra = window.__nishExtraThemes || {};
+  for (var k in extra) if (!THEMES[k]) THEMES[k] = extra[k];
   var DEFAULT = __DEFAULT__;
   var KEY = 'nish-theme';
   var root = document.documentElement;
   var choice = null;
   try {
-    var m = document.cookie.match(/(?:^|;\s*)nish-theme=([a-z-]+)/);
+    var m = document.cookie.match(/(?:^|;\s*)nish-theme=([a-z0-9-]+)/);
     choice = m ? m[1] : localStorage.getItem(KEY);
   } catch (e) {}
   if (choice !== 'system' && !THEMES[choice]) choice = 'system';

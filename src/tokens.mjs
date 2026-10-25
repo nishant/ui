@@ -24,6 +24,10 @@ export const COLOR_ROLES = [
   'loss', // errors, losses, destructive
   'warn', // warnings, pending
   'info', // neutral notices
+  'ok-fill', // status colors for bars, meters and chart lines: brighter than the
+  'loss-fill', // text versions in light themes, where text-safe colors look muddy as fills
+  'warn-fill',
+  'info-fill',
   'scrim', // modal and drawer backdrop tone
   'invert-bg', // inverted pill (today marker, active segmented control)
   'invert-text',
@@ -127,6 +131,10 @@ export const THEMES = {
       accent2: '#7e22ce',
       'on-accent': '#ffffff',
       ok: '#065f46',
+      'ok-fill': '#059669',
+      'loss-fill': '#dc2626',
+      'warn-fill': '#c96d06',
+      'info-fill': '#0284c7',
       loss: '#a91b1b',
       warn: '#92400e',
       info: '#075985',
@@ -282,6 +290,11 @@ export const THEMES = {
     },
   },
 };
+
+// Dark themes use their status colors as fills too; only light themes override them.
+for (const t of Object.values(THEMES)) {
+  for (const r of ['ok', 'loss', 'warn', 'info']) t.colors[`${r}-fill`] ??= t.colors[r];
+}
 
 export const DEFAULT_THEME = 'dark';
 

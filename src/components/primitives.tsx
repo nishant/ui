@@ -41,7 +41,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={loading || undefined}
       className={cn(
         'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-lg font-medium transition-colors duration-150',
-        'disabled:pointer-events-none disabled:opacity-50',
+        // Disabled reads as disabled in every theme: a flat, quiet fill and faint text,
+        // instead of a dimmed copy of the enabled color.
+        'disabled:pointer-events-none disabled:border disabled:border-th-line disabled:bg-th-elevated disabled:text-th-ghost disabled:shadow-none',
         BUTTON_VARIANT[variant],
         BUTTON_SIZE[size],
         className,
@@ -74,7 +76,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       aria-pressed={active || undefined}
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-lg text-th-hi3 transition-colors duration-150',
-        'hover:bg-th-elevated hover:text-th-hi disabled:pointer-events-none disabled:opacity-50',
+        'hover:bg-th-elevated hover:text-th-hi disabled:pointer-events-none disabled:text-th-ghost',
         'pointer-coarse:min-h-11 pointer-coarse:min-w-11',
         size === 'sm' ? 'size-7' : 'size-9',
         active && 'bg-th-elevated text-th-hi',
