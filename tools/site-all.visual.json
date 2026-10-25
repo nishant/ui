@@ -77,6 +77,16 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "textarea",
+      "url": "http://localhost:5191/#/components/textarea",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "checkbox",
+      "url": "http://localhost:5191/#/components/checkbox",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "select",
       "url": "http://localhost:5191/#/components/select",
       "waitFor": "[data-page]"

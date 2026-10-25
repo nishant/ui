@@ -115,7 +115,7 @@ export function Toaster({
             type="button"
             onClick={() => dismissToast(t.id)}
             aria-label="Dismiss"
-            className="-m-1 shrink-0 rounded-md p-1 text-th-hi3 transition-colors hover:bg-th-overlay hover:text-th-hi pointer-coarse:p-2"
+            className="-m-1 inline-flex shrink-0 items-center justify-center rounded-md p-1 text-th-hi3 transition-colors hover:bg-th-overlay hover:text-th-hi pointer-coarse:-my-2 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
           >
             <XIcon size={14} />
           </button>

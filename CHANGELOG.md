@@ -3,6 +3,20 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.2.4] - 2026-10-25
+
+### Added
+- `Textarea`: multi-line text with the shared field look (16px on phones, vertical resize, invalid state).
+- `Checkbox`: a checkbox with its label and an optional hint; the whole row toggles it and is a 44px tap target on touch screens.
+- `Modal` `subtitle`: a summary pinned under the title while the body scrolls (price, status, timestamps).
+- `Skeleton` `style`, for sizes known only at runtime.
+
+### Changed
+- `Modal` titles wrap to two lines instead of cutting off after one, so long names (products, positions) stay readable.
+
+### Fixed
+- The toast's Dismiss button is 44px on touch screens (it was 30px).
+
 ## [0.2.3] - 2026-10-25
 
 ### Fixed

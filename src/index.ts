@@ -1,8 +1,8 @@
 export { cn } from './cn';
 export * from './theme';
 export { THEMES, SCALE, COLOR_ROLES, DEFAULT_THEME } from './tokens.mjs';
-export { Button, IconButton, Card, Badge, Input, Select, Label } from './components/primitives';
-export type { ButtonProps, IconButtonProps, CardProps, BadgeProps, InputProps, SelectProps } from './components/primitives';
+export { Button, IconButton, Card, Badge, Input, Textarea, Checkbox, Select, Label } from './components/primitives';
+export type { ButtonProps, IconButtonProps, CardProps, BadgeProps, InputProps, TextareaProps, CheckboxProps, SelectProps } from './components/primitives';
 export { Skeleton, SkeletonLines, EmptyState, ErrorState } from './components/feedback';
 export type { EmptyStateProps, ErrorStateProps } from './components/feedback';
 export { Toaster, toast, useToast, dismissToast } from './components/toast';

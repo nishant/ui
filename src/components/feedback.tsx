@@ -1,15 +1,18 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '../cn';
 import { AlertTriangleIcon, LoaderIcon, RotateIcon } from './icons';
 
 /** One shimmer block; size it with width/height classes. */
 export function Skeleton({
   className,
+  style,
 }: {
   /** Size and shape: h-4 w-2/5, size-9 rounded-full, … */
   className?: string;
+  /** For sizes known only at runtime, e.g. { height: chartHeight }. */
+  style?: CSSProperties;
 }) {
-  return <div aria-hidden="true" className={cn('nish-skeleton rounded-md', className)} />;
+  return <div aria-hidden="true" className={cn('nish-skeleton rounded-md', className)} style={style} />;
 }
 
 /** A padded stack of shimmer bars: the default loading body for a card or widget. */

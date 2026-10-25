@@ -30,6 +30,8 @@ export interface ModalProps {
   size?: 'md' | 'lg' | 'xl';
   /** Buttons row pinned to the bottom of the panel. */
   footer?: ReactNode;
+  /** A summary pinned under the title while the body scrolls (price, status, timestamps). */
+  subtitle?: ReactNode;
   className?: string;
 }
 
@@ -38,7 +40,7 @@ const SIZE = { md: 'sm:max-w-md', lg: 'sm:max-w-xl', xl: 'sm:max-w-3xl' };
 /** Dialog: centered panel on wide screens, bottom sheet under 640px. Closes on
  *  Escape and backdrop click, traps Tab inside, returns focus to the opener, and
  *  locks page scroll while open. */
-export function Modal({ title, onClose, children, size = 'md', footer, className }: ModalProps) {
+export function Modal({ title, onClose, children, size = 'md', footer, subtitle, className }: ModalProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -116,8 +118,9 @@ export function Modal({ title, onClose, children, size = 'md', footer, className
         )}
       >
         <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-th-line-strong sm:hidden" aria-hidden="true" />
-        <div className="flex shrink-0 items-center justify-between gap-3 px-5 pb-2 pt-3 sm:pt-4">
-          <h2 id={titleId} className="min-w-0 truncate text-base font-semibold text-th-hi">
+        <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-3 sm:pt-4">
+          {/* Long titles (product names) wrap to two lines rather than lose their end. */}
+          <h2 id={titleId} className="min-w-0 line-clamp-2 break-words pt-1 text-base font-semibold leading-snug text-th-hi">
             {title}
           </h2>
           <button
@@ -129,6 +132,7 @@ export function Modal({ title, onClose, children, size = 'md', footer, className
             <XIcon size={16} />
           </button>
         </div>
+        {subtitle ? <div className="shrink-0 border-b border-th-line px-5 pb-3 text-sm text-th-hi2">{subtitle}</div> : null}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 text-sm text-th-hi2">{children}</div>
         {footer ? (
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-th-line px-5 py-3">

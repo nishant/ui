@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
+import { forwardRef, useId, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { cn } from '../cn';
 import { ChevronDownIcon, LoaderIcon } from './icons';
 
@@ -177,6 +177,67 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ i
       className={cn(FIELD, 'h-9 px-3 text-base sm:text-sm pointer-coarse:min-h-11', className)}
       {...rest}
     />
+  );
+});
+
+export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  /** Red border and aria-invalid. */
+  invalid?: boolean;
+}
+
+/** Multi-line text with the shared field look. 16px text on phones (no iOS zoom); it
+ *  grows with its rows and the reader can resize it vertically. */
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+  { invalid, className, rows = 4, ...rest },
+  ref,
+) {
+  return (
+    <textarea
+      ref={ref}
+      rows={rows}
+      aria-invalid={invalid || undefined}
+      className={cn(FIELD, 'block resize-y px-3 py-2 text-base leading-relaxed sm:text-sm', className)}
+      {...rest}
+    />
+  );
+});
+
+export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  /** Text beside the box; clicking it toggles the box. */
+  label: ReactNode;
+  /** A quieter line under the label. */
+  hint?: ReactNode;
+}
+
+/** A checkbox with its label. The whole row is the 44px tap target on touch screens. */
+export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
+  { label, hint, className, id, disabled, ...rest },
+  ref,
+) {
+  const auto = useId();
+  const boxId = id ?? auto;
+  return (
+    <label
+      htmlFor={boxId}
+      className={cn(
+        'inline-flex cursor-pointer items-start gap-2.5 text-sm text-th-hi pointer-coarse:min-h-11 pointer-coarse:py-2.5',
+        disabled && 'cursor-not-allowed opacity-50',
+        className,
+      )}
+    >
+      <input
+        ref={ref}
+        id={boxId}
+        type="checkbox"
+        disabled={disabled}
+        className="mt-0.5 size-4 shrink-0 cursor-[inherit] rounded border-th-line-strong accent-[var(--nish-accent)]"
+        {...rest}
+      />
+      <span className="min-w-0">
+        <span className="block leading-snug">{label}</span>
+        {hint ? <span className="mt-0.5 block text-xs text-th-hi3">{hint}</span> : null}
+      </span>
+    </label>
   );
 });
 

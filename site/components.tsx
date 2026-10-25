@@ -11,6 +11,8 @@ import {
   IconButton,
   Input,
   Label,
+  Textarea,
+  Checkbox,
   Modal,
   Select,
   Skeleton,
@@ -1244,10 +1246,11 @@ toast.error('Could not save', err.message); // stays until dismissed`,
 
 // --- Modal (framed) -----------------------------------------------------------------
 
-function ModalPreview({ size, footer, long, title }: { size: 'md' | 'lg' | 'xl'; footer: boolean; long: boolean; title: string }) {
+function ModalPreview({ size, footer, long, title, subtitle }: { size: 'md' | 'lg' | 'xl'; footer: boolean; long: boolean; title: string; subtitle?: ReactNode }) {
   return (
     <Modal
       title={title}
+      subtitle={subtitle}
       size={size}
       onClose={() => undefined}
       footer={
@@ -1357,6 +1360,26 @@ const modal: ComponentDoc = {
     { id: 'confirm', name: 'Confirm', render: () => <ModalPreview size="md" footer long={false} title="Close position" /> },
     { id: 'details', name: 'Long body, lg', note: 'The body scrolls; the footer stays.', render: () => <ModalPreview size="lg" footer long title="Review the order" /> },
     { id: 'plain', name: 'No footer', render: () => <ModalPreview size="md" footer={false} long={false} title="Add a note" /> },
+    {
+      id: 'subtitle',
+      name: 'Long title, pinned subtitle',
+      note: 'Titles wrap to two lines; the subtitle stays put while the body scrolls.',
+      render: () => (
+        <ModalPreview
+          size="lg"
+          footer
+          long
+          title="Nintendo Switch 2 Mario Kart World Bundle, Console with Joy-Con 2 and Charging Grip"
+          subtitle={
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-semibold tabular-nums text-th-hi">$449.99</span>
+              <Badge tone="ok">Lowest in 30 days</Badge>
+              <span className="text-th-hi3">Best Buy · checked 12m ago</span>
+            </span>
+          }
+        />
+      ),
+    },
   ],
   usage: `import { useState } from 'react';
 import { Button, Modal } from '@nish/ui';
@@ -1459,6 +1482,105 @@ const tooltip: ComponentDoc = {
     'Tooltips explain; they never hold the only copy of something people need. Touch screens cannot hover.',
     'The trigger becomes focusable, so keyboard users get the tip on focus.',
     'For icon-only buttons, IconButton already sets a title and aria-label.',
+  ],
+};
+
+// --- Textarea ------------------------------------------------------------------------
+
+const textarea: ComponentDoc = {
+  id: 'textarea',
+  name: 'Textarea',
+  exports: ['Textarea'],
+  summary: 'Multi-line text with the shared field look: 16px text on phones so iOS does not zoom, vertical resize, and an invalid state.',
+  importLine: "import { Textarea } from '@nish/ui';",
+  controls: [
+    { key: 'rows', label: 'Rows', type: 'select', options: ['3', '4', '6'] },
+    { key: 'invalid', label: 'Invalid', type: 'boolean' },
+    { key: 'disabled', label: 'Disabled', type: 'boolean' },
+  ],
+  initial: { rows: '4', invalid: false, disabled: false },
+  render: (a) => (
+    <div className="w-full max-w-sm">
+      <Field label="Notes" error={a.invalid ? 'Keep it under 500 characters.' : undefined} id="canvas-textarea-msg">
+        <Textarea
+          rows={Number(a.rows)}
+          invalid={!!a.invalid}
+          disabled={!!a.disabled}
+          placeholder="Why this trade, what would make you close it"
+          aria-describedby={a.invalid ? 'canvas-textarea-msg' : undefined}
+        />
+      </Field>
+    </div>
+  ),
+  code: (a) => jsx('Textarea', { rows: a.rows === '4' ? undefined : Number(a.rows), invalid: a.invalid, disabled: a.disabled }),
+  stories: [
+    { id: 'label', name: 'With a label', render: () => <div className="w-full max-w-sm"><Field label="Paste a resume"><Textarea rows={3} defaultValue="Senior engineer, 8 years of TypeScript and React." /></Field></div> },
+    { id: 'invalid', name: 'Invalid', render: () => <div className="w-full max-w-sm"><Field label="Notes" error="Keep it under 500 characters." id="story-textarea-err"><Textarea invalid aria-describedby="story-textarea-err" defaultValue="Too long" /></Field></div> },
+    { id: 'disabled', name: 'Disabled', render: () => <div className="w-full max-w-sm"><Textarea disabled defaultValue="Read only while the import runs." /></div> },
+  ],
+  usage: `import { Label, Textarea } from '@nish/ui';
+
+<label className="grid gap-1.5">
+  <Label>Notes</Label>
+  <Textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
+</label>`,
+  guidelines: [
+    'Pair it with a Label; a placeholder is not a label.',
+    'For errors, set invalid and point aria-describedby at the message.',
+  ],
+};
+
+// --- Checkbox ------------------------------------------------------------------------
+
+const checkbox: ComponentDoc = {
+  id: 'checkbox',
+  name: 'Checkbox',
+  exports: ['Checkbox'],
+  summary: 'A checkbox with its label and an optional hint. The whole row toggles it, and it is a 44px tap target on touch screens.',
+  importLine: "import { Checkbox } from '@nish/ui';",
+  controls: [
+    { key: 'label', label: 'Label', type: 'text' },
+    { key: 'hint', label: 'Hint', type: 'boolean' },
+    { key: 'disabled', label: 'Disabled', type: 'boolean' },
+  ],
+  initial: { label: 'Email me when the price drops', hint: true, disabled: false },
+  render: (a) => (
+    <Checkbox
+      label={String(a.label)}
+      hint={a.hint ? 'At most one email a day per item.' : undefined}
+      disabled={!!a.disabled}
+      defaultChecked
+    />
+  ),
+  code: (a) => jsx('Checkbox', { label: a.label, hint: a.hint ? 'At most one email a day per item.' : undefined, disabled: a.disabled, defaultChecked: true }),
+  stories: [
+    { id: 'plain', name: 'Plain', render: () => <Checkbox label="Hide YouTube Shorts" /> },
+    { id: 'checked', name: 'Checked, with a hint', render: () => <Checkbox label="Only stores with a problem" hint="Hides the 14 stores that read fine." defaultChecked /> },
+    {
+      id: 'group',
+      name: 'A group',
+      render: () => (
+        <fieldset className="grid gap-1">
+          <legend className="mb-1 text-xs font-medium uppercase tracking-wider text-th-hi3">Stores</legend>
+          <Checkbox label="Best Buy" defaultChecked />
+          <Checkbox label="Amazon" defaultChecked />
+          <Checkbox label="Target" />
+          <Checkbox label="Walmart" disabled hint="Blocks automated checks." />
+        </fieldset>
+      ),
+    },
+  ],
+  usage: `import { Checkbox } from '@nish/ui';
+
+<Checkbox
+  label="Email me when the price drops"
+  hint="At most one email a day per item."
+  checked={notify}
+  onChange={(e) => setNotify(e.target.checked)}
+/>`,
+  guidelines: [
+    'Use it for independent on/off choices. For one choice among several, use Segmented or Select.',
+    'Group related boxes in a fieldset with a legend.',
   ],
 };
 
@@ -1588,6 +1710,8 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   card,
   badge,
   input,
+  textarea,
+  checkbox,
   select,
   label,
   skeleton,

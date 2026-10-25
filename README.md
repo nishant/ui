@@ -203,6 +203,8 @@ Every value per theme, live, is on the [Color page](https://design.nish.software
 | `Card` | The surface panel for widgets, tables and forms; optional padding and hover | [Card](https://design.nish.software/#/components/card) |
 | `Badge` | Status pill in six tones, each its color on its own tint | [Badge](https://design.nish.software/#/components/badge) |
 | `Input` | Text field: 16px on phones (no iOS zoom), 44px on touch, invalid state | [Input](https://design.nish.software/#/components/input) |
+| `Textarea` | Multi-line text with the shared field look | [Textarea](https://design.nish.software/#/components/textarea) |
+| `Checkbox` | A checkbox with its label and hint; the whole row is the tap target | [Checkbox](https://design.nish.software/#/components/checkbox) |
 | `Select` | Native select with the field look; keeps the platform picker on phones | [Select](https://design.nish.software/#/components/select) |
 | `Label` | Small uppercase label for fields and card sections | [Label](https://design.nish.software/#/components/label) |
 | `Skeleton`, `SkeletonLines` | Shimmer placeholders: one sized block, or a ready-made card body | [Skeleton](https://design.nish.software/#/components/skeleton) |

@@ -11,6 +11,8 @@ export const COMPONENTS = [
   'Card',
   'Badge',
   'Input',
+  'Textarea',
+  'Checkbox',
   'Select',
   'Label',
   'Skeleton',
