@@ -2,7 +2,7 @@
 
 Status: **spec, not yet built.** Written 2026-10-25 from an audit of every app and site that uses
 @nish/ui v0.2.1: jobs, trading, Nishboard, the hub, status, trackers, mc, trips and the trip-plan
-skill. v0.2.2 and v0.2.3 shipped the same morning (see below). Each app had hand-rolled the same pieces. This file is the source of truth for the **APIs and
+skill. v0.2.2 through v0.2.6 shipped the same day (see below). Refreshed 2026-10-25 15:55 CDT. Each app had hand-rolled the same pieces. This file is the source of truth for the **APIs and
 looks** of what @nish/ui adds next, so the apps can delete their local copies.
 
 The cross-repo rollout plan (which app changes what, gates, order, checks) lives in the private
@@ -26,13 +26,21 @@ The cross-repo rollout plan (which app changes what, gates, order, checks) lives
 
 ## Shipped since the audit (do not redo)
 
-The audit was taken on v0.2.1. The same morning:
+The audit was taken on v0.2.1. The same day:
 - **v0.2.2**: `Segmented<T>({ label, options: {value,label,ariaLabel?}[], value, onChange, size: 'sm'|'md', className })`,
   a radiogroup with roving tabindex, arrow keys and 44px touch targets. The selected option is `bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40`.
   ThemeToggle's selected segment gets the same accent look. The Modal close button is 44px on touch.
 - **v0.2.3**: a Segmented with no selected option keeps a Tab stop on its first option.
+- **v0.2.4**:
+  - `Textarea({ invalid, rows = 4 })`, with the field look and vertical resize.
+  - `Checkbox({ label, hint })`, a native box with `accent-color`; the row is a 44px label.
+  - Modal `subtitle`, pinned under the title.
+  - **Modal titles wrap to two lines** (`line-clamp-2`) instead of truncating.
+  - Skeleton `style`, and a 44px toast Dismiss on touch.
+- **v0.2.5**: the docs site's All components page (`site/pages/wall.tsx`); per-page `ignoreConsole` in visual-check.
+- **v0.2.6**: `.nish-pill-link` in base.css (so in `nish.css` and `tailwind.css`): the "← nish.software" pill, 44px, `hi2` text, `line` border.
 
-Before building, check `git log origin/master` and the tags again, and build on whatever has landed since.
+Since ui#1 the repo uses branches and PRs. Before building, check `git log origin/master` and the tags again, and build on whatever has landed since.
 
 ---
 
@@ -52,7 +60,7 @@ Before building, check `git log origin/master` and the tags again, and build on 
 | `mountThemeToggle` (static) | In `src/theme.ts` and `window.nishTheme`: `mountThemeToggle(button: HTMLElement, opts?: { labels?: Partial<Record<'system'\|'light'\|'dark', string>> }): () => void`. It fills the button with the three icons (system, light, dark; same SVGs as ThemeToggle), sets `data-choice`. It keeps `aria-label` and `title` correct: "Theme: Light. Switch to Dark". For a preset saved on another site: "Theme: Mocha (set on another site). Switch to System". It computes the next choice exactly as `cycleTheme()` does, cycles on click, follows `onThemeChange`, and returns a cleanup. | mc and trips contain the same toggle code; the hub's copy has a wrong label with presets |
 | `nish-components.css` (static) | See "Static component classes" below. | mc, trips, the hub, trip gates, ui's own static example |
 | `bump-consumers.sh` | Rewrite either dependency form (`github:nishant/ui#vX` or `https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX`) to the **codeload form** (works on the hosting PC runner, whose SSH key GitHub rejects). Fix the hub's base branch (`master`, not `main`). Skip a repo cleanly when it has no `@nish/ui` dependency. | status uses codeload and the script's sed never matches it; the hub's base branch is wrong |
-| README "Used by" | Correct the install column (status and trackers use the codeload tarball; trackers is not on @nish/ui until its migration lands). | Drift |
+| README "Used by" | Correct the table: the hub is plain CSS (not React), status and trackers install the codeload tarball, and the startpage (Angular, start.nish.software) joins as a CSS consumer. | Drift |
 
 ### Button (extend)
 
@@ -127,19 +135,20 @@ export function fieldClass(o?: { size?: ...; invalid?: boolean }): string;   // 
 - `selectClassName` targets the inner `<select>`. Today `className` lands on the wrapper span and apps reach in with `[&>select]:…` (jobs, Nishboard).
 - `fieldClass()` exists so an app's one-off control (such as a date input) never copies the private `FIELD` string again (jobs did).
 
-### Textarea (new)
+### Textarea (extend the v0.2.4 one)
 
-`Textarea({ invalid, size?: 'sm'|'md', autoGrow?: boolean | { maxRows: number }, ...textareaProps })`,
-forwardRef. Same field look, `px-3 py-2 text-base sm:text-sm` (sm: `px-2.5 py-1.5 sm:text-xs`).
-`autoGrow` resizes to content up to `maxRows`. Evidence: jobs 5, trackers 1, trading 1, Nishboard 1.
+Add `size?: 'sm'|'md'` (sm: `px-2.5 py-1.5 sm:text-xs`) and `autoGrow?: boolean | { maxRows: number }` (resizes to content up to `maxRows`; jobs' chat
+composer hand-rolls it). Keep `rows = 4` and the vertical resize as defaults. Evidence: jobs 5, trading 1, Nishboard 1 (trackers already adopted it).
 
-### Checkbox (new)
+### Checkbox (extend the v0.2.4 one)
 
-`Checkbox({ checked, onChange, indeterminate?, label?, hint?, trailing?, size?: 'sm'|'md', disabled })`.
-It is a real `<input type="checkbox">` (`appearance-none size-4 rounded border border-th-line-strong bg-th-elevated`,
-checked `bg-th-accent border-th-accent` with a check icon in `text-th-on-accent`; `indeterminate` is set through the ref and draws a dash).
-`label` and `hint` render inside a `<label>` with `pointer-coarse:min-h-11`, so the whole row is the hit area. `trailing` is a right-aligned slot
-(trackers' "from $212"). Evidence: jobs 5 (incl. select-all), trackers 8, trading 3, Nishboard 2 (one is a fake button).
+Shipped: `Checkbox({ label, hint, ...inputProps })`, a native box with `accent-color`, inside a `<label>` that is the 44px row. Add:
+- `indeterminate?: boolean`, set through the ref (jobs' select-all).
+- `trailing?: ReactNode`, a right-aligned slot (trackers' "from $212").
+- `label` becomes optional when `aria-label` is given (table row selection).
+- `size?: 'sm' | 'md'`.
+
+The unchecked border must read in light themes (`border-th-line-strong`). Evidence: jobs 5, trading 3, Nishboard 2 (one is a fake button); trackers adopted the base version.
 
 ### Switch (new)
 
@@ -272,8 +281,7 @@ With `label` it is `role="status"` and has a visually hidden label. Evidence: jo
 ```ts
 interface ModalProps { title: ReactNode; onClose; children; footer?; className?;
   size?: 'md' | 'lg' | 'xl' | '2xl' | 'full';     // 2xl: sm:max-w-6xl; full: sm:max-w-[calc(100vw-2rem)] sm:h-[calc(100dvh-2rem)]
-  subtitle?: ReactNode;                             // text-xs text-th-hi3 under the title
-  wrapTitle?: boolean;                              // title wraps (break-words) instead of truncating
+  subtitle?: ReactNode;                             // shipped in v0.2.4; titles already wrap to two lines
   placement?: 'center' | 'top';                     // top: sm:items-start sm:pt-[12vh] (command palettes, search)
   header?: ReactNode;                               // replaces the title row; then 'aria-label' is required
   hideClose?: boolean; 'aria-label'?: string }
@@ -281,10 +289,9 @@ interface ModalProps { title: ReactNode; onClose; children; footer?; className?;
 
 - **Fix: lock scroll on both `<html>` and `<body>`** (save and restore both inline overflow values). jobs scrolls `<html>`, and its list scrolls under the
   sheet today (it carries a local `useLockRootScroll` for this).
-- Fix (in flight): close button 44px on touch.
 - Extract the dialog internals (stack membership, focus in, Tab trap, Escape, focus return, scroll lock) into one internal hook
   shared by Modal, Drawer and ConfirmDialog. Only the top dialog in the stack answers keys.
-- Evidence: jobs (html lock, long titles), trackers (long product titles, 1100px compare panel), Nishboard (palette and search dialogs: `placement="top"` plus `header`).
+- Evidence: jobs (html lock), trackers (1100px compare panel), Nishboard (palette and search dialogs: `placement="top"` plus `header`).
 
 ### Drawer (new)
 
@@ -343,7 +350,7 @@ IconButton that cycles system, light, dark, shows the current icon and is labell
 | **Sparkline** | `Sparkline({ values: (number\|null)[], label, tone?: 'chart-1'…\|'accent'\|'ok'…, width?, height?: 28, fill?: boolean, min?, max?, className })`: SVG with no dependency, breaks at nulls, `vector-effect: non-scaling-stroke`, `role="img"`, an empty state. | status and trackers (same code), Nishboard 4 (via Recharts) |
 | **`@nish/ui/chart`** | `seriesColor(i)` → `var(--nish-chart-${i % 8 + 1})`; `CHART = { grid, axis, zero, text }` as `var()` strings; `tooltipStyle` (bg elevated, border line-strong, `var(--nish-radius-sm)`, `var(--nish-shadow-pop)`, hi text, 12px); `chartTheme()` → resolved hex via `readToken` for canvas libraries (uPlot); `useChartTheme()` re-renders on theme change. No chart-library dependency. | trading `lib/chart`, Nishboard `tk()`, status and trackers uPlot wrappers |
 | **PageHeader** | `PageHeader({ title, description?, eyebrow?, back?: ReactNode, actions?, as?: 'h1'\|'h2', sticky?: boolean })`. Title `text-2xl font-semibold tracking-tight text-th-hi`, description `text-sm text-th-hi2`. `back` takes the app's own `<Link className={buttonClass({ variant: 'link' })}>`. | jobs 7 plus 5 back links, trading 6 (sticky), trackers 3 |
-| **AppHeader** | `AppHeader({ name, icon?, hubHref?: 'https://nish.software', actions?, nav?, themeToggle?: ReactNode \| false, sticky?: true })`: the "← nish.software" pill (hidden under 480px, 44px), wordmark (icon in accent, `text-xl font-bold tracking-tight`), right slot with actions and ThemeToggle, an optional `nav` row (links with `tabClass`). Glass: `bg-th-bg/85 backdrop-blur border-b border-th-line`, safe-area top. | status and trackers share the same header markup; jobs and the hub are close |
+| **AppHeader** | `AppHeader({ name, icon?, hubHref?: 'https://nish.software', actions?, nav?, themeToggle?: ReactNode \| false, sticky?: true })`: the `.nish-pill-link` (44px; every app now shows it at every width), wordmark (icon in accent, `text-xl font-bold tracking-tight`), right slot with actions and ThemeToggle, an optional `nav` row (links with `tabClass`). Glass: `bg-th-bg/85 backdrop-blur border-b border-th-line`, safe-area top. | status and trackers share the same header markup; jobs and the hub are close |
 | **CopyButton** and **copyText** | `copyText(text): Promise<boolean>` (Clipboard API with a textarea fallback); `CopyButton({ text, label?: 'Copy', copiedLabel?: 'Copied', iconOnly?, size?, variant? })`: shows the copied state for 1.5s and announces it through a polite live region. | mc 13 (static), Nishboard 2, jobs 1, trading 1 |
 | **Kbd** | `Kbd({ children })`: `rounded border border-th-line-strong bg-th-elevated px-1.5 font-mono text-2xs text-th-hi2`. | Nishboard palette, jobs legend, mc |
 | **`.nish-prose`** | Markdown and rich text styles in base.css (headings, lists, code, tables, task lists, links) on roles and radius tokens. | Nishboard `.md-render`, jobs `.jd`, trading chat markdown |
@@ -385,7 +392,7 @@ Ship one opt-in stylesheet:
 | `.nish-meter` > `i` | Meter | `--sm` `--lg`; `--ok` `--warn` `--loss` `--info` |
 | `.nish-disclosure` | Disclosure | `--card` |
 | `.nish-empty`, `.nish-error-state` | EmptyState, ErrorState | |
-| `.nish-pill-link` | AppHeader hub link | `--on-dark` (for dark bands) |
+| `.nish-pill-link` | already in base.css since v0.2.6 (not in this file) | on a dark band, scope the band with `data-theme="dark" data-scheme="dark"` instead of a modifier |
 | `.nish-theme-btn` | the button `mountThemeToggle` fills | icon swap through `[data-choice]` |
 
 ---
@@ -394,8 +401,8 @@ Ship one opt-in stylesheet:
 
 To let several people (or agents) work in parallel without editing the same file:
 
-1. **Docs split (first, alone):** move each `ComponentDoc` out of `site/components.tsx` into `site/components/<id>.tsx`, with an
-   index that builds `COMPONENT_DOCS`. Behavior is unchanged; run `npm run build:site` and the visual check. After this, each new component adds its own file.
+1. **Docs split (first, alone):** move each `ComponentDoc` out of `site/components.tsx` (1,727 lines at v0.2.6) into `site/components/<id>.tsx`, with an
+   index that builds `COMPONENT_DOCS`. Behavior is unchanged, including the All components page; run `npm run build:site` and the visual check. After this, each new component adds its own file.
 2. **In parallel, by file ownership:**
    - *Foundation:* `src/tokens.mjs`, `scripts/build.mjs`, `src/css/base.css`, `src/cn.ts`, `src/theme.ts`, `src/theme-init.js`, `src/theme-global.ts`, `tools/contrast-rules.mjs`, `package.json` exports, `tsup.config.ts`, `scripts/bump-consumers.sh`.
    - *Primitives:* `src/components/primitives.tsx` (Button, IconButton, Card, CardHeader, Badge, Input, Select, Label, the `*Class()` exports).
