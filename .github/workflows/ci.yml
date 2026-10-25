@@ -21,6 +21,12 @@ jobs:
           npx vite --config demo/vite.config.ts --port 5190 &
           npx wait-on -t 60000 http://localhost:5190
           node tools/visual-check.mjs tools/demo.visual.json
+      - name: Visual check of the docs site
+        run: |
+          npx vite build --config site/vite.config.ts
+          npx vite preview --config site/vite.config.ts --port 5191 &
+          npx wait-on -t 60000 http://localhost:5191
+          node tools/visual-check.mjs tools/site.visual.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
