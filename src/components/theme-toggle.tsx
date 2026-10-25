@@ -7,10 +7,13 @@ import {
   resolveTheme,
   schemeOf,
   setThemeChoice,
+  TOGGLE_ORDER,
   type ThemeChoice,
   type ThemeName,
 } from '../theme';
 import { MonitorIcon, MoonIcon, SunIcon } from './icons';
+import { IconButton } from './primitives';
+import { Segmented } from './segmented';
 
 export interface ThemeState {
   /** What was picked: 'system' or a theme name. */
@@ -40,48 +43,79 @@ const MODES: { id: ThemeChoice; label: string; Icon: typeof SunIcon }[] = [
   { id: 'dark', label: 'Dark', Icon: MoonIcon },
 ];
 
+const nameOf = (choice: ThemeChoice) =>
+  MODES.find((m) => m.id === choice)?.label ?? PRESETS.find((p) => p.id === choice)?.label ?? String(choice);
+
 export interface ThemeToggleProps {
   /** Also offer the extra presets (slate, terminal, …) in a select. */
   presets?: boolean;
+  /** Show "System", "Light" and "Dark" text beside the icons. */
+  labels?: boolean;
+  /** Fill the container's width, with equal-width segments. */
+  block?: boolean;
+  /** sm: 28px segments (default). md: 32px. Both grow to 44px on touch screens. */
+  size?: 'sm' | 'md';
+  /** One icon button that cycles System, Light, Dark and shows the current choice; for
+   *  collapsed sidebars and tight headers. Ignores labels, block and presets. */
+  compact?: boolean;
   className?: string;
 }
 
-/** System / Light / Dark segmented control, optionally with a preset picker. */
-export function ThemeToggle({ presets = false, className }: ThemeToggleProps) {
-  const { choice, setChoice } = useTheme();
+/** System / Light / Dark as a Segmented radio group, optionally with a preset picker,
+ *  or one cycling icon button when compact. */
+export function ThemeToggle({ presets = false, labels = false, block = false, size = 'sm', compact = false, className }: ThemeToggleProps) {
+  const { choice, theme, scheme, setChoice } = useTheme();
   const extra = PRESETS.filter((p) => p.id !== 'dark' && p.id !== 'light');
   const isPreset = extra.some((p) => p.id === choice);
 
+  if (compact) {
+    const i = TOGGLE_ORDER.indexOf(choice);
+    const next = TOGGLE_ORDER[(i + 1) % TOGGLE_ORDER.length];
+    const mode = MODES.find((m) => m.id === choice);
+    const Icon = mode ? mode.Icon : scheme === 'light' ? SunIcon : MoonIcon;
+    const text = `Theme: ${nameOf(mode ? choice : theme)}. Switch to ${nameOf(next)}`;
+    return (
+      <IconButton label={text} size={size === 'md' ? 'md' : 'sm'} data-choice={choice} onClick={() => setChoice(next)} className={className}>
+        <Icon size={size === 'md' ? 16 : 14} />
+      </IconButton>
+    );
+  }
+
+  const options = MODES.map(({ id, label, Icon }) => ({
+    value: id,
+    label: labels ? (
+      <>
+        <Icon size={14} />
+        {label}
+      </>
+    ) : (
+      <Icon size={14} />
+    ),
+    ariaLabel: labels ? undefined : label,
+    title: labels ? undefined : label,
+  }));
+
   return (
-    <div className={cn('inline-flex items-center gap-2', className)}>
-      <div role="radiogroup" aria-label="Theme" className="inline-flex rounded-lg border border-th-line bg-th-elevated p-0.5">
-        {MODES.map(({ id, label, Icon }) => {
-          const on = choice === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              aria-label={label}
-              title={label}
-              onClick={() => setChoice(id)}
-              className={cn(
-                'inline-flex size-7 items-center justify-center rounded-md transition-colors pointer-coarse:size-10',
-                on ? 'bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40' : 'text-th-hi3 hover:text-th-hi',
-              )}
-            >
-              <Icon size={14} />
-            </button>
-          );
-        })}
-      </div>
+    <div className={cn('items-center gap-2', block ? 'flex w-full' : 'inline-flex', className)}>
+      <Segmented
+        label="Theme"
+        options={options}
+        value={choice}
+        onChange={setChoice}
+        size={size}
+        block={block}
+        // Icon-only segments stay square, as before.
+        className={cn(!labels && (size === 'md' ? '[&>button]:w-8 [&>button]:px-0' : '[&>button]:w-7 [&>button]:px-0'), block && 'min-w-0 flex-1')}
+      />
       {presets ? (
         <select
           aria-label="Theme preset"
           value={isPreset ? choice : ''}
           onChange={(e) => e.target.value && setChoice(e.target.value as ThemeChoice)}
-          className="h-8 rounded-lg border border-th-line bg-th-elevated px-2 text-xs text-th-hi2 pointer-coarse:min-h-11"
+          className={cn(
+            'rounded-lg border border-th-line bg-th-elevated px-2 text-xs text-th-hi2 pointer-coarse:min-h-11',
+            size === 'md' ? 'h-9 text-sm' : 'h-8',
+          )}
         >
           <option value="">Preset…</option>
           {extra.map((p) => (
