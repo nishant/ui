@@ -96,8 +96,11 @@ export const chartDoc: ComponentDoc = {
       name: 'tooltipStyle',
       render: () => (
         <div style={tooltipStyle} className="px-2.5 py-1.5">
-          <p>Sep</p>
-          <p style={{ color: seriesColor(0) }}>LinkedIn: 17</p>
+          <p className="font-medium">Sep</p>
+          <p className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full" style={{ background: seriesColor(0) }} aria-hidden="true" />
+            LinkedIn: 17
+          </p>
         </div>
       ),
     },

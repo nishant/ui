@@ -124,7 +124,7 @@ export const meter: ComponentDoc = {
         <Card className="w-full max-w-sm">
           <p className="text-sm font-semibold text-th-hi">API quota</p>
           <div className="mt-3 rounded-lg bg-th-elevated p-3">
-            <span className="flex justify-between text-xs text-th-hi3">
+            <span className="flex justify-between text-xs text-th-hi2">
               <span>Calls today</span>
               <span className="tabular-nums">412 / 500</span>
             </span>

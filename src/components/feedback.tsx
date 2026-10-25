@@ -20,7 +20,7 @@ const SPINNER_SIZE = { xs: 12, sm: 14, md: 16, lg: 24 } as const;
 export interface SpinnerProps {
   /** xs 12px, sm 14px, md 16px (default), lg 24px. */
   size?: keyof typeof SPINNER_SIZE;
-  /** Announces the spinner (role="status") with this visually hidden text, e.g.
+  /** Announces the spinner (role="status") with this accessible name, e.g.
    *  "Loading jobs". Without it the spinner is decorative (aria-hidden); pair it with
    *  visible text or an aria-busy container. */
   label?: string;
@@ -31,12 +31,11 @@ export interface SpinnerProps {
 /** A spinning loader in the current text color: the one spinner every app uses,
  *  instead of hand-rolled border spinners. */
 export function Spinner({ size = 'md', label, className }: SpinnerProps) {
-  const icon = <LoaderIcon size={SPINNER_SIZE[size]} className={cn('shrink-0 animate-spin', !label && className)} />;
-  if (!label) return icon;
+  if (!label) return <LoaderIcon size={SPINNER_SIZE[size]} className={cn('shrink-0 animate-spin', className)} />;
+  // The name sits on the icon (role="img"), not in visually hidden text.
   return (
     <span role="status" className={cn('inline-flex shrink-0 items-center', className)}>
-      {icon}
-      <span className="sr-only">{label}</span>
+      <LoaderIcon size={SPINNER_SIZE[size]} className="animate-spin" role="img" aria-hidden={false} aria-label={label} />
     </span>
   );
 }

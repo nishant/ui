@@ -190,7 +190,7 @@ export interface StatusDotProps {
   pulse?: boolean;
   /** A soft ring around the dot, for a header status. */
   halo?: boolean;
-  /** Visually hidden text read by screen readers ("Up", "Degraded"). Without it the
+  /** The accessible name read by screen readers ("Up", "Degraded"; role="img"). Without it the
    *  dot is aria-hidden, so always pair it with visible text then. */
   label?: string;
   className?: string;
@@ -201,6 +201,8 @@ export interface StatusDotProps {
 export function StatusDot({ tone, size = 'sm', pulse = false, halo = false, label, className }: StatusDotProps) {
   return (
     <span
+      role={label ? 'img' : undefined}
+      aria-label={label}
       aria-hidden={label ? undefined : true}
       className={cn(
         'inline-block shrink-0 rounded-full',
@@ -210,9 +212,7 @@ export function StatusDot({ tone, size = 'sm', pulse = false, halo = false, labe
         pulse && 'motion-safe:animate-pulse',
         className,
       )}
-    >
-      {label ? <span className="sr-only">{label}</span> : null}
-    </span>
+    />
   );
 }
 
@@ -269,9 +269,11 @@ export function Stat({
   className,
 }: StatProps) {
   const inGrid = useContext(InStatGrid);
+  // hi3 clears 4.5:1 on bg and surface only; on the elevated inset box the quiet text is hi2.
+  const quiet = variant === 'inset' ? 'text-th-hi2' : 'text-th-hi3';
   const body = (
     <>
-      <dt className="text-xs text-th-hi3">
+      <dt className={cn('text-xs', quiet)}>
         {tip ? (
           <Tooltip
             tip={tip}
@@ -299,7 +301,7 @@ export function Stat({
           >
             {value}
           </dd>
-          {sub ? <dd className="mt-0.5 text-xs text-th-hi3">{sub}</dd> : null}
+          {sub ? <dd className={cn('mt-0.5 text-xs', quiet)}>{sub}</dd> : null}
         </>
       )}
     </>
