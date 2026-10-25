@@ -3,6 +3,17 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.2.2] - 2026-10-25
+
+### Added
+- `Segmented`: two to five mutually exclusive choices side by side (a chart range), as an accessible radio group with arrow-key movement and 44px touch targets. Status and trackers had each grown a local one.
+
+### Changed
+- The selected option in `ThemeToggle` (and `Segmented`) takes the accent tint and ring instead of a white chip, which was hard to pick out on the light theme's off-white track.
+
+### Fixed
+- `Modal`'s close button is 44px on touch screens, matching every other control (it was 36px).
+
 ## [0.2.1] - 2026-10-25
 
 ### Fixed

@@ -68,7 +68,7 @@ export function ThemeToggle({ presets = false, className }: ThemeToggleProps) {
               onClick={() => setChoice(id)}
               className={cn(
                 'inline-flex size-7 items-center justify-center rounded-md transition-colors pointer-coarse:size-10',
-                on ? 'bg-th-surface text-th-hi shadow-card' : 'text-th-hi3 hover:text-th-hi',
+                on ? 'bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40' : 'text-th-hi3 hover:text-th-hi',
               )}
             >
               <Icon size={14} />

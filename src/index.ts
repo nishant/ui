@@ -10,4 +10,6 @@ export type { ToastTone, ToastItem } from './components/toast';
 export { Modal, Tooltip } from './components/overlay';
 export type { ModalProps } from './components/overlay';
 export { ThemeToggle, useTheme } from './components/theme-toggle';
+export { Segmented } from './components/segmented';
+export type { SegmentedProps, SegmentedOption } from './components/segmented';
 export type { ThemeState, ThemeToggleProps } from './components/theme-toggle';

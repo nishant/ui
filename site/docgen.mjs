@@ -20,10 +20,11 @@ export const COMPONENTS = [
   'Toaster',
   'Modal',
   'Tooltip',
+  'Segmented',
   'ThemeToggle',
 ];
 const FUNCTIONS = ['toast', 'dismissToast', 'useToast', 'useTheme'];
-const INTERFACES = ['ThemeState', 'ToastItem'];
+const INTERFACES = ['ThemeState', 'ToastItem', 'SegmentedProps', 'SegmentedOption'];
 
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');
 

@@ -211,6 +211,7 @@ Every value per theme, live, is on the [Color page](https://design.nish.software
 | `Toaster`, `toast()` | Toast stack; `toast.success/error/warn/info` from anywhere; errors stay until dismissed | [Toast](https://design.nish.software/#/components/toast) |
 | `Modal` | Dialog; bottom sheet under 640px; Escape, focus trap, focus return, scroll lock | [Modal](https://design.nish.software/#/components/modal) |
 | `Tooltip` | Hover and focus hint in a portal, flipped and clamped to the screen | [Tooltip](https://design.nish.software/#/components/tooltip) |
+| `Segmented` | Two to five mutually exclusive choices side by side, such as a chart range | [Segmented](https://design.nish.software/#/components/segmented) |
 | `ThemeToggle`, `useTheme()` | System / Light / Dark control with an optional preset picker | [ThemeToggle](https://design.nish.software/#/components/theme-toggle) |
 
 Also exported: `cn()` (clsx plus a tailwind-merge that knows the `th-*` colors), the theme

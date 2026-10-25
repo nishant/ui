@@ -117,6 +117,11 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "segmented",
+      "url": "http://localhost:5191/#/components/segmented",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "theme-toggle",
       "url": "http://localhost:5191/#/components/theme-toggle",
       "waitFor": "[data-page]"
@@ -259,6 +264,15 @@
       "viewports": [
         "desktop"
       ]
+    },
+    {
+      "name": "segmented-themes",
+      "url": "http://localhost:5191/#/components/segmented/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ],
+      "settle": 1200
     }
   ],
   "viewports": [
