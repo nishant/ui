@@ -44,9 +44,12 @@ npm install github:nishant/ui#v0.1.0
 <script src="/node_modules/@nish/ui/dist/theme-init.js"></script>
 ```
 
-Most bundlers want the init script inlined instead; Vite apps can use `?raw`:
-`import init from '@nish/ui/theme-init.js?raw'` and inject it with a small plugin, or copy
-`dist/theme-init.js` into `public/`.
+Better: inline it so it costs no request. In Vite, a `transformIndexHtml` plugin can read
+`node_modules/@nish/ui/dist/theme-init.js` and put it in a `<script>` at the top of `<head>`.
+The build tests this script against a stub document, so a broken copy never ships.
+
+React and react-dom are optional peers: static sites that only use the CSS and
+`@nish/ui/theme` do not get React installed.
 
 ```tsx
 import { Button, Toaster, toast, ThemeToggle, initTheme } from '@nish/ui';

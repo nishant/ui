@@ -111,8 +111,39 @@ writeFileSync(join(dist, 'tailwind.css'), tailwindCss);
 // --- theme-init.js -----------------------------------------------------------------
 const schemes = Object.fromEntries(Object.entries(THEMES).map(([k, t]) => [k, t.scheme]));
 const init = readFileSync(join(src, 'theme-init.js'), 'utf8')
-  .replace('__THEMES__', JSON.stringify(schemes))
-  .replace('__DEFAULT__', JSON.stringify(DEFAULT_THEME));
+  .replace('var THEMES = __THEMES__;', `var THEMES = ${JSON.stringify(schemes)};`)
+  .replace('var DEFAULT = __DEFAULT__;', `var DEFAULT = ${JSON.stringify(DEFAULT_THEME)};`);
+testInit(init);
 writeFileSync(join(dist, 'theme-init.js'), init);
 
 console.log('built dist/');
+
+/** Run the pre-paint script against a stub document: v0.1.0 shipped one that threw. */
+function testInit(code) {
+  const cases = [
+    { cookie: 'nish-theme=light', expect: 'light' },
+    { cookie: 'a=1; nish-theme=mocha', expect: 'mocha' },
+    { cookie: '', stored: 'slate', expect: 'slate' },
+    { cookie: '', light: true, expect: 'light' },
+    { cookie: '', expect: DEFAULT_THEME },
+    { cookie: 'nish-theme=bogus', expect: DEFAULT_THEME },
+    { cookie: 'nish-theme=mocha', allowed: 'dark light', expect: 'dark' },
+  ];
+  for (const c of cases) {
+    const attrs = { 'data-nish-themes': c.allowed ?? null };
+    const root = {
+      style: {},
+      getAttribute: (k) => attrs[k] ?? null,
+      setAttribute: (k, v) => (attrs[k] = v),
+    };
+    const ctx = {
+      document: { cookie: c.cookie, documentElement: root },
+      localStorage: { getItem: () => c.stored ?? null },
+      window: { matchMedia: () => ({ matches: !!c.light }) },
+    };
+    new Function('document', 'localStorage', 'window', code)(ctx.document, ctx.localStorage, ctx.window);
+    if (attrs['data-theme'] !== c.expect || attrs['data-scheme'] !== THEMES[c.expect].scheme) {
+      throw new Error(`theme-init.js: ${JSON.stringify(c)} gave ${attrs['data-theme']}/${attrs['data-scheme']}`);
+    }
+  }
+}

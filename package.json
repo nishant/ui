@@ -43,6 +43,10 @@
     "react": ">=19",
     "react-dom": ">=19"
   },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "react-dom": { "optional": true }
+  },
   "dependencies": {
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.7.0"
