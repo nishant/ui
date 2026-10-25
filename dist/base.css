@@ -1,0 +1,127 @@
+/* Page-level defaults every nish.software site shares. Plain CSS so static pages can
+   link it; Tailwind apps get it through tailwind.css inside the base layer, so any
+   utility class still wins. */
+
+html {
+  background-color: var(--nish-bg);
+  color: var(--nish-hi);
+  font-family: var(--nish-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* A theme scoped to part of a page (<div data-theme="light" data-scheme="light">):
+   the tokens are re-declared there by tokens.css, but inherited text color was
+   computed on html, so set it again. Zero specificity, so any class still wins. */
+:where([data-theme]:not(html)) {
+  background-color: var(--nish-bg);
+  color: var(--nish-hi);
+}
+
+/* Numbers in tables line up as columns without per-cell classes. */
+table,
+.nish-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--nish-accent) 30%, transparent);
+}
+
+/* One keyboard-focus language everywhere. Components that draw their own focus
+   style still win; this is the fallback for everything that never thought about it. */
+:focus-visible {
+  outline: var(--nish-focus-width) solid var(--nish-focus);
+  outline-offset: var(--nish-focus-offset);
+}
+
+/* Browser-default scrollbars clash with every theme, worst on light. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nish-line-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nish-line-strong);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nish-ghost);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Notches and home indicators on installed PWAs. */
+.nish-safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.nish-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--nish-elevated);
+}
+.nish-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--nish-overlay) 70%, transparent), transparent);
+  animation: nish-sheen 1.4s infinite;
+}
+
+@keyframes nish-sheen {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes nish-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nish-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes nish-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

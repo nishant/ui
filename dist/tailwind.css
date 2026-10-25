@@ -1,0 +1,79 @@
+/* Generated from src/tokens.mjs by scripts/build.mjs. Do not edit. */
+
+@import "./tokens.css";
+@import "./fonts.css";
+@import "./base.css" layer(base);
+
+/* Class names used by the components in this package. */
+@source "./";
+
+/* dark: follows the active theme, not the OS. */
+@custom-variant dark (&:where([data-scheme='dark'], [data-scheme='dark'] *));
+@custom-variant light (&:where([data-scheme='light'], [data-scheme='light'] *));
+
+@theme inline {
+  --color-th-bg: var(--nish-bg);
+  --color-th-surface: var(--nish-surface);
+  --color-th-elevated: var(--nish-elevated);
+  --color-th-overlay: var(--nish-overlay);
+  --color-th-line: var(--nish-line);
+  --color-th-line-strong: var(--nish-line-strong);
+  --color-th-hi: var(--nish-hi);
+  --color-th-hi2: var(--nish-hi2);
+  --color-th-hi3: var(--nish-hi3);
+  --color-th-ghost: var(--nish-ghost);
+  --color-th-accent: var(--nish-accent);
+  --color-th-accent2: var(--nish-accent2);
+  --color-th-on-accent: var(--nish-on-accent);
+  --color-th-on-accent2: var(--nish-on-accent2);
+  --color-th-on-ok: var(--nish-on-ok);
+  --color-th-on-loss: var(--nish-on-loss);
+  --color-th-on-warn: var(--nish-on-warn);
+  --color-th-on-info: var(--nish-on-info);
+  --color-th-ok: var(--nish-ok);
+  --color-th-loss: var(--nish-loss);
+  --color-th-warn: var(--nish-warn);
+  --color-th-info: var(--nish-info);
+  --color-th-ok-fill: var(--nish-ok-fill);
+  --color-th-loss-fill: var(--nish-loss-fill);
+  --color-th-warn-fill: var(--nish-warn-fill);
+  --color-th-info-fill: var(--nish-info-fill);
+  --color-th-scrim: var(--nish-scrim);
+  --color-th-invert-bg: var(--nish-invert-bg);
+  --color-th-invert-text: var(--nish-invert-text);
+  --color-th-emerald: var(--nish-emerald);
+  --color-th-indigo: var(--nish-indigo);
+  --color-th-amber: var(--nish-amber);
+  --color-th-lime: var(--nish-lime);
+  --color-th-rose: var(--nish-rose);
+  --color-th-sky: var(--nish-sky);
+  --color-th-violet: var(--nish-violet);
+  --color-th-teal: var(--nish-teal);
+  --color-th-chart-1: var(--nish-chart-1);
+  --color-th-chart-2: var(--nish-chart-2);
+  --color-th-chart-3: var(--nish-chart-3);
+  --color-th-chart-4: var(--nish-chart-4);
+  --color-th-chart-5: var(--nish-chart-5);
+  --color-th-chart-6: var(--nish-chart-6);
+  --color-th-chart-7: var(--nish-chart-7);
+  --color-th-chart-8: var(--nish-chart-8);
+  --color-th-accent-soft: var(--nish-accent-soft);
+  --color-th-ok-soft: var(--nish-ok-soft);
+  --color-th-loss-soft: var(--nish-loss-soft);
+  --color-th-warn-soft: var(--nish-warn-soft);
+  --color-th-info-soft: var(--nish-info-soft);
+  --color-th-gain: var(--nish-ok);
+  --color-th-danger: var(--nish-loss);
+  --color-th-2: var(--nish-hi2);
+  --color-th-3: var(--nish-hi3);
+  --color-th-bar: var(--nish-surface);
+  --color-th-focus: var(--nish-focus);
+  --font-sans: var(--nish-font-sans);
+  --font-mono: var(--nish-font-mono);
+  --shadow-card: var(--nish-shadow-card);
+  --shadow-pop: var(--nish-shadow-pop);
+  --shadow-modal: var(--nish-shadow-modal);
+  --ease-nish: var(--nish-ease-out);
+  --animate-fade-in: nish-fade-in var(--nish-dur-fast) ease-out;
+  --animate-rise-in: nish-rise-in var(--nish-dur-fast) var(--nish-ease-out);
+}
