@@ -1,4 +1,5 @@
-import { Button } from '../../src';
+import { Button, Card } from '../../src';
+import { buttonClass } from '../../src/components/primitives';
 import { DownloadIcon, PlusIcon, RefreshIcon, TrashIcon } from '../lib/icons';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -11,11 +12,11 @@ export const button: ComponentDoc = {
   name: 'Button',
   exports: ['Button'],
   summary:
-    'The standard action. Four variants by intent, three sizes, a built-in loading state, and a disabled look that reads as disabled in every theme.',
+    'The standard action. Seven variants by intent, four sizes, a built-in loading state, a disabled look that reads as disabled in every theme, and buttonClass() for links that look like buttons.',
   importLine: "import { Button } from '@nish/ui';",
   controls: [
-    { key: 'variant', label: 'Variant', type: 'select', options: ['primary', 'secondary', 'ghost', 'danger'] },
-    { key: 'size', label: 'Size', type: 'select', options: ['sm', 'md', 'lg'] },
+    { key: 'variant', label: 'Variant', type: 'select', options: ['primary', 'secondary', 'ghost', 'danger', 'soft', 'subtle', 'link'] },
+    { key: 'size', label: 'Size', type: 'select', options: ['xs', 'sm', 'md', 'lg'] },
     { key: 'label', label: 'Label', type: 'text' },
     { key: 'icon', label: 'Icon', type: 'boolean' },
     { key: 'loading', label: 'Loading', type: 'boolean' },
@@ -28,7 +29,7 @@ export const button: ComponentDoc = {
       size={a.size as 'md'}
       loading={!!a.loading}
       disabled={!!a.disabled}
-      icon={a.icon ? <DownloadIcon size={a.size === 'sm' ? 13 : 16} /> : undefined}
+      icon={a.icon ? <DownloadIcon size={a.size === 'xs' ? 12 : a.size === 'sm' ? 13 : 16} /> : undefined}
     >
       {String(a.label)}
     </Button>
@@ -39,7 +40,7 @@ export const button: ComponentDoc = {
       {
         variant: a.variant === 'secondary' ? undefined : a.variant,
         size: a.size === 'md' ? undefined : a.size,
-        icon: a.icon ? `{<DownloadIcon size={${a.size === 'sm' ? 13 : 16}} />}` : undefined,
+        icon: a.icon ? `{<DownloadIcon size={${a.size === 'xs' ? 12 : a.size === 'sm' ? 13 : 16}} />}` : undefined,
         loading: a.loading,
         disabled: a.disabled,
       },
@@ -60,11 +61,26 @@ export const button: ComponentDoc = {
       ),
     },
     {
-      id: 'sizes',
-      name: 'Sizes',
-      note: 'sm and md grow to 44px on touch screens.',
+      id: 'soft-subtle-link',
+      name: 'Soft, subtle and link',
+      note: 'soft: an accent action that is not the main one. subtle: a filled quiet button for dense toolbars. link: inline in text.',
       render: () => (
         <Row>
+          <Button variant="soft">Add to watchlist</Button>
+          <Button variant="subtle">Filters</Button>
+          <Button variant="link">View all 24</Button>
+        </Row>
+      ),
+    },
+    {
+      id: 'sizes',
+      name: 'Sizes',
+      note: 'xs, sm and md grow to 44px on touch screens.',
+      render: () => (
+        <Row>
+          <Button size="xs" variant="primary">
+            Extra small
+          </Button>
           <Button size="sm" variant="primary">
             Small
           </Button>
@@ -122,7 +138,74 @@ export const button: ComponentDoc = {
           <Button variant="danger" disabled>
             Danger
           </Button>
+          <Button variant="soft" disabled>
+            Soft
+          </Button>
+          <Button variant="subtle" disabled>
+            Subtle
+          </Button>
+          <Button variant="link" disabled>
+            Link
+          </Button>
         </Row>
+      ),
+    },
+    {
+      id: 'dense',
+      name: 'Dense toolbar (xs, subtle)',
+      note: 'For dashboards with many small controls. Still 44px on touch screens.',
+      render: () => (
+        <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-th-line bg-th-surface p-1.5">
+          <Button size="xs" variant="subtle" icon={<RefreshIcon size={12} />}>
+            Refresh
+          </Button>
+          <Button size="xs" variant="subtle">
+            1D
+          </Button>
+          <Button size="xs" variant="soft">
+            1W
+          </Button>
+          <Button size="xs" variant="ghost">
+            Clear
+          </Button>
+        </div>
+      ),
+    },
+    {
+      id: 'class',
+      name: 'buttonClass() on a link',
+      note: 'The same recipe on an <a> or a router <Link>, so a link that looks like a button matches exactly.',
+      render: () => (
+        <Row>
+          <a href="#/components/button" className={buttonClass({ variant: 'primary' })}>
+            Open the board
+          </a>
+          <a href="#/components/button" className={buttonClass({ variant: 'soft', size: 'sm' })}>
+            Download CSV
+          </a>
+          <a href="#/components/button" className={buttonClass({ variant: 'link' })}>
+            Back to jobs
+          </a>
+        </Row>
+      ),
+    },
+    {
+      id: 'card',
+      name: 'In a card',
+      wide: true,
+      render: () => (
+        <Card title="Export applications" description="CSV with every field, one row per application." className="w-full max-w-md">
+          <p className="text-sm text-th-hi2">
+            24 applications match your filters. <Button variant="link">Change filters</Button>
+          </p>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <Button variant="ghost">Cancel</Button>
+            <Button variant="soft">Copy link</Button>
+            <Button variant="primary" icon={<DownloadIcon size={16} />}>
+              Export CSV
+            </Button>
+          </div>
+        </Card>
       ),
     },
     {
@@ -156,6 +239,9 @@ export const button: ComponentDoc = {
   usage: `import { Button } from '@nish/ui';
 import { Download } from 'lucide-react';
 
+// buttonClass gives a router link the same look:
+// <Link to="/board" className={buttonClass({ variant: 'soft', size: 'sm' })}>Open board</Link>
+
 export function ExportBar({ onExport, busy }: { onExport: () => void; busy: boolean }) {
   return (
     <div className="flex gap-2">
@@ -171,5 +257,8 @@ export function ExportBar({ onExport, busy }: { onExport: () => void; busy: bool
     'Label with a verb and an object ("Save changes", "Delete tracker"), not "OK".',
     'Danger is for actions that destroy something. Confirm them in a Modal when they cannot be undone.',
     'Button defaults to type="button". Pass type="submit" on the one that submits a form.',
+    'soft replaces hand-made "accent outline" buttons; subtle is the filled quiet look for dense toolbars and chips.',
+    'For a link that looks like a button (<a>, router <Link>, <a download>), use buttonClass({ variant, size }). Never copy the class string.',
+    'variant="link" is for actions inside text. It has no touch growth, so do not use it as a standalone control in a toolbar.',
   ],
 };
