@@ -4,15 +4,19 @@ import type { ComponentDoc } from './types';
 
 // --- Toast (framed) -----------------------------------------------------------------
 
-/** Pushes toasts that stay put, for static previews. toast() schedules its own
- *  dismissal with setTimeout; inside a preview frame that timer is skipped. */
-function StaticToasts({ items }: { items: { tone: ToastTone; title: string; body?: string }[] }) {
+type StaticToast = { tone: ToastTone; title: string; body?: string; action?: string };
+
+/** Pushes toasts that stay put (duration 'sticky'), for static previews. */
+function StaticToasts({ items }: { items: StaticToast[] }) {
   const key = JSON.stringify(items);
   useEffect(() => {
-    const realTimeout = window.setTimeout;
-    window.setTimeout = ((() => 0) as unknown) as typeof window.setTimeout;
-    const ids = items.map((t) => toast[t.tone](t.title, t.body));
-    window.setTimeout = realTimeout;
+    const ids = items.map((t) =>
+      toast[t.tone](t.title, {
+        body: t.body,
+        duration: 'sticky',
+        action: t.action ? { label: t.action, onClick: () => undefined } : undefined,
+      }),
+    );
     return () => ids.forEach(dismissToast);
   }, [key]);
   return null;
@@ -29,13 +33,31 @@ export const toastDoc: ComponentDoc = {
     { key: 'tone', label: 'Tone', type: 'select', options: ['success', 'error', 'warn', 'info'] },
     { key: 'title', label: 'Title', type: 'text' },
     { key: 'body', label: 'Body', type: 'text' },
+    { key: 'action', label: 'Action', type: 'text' },
   ],
-  initial: { tone: 'success', title: 'Saved', body: 'Watchlist updated with 3 symbols.' },
-  render: (a) => <StaticToasts items={[{ tone: a.tone as ToastTone, title: String(a.title), body: String(a.body) || undefined }]} />,
-  code: (a) => `toast.${a.tone}(${JSON.stringify(String(a.title)).replace(/"/g, "'")}${a.body ? `, ${JSON.stringify(String(a.body)).replace(/"/g, "'")}` : ''});`,
+  initial: { tone: 'success', title: 'Saved', body: 'Watchlist updated with 3 symbols.', action: '' },
+  render: (a) => (
+    <StaticToasts
+      items={[{ tone: a.tone as ToastTone, title: String(a.title), body: String(a.body) || undefined, action: String(a.action) || undefined }]}
+    />
+  ),
+  code: (a) => {
+    const q = (v: unknown) => JSON.stringify(String(v)).replace(/"/g, "'");
+    if (!a.action) return `toast.${a.tone}(${q(a.title)}${a.body ? `, ${q(a.body)}` : ''});`;
+    const body = a.body ? `body: ${q(a.body)}, ` : '';
+    return `toast.${a.tone}(${q(a.title)}, { ${body}action: { label: ${q(a.action)}, onClick: undo }, id: 'undo' });`;
+  },
   framed: { height: 220 },
-  api: { functions: ['toast', 'dismissToast', 'useToast'], interfaces: ['ToastItem'] },
+  api: { functions: ['toast', 'dismissToast', 'useToast'], interfaces: ['ToastOptions', 'ToastItem'] },
   stories: [
+    {
+      id: 'action',
+      name: 'With an action',
+      note: 'Undo runs, then the toast dismisses. A newer toast with the same id replaces it.',
+      render: () => (
+        <StaticToasts items={[{ tone: 'success', title: 'Marked as applied', body: 'Senior Frontend Engineer, Acme', action: 'Undo' }]} />
+      ),
+    },
     { id: 'success', name: 'Success', render: () => <StaticToasts items={[{ tone: 'success', title: 'Saved', body: 'Changes are live.' }]} /> },
     {
       id: 'error',
@@ -82,10 +104,18 @@ import { Toaster } from '@nish/ui';
 // anywhere: handlers, query callbacks, plain modules
 import { toast } from '@nish/ui';
 toast.success('Saved', 'Watchlist updated with 3 symbols.');
-toast.error('Could not save', err.message); // stays until dismissed`,
+toast.error('Could not save', err.message); // stays until dismissed
+
+// One Undo slot: a newer change replaces the old toast, so a stale Undo cannot revert it.
+toast.success('Archived', { action: { label: 'Undo', onClick: () => restore(id) }, id: 'undo' });
+
+// Lift the stack above a bottom tab bar on phones.
+<Toaster offset="calc(4.5rem + env(safe-area-inset-bottom))" />`,
   guidelines: [
     'Toasts confirm what just happened. Anything people must act on belongs on the page or in a Modal.',
     'Errors stay until dismissed, because a failure you did not see is one you will assume succeeded.',
     'Keep the title to a few words; put detail in the body.',
+    'At most one action, and only for something to undo or follow up right now (Undo, View).',
+    'Timers pause while the toast is hovered or focused, so a reader can reach the action.',
   ],
 };
