@@ -3,6 +3,13 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.2.1] - 2026-10-25
+
+### Fixed
+- `Modal` lets React's `autoFocus` win: it only picks a focus target after React has run, and it also honors `data-autofocus`. Before, the panel always took focus, so dialog inputs with `autoFocus` never got it.
+- `Modal` stacking: only the top modal answers Escape and traps Tab, so a confirm dialog over an editor closes on its own.
+- `tools/visual-check.mjs` reports sideways overflow inside apps that scroll in `<main>` (a vertically scrolling container no longer counts as a legitimate horizontal scroller), and flags such a container that itself scrolls sideways.
+
 ## [0.2.0] - 2026-10-25
 
 ### Added

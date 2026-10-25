@@ -12,6 +12,10 @@ import { createPortal } from 'react-dom';
 import { cn } from '../cn';
 import { XIcon } from './icons';
 
+// Open modals, oldest first. Only the top one answers Escape and traps Tab, so a
+// confirm dialog over an editor closes alone.
+const modalStack: object[] = [];
+
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
@@ -43,12 +47,22 @@ export function Modal({ title, onClose, children, size = 'md', footer, className
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
-    (panel?.querySelector<HTMLElement>('[autofocus]') ?? panel)?.focus();
+    const self = {};
+    modalStack.push(self);
+    // React's autoFocus focuses the element itself and writes no attribute, so let it
+    // run first; only if focus is still outside the panel, pick [data-autofocus] /
+    // [autofocus], else the panel.
+    const focusTimer = window.setTimeout(() => {
+      if (panel && !panel.contains(document.activeElement)) {
+        (panel.querySelector<HTMLElement>('[data-autofocus],[autofocus]') ?? panel).focus();
+      }
+    }, 0);
 
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     function onKey(e: KeyboardEvent) {
+      if (modalStack[modalStack.length - 1] !== self) return;
       if (e.key === 'Escape') {
         e.stopPropagation();
         onCloseRef.current();
@@ -72,6 +86,8 @@ export function Modal({ title, onClose, children, size = 'md', footer, className
     }
     document.addEventListener('keydown', onKey);
     return () => {
+      window.clearTimeout(focusTimer);
+      modalStack.splice(modalStack.indexOf(self), 1);
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
       opener?.focus?.();

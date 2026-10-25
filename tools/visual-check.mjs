@@ -86,13 +86,28 @@ function inspect() {
   };
   // Elements that poke past the right edge, minus ones inside a horizontal scroller
   // (a scrolling table is fine; the page scrolling sideways is not).
+  // A dedicated sideways scroller (a table wrapper) or a clipping box is fine. An
+  // element that scrolls vertically too (an app's <main>) is the page, not a
+  // scroller: content poking out of it is a real overflow.
   const inScroller = (el) => {
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
-      const ox = getComputedStyle(p).overflowX;
-      if (ox === 'auto' || ox === 'scroll' || ox === 'hidden' || ox === 'clip') return true;
+      const s = getComputedStyle(p);
+      const ox = s.overflowX;
+      const pageLike = s.overflowY === 'auto' || s.overflowY === 'scroll';
+      if (ox === 'hidden' || ox === 'clip') return true;
+      if ((ox === 'auto' || ox === 'scroll') && !pageLike) return true;
     }
     return false;
   };
+  // Vertically scrolling containers (app shells that scroll inside <main>) that also
+  // scroll sideways.
+  const innerScrollers = [...document.querySelectorAll('body *')]
+    .filter((p) => {
+      const s = getComputedStyle(p);
+      return (s.overflowY === 'auto' || s.overflowY === 'scroll') && (s.overflowX === 'auto' || s.overflowX === 'scroll') && p.scrollWidth > p.clientWidth + 1 && p.clientHeight > window.innerHeight * 0.5;
+    })
+    .slice(0, 3)
+    .map((p) => `${sel(p)} (${p.scrollWidth} > ${p.clientWidth})`);
   const overflowing = [];
   for (const el of document.body.querySelectorAll('*')) {
     if (overflowing.length >= 8) break;
@@ -113,6 +128,7 @@ function inspect() {
   }
   return {
     pageOverflow: document.documentElement.scrollWidth > vw + 1,
+    innerScrollers,
     scrollWidth: document.documentElement.scrollWidth,
     overflowing,
     clipped,
@@ -202,6 +218,7 @@ for (const pg of config.pages) {
         shot.error && `load: ${shot.error}`,
         shot.pageOverflow && `page scrolls sideways (${shot.scrollWidth}px wide)`,
         ...(shot.overflowing ?? []).map((o) => `past right edge: ${o}`),
+        ...(shot.innerScrollers ?? []).map((o) => `app scroller scrolls sideways: ${o}`),
         ...(shot.clipped ?? []).map((c) => `clipped text: ${c}`),
         contrast && `contrast: ${contrast.count} element(s), e.g. ${contrast.examples[0]}`,
         ...consoleErrors.map((c) => `console: ${c}`),
