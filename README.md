@@ -313,7 +313,8 @@ npm run preview:site  # serves site-dist/ at http://localhost:5191
 `site-dist/` is plain static files with hash routes and relative asset URLs, so it works
 served from any path. Props tables are generated from the TypeScript source at build time
 (`site/docgen.mjs`), so add JSDoc to a prop and it shows up there. Component pages,
-stories and controls live in `site/components.tsx`.
+stories and controls live in `site/components/<id>.tsx`, one file per component;
+`site/components/index.ts` lists them in `COMPONENT_DOCS`.
 
 ## Repo layout
 
