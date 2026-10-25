@@ -174,10 +174,92 @@ export const TOGGLE_ORDER: ThemeChoice[] = ['system', 'light', 'dark'];
 /** One-button toggle for static pages: system → light → dark → system. A preset
  *  chosen elsewhere steps to 'system'. */
 export function cycleTheme(): ThemeChoice {
-  const i = TOGGLE_ORDER.indexOf(getThemeChoice());
-  const next = TOGGLE_ORDER[(i + 1) % TOGGLE_ORDER.length];
+  const next = nextChoice(getThemeChoice());
   setThemeChoice(next);
   return next;
+}
+
+/** Words mountThemeToggle uses for the three one-button choices. */
+export type ThemeToggleLabels = Partial<Record<'system' | 'light' | 'dark', string>>;
+
+export interface MountThemeToggleOptions {
+  /** Replace the words "System", "Light" and "Dark" in the button's label, e.g. for
+   *  another language. The label reads "Theme: Light. Switch to Dark". */
+  labels?: ThemeToggleLabels;
+}
+
+// Same geometry as ThemeToggle's MonitorIcon, SunIcon and MoonIcon (lucide, 24px grid).
+const TOGGLE_ICONS: Record<'system' | 'light' | 'dark', string> = {
+  system: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  light:
+    '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-2.93 1.41-1.41M17.66 6.34l1.41-1.41M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41"/>',
+  dark: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>',
+};
+
+const DEFAULT_TOGGLE_LABELS = { system: 'System', light: 'Light', dark: 'Dark' };
+
+/** What a one-button toggle steps to from a choice: the same rule as cycleTheme(). */
+function nextChoice(choice: ThemeChoice): ThemeChoice {
+  const i = TOGGLE_ORDER.indexOf(choice);
+  return TOGGLE_ORDER[(i + 1) % TOGGLE_ORDER.length];
+}
+
+function themeLabel(choice: ThemeChoice, words: Record<'system' | 'light' | 'dark', string>): string {
+  if (choice === 'system' || choice === 'light' || choice === 'dark') return words[choice as 'system' | 'light' | 'dark'];
+  if (has(THEMES, choice)) return THEMES[choice as keyof typeof THEMES].label;
+  return choice.charAt(0).toUpperCase() + choice.slice(1);
+}
+
+/** Turn any button on a static page into the one-button theme toggle (system → light
+ *  → dark → system). It fills the button with the three icons (only the current one
+ *  shows), sets `data-choice`, keeps `aria-label` and `title` saying what is on and
+ *  what a click does ("Theme: Light. Switch to Dark"; a preset saved on another site
+ *  reads "Theme: Mocha (set on another site). Switch to System"), cycles on click and
+ *  follows changes from other tabs and subdomains. Returns a cleanup function.
+ *
+ *  ```html
+ *  <button class="nish-theme-btn" id="theme"></button>
+ *  <script type="module">
+ *    import { initTheme, mountThemeToggle } from './nish/theme.js';
+ *    initTheme();
+ *    mountThemeToggle(document.getElementById('theme'));
+ *  </script>
+ *  ```
+ */
+export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOptions = {}): () => void {
+  const words = { ...DEFAULT_TOGGLE_LABELS, ...opts.labels };
+  if (button.tagName === 'BUTTON' && !button.getAttribute('type')) button.setAttribute('type', 'button');
+  button.innerHTML = (Object.keys(TOGGLE_ICONS) as (keyof typeof TOGGLE_ICONS)[])
+    .map(
+      (id) =>
+        `<svg data-icon="${id}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TOGGLE_ICONS[id]}</svg>`,
+    )
+    .join('');
+
+  const render = (choice: ThemeChoice) => {
+    // A preset shows the icon of the scheme it is built on.
+    const icon = choice === 'system' || choice === 'light' || choice === 'dark' ? choice : schemeOf(choice);
+    button.setAttribute('data-choice', choice);
+    button.querySelectorAll<SVGElement>('svg[data-icon]').forEach((svg) => {
+      if (svg.getAttribute('data-icon') === icon) svg.removeAttribute('display');
+      else svg.setAttribute('display', 'none');
+    });
+    const elsewhere = TOGGLE_ORDER.includes(choice) ? '' : ' (set on another site)';
+    const label = `Theme: ${themeLabel(choice, words)}${elsewhere}. Switch to ${themeLabel(nextChoice(choice), words)}`;
+    button.setAttribute('aria-label', label);
+    button.setAttribute('title', label);
+  };
+
+  const onClick = () => {
+    cycleTheme();
+  };
+  button.addEventListener('click', onClick);
+  const off = onThemeChange((choice) => render(choice));
+  render(getThemeChoice());
+  return () => {
+    button.removeEventListener('click', onClick);
+    off();
+  };
 }
 
 /** For pages without a framework: apply now and start syncing. */

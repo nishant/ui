@@ -9,4 +9,5 @@ export {
   readToken,
   registerThemes,
   getThemeChoice,
+  mountThemeToggle,
 } from './theme';
