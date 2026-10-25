@@ -15,6 +15,32 @@ export function Skeleton({
   return <div aria-hidden="true" className={cn('nish-skeleton rounded-md', className)} style={style} />;
 }
 
+const SPINNER_SIZE = { xs: 12, sm: 14, md: 16, lg: 24 } as const;
+
+export interface SpinnerProps {
+  /** xs 12px, sm 14px, md 16px (default), lg 24px. */
+  size?: keyof typeof SPINNER_SIZE;
+  /** Announces the spinner (role="status") with this visually hidden text, e.g.
+   *  "Loading jobs". Without it the spinner is decorative (aria-hidden); pair it with
+   *  visible text or an aria-busy container. */
+  label?: string;
+  /** Color and spacing. The spinner draws in currentColor. */
+  className?: string;
+}
+
+/** A spinning loader in the current text color: the one spinner every app uses,
+ *  instead of hand-rolled border spinners. */
+export function Spinner({ size = 'md', label, className }: SpinnerProps) {
+  const icon = <LoaderIcon size={SPINNER_SIZE[size]} className={cn('shrink-0 animate-spin', !label && className)} />;
+  if (!label) return icon;
+  return (
+    <span role="status" className={cn('inline-flex shrink-0 items-center', className)}>
+      {icon}
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+
 /** A padded stack of shimmer bars: the default loading body for a card or widget. */
 export function SkeletonLines({
   lines = 3,
