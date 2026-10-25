@@ -3,6 +3,11 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.2.3] - 2026-10-25
+
+### Fixed
+- `Segmented` with no option selected (the value is outside its options, as when an app's own preset theme is active) kept every option out of the Tab order, so the group was mouse-only. The first option now takes the Tab stop, and arrow keys start from the ends.
+
 ## [0.2.2] - 2026-10-25
 
 ### Added

@@ -12,7 +12,8 @@ export interface SegmentedProps<T extends string> {
   /** Name of the whole group for screen readers: "Chart range". */
   label: string;
   options: SegmentedOption<T>[];
-  value: T;
+  /** The selected value; a value not among the options leaves none selected. */
+  value: T | (string & {});
   onChange: (value: T) => void;
   size?: 'sm' | 'md';
   className?: string;
@@ -24,7 +25,7 @@ export interface SegmentedProps<T extends string> {
 export function Segmented<T extends string>({ label, options, value, onChange, size = 'sm', className }: SegmentedProps<T>) {
   const move = (dir: 1 | -1) => {
     const i = options.findIndex((o) => o.value === value);
-    const next = options[(i + dir + options.length) % options.length];
+    const next = i < 0 ? options[dir === 1 ? 0 : options.length - 1] : options[(i + dir + options.length) % options.length];
     if (next) onChange(next.value);
   };
   return (
@@ -37,8 +38,11 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
         if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
       }}
     >
-      {options.map((o) => {
+      {options.map((o, i) => {
         const on = o.value === value;
+        // With nothing selected (e.g. a preset outside the options is active), the first
+        // option takes the Tab stop so the group stays reachable by keyboard.
+        const tabStop = on || (i === 0 && !options.some((x) => x.value === value));
         return (
           <button
             key={o.value}
@@ -46,7 +50,7 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
             role="radio"
             aria-checked={on}
             aria-label={o.ariaLabel}
-            tabIndex={on ? 0 : -1}
+            tabIndex={tabStop ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={cn(
               'inline-flex items-center justify-center gap-1.5 rounded-md font-medium tabular-nums transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11',
