@@ -21,6 +21,14 @@
       "types": "./dist/theme.d.ts",
       "import": "./dist/theme.js"
     },
+    "./tokens": {
+      "types": "./dist/tokens.d.ts",
+      "import": "./dist/tokens.js"
+    },
+    "./chart": {
+      "types": "./dist/chart.d.ts",
+      "import": "./dist/chart.js"
+    },
     "./theme-init.js": "./dist/theme-init.js",
     "./theme.global.js": "./dist/theme.global.js",
     "./tailwind.css": "./dist/tailwind.css",
@@ -28,6 +36,7 @@
     "./tokens.css": "./dist/tokens.css",
     "./fonts.css": "./dist/fonts.css",
     "./base.css": "./dist/base.css",
+    "./nish-components.css": "./dist/nish-components.css",
     "./fonts/*": "./dist/fonts/*",
     "./files.json": "./dist/files.json",
     "./package.json": "./package.json"
