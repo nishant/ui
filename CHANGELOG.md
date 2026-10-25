@@ -3,6 +3,12 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.2.6] - 2026-10-25
+
+### Added
+- `.nish-pill-link` in base.css (so in nish.css and tailwind.css): the "← nish.software" pill link every subdomain shows at the top left of its header. 44px tall, theme colors, one class instead of a copy per site.
+- Docs site: the header shows "← nish.software" before the site name on every page.
+
 ## [0.2.5] - 2026-10-25
 
 ### Added
