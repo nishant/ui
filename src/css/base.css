@@ -12,6 +12,14 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* A theme scoped to part of a page (<div data-theme="light" data-scheme="light">):
+   the tokens are re-declared there by tokens.css, but inherited text color was
+   computed on html, so set it again. Zero specificity, so any class still wins. */
+:where([data-theme]:not(html)) {
+  background-color: var(--nish-bg);
+  color: var(--nish-hi);
+}
+
 /* Numbers in tables line up as columns without per-cell classes. */
 table,
 .nish-tabular {

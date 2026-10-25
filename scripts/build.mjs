@@ -28,11 +28,21 @@ const colorBlock = (t) =>
 const def = THEMES[DEFAULT_THEME];
 const parts = [HEADER];
 
-// Theme-independent tokens and the derived soft tints. Soft tints live on the same
-// element as the theme (html), so they resolve against the active theme's colors.
+// Theme-independent tokens.
 parts.push(
   ':root {',
   ...Object.entries(SCALE).map(([k, v]) => `  --nish-${k}: ${v};`),
+  '}',
+  '',
+);
+// Tokens derived from theme colors (soft tints, shadows, focus). A custom property
+// that references another resolves where it is declared, so these are declared on
+// every element that sets a theme, not only on html. That lets a nested
+// <div data-theme="light"> (the docs site's all-themes view, a preview pane) get
+// tints and shadows computed from its own colors.
+parts.push(
+  ':root,',
+  '[data-theme] {',
   ...Object.entries(SHADOWS).map(([k, v]) => `  --nish-shadow-${k}: ${v};`),
   ...SOFT_ROLES.map((r) => `  --nish-${r}-soft: color-mix(in srgb, var(--nish-${r}) 14%, transparent);`),
   '  --nish-focus: var(--nish-accent);',
