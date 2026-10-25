@@ -1,5 +1,5 @@
 import { Card } from '../../src';
-import { Stat, StatGrid, signTone } from '../../src/components/display';
+import { Stat, StatGrid, signTone } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

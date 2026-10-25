@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card } from '../../src';
-import { Switch } from '../../src/components/forms';
+import { Switch } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

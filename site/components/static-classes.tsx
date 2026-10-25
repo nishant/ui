@@ -2,9 +2,37 @@
 // exact HTML a static page writes (rendered as-is and shown as code), plus the React
 // component it mirrors where that component is in this build. The Static sites page
 // (site/pages/static-sites.tsx) shows them side by side and in every theme.
-import { useId, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import '../../src/css/components.css';
-import { Badge, Button, Card, EmptyState, ErrorState, IconButton, Input, Label, Segmented, Select, Textarea } from '../../src';
+import {
+  Badge,
+  Button,
+  Callout,
+  Card,
+  Chip,
+  ChipGroup,
+  Disclosure,
+  EmptyState,
+  ErrorState,
+  Field,
+  IconButton,
+  Input,
+  Label,
+  Meter,
+  SearchInput,
+  Segmented,
+  Select,
+  Stat,
+  StatGrid,
+  StatusDot,
+  Table,
+  TableWrap,
+  Td,
+  Textarea,
+  Th,
+  ThemeToggle,
+  Tr,
+} from '../../src';
 import { RefreshIcon, SettingsIcon, TrashIcon } from '../lib/icons';
 import { Row } from './shared';
 
@@ -38,6 +66,11 @@ const THEME_ICONS =
 
 const ROW = 'style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"';
 const STACK = 'style="display:grid;gap:12px;width:100%"';
+
+function SearchTwin() {
+  const [q, setQ] = useState('');
+  return <SearchInput value={q} onChange={setQ} aria-label="Search guides" placeholder="Search guides" />;
+}
 
 export const STATIC_STORIES: StaticStory[] = [
   {
@@ -131,6 +164,7 @@ export const STATIC_STORIES: StaticStory[] = [
   <button type="button" class="nish-theme-btn" data-choice="light" aria-label="Theme: Light. Switch to Dark" title="Theme: Light. Switch to Dark">${THEME_ICONS}</button>
   <button type="button" class="nish-theme-btn" data-choice="dark" aria-label="Theme: Dark. Switch to System" title="Theme: Dark. Switch to System">${THEME_ICONS}</button>
 </div>`,
+    react: () => <ThemeToggle compact />,
   },
   {
     id: 'card',
@@ -247,6 +281,16 @@ export const STATIC_STORIES: StaticStory[] = [
   </label>
   <span class="nish-label">Section label</span>
 </div>`,
+    react: () => (
+      <div className="grid w-full gap-3">
+        <Field label="Blocks per row" hint="Up to 64." optional>
+          <Input inputMode="numeric" defaultValue="16" />
+        </Field>
+        <Field label="Stack size" error="A stack holds at most 64.">
+          <Input defaultValue="65" />
+        </Field>
+      </div>
+    ),
   },
   {
     id: 'search',
@@ -258,6 +302,7 @@ export const STATIC_STORIES: StaticStory[] = [
   <label class="nish-search">${svg(SEARCH)}<input class="nish-input" type="search" enterkeyhint="search" aria-label="Search guides" placeholder="Search guides"><kbd>/</kbd></label>
   <label class="nish-search nish-search--bare">${svg(SEARCH)}<input class="nish-input" type="search" aria-label="Search" placeholder="Bare search"></label>
 </div>`,
+    react: () => <SearchTwin />,
   },
   {
     id: 'seg',
@@ -303,6 +348,14 @@ export const STATIC_STORIES: StaticStory[] = [
   <button type="button" class="nish-chip nish-chip--suggestion">Ancient debris</button>
   <button type="button" class="nish-chip nish-chip--sm" aria-pressed="false">Small</button>
 </div>`,
+    react: () => (
+      <ChipGroup label="Ores">
+        <Chip pressed>Iron</Chip>
+        <Chip>Gold</Chip>
+        <Chip pressed>Diamond</Chip>
+        <Chip variant="suggestion">Ancient debris</Chip>
+      </ChipGroup>
+    ),
   },
   {
     id: 'callout',
@@ -318,6 +371,12 @@ export const STATIC_STORIES: StaticStory[] = [
   <div class="nish-callout nish-callout--loss"><span class="nish-callout-icon" aria-hidden="true">!</span><div><p>This deletes the chunk.</p></div></div>
   <div class="nish-callout nish-callout--accent"><span class="nish-callout-icon" aria-hidden="true">★</span><div><p>New in 1.21.</p></div></div>
 </div>`,
+    react: () => (
+      <div className="grid w-full gap-3">
+        <Callout tone="info" title="Java only">Bedrock spawns these differently.</Callout>
+        <Callout tone="warn">Back up the world first.</Callout>
+      </div>
+    ),
   },
   {
     id: 'stats',
@@ -337,6 +396,13 @@ export const STATIC_STORIES: StaticStory[] = [
     <div class="nish-stat"><dt class="nish-stat-label">Time</dt><dd class="nish-stat-value nish-stat-value--warn">12 min</dd></div>
   </dl>
 </div>`,
+    react: () => (
+      <StatGrid cols={{ base: 3, md: 3 }} className="w-full">
+        <Stat label="Blocks" value="1,284" sub="20 stacks" />
+        <Stat label="Change" value="+4.2%" tone="ok" />
+        <Stat label="Drawdown" value="−1.8%" tone="loss" />
+      </StatGrid>
+    ),
   },
   {
     id: 'table',
@@ -356,6 +422,31 @@ export const STATIC_STORIES: StaticStory[] = [
     </tbody>
   </table>
 </div>`,
+    react: () => (
+      <TableWrap className="w-full">
+        <Table zebra>
+          <thead>
+            <tr>
+              <Th>Item</Th>
+              <Th>Source</Th>
+              <Th numeric>Per hour</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <Tr>
+              <Td>Iron</Td>
+              <Td>Golem farm</Td>
+              <Td numeric>1,620</Td>
+            </Tr>
+            <Tr>
+              <Td>Gold</Td>
+              <Td>Piglin farm</Td>
+              <Td numeric>4,800</Td>
+            </Tr>
+          </tbody>
+        </Table>
+      </TableWrap>
+    ),
   },
   {
     id: 'meter',
@@ -370,6 +461,13 @@ export const STATIC_STORIES: StaticStory[] = [
   <div class="nish-meter nish-meter--loss nish-meter--lg" role="meter" aria-label="Memory" aria-valuemin="0" aria-valuemax="100" aria-valuenow="93"><i style="width:93%"></i></div>
   <div class="nish-meter nish-meter--info" role="progressbar" aria-label="Upload" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25"><i style="width:25%"></i></div>
 </div>`,
+    react: () => (
+      <div className="grid w-full gap-3">
+        <Meter label="Accent" value={40} />
+        <Meter label="Durability" value={82} tone="ok" size="sm" />
+        <Meter label="Disk" value={71} tone="warn" />
+      </div>
+    ),
   },
   {
     id: 'disclosure',
@@ -381,6 +479,16 @@ export const STATIC_STORIES: StaticStory[] = [
   <details class="nish-disclosure" open><summary>Sources</summary><p>Minecraft Wiki, tested on Bedrock 1.21.</p></details>
   <details class="nish-disclosure nish-disclosure--card"><summary>What you need</summary><p>Two stacks of glass and a hopper.</p></details>
 </div>`,
+    react: () => (
+      <div className="grid w-full gap-3">
+        <Disclosure summary="Sources" defaultOpen>
+          Minecraft Wiki, tested on Bedrock 1.21.
+        </Disclosure>
+        <Disclosure summary="What you need" variant="card">
+          Two stacks of glass and a hopper.
+        </Disclosure>
+      </div>
+    ),
   },
   {
     id: 'dot',
@@ -396,6 +504,14 @@ export const STATIC_STORIES: StaticStory[] = [
   <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px"><span class="nish-dot nish-dot--accent nish-dot--lg nish-dot--pulse" aria-hidden="true"></span>Live</span>
   <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px"><span class="nish-dot" aria-hidden="true"></span>Unknown</span>
 </div>`,
+    react: () => (
+      <Row>
+        <span className="inline-flex items-center gap-1.5 text-sm text-th-hi"><StatusDot tone="ok" />Up</span>
+        <span className="inline-flex items-center gap-1.5 text-sm text-th-hi"><StatusDot tone="warn" size="md" />Slow</span>
+        <span className="inline-flex items-center gap-1.5 text-sm text-th-hi"><StatusDot tone="loss" halo />Down</span>
+        <span className="inline-flex items-center gap-1.5 text-sm text-th-hi"><StatusDot tone="accent" size="lg" pulse />Live</span>
+      </Row>
+    ),
   },
   {
     id: 'empty',

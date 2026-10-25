@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Card } from '../../src';
-import { Callout, type CalloutTone } from '../../src/components/display';
+import { Callout, type CalloutTone } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

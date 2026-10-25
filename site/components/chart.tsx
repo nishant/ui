@@ -78,6 +78,7 @@ export const chartDoc: ComponentDoc = {
   id: 'chart',
   name: 'Chart colors',
   exports: [],
+  source: 'src/chart.ts',
   summary:
     '@nish/ui/chart: theme colors for charts with no chart library. var() strings for SVG and CSS charts, resolved values and a hook for canvas charts.',
   importLine: "import { seriesColor, CHART, tooltipStyle, chartTheme, useChartTheme } from '@nish/ui/chart';",

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../../src';
-import { ConfirmDialog } from '../../src/components/overlay';
+import { ConfirmDialog } from '../../src';
 import type { ComponentDoc } from './types';
 
 // --- ConfirmDialog (framed) -----------------------------------------------------------

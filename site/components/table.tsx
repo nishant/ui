@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Badge, Card } from '../../src';
-import { Table, TableWrap, Td, Th, Tr } from '../../src/components/table';
+import { Table, TableWrap, Td, Th, Tr } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

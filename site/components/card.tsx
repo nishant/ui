@@ -1,5 +1,5 @@
 import { Badge, Button, Card, IconButton } from '../../src';
-import { cardClass } from '../../src/components/primitives';
+import { cardClass } from '../../src';
 import { RefreshIcon } from '../lib/icons';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -241,6 +241,7 @@ export const card: ComponentDoc = {
       ),
     },
   ],
+  api: { functions: ['cardClass'], interfaces: [] },
   usage: `import { Card, Badge, cardClass } from '@nish/ui';
 
 <Card padding="none" title="Sites" action={<Badge tone="ok">8 up</Badge>} className="overflow-hidden">

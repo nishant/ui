@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card } from '../../src';
-import { Checkbox } from '../../src/components/forms';
+import { Checkbox } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

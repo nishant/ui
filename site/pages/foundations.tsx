@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Badge, Button, Card, SCALE } from '../../src';
 import { CodeBlock } from '../lib/code';
-import { PageHeader, Pill, Prose, Section } from '../lib/ui';
+import { PageHeader, Prose, Section } from '../lib/ui';
 
-const TYPE_STEPS = ['4xl', '3xl', '2xl', 'xl', 'lg', 'base', 'sm', 'xs'] as const;
+const TYPE_STEPS = ['4xl', '3xl', '2xl', 'xl', 'lg', 'base', 'sm', 'xs', '2xs', '3xs'] as const;
 const TYPE_SAMPLE: Record<string, string> = {
   '4xl': 'Display: the hub',
   '3xl': 'Page title: Positions',
@@ -13,6 +13,8 @@ const TYPE_SAMPLE: Record<string, string> = {
   base: 'Body: secondary text sits one step back so headings and numbers lead.',
   sm: 'Small: table cells, form fields and most UI text.',
   xs: 'Caption: labels, metadata and timestamps.',
+  '2xs': '2xs: dense widget labels, table metadata, Kbd.',
+  '3xs': '3xs: xs badges and the tiniest counters.',
 };
 
 export function TypographyPage() {
@@ -29,7 +31,7 @@ export function TypographyPage() {
           <Card className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-medium uppercase tracking-wider text-th-hi3">Sans</p>
-              <Pill>font-sans</Pill>
+              <Badge className="rounded-md font-mono font-normal">font-sans</Badge>
             </div>
             <p className="text-3xl font-semibold tracking-tight text-th-hi">Aa Bb Cc 0123</p>
             <p className="text-sm text-th-hi2">Inter Variable, weights 100 to 900, Latin and Latin Extended.</p>
@@ -38,7 +40,7 @@ export function TypographyPage() {
           <Card className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-medium uppercase tracking-wider text-th-hi3">Mono</p>
-              <Pill>font-mono</Pill>
+              <Badge className="rounded-md font-mono font-normal">font-mono</Badge>
             </div>
             <p className="font-mono text-3xl text-th-hi">1,234.56</p>
             <p className="text-sm text-th-hi2">The platform monospace: no download, and figures line up.</p>
@@ -52,14 +54,14 @@ export function TypographyPage() {
           {TYPE_STEPS.map((s) => (
             <div key={s} className="grid gap-2 px-4 py-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:px-5">
               <div className="space-y-1">
-                <Pill>text-{s}</Pill>
+                <Badge className="rounded-md font-mono font-normal">text-{s}</Badge>
                 <p className="font-mono text-xs text-th-hi3">
                   {SCALE[`text-${s}`]} / {SCALE[`text-${s}-lh`]}
                 </p>
               </div>
               <p
                 className="min-w-0 font-semibold tracking-tight text-th-hi"
-                style={{ fontSize: `var(--nish-text-${s})`, lineHeight: `var(--nish-text-${s}-lh)`, fontWeight: ['base', 'sm', 'xs', 'lg'].includes(s) ? 400 : 600 }}
+                style={{ fontSize: `var(--nish-text-${s})`, lineHeight: `var(--nish-text-${s}-lh)`, fontWeight: ['base', 'sm', 'xs', '2xs', '3xs', 'lg'].includes(s) ? 400 : 600 }}
               >
                 {TYPE_SAMPLE[s]}
               </p>
@@ -76,7 +78,7 @@ export function TypographyPage() {
                 <span className="text-lg text-th-hi" style={{ fontWeight: Number(SCALE[`weight-${w}`]) }}>
                   {w[0].toUpperCase() + w.slice(1)} {SCALE[`weight-${w}`]}
                 </span>
-                <Pill>font-{w}</Pill>
+                <Badge className="rounded-md font-mono font-normal">font-{w}</Badge>
               </div>
             ))}
           </Card>
@@ -127,12 +129,12 @@ export function TypographyPage() {
 }
 
 const SPACE = ['1', '2', '3', '4', '5', '6', '8', '10', '12', '16'];
-const RADII = ['xs', 'sm', 'md', 'lg', 'pill'];
+const RADII = ['xs', 'sm', 'card', 'md', 'lg', 'pill'];
 
 export function SpacingPage() {
   return (
     <div className="space-y-12">
-      <PageHeader eyebrow="Foundations" title="Spacing & radius" lead="A 4px grid for space, five radii, and the layout constants every app shares." />
+      <PageHeader eyebrow="Foundations" title="Spacing & radius" lead="A 4px grid for space, six radii, and the layout constants every app shares." />
       <Section title="Space" note="Tailwind's spacing scale is the same 4px grid: p-4 is --nish-space-4, 16px.">
         <Card padded={false} className="divide-y divide-th-line">
           {SPACE.map((s) => (
@@ -144,8 +146,8 @@ export function SpacingPage() {
           ))}
         </Card>
       </Section>
-      <Section title="Radius" note="Cards use rounded-xl, controls rounded-lg, chips rounded-full.">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <Section title="Radius" note="Controls rounded-lg (8px, radius-sm), cards rounded-xl (12px, radius-card), dialogs rounded-2xl (16px), pills rounded-full. Tailwind's rounded-* scale is not remapped.">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
           {RADII.map((r) => (
             <div key={r} className="space-y-2">
               <div className="flex h-20 items-center justify-center border border-th-line-strong bg-th-elevated" style={{ borderRadius: `var(--nish-radius-${r})` }}>
@@ -210,8 +212,8 @@ export function ElevationPage() {
                 <span className="text-sm font-medium text-th-hi">{d}</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <Pill>shadow-{k}</Pill>
-                <Pill>--nish-shadow-{k}</Pill>
+                <Badge className="rounded-md font-mono font-normal">shadow-{k}</Badge>
+                <Badge className="rounded-md font-mono font-normal">--nish-shadow-{k}</Badge>
               </div>
             </div>
           ))}

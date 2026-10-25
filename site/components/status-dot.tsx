@@ -1,5 +1,5 @@
 import { Card } from '../../src';
-import { StatusDot, type StatusTone } from '../../src/components/display';
+import { StatusDot, type StatusTone } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 import { Row } from './shared';

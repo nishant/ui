@@ -1,5 +1,5 @@
 import { Card } from '../../src';
-import { Kbd } from '../../src/components/display';
+import { Kbd } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 import { Row } from './shared';

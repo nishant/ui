@@ -2,7 +2,8 @@ import { useState } from 'react';
 import docgen from 'virtual:nish-docgen';
 import { CodeBlock } from '../lib/code';
 import { ExternalIcon } from '../lib/icons';
-import { PageHeader, Prose, Section, Tabs, ThemeColumns } from '../lib/ui';
+import { Tabs } from '../../src';
+import { PageHeader, Prose, Section, ThemeColumns } from '../lib/ui';
 import { STATIC_STORIES, StaticHtml, storyCode } from '../components/static-classes';
 
 export function StaticSitesPage() {
@@ -87,12 +88,13 @@ export function StaticSitesPage() {
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Tabs
+            variant="pill"
             label="Example"
             value={ex}
-            onChange={setEx}
-            options={[
-              { id: 'module', label: 'theme.js (module)' },
-              { id: 'classic', label: 'theme.global.js' },
+            onChange={(v) => setEx(v as 'module' | 'classic')}
+            items={[
+              { value: 'module', label: 'theme.js (module)' },
+              { value: 'classic', label: 'theme.global.js' },
             ]}
           />
           <a className="doc-link inline-flex items-center gap-1.5 text-sm" href={`static-example/${page}`} target="_blank" rel="noreferrer">
@@ -132,12 +134,13 @@ function ComponentClasses() {
       }
     >
       <Tabs
+        variant="pill"
         label="View"
         value={view}
-        onChange={setView}
-        options={[
-          { id: 'side', label: 'React vs static' },
-          { id: 'themes', label: 'All themes' },
+        onChange={(v) => setView(v as 'side' | 'themes')}
+        items={[
+          { value: 'side', label: 'React vs static' },
+          { value: 'themes', label: 'All themes' },
         ]}
       />
       {view === 'side' ? (

@@ -1,5 +1,5 @@
 import { Card } from '../../src';
-import { CopyButton } from '../../src/components/display';
+import { CopyButton } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 import { Row } from './shared';

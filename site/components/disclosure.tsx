@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Card } from '../../src';
-import { Disclosure } from '../../src/components/display';
+import { Disclosure } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 import { Row } from './shared';

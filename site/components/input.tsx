@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, IconButton, Input } from '../../src';
-import { fieldClass } from '../../src/components/primitives';
+import { fieldClass } from '../../src';
 import { CloseIcon, SearchIcon } from '../lib/icons';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -182,6 +182,7 @@ export const input: ComponentDoc = {
       ),
     },
   ],
+  api: { functions: ['fieldClass'], interfaces: [] },
   usage: `import { Input, Label, fieldClass } from '@nish/ui';
 import { Search } from 'lucide-react';
 

@@ -34,6 +34,8 @@ export interface ComponentDoc {
   /** Portaled, fixed-position components render in an iframe per story, so each one
    *  gets a whole document (and a whole theme) of its own. */
   framed?: { height: number };
+  /** The source file the page links to when it documents no component (CSS, a function). */
+  source?: string;
   /** Extra API to document below the props (functions, hooks, types). */
   api?: { functions: string[]; interfaces: string[] };
 }

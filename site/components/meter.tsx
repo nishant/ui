@@ -1,5 +1,5 @@
 import { Card } from '../../src';
-import { Meter, toneFor, type MeterTone } from '../../src/components/display';
+import { Meter, toneFor, type MeterTone } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

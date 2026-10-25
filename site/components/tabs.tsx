@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card } from '../../src';
-import { TabPanel, Tabs, tabClass } from '../../src/components/tabs';
+import { TabPanel, Tabs, tabClass } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

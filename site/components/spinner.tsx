@@ -1,5 +1,5 @@
 import { Button, Card } from '../../src';
-import { Spinner } from '../../src/components/feedback';
+import { Spinner } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 import { Row } from './shared';

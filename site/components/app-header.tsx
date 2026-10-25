@@ -1,16 +1,12 @@
-import { IconButton } from '../../src';
-import { AppHeader } from '../../src/components/display';
+import { IconButton, tabClass } from '../../src';
+import { AppHeader } from '../../src';
 import { jsx } from '../lib/jsx';
 import { BellIcon, ChartIcon } from '../lib/icons';
 import type { ComponentDoc } from './types';
 
 // --- AppHeader ----------------------------------------------------------------------
 
-// Until the forms lane's tabClass() lands, the docs mimic the underline nav link.
-const navLink = (active: boolean) =>
-  `inline-flex h-10 items-center border-b-2 px-3 text-sm font-medium transition-colors pointer-coarse:min-h-11 ${
-    active ? 'border-th-accent text-th-hi' : 'border-transparent text-th-hi3 hover:text-th-hi'
-  }`;
+const navLink = (active: boolean) => tabClass({ active });
 
 const NAV = (
   <>

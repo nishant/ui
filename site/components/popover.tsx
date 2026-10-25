@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Button, Card, Checkbox, IconButton, Select } from '../../src';
-import { Popover } from '../../src/components/overlay';
+import { Popover } from '../../src';
 import { SettingsIcon } from '../lib/icons';
 import type { ComponentDoc } from './types';
 

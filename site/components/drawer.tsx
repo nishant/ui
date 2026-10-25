@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Badge, Button, Card, IconButton } from '../../src';
-import { Drawer } from '../../src/components/overlay';
+import { Drawer } from '../../src';
 import { SettingsIcon } from '../lib/icons';
 import type { ComponentDoc } from './types';
 

@@ -1,5 +1,5 @@
 import { Badge, Card } from '../../src';
-import { badgeClass } from '../../src/components/primitives';
+import { badgeClass } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 import { Row } from './shared';
@@ -194,6 +194,7 @@ export const badge: ComponentDoc = {
       render: () => <Badge tone="warn">Waiting on recruiter</Badge>,
     },
   ],
+  api: { functions: ['badgeClass'], interfaces: [] },
   usage: `import { Badge } from '@nish/ui';
 
 const TONE = { up: 'ok', slow: 'warn', down: 'loss' } as const;

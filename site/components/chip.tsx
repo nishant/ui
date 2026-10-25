@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card } from '../../src';
-import { Chip, ChipGroup } from '../../src/components/forms';
+import { Chip, ChipGroup } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

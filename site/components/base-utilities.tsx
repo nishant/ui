@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button, Card, cn, SCALE } from '../../src';
 // Straight from the tokens until src/index.ts re-exports HUE_ROLES (LANE.md).
-import { HUE_ROLES } from '../../src/tokens.mjs';
+import { HUE_ROLES } from '../../src';
 import type { ComponentDoc } from './types';
 
 // --- Base utilities: hue tints, small type, radii and the base.css helpers -----------

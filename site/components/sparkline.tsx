@@ -1,5 +1,5 @@
 import { Card } from '../../src';
-import { Sparkline, Stat, type SparklineTone } from '../../src/components/display';
+import { Sparkline, Stat, type SparklineTone } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 import { Row } from './shared';

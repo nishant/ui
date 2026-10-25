@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button, Card, IconButton } from '../../src';
 import { ChevronDownIcon } from '../../src/components/icons';
-import { DropdownMenu, MenuItem, MenuLabel, MenuSeparator, MenuSubHeader } from '../../src/components/overlay';
+import { DropdownMenu, MenuItem, MenuLabel, MenuSeparator, MenuSubHeader } from '../../src';
 import { CopyIcon, DownloadIcon, MenuIcon, PinIcon, SettingsIcon, TrashIcon } from '../lib/icons';
 import type { ComponentDoc } from './types';
 

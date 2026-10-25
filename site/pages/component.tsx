@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import docgen from 'virtual:nish-docgen';
-import { Card, cn, Input, PRESETS, Select, useTheme, type ThemeName } from '../../src';
+import { Card, cn, Input, PRESETS, Select, tabClass, useTheme, type ThemeName } from '../../src';
 import { COMPONENT_DOCS, RealModalButton, type ComponentDoc, type Control, type Story } from '../components';
 import { CodeBlock, CopyButton } from '../lib/code';
 import { ExternalIcon } from '../lib/icons';
@@ -157,7 +157,7 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
   const doc = COMPONENT_DOCS.find((d) => d.id === id);
   const { theme } = useTheme();
   if (!doc) return <p className="text-th-hi2">No component called {id}.</p>;
-  const gen = docgen.components[doc.exports[0]];
+  const file = doc.source ?? docgen.components[doc.exports[0]]?.file;
   const tabs = [
     { id: 'docs', label: 'Docs', to: `/components/${doc.id}` },
     { id: 'themes', label: 'All themes', to: `/components/${doc.id}/themes` },
@@ -172,12 +172,12 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
             <CopyButton text={doc.importLine} />
           </div>
           <a
-            href={`${REPO}/blob/master/${gen.file}`}
+            href={`${REPO}/blob/master/${file}`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-th-hi2 hover:bg-th-elevated hover:text-th-hi pointer-coarse:min-h-11"
           >
-            {gen.file}
+            {file}
             <ExternalIcon size={13} />
           </a>
         </div>
@@ -187,10 +187,7 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
               key={t.id}
               href={href(t.to)}
               aria-current={view === t.id ? 'page' : undefined}
-              className={cn(
-                'rounded-lg px-3 py-1.5 text-sm font-medium transition-colors pointer-coarse:min-h-11 pointer-coarse:py-2.5',
-                view === t.id ? 'bg-th-accent-soft text-th-accent' : 'text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
-              )}
+              className={tabClass({ active: view === t.id, variant: 'pill' })}
             >
               {t.label}
             </a>
@@ -212,20 +209,22 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
               ))}
             </div>
           </Section>
-          <Section title="Props" note="Generated from the TypeScript source at build time.">
-            <div className="space-y-6">
-              {doc.exports.map((name) => (
-                <div key={name} className="space-y-2">
-                  {doc.exports.length > 1 || doc.api ? <h3 className="font-mono text-sm font-semibold text-th-hi">{name}</h3> : null}
-                  {docgen.components[name].description && doc.exports.length > 1 ? (
-                    <p className="text-sm text-th-hi2">{docgen.components[name].description}</p>
-                  ) : null}
+          {doc.exports.length || doc.api ? (
+            <Section title="Props" note="Generated from the TypeScript source at build time.">
+              <div className="space-y-6">
+                {doc.exports.map((name) => (
+                  <div key={name} className="space-y-2">
+                    {doc.exports.length > 1 || doc.api ? <h3 className="font-mono text-sm font-semibold text-th-hi">{name}</h3> : null}
+                    {docgen.components[name].description && doc.exports.length > 1 ? (
+                      <p className="text-sm text-th-hi2">{docgen.components[name].description}</p>
+                    ) : null}
                   <PropsTable doc={docgen.components[name]} />
                 </div>
               ))}
               <ApiDocs doc={doc} />
             </div>
           </Section>
+          ) : null}
           <Section title="Usage">
             <CodeBlock code={doc.usage} title={`${doc.name.toLowerCase()}-example.tsx`} />
           </Section>

@@ -1,5 +1,5 @@
 import { Button, Card } from '../../src';
-import { buttonClass } from '../../src/components/primitives';
+import { buttonClass } from '../../src';
 import { DownloadIcon, PlusIcon, RefreshIcon, TrashIcon } from '../lib/icons';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -236,6 +236,7 @@ export const button: ComponentDoc = {
       ),
     },
   ],
+  api: { functions: ['buttonClass'], interfaces: [] },
   usage: `import { Button } from '@nish/ui';
 import { Download } from 'lucide-react';
 

@@ -1,5 +1,5 @@
 import { Card, IconButton } from '../../src';
-import { iconButtonClass } from '../../src/components/primitives';
+import { iconButtonClass } from '../../src';
 import { BellIcon, ExternalIcon, PinIcon, RefreshIcon, SettingsIcon, TrashIcon } from '../lib/icons';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -233,6 +233,7 @@ export const iconButton: ComponentDoc = {
       ),
     },
   ],
+  api: { functions: ['iconButtonClass'], interfaces: [] },
   usage: `import { IconButton, iconButtonClass } from '@nish/ui';
 import { RefreshCw, Trash2, ExternalLink } from 'lucide-react';
 

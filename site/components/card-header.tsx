@@ -1,5 +1,5 @@
 import { Badge, Button, Card, IconButton, Segmented } from '../../src';
-import { CardHeader } from '../../src/components/primitives';
+import { CardHeader } from '../../src';
 import { BellIcon, ChartIcon, RefreshIcon, SettingsIcon } from '../lib/icons';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';

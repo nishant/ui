@@ -1,13 +1,12 @@
-import { Button, Card } from '../../src';
-import { PageHeader } from '../../src/components/display';
+import { Button, buttonClass, Card } from '../../src';
+import { PageHeader } from '../../src';
 import { jsx } from '../lib/jsx';
 import { PlusIcon } from '../lib/icons';
 import type { ComponentDoc } from './types';
 
 // --- PageHeader ---------------------------------------------------------------------
 
-// Until the primitives lane's buttonClass({ variant: 'link' }) lands, the docs mimic it.
-const backLink = 'font-medium text-th-accent underline-offset-2 hover:underline';
+const backLink = buttonClass({ variant: 'link' });
 
 export const pageHeader: ComponentDoc = {
   id: 'page-header',

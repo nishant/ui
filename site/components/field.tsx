@@ -1,5 +1,5 @@
 import { Card, Input, Select } from '../../src';
-import { Field, Textarea } from '../../src/components/forms';
+import { Field, Textarea } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 
