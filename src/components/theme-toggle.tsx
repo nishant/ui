@@ -17,10 +17,14 @@ export interface ThemeState {
   choice: ThemeChoice;
   /** What is rendering now. */
   theme: ThemeName;
+  /** dark or light: what the rendering theme is based on. */
   scheme: 'dark' | 'light';
+  /** Save a choice (cookie and localStorage) and apply it. */
   setChoice: (choice: ThemeChoice) => void;
 }
 
+/** The current theme choice and what it renders as, kept in sync across tabs and
+ *  subdomains. */
 export function useTheme(): ThemeState {
   const [state, setState] = useState(() => {
     const choice = typeof document === 'undefined' ? 'system' : getThemeChoice();

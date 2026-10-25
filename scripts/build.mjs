@@ -1,9 +1,11 @@
 // Builds dist/: generated CSS from src/tokens.mjs, the copied fonts, theme-init.js
 // with the theme list baked in, and the JS/types via tsup.
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import vm from 'node:vm';
 import { COLOR_ROLES, DEFAULT_THEME, SCALE, SHADOWS, SOFT_ROLES, THEMES } from '../src/tokens.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,11 +30,21 @@ const colorBlock = (t) =>
 const def = THEMES[DEFAULT_THEME];
 const parts = [HEADER];
 
-// Theme-independent tokens and the derived soft tints. Soft tints live on the same
-// element as the theme (html), so they resolve against the active theme's colors.
+// Theme-independent tokens.
 parts.push(
   ':root {',
   ...Object.entries(SCALE).map(([k, v]) => `  --nish-${k}: ${v};`),
+  '}',
+  '',
+);
+// Tokens derived from theme colors (soft tints, shadows, focus). A custom property
+// that references another resolves where it is declared, so these are declared on
+// every element that sets a theme, not only on html. That lets a nested
+// <div data-theme="light"> (the docs site's all-themes view, a preview pane) get
+// tints and shadows computed from its own colors.
+parts.push(
+  ':root,',
+  '[data-theme] {',
   ...Object.entries(SHADOWS).map(([k, v]) => `  --nish-shadow-${k}: ${v};`),
   ...SOFT_ROLES.map((r) => `  --nish-${r}-soft: color-mix(in srgb, var(--nish-${r}) 14%, transparent);`),
   '  --nish-focus: var(--nish-accent);',
@@ -56,11 +68,20 @@ const tokensCss = parts.join('\n');
 writeFileSync(join(dist, 'tokens.css'), tokensCss);
 
 // --- fonts, base, nish.css (everything a static page links) -------------------
+// Font files get content-hashed names (inter-latin-wght-normal.1a2b3c4d.woff2), so a
+// static site can serve /assets with a one-year immutable cache.
 const fontDir = join(root, 'node_modules/@fontsource-variable/inter/files');
+let fontsCss = readFileSync(join(src, 'css/fonts.css'), 'utf8');
+const fontFiles = [];
 for (const f of ['inter-latin-wght-normal.woff2', 'inter-latin-ext-wght-normal.woff2']) {
-  cpSync(join(fontDir, f), join(dist, 'fonts', f));
+  const buf = readFileSync(join(fontDir, f));
+  const hashed = f.replace(/\.woff2$/, `.${createHash('sha256').update(buf).digest('hex').slice(0, 8)}.woff2`);
+  writeFileSync(join(dist, 'fonts', hashed), buf);
+  const ref = `./fonts/${f}`;
+  if (!fontsCss.includes(ref)) throw new Error(`src/css/fonts.css does not reference ${ref}`);
+  fontsCss = fontsCss.replaceAll(ref, `./fonts/${hashed}`);
+  fontFiles.push(`fonts/${hashed}`);
 }
-const fontsCss = readFileSync(join(src, 'css/fonts.css'), 'utf8');
 const baseCss = readFileSync(join(src, 'css/base.css'), 'utf8');
 writeFileSync(join(dist, 'fonts.css'), fontsCss);
 writeFileSync(join(dist, 'base.css'), baseCss);
@@ -116,7 +137,50 @@ const init = readFileSync(join(src, 'theme-init.js'), 'utf8')
 testInit(init);
 writeFileSync(join(dist, 'theme-init.js'), init);
 
+testGlobal(readFileSync(join(dist, 'theme.global.js'), 'utf8'));
+
+// What a static site vendors, with the hashed font names, so a sync script never has
+// to guess them (hosting's scripts/sync-ui.mjs can read this instead of a fixed list).
+writeFileSync(
+  join(dist, 'files.json'),
+  JSON.stringify({ static: ['nish.css', 'theme-init.js', 'theme.js', 'theme.global.js', ...fontFiles] }, null, 2) + '\n',
+);
+
 console.log('built dist/');
+
+/** The classic-script build must define window.nishTheme with the documented API. */
+function testGlobal(code) {
+  const attrs = {};
+  const el = {
+    style: {},
+    getAttribute: (k) => attrs[k] ?? null,
+    setAttribute: (k, v) => (attrs[k] = v),
+  };
+  const ctx = {
+    document: {
+      cookie: '',
+      documentElement: el,
+      head: { appendChild() {} },
+      querySelector: () => null,
+      createElement: () => ({}),
+      addEventListener() {},
+    },
+    localStorage: { getItem: () => 'light', setItem() {} },
+    location: { hostname: 'localhost', protocol: 'http:' },
+    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    getComputedStyle: () => ({ getPropertyValue: () => '#f7f6f3' }),
+    addEventListener() {},
+  };
+  ctx.window = ctx;
+  vm.runInNewContext(code, ctx);
+  const api = ctx.window.nishTheme;
+  const want = ['initTheme', 'setThemeChoice', 'cycleTheme', 'onThemeChange', 'readToken', 'registerThemes', 'getThemeChoice'];
+  const missing = want.filter((k) => typeof api?.[k] !== 'function');
+  if (missing.length) throw new Error(`theme.global.js: window.nishTheme is missing ${missing.join(', ')}`);
+  if (api.initTheme() !== 'light' || attrs['data-theme'] !== 'light') {
+    throw new Error(`theme.global.js: initTheme() gave ${attrs['data-theme']}, expected light`);
+  }
+}
 
 /** Run the pre-paint script against a stub document: v0.1.0 shipped one that threw. */
 function testInit(code) {

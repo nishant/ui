@@ -1,0 +1,43 @@
+@import 'tailwindcss';
+@import '../dist/tailwind.css';
+@source '../src';
+@source './';
+
+/* Site-only helpers. Everything else comes from the package. */
+@layer components {
+  .doc-prose p + p {
+    margin-top: 0.75rem;
+  }
+  .doc-prose a,
+  a.doc-link {
+    color: var(--nish-accent);
+    font-weight: 500;
+    text-underline-offset: 3px;
+  }
+  .doc-prose a:hover,
+  a.doc-link:hover {
+    text-decoration: underline;
+  }
+  .doc-prose code,
+  code.inline {
+    border-radius: 6px;
+    border: 1px solid var(--nish-line);
+    background: var(--nish-elevated);
+    padding: 0.05rem 0.35rem;
+    font-family: var(--nish-font-mono);
+    font-size: 0.85em;
+    color: var(--nish-hi);
+    overflow-wrap: anywhere;
+  }
+  /* The canvas: a quiet dot grid, like a design tool's artboard. */
+  .doc-canvas {
+    background-color: var(--nish-bg);
+    background-image: radial-gradient(color-mix(in srgb, var(--nish-hi3) 22%, transparent) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+  /* Contrast samples draw their text with ::before, so the deliberately failing pairs in
+     the matrix are shown without being real text that a page audit would flag. */
+  .doc-sample::before {
+    content: attr(data-sample);
+  }
+}

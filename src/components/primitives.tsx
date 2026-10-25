@@ -12,7 +12,7 @@ const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   primary: 'bg-th-accent text-th-on-accent hover:bg-th-accent/90 active:bg-th-accent/80',
   secondary: 'border border-th-line-strong bg-th-surface text-th-hi hover:bg-th-elevated',
   ghost: 'text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
-  danger: 'bg-th-loss text-th-on-accent hover:bg-th-loss/90 active:bg-th-loss/80',
+  danger: 'bg-th-loss text-th-on-loss hover:bg-th-loss/90 active:bg-th-loss/80',
 };
 
 const BUTTON_SIZE: Record<ButtonSize, string> = {
@@ -22,13 +22,21 @@ const BUTTON_SIZE: Record<ButtonSize, string> = {
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** primary: the one main action in a view. secondary: everything else. ghost:
+   *  toolbars and quiet actions. danger: destructive actions. */
   variant?: ButtonVariant;
+  /** sm for dense rows and toolbars, lg for a page's main call to action. All grow to
+   *  44px on touch screens. */
   size?: ButtonSize;
   /** Shows a spinner and disables the button. */
   loading?: boolean;
+  /** Icon before the label (16px for md and lg, 12–14px for sm). Replaced by the
+   *  spinner while loading. */
   icon?: ReactNode;
 }
 
+/** The standard button. Defaults to type="button", so it never submits a form by
+ *  accident; pass type="submit" for the one that should. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = 'secondary', size = 'md', loading = false, icon, className, children, disabled, type = 'button', ...rest },
   ref,
@@ -59,9 +67,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Required: an icon-only button needs a name for screen readers and tooltips. */
   label: string;
+  /** sm: 28px, md: 36px. Both grow to 44px on touch screens. */
   size?: 'sm' | 'md';
+  /** Pressed state for toggles (sets aria-pressed). */
   active?: boolean;
 }
+
+/** A square button holding only an icon, with its label as aria-label and title. */
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
   { label, size = 'md', active = false, className, children, type = 'button', ...rest },
@@ -92,8 +104,11 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   /** Adds the default inner padding. Off for cards that hold tables edge to edge. */
   padded?: boolean;
+  /** Hover styles for cards that are links or buttons. */
   interactive?: boolean;
 }
+
+/** The surface panel every widget, table and form sits in. */
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   { padded = true, interactive = false, className, ...rest },
@@ -125,9 +140,11 @@ const BADGE_TONE: Record<Tone, string> = {
 };
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  /** Text on its own soft tint; every tone clears 4.5:1 in every theme. */
   tone?: Tone;
 }
 
+/** A small status pill: counts, states, tags. */
 export function Badge({ tone = 'neutral', className, ...rest }: BadgeProps) {
   return (
     <span
@@ -147,6 +164,7 @@ const FIELD =
   'disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-th-loss';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  /** Red border and aria-invalid. Pair it with an error message tied by aria-describedby. */
   invalid?: boolean;
 }
 
@@ -163,6 +181,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ i
 });
 
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  /** Red border and aria-invalid. */
   invalid?: boolean;
 }
 

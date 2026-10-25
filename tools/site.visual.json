@@ -1,0 +1,56 @@
+{
+  "name": "site",
+  "pages": [
+    {
+      "name": "overview",
+      "url": "http://localhost:5191/#/overview",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "color",
+      "url": "http://localhost:5191/#/color",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "button",
+      "url": "http://localhost:5191/#/components/button",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "modal",
+      "url": "http://localhost:5191/#/components/modal",
+      "waitFor": "[data-page]",
+      "settle": 1000
+    },
+    {
+      "name": "patterns",
+      "url": "http://localhost:5191/#/patterns",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "button-themes",
+      "url": "http://localhost:5191/#/components/button/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ]
+    },
+    {
+      "name": "patterns-themes",
+      "url": "http://localhost:5191/#/patterns/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ]
+    }
+  ],
+  "viewports": [
+    "desktop",
+    "phone"
+  ],
+  "themes": [
+    "dark",
+    "light"
+  ],
+  "fullPage": true
+}

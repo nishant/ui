@@ -22,17 +22,22 @@
       "import": "./dist/theme.js"
     },
     "./theme-init.js": "./dist/theme-init.js",
+    "./theme.global.js": "./dist/theme.global.js",
     "./tailwind.css": "./dist/tailwind.css",
     "./nish.css": "./dist/nish.css",
     "./tokens.css": "./dist/tokens.css",
     "./fonts.css": "./dist/fonts.css",
     "./base.css": "./dist/base.css",
     "./fonts/*": "./dist/fonts/*",
+    "./files.json": "./dist/files.json",
     "./package.json": "./package.json"
   },
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "npm run build && vite --config demo/vite.config.ts",
+    "dev:site": "npm run build && vite --config site/vite.config.ts",
+    "build:site": "npm run build && vite build --config site/vite.config.ts",
+    "preview:site": "vite preview --config site/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "contrast": "node tools/contrast.mjs",
     "check": "npm run typecheck && npm run contrast && npm run build",

@@ -16,8 +16,11 @@ const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 export interface ModalProps {
+  /** Heading of the dialog; also its accessible name. */
   title: ReactNode;
+  /** Called on Escape, a backdrop click and the close button. Unmount the modal here. */
   onClose: () => void;
+  /** The body. It scrolls when taller than the screen. */
   children: ReactNode;
   /** md: compact dialogs (default). lg / xl: wide content like guides and editors. */
   size?: 'md' | 'lg' | 'xl';
@@ -123,9 +126,12 @@ export function Modal({ title, onClose, children, size = 'md', footer, className
 }
 
 interface TooltipProps {
+  /** What the tooltip says. Keep it to a sentence or two. */
   tip: ReactNode;
+  /** The trigger. It becomes focusable, so keyboard users can read the tip. */
   children: ReactNode;
   className?: string;
+  /** Preferred side; flips when there is no room. */
   side?: 'top' | 'bottom';
   /** Element used for the trigger. Pass `tr` inside tables, where a span would be
    *  invalid markup and get hoisted out of the table by the parser. */
