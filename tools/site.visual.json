@@ -23,6 +23,37 @@
       "settle": 1000
     },
     {
+      "name": "card",
+      "url": "http://localhost:5191/#/components/card",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "field",
+      "url": "http://localhost:5191/#/components/field",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "tabs",
+      "url": "http://localhost:5191/#/components/tabs",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "stat",
+      "url": "http://localhost:5191/#/components/stat",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "dropdown-menu",
+      "url": "http://localhost:5191/#/components/dropdown-menu",
+      "waitFor": "[data-page]",
+      "settle": 1000
+    },
+    {
+      "name": "base-utilities",
+      "url": "http://localhost:5191/#/components/base-utilities",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "patterns",
       "url": "http://localhost:5191/#/patterns",
       "waitFor": "[data-page]"
@@ -42,6 +73,24 @@
       "viewports": [
         "desktop"
       ]
+    },
+    {
+      "name": "table-themes",
+      "url": "http://localhost:5191/#/components/table/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "desktop"
+      ]
+    },
+    {
+      "name": "static-sites-themes",
+      "url": "http://localhost:5191/#/static-sites",
+      "waitFor": "[data-page]",
+      "settle": 800,
+      "viewports": [
+        "desktop"
+      ],
+      "setup": "[...document.querySelectorAll('[role=tab]')].find(b=>b.textContent==='All themes')?.click()"
     }
   ],
   "viewports": [
