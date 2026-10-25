@@ -16,6 +16,7 @@ import { OverviewPage } from './pages/overview';
 import { PatternsPage } from './pages/patterns';
 import { StaticSitesPage } from './pages/static-sites';
 import { ThemesPage } from './pages/themes';
+import { WallPage } from './pages/wall';
 
 const isFrame = location.hash.startsWith('#/frame/');
 // A frame paints the theme it is given; the site itself follows the saved choice.
@@ -25,7 +26,11 @@ else initTheme();
 interface NavItem {
   path: string;
   label: string;
+  /** Only this exact path highlights it (a parent of the pages below it). */
+  exact?: boolean;
 }
+
+const isOn = (it: NavItem, path: string) => path === it.path || (!it.exact && path.startsWith(it.path + '/'));
 
 const NAV: { title: string; items: NavItem[] }[] = [
   {
@@ -48,7 +53,10 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { path: '/z-index', label: 'Z-index & breakpoints' },
     ],
   },
-  { title: 'Components', items: COMPONENT_DOCS.map((d) => ({ path: `/components/${d.id}`, label: d.name })) },
+  {
+    title: 'Components',
+    items: [{ path: '/components', label: 'All components', exact: true }, ...COMPONENT_DOCS.map((d) => ({ path: `/components/${d.id}`, label: d.name }))],
+  },
   { title: 'Patterns', items: [{ path: '/patterns', label: 'App screens' }] },
 ];
 
@@ -80,6 +88,7 @@ function page(route: Route): { title: string; node: ReactNode; wide?: boolean } 
     case 'patterns':
       return { title: 'Patterns', node: <PatternsPage view={second === 'themes' ? 'themes' : 'docs'} />, wide: second === 'themes' };
     case 'components': {
+      if (!second) return { title: 'All components', node: <WallPage />, wide: true };
       const doc = COMPONENT_DOCS.find((d) => d.id === second);
       if (doc) return { title: doc.name, node: <ComponentPage key={doc.id} id={doc.id} view={third === 'themes' ? 'themes' : 'docs'} />, wide: third === 'themes' };
       break;
@@ -106,7 +115,7 @@ function NavList({ current, onNavigate }: { current: string; onNavigate?: () => 
           <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-th-hi3">{g.title}</p>
           <ul className="space-y-px">
             {g.items.map((it) => {
-              const on = current === it.path || current.startsWith(it.path + '/');
+              const on = isOn(it, current);
               return (
                 <li key={it.path}>
                   <a
@@ -154,7 +163,7 @@ function Shell() {
   const route = useRoute();
   const [drawer, setDrawer] = useState(false);
   const { title, node, wide } = page(route);
-  const index = ALL.findIndex((it) => route.path === it.path || route.path.startsWith(it.path + '/'));
+  const index = ALL.findIndex((it) => isOn(it, route.path));
   const prev = index > 0 ? ALL[index - 1] : null;
   const next = index >= 0 && index < ALL.length - 1 ? ALL[index + 1] : null;
 

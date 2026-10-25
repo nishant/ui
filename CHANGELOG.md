@@ -3,6 +3,11 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.2.5] - 2026-10-25
+
+### Added
+- Docs site: an **All components** page that shows every component rendered together with its name (and a filter), so you do not have to step through them with Next. Framed components (Toast, Modal, Tooltip) render in their own frames.
+
 ## [0.2.4] - 2026-10-25
 
 ### Added
