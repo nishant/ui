@@ -12,7 +12,7 @@ const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   primary: 'bg-th-accent text-th-on-accent hover:bg-th-accent/90 active:bg-th-accent/80',
   secondary: 'border border-th-line-strong bg-th-surface text-th-hi hover:bg-th-elevated',
   ghost: 'text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
-  danger: 'bg-th-loss text-th-on-accent hover:bg-th-loss/90 active:bg-th-loss/80',
+  danger: 'bg-th-loss text-th-on-loss hover:bg-th-loss/90 active:bg-th-loss/80',
 };
 
 const BUTTON_SIZE: Record<ButtonSize, string> = {

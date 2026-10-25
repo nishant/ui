@@ -19,7 +19,12 @@ export const COLOR_ROLES = [
   'ghost', // placeholders, disabled, decorative icons (not for body text)
   'accent', // links, primary buttons, active nav, focus ring
   'accent2', // a second accent for paired highlights and the 2nd chart series
-  'on-accent', // text on an accent fill
+  'on-accent', // text and icons on an accent fill
+  'on-accent2', // text and icons on an accent2 fill
+  'on-ok', // text and icons on a solid ok-fill
+  'on-loss', // ... on loss-fill and loss (danger buttons)
+  'on-warn', // ... on warn-fill
+  'on-info', // ... on info-fill
   'ok', // success, gains
   'loss', // errors, losses, destructive
   'warn', // warnings, pending
@@ -130,6 +135,12 @@ export const THEMES = {
       accent: '#4338ca',
       accent2: '#7e22ce',
       'on-accent': '#ffffff',
+      // Light fills are mid-tones: white only clears 4.5:1 on loss and accent2.
+      'on-accent2': '#ffffff',
+      'on-ok': '#0a0a0c',
+      'on-loss': '#ffffff',
+      'on-warn': '#0a0a0c',
+      'on-info': '#0a0a0c',
       ok: '#065f46',
       'ok-fill': '#059669',
       'loss-fill': '#dc2626',
@@ -291,9 +302,15 @@ export const THEMES = {
   },
 };
 
-// Dark themes use their status colors as fills too; only light themes override them.
+// Dark themes use their status colors as fills too, with the same dark ink on every
+// fill; only light themes override them. tools/contrast.mjs checks each on-* color on
+// its fill (4.5:1).
 for (const t of Object.values(THEMES)) {
-  for (const r of ['ok', 'loss', 'warn', 'info']) t.colors[`${r}-fill`] ??= t.colors[r];
+  for (const r of ['ok', 'loss', 'warn', 'info']) {
+    t.colors[`${r}-fill`] ??= t.colors[r];
+    t.colors[`on-${r}`] ??= t.colors['on-accent'];
+  }
+  t.colors['on-accent2'] ??= t.colors['on-accent'];
 }
 
 export const DEFAULT_THEME = 'dark';
