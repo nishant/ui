@@ -78,7 +78,17 @@ export function useChartTheme(): ChartTheme {
   const [theme, setTheme] = useState<ChartTheme>(chartTheme);
   useEffect(() => {
     setTheme(chartTheme());
-    return onThemeChange(() => setTheme(chartTheme()));
+    // Watch <html>'s data-theme rather than only onThemeChange: this entry is bundled on
+    // its own, so its copy of the theme module's listener list may not be the one the
+    // app's applyTheme() calls.
+    const update = () => setTheme(chartTheme());
+    const obs = new MutationObserver(update);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style', 'class'] });
+    const off = onThemeChange(update);
+    return () => {
+      obs.disconnect();
+      off();
+    };
   }, []);
   return theme;
 }
