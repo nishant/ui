@@ -3,7 +3,7 @@
 //
 // master never carries dist/. A release bumps the version on master, then makes a
 // tag commit on top of it that adds the built dist/, so `github:nishant/ui#vX.Y.Z`
-// installs ready to use with no build step. Pushes master and the tag.
+// installs ready to use with no build step, and site-dist/ (the docs site). Pushes master and the tag.
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -33,10 +33,11 @@ writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 sh('npm install --package-lock-only --ignore-scripts --silent');
 sh(`git commit -qam "Release ${tag}"`);
 
-// Tag commit: master + dist/, detached so master stays source-only.
-sh('npm run build');
+// Tag commit: master + dist/ + the built docs site, detached so master stays
+// source-only. hosting serves site-dist/ at design.nish.software from the tag.
+sh('npm run build:site');
 sh('git checkout -q --detach');
-sh('git add -f dist');
+sh('git add -f dist site-dist');
 sh(`git commit -qm "${tag} build"`);
 sh(`git tag -a ${tag} -m "${tag}"`);
 sh('git checkout -q master');
