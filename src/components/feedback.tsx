@@ -3,12 +3,24 @@ import { cn } from '../cn';
 import { AlertTriangleIcon, LoaderIcon, RotateIcon } from './icons';
 
 /** One shimmer block; size it with width/height classes. */
-export function Skeleton({ className }: { className?: string }) {
+export function Skeleton({
+  className,
+}: {
+  /** Size and shape: h-4 w-2/5, size-9 rounded-full, … */
+  className?: string;
+}) {
   return <div aria-hidden="true" className={cn('nish-skeleton rounded-md', className)} />;
 }
 
 /** A padded stack of shimmer bars: the default loading body for a card or widget. */
-export function SkeletonLines({ lines = 3, className }: { lines?: number; className?: string }) {
+export function SkeletonLines({
+  lines = 3,
+  className,
+}: {
+  /** Body lines under the heading bar. */
+  lines?: number;
+  className?: string;
+}) {
   return (
     <div className={cn('flex flex-col gap-2.5 p-3', className)} aria-busy="true" aria-label="Loading">
       <Skeleton className="h-4 w-2/5" />
@@ -20,15 +32,20 @@ export function SkeletonLines({ lines = 3, className }: { lines?: number; classN
 }
 
 export interface EmptyStateProps {
+  /** A 28px line icon, shown in the ghost color. */
   icon?: ReactNode;
+  /** What is empty, in a few words: "No price drops yet". */
   title: string;
+  /** One sentence on why, or what will fill it. */
   detail?: ReactNode;
+  /** Usually one small Button that fixes the emptiness. */
   action?: ReactNode;
   /** compact: no border, fills a widget body. Default: dashed box on a page. */
   compact?: boolean;
   className?: string;
 }
 
+/** What a list, table or widget shows when there is nothing in it yet. */
 export function EmptyState({ icon, title, detail, action, compact = false, className }: EmptyStateProps) {
   return (
     <div
@@ -47,14 +64,18 @@ export function EmptyState({ icon, title, detail, action, compact = false, class
 }
 
 export interface ErrorStateProps {
+  /** What failed and, when known, what to do about it. */
   message?: ReactNode;
   /** Shows a Retry button when given. */
   onRetry?: () => void;
+  /** Spinner on the Retry button while the retry runs. */
   retrying?: boolean;
+  /** No box: fills a widget body. Default: a tinted box on a page. */
   compact?: boolean;
   className?: string;
 }
 
+/** A failed load, announced to screen readers (role="alert"), with an optional Retry. */
 export function ErrorState({
   message = 'Failed to load',
   onRetry,

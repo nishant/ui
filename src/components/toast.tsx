@@ -6,9 +6,11 @@ import { AlertTriangleIcon, CheckCircleIcon, InfoIcon, XIcon } from './icons';
 export type ToastTone = 'success' | 'error' | 'warn' | 'info';
 
 export interface ToastItem {
+  /** Returned by toast(); pass it to dismissToast(). */
   id: number;
   tone: ToastTone;
   title: string;
+  /** Optional second line. */
   body?: string;
 }
 
@@ -23,6 +25,7 @@ const emit = () => subs.forEach((fn) => fn());
 const AUTO_DISMISS_MS = 4_000;
 const MAX_VISIBLE = 4;
 
+/** Remove a toast now, by the id toast() returned. */
 export function dismissToast(id: number): void {
   items = items.filter((t) => t.id !== id);
   emit();
@@ -76,7 +79,12 @@ const TONE: Record<ToastTone, { icon: ReactNode; className: string }> = {
 };
 
 /** The toast stack: bottom-center full width on phones, bottom-right on wider screens. */
-export function Toaster({ className }: { className?: string }) {
+export function Toaster({
+  className,
+}: {
+  /** Extra classes for the stack, e.g. to lift it above a bottom nav: sm:bottom-20. */
+  className?: string;
+}) {
   const list = useToasts();
   if (typeof document === 'undefined') return null;
   return createPortal(
