@@ -488,7 +488,7 @@
 }
 :where(.nish-optional) {
   margin-left: 6px;
-  color: var(--nish-ghost);
+  color: var(--nish-hi3);
   font-size: var(--nish-text-xs);
   font-weight: var(--nish-weight-normal);
 }
@@ -870,6 +870,10 @@
   border-radius: var(--nish-radius-sm);
   background: var(--nish-elevated);
   box-shadow: none;
+}
+/* hi3 only clears 3:1 on elevated in every theme; labels there use hi2. */
+:where(.nish-stats--tinted, .nish-stat--tinted) :where(.nish-stat-label, .nish-stat-sub) {
+  color: var(--nish-hi2);
 }
 :where(.nish-stats--sm) {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
