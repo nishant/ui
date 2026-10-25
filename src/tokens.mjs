@@ -54,8 +54,12 @@ export const COLOR_ROLES = [
   'teal',
 ];
 
-/** Tints mixed from a role over transparent, for badges, banners and soft fills. */
-export const SOFT_ROLES = ['accent', 'ok', 'loss', 'warn', 'info'];
+/** Color roles with no meaning: tags, tiles, stores, calendar dots. */
+export const HUE_ROLES = ['emerald', 'indigo', 'amber', 'lime', 'rose', 'sky', 'violet', 'teal'];
+
+/** Tints mixed from a role over transparent (14%), for badges, banners and soft fills:
+ *  --nish-<role>-soft and Tailwind th-<role>-soft. The status roles first, then the hues. */
+export const SOFT_ROLES = ['accent', 'ok', 'loss', 'warn', 'info', ...HUE_ROLES];
 
 const DARK_HUES = {
   emerald: '#34d399',
@@ -324,6 +328,11 @@ export const SCALE = {
   'font-sans': "'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
   'font-mono': "ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace",
 
+  // Dense UI only (widget chrome, table meta, keyboard hints): never body text.
+  'text-3xs': '0.625rem',
+  'text-3xs-lh': '0.875rem',
+  'text-2xs': '0.6875rem',
+  'text-2xs-lh': '1rem',
   'text-xs': '0.75rem',
   'text-xs-lh': '1.1rem',
   'text-sm': '0.875rem',
@@ -361,6 +370,9 @@ export const SCALE = {
 
   'radius-xs': '4px',
   'radius-sm': '8px',
+  // Card is 12px (Tailwind rounded-xl). Controls use radius-sm (rounded-lg), dialogs
+  // 16px (rounded-2xl), pills radius-pill (rounded-full).
+  'radius-card': '12px',
   'radius-md': '14px',
   'radius-lg': '20px',
   'radius-pill': '999px',
