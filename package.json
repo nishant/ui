@@ -22,6 +22,7 @@
       "import": "./dist/theme.js"
     },
     "./theme-init.js": "./dist/theme-init.js",
+    "./theme.global.js": "./dist/theme.global.js",
     "./tailwind.css": "./dist/tailwind.css",
     "./nish.css": "./dist/nish.css",
     "./tokens.css": "./dist/tokens.css",
