@@ -2,7 +2,7 @@
 
 Status: **spec, not yet built.** Written 2026-10-25 from an audit of every app and site that uses
 @nish/ui v0.2.1: jobs, trading, Nishboard, the hub, status, trackers, mc, trips and the trip-plan
-skill. Each app had hand-rolled the same pieces. This file is the source of truth for the **APIs and
+skill. v0.2.2 and v0.2.3 shipped the same morning (see below). Each app had hand-rolled the same pieces. This file is the source of truth for the **APIs and
 looks** of what @nish/ui adds next, so the apps can delete their local copies.
 
 The cross-repo rollout plan (which app changes what, gates, order, checks) lives in the private
@@ -24,17 +24,15 @@ The cross-repo rollout plan (which app changes what, gates, order, checks) lives
 - **Keep one recipe per look.** Where a component also needs a class form (links, router
   `NavLink`s, static pages), export a `*Class()` function and have the component call it.
 
-## Already in flight (do not redo)
+## Shipped since the audit (do not redo)
 
-As of 2026-10-25 04:40 CDT another session had **uncommitted** work in the ui checkout:
-- `src/components/segmented.tsx`: `Segmented<T>({ label, options: {value,label,ariaLabel?}[], value, onChange, size: 'sm'|'md', className })`,
-  a radiogroup with roving tabindex and arrow keys. The selected option is `bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40`.
-- ThemeToggle's selected segment gets the same accent look.
-- The Modal close button becomes 44px on touch (`pointer-coarse:min-h-11 pointer-coarse:min-w-11`).
-- A docs page for Segmented and entries in `tools/site-all.visual.json`.
+The audit was taken on v0.2.1. The same morning:
+- **v0.2.2**: `Segmented<T>({ label, options: {value,label,ariaLabel?}[], value, onChange, size: 'sm'|'md', className })`,
+  a radiogroup with roving tabindex, arrow keys and 44px touch targets. The selected option is `bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40`.
+  ThemeToggle's selected segment gets the same accent look. The Modal close button is 44px on touch.
+- **v0.2.3**: a Segmented with no selected option keeps a Tab stop on its first option.
 
-Whoever builds this spec must first check `git log origin/master` and the tags. If that work has
-landed, build on it. If it has not, include it unchanged and extend it as specified below.
+Before building, check `git log origin/master` and the tags again, and build on whatever has landed since.
 
 ---
 
@@ -170,7 +168,7 @@ an Input with a leading search icon and a trailing clear IconButton (xs, label "
 `type="search"`, `enterKeyHint="search"`. `bare` drops the border and background for search bars inside headers.
 Evidence: Nishboard 4, trading 3, trackers 1, the mc hub (static).
 
-### Segmented (finish and extend the in-flight one)
+### Segmented (extend the v0.2.2 one)
 
 ```ts
 Segmented<T extends string>({ label, options: { value: T; label: ReactNode; ariaLabel?: string; disabled?: boolean }[],
@@ -180,7 +178,7 @@ Segmented<T extends string>({ label, options: { value: T; label: ReactNode; aria
 - Keep `role="radiogroup"` with `role="radio"` and `aria-checked`, roving tabindex, arrows, Home and End. It is for **single-choice value pickers**.
   Multi-select toggles are `ChipGroup` (below), not Segmented.
 - `block`: full width, with equal flex children. `xs` for Nishboard (`h-6 px-2 text-2xs`). `disabled` options are skipped by the arrow keys.
-- Touch: each segment gets `pointer-coarse:min-h-11 pointer-coarse:min-w-11`. status's local copy is 40px.
+- Touch: each segment keeps `pointer-coarse:min-h-11 pointer-coarse:min-w-11` (already in v0.2.2).
 - The selected class keeps `text-th-accent`. trading's E2E specs assert `toHaveClass(/th-accent/)`; they must move from
   `getByRole('button')` to `getByRole('radio')`, which the trading work package covers.
 - Evidence: trading 19 groups, Nishboard 9 implementations (~16 instances), trackers 4, jobs 4, status 2.
