@@ -27,7 +27,8 @@ const before = beforeDir && existsSync(join(beforeDir, 'report.json')) ? load(be
 
 mkdirSync(join(out, 'shots'), { recursive: true });
 const copy = (dir, tag, shot) => {
-  if (!shot?.file) return null;
+  // A page taller than JPEG's 65,535px limit leaves a 0-byte file; show it as missing.
+  if (!shot?.file || !existsSync(join(dir, shot.file)) || statSync(join(dir, shot.file)).size === 0) return null;
   const rel = join('shots', tag, shot.file);
   mkdirSync(join(out, rel, '..'), { recursive: true });
   cpSync(join(dir, shot.file), join(out, rel));
