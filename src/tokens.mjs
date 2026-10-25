@@ -81,7 +81,9 @@ const LIGHT_HUES = {
 
 // Categorical series ordered so neighbors never share a hue family.
 const DARK_CHART = ['#8b93ff', '#34d399', '#fbbf24', '#fb7185', '#38bdf8', '#c084fc', '#fb923c', '#a3e635'];
-const LIGHT_CHART = ['#4f46e5', '#047857', '#b45309', '#be123c', '#0369a1', '#7e22ce', '#c2410c', '#4d7c0f'];
+// Light series are the most vivid shades that still clear 3:1 (chart marks, not text)
+// on bg, surface and elevated; darker text-safe shades read as muddy lines.
+const LIGHT_CHART = ['#6366f1', '#059669', '#c96d06', '#f43f5e', '#0284c7', '#a855f7', '#ea580c', '#5a910c'];
 
 const chart = (list) => Object.fromEntries(list.map((c, i) => [`chart-${i + 1}`, c]));
 

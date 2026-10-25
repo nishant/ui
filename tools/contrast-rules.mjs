@@ -48,7 +48,8 @@ export const RULES = [
   ['info', ['bg', 'surface'], TEXT],
   ['line-strong', ['surface'], 1.6],
   ...['ok-fill', 'loss-fill', 'warn-fill', 'info-fill'].map((f) => [f, ['bg', 'surface', 'elevated'], UI]),
-  ...Array.from({ length: 8 }, (_, i) => [`chart-${i + 1}`, ['bg', 'surface'], UI]),
+  // Chart lines and bars sit on cards and on raised panels (hovered rows, popovers).
+  ...Array.from({ length: 8 }, (_, i) => [`chart-${i + 1}`, ['bg', 'surface', 'elevated'], UI]),
   ...HUES.map((h) => [h, ['bg', 'surface'], UI]),
 ];
 
