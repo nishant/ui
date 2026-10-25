@@ -3,6 +3,112 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.3.0] - 2026-10-25
+
+The adoption release: every piece the apps had each built for themselves (from an audit of jobs, trading, Nishboard, the hub, status, trackers, mc and trips), so they can delete their local copies. Additive, apart from the behavior changes listed at the end.
+
+### Added
+
+Foundation
+- Hue soft tints: `--nish-<hue>-soft` for the 8 hues (14% over transparent) and Tailwind `bg-th-<hue>-soft`. The contrast check covers each hue on its tint over bg, surface and elevated (3:1) and `hi` on every hue tint (4.5:1).
+- `text-2xs` (11px / 1rem) and `text-3xs` (10px / 0.875rem): `--nish-text-2xs`, `--nish-text-3xs` and Tailwind `text-2xs` / `text-3xs`. `cn()` keeps a `th-*` color next to them (a build assertion checks it).
+- `--nish-radius-card` (12px, what Card's `rounded-xl` is). The Foundations page lists the canonical radii: controls `rounded-lg`, cards `rounded-xl`, dialogs `rounded-2xl`, pills `rounded-full`.
+- `HUE_ROLES` export; `SOFT_ROLES` now lists the hues after the status roles. `SOFT_ROLES` and `SHADOWS` are exported from the main entry too.
+- `@nish/ui/tokens`: `THEMES`, `SCALE`, `COLOR_ROLES`, `SOFT_ROLES`, `HUE_ROLES`, `SHADOWS`, `DEFAULT_THEME` as plain data with types. It imports nothing, so it loads in plain Node without React.
+- `mountThemeToggle(button, { labels })` in `@nish/ui/theme` and `window.nishTheme`: the one-button System, Light, Dark toggle for static pages, with a correct label for a preset set on another site. It returns a cleanup.
+- base.css: `.nish-skip-link`, a base `kbd` style, `.scrollbar-none`, and `@keyframes nish-slide-in-right` / `nish-slide-in-left` (Tailwind `animate-slide-in-right` / `animate-slide-in-left`).
+- `.nish-prose` in base.css: Markdown and rich text (headings, lists, links, code, quotes, tables, task lists) on role tokens.
+- `package.json` exports `./tokens`, `./chart` and `./nish-components.css`.
+- `scripts/bump-consumers.sh` writes the codeload tarball form from either dependency form, uses the hub's `master` branch, skips repos without @nish/ui cleanly, and has `--dry-run`.
+
+Primitives
+- Button: `soft`, `subtle` and `link` variants, and an `xs` size (24px, 44px on touch).
+- `buttonClass({ variant, size, className })`: the exact Button recipe for `<a>`, router `<Link>` and `<a download>`.
+- IconButton: `xs` size (24px), `variant` (`ghost` | `subtle` | `soft`) and `tone="danger"`.
+- `iconButtonClass({ size, variant, tone, active, className })`.
+- Card: `padding` (`none` | `sm` | `md` | `lg`), `as` (`div` | `section` | `article` | `aside` | `li`), `variant="inset"`, and `title` / `description` / `action`, which render a CardHeader.
+- `cardClass({ padding, padded, interactive, variant, className })`, for cards that are links.
+- `CardHeader`: title, description, icon, action slot, heading level (`as`), `divided` for edge-to-edge cards, `titleId`.
+- Badge: `hue` (the 8 hues, on `th-<hue>-soft` with `hi` text), `size="xs"`, `variant="tag"` and `dot`.
+- `badgeClass({ tone, hue, size, variant, className })`.
+- Input: `size` (`xs` | `sm` | `md`), `leading` and `trailing` slots, `wrapperClassName`.
+- Select: `size` (`xs` | `sm` | `md`) and `selectClassName` for the inner `<select>`.
+- `fieldClass({ size, invalid, className })`: the shared field recipe for one-off controls.
+
+Forms
+- Textarea: `size` (`sm` | `md`) and `autoGrow` (`true` or `{ maxRows }`); `rows` stays the minimum height.
+- Checkbox: `indeterminate`, `trailing` slot, `size` (`sm` | `md`); `label` is optional when the box has an `aria-label`.
+- `Switch`: `<button role="switch" aria-checked>` with `label`, `description`, `size` and `labelSide`; the label is tied by `aria-labelledby`.
+- `Field`: label, one control, hint and error, wired with `id`, `aria-describedby` and `invalid` / `aria-invalid`; `optional`, `layout="inline"`, `labelWidth`.
+- `SearchInput`: leading search icon, Clear button, Escape clears, `size` (`xs` | `sm` | `md`), `variant="bare"`; `onChange` receives the string.
+- `Chip`: `toggle` (`aria-pressed`), `suggestion` and removable `tag` variants, `icon`, `trailing`, `size`.
+- `ChipGroup`: a labelled `role="group"` of Chips that wraps, or scrolls sideways on phones with `scroll`.
+- Segmented: `size="xs"`, `block`, per-option `disabled` (skipped by the arrow keys) and `title`, and the Home and End keys.
+- `Tabs` and `TabPanel`: the ARIA tabs pattern with `underline` and `pill` variants, `size`, `count`, `sub`, disabled tabs, arrow keys, Home and End.
+- `tabClass({ active, variant, size, className })`: the tab look for router links (`aria-current="page"`).
+- ThemeToggle: built on Segmented; `labels`, `block`, `size` (`sm` | `md`) and `compact` (one button that cycles System, Light, Dark).
+
+Overlays
+- `Drawer`: a panel from the right, left or bottom edge (`side`, `size` sm/md/lg, `subtitle`, `actions`, `footer`, `bottomOffset`), with the same focus trap, Escape, focus return and scroll lock as Modal.
+- `ConfirmDialog`: a yes-or-no question before an action, in place of `window.confirm` (`tone` danger/primary, `pending`, `confirmLabel`, `cancelLabel`). Danger confirms start focus on Cancel.
+- `Popover`: a non-modal panel anchored to an element (`open`, `onOpenChange`, `anchor`, `side`, `align`, `width`); flips and clamps, closes on Escape and outside press, returns focus to the anchor.
+- `DropdownMenu` with `MenuItem` (`icon`, `trailing`, `danger`, `active`, `disabled`, `onSelect`), `MenuLabel`, `MenuSeparator` and `MenuSubHeader`: menu roles, arrow keys, Home, End, typeahead, Escape, `aria-haspopup` / `aria-expanded` on the trigger, focus return.
+- Modal `size="2xl"` and `size="full"`.
+- Modal `placement="top"` for command palettes and search dialogs.
+- Modal `header` (replaces the title row; pass `aria-label`), `hideClose` and `aria-label`.
+- Tooltip `side="left"` and `side="right"`.
+- Tooltip `focusable` (default true; false keeps dense marks out of the Tab order).
+- Tooltip `variant="hint"`: dotted underline and help cursor on the trigger.
+- Popovers and menus opened inside a Modal or Drawer stack above it, and Escape closes only the topmost layer.
+
+Display and feedback
+- `Spinner({ size, label })`: the shared loader in `currentColor`; with `label` it is `role="status"`.
+- Toasts take options: `toast(title, { body, action, duration, id })`. `action` renders a text button that runs and dismisses; `id` replaces the toast in that slot instead of stacking; `duration` is milliseconds or `'sticky'`. `(title, body)` calls keep working.
+- `Toaster({ offset })`: the stack's bottom distance on phones (clear a bottom tab bar).
+- `Callout({ tone, icon, title, action, onDismiss, variant, compact, live })`: inline notices, `box` or `bar`.
+- `StatusDot({ tone, size, pulse, halo, label })`: status marks on the `-fill` roles.
+- `Stat({ label, value, sub, tone, tip, size, variant, loading })` and `StatGrid({ cols })`: labelled numbers as a `<dl>`.
+- `signTone(n)`: ok, loss or neutral for a signed number.
+- `Meter({ value, min, max, label, tone, thresholds, size, orientation, track, kind, showValue })`: `role="meter"` or `progressbar`.
+- `toneFor(value, { warn, loss })`: ok, warn or loss, for higher-is-worse and lower-is-worse thresholds.
+- `Sparkline({ values, label, tone, width, height, fill, min, max })`: a dependency-free SVG trend with gaps at nulls.
+- `Disclosure({ summary, defaultOpen, open, onOpenChange, variant })`: `<details>` with a turning chevron.
+- `Kbd`: a keyboard key.
+- `copyText(text)` and `CopyButton({ text, label, copiedLabel, iconOnly, size, variant, onCopy })`: copy with a "Copied" state announced to screen readers.
+- `PageHeader({ title, description, eyebrow, back, actions, as, sticky })`.
+- `AppHeader({ name, icon, hubHref, actions, nav, themeToggle, sticky, innerClassName })`: hub pill, wordmark, actions, ThemeToggle and a nav row.
+- Table primitives `TableWrap`, `Table`, `Th` (sort with `aria-sort`), `Td`, `Tr` (tone edge, interactive, muted), and `tableClass` strings for TanStack renderers.
+- `@nish/ui/chart`: `seriesColor(i)`, `CHART`, `tooltipStyle`, `chartTheme()` and `useChartTheme()`, with no chart-library dependency.
+
+Static sites
+- `@nish/ui/nish-components.css`: opt-in component classes for pages without React (`.nish-btn`, `.nish-icon-btn`, `.nish-card`, `.nish-badge`, `.nish-input` / `.nish-select` / `.nish-textarea`, `.nish-label`, `.nish-field`, `.nish-seg`, `.nish-chip`, `.nish-callout`, `.nish-stats` / `.nish-stat`, `.nish-table-wrap`, `.nish-meter`, `.nish-disclosure`, `.nish-empty`, `.nish-error-state`, `.nish-theme-btn`). Every selector is wrapped in `:where()`, so a site's own CSS wins. Listed in `dist/files.json` "static", so hosting's `sync-ui.mjs` vendors it.
+- `.nish-search` (the SearchInput twin) and `.nish-dot` (the StatusDot twin) in `nish-components.css`.
+- `.nish-badge` hue modifiers (`--emerald` … `--teal`), mirroring Badge `hue`.
+
+Docs site and tools
+- A page for every new component, each with stories for every variant and size, an in-a-card story and the All themes view; new pages for mountThemeToggle, Prose, Base utilities and Chart colors.
+- The Static sites page shows every `nish-*` class beside its React component and in every theme; the static example is rebuilt on the classes and uses `mountThemeToggle`.
+- The docs site uses the shared `Tabs`, `tabClass` and `Badge` instead of its own local tabs and pill.
+- `tools/visual-check.mjs` skips visually hidden text (`.sr-only`, 1px boxes, text clipped to nothing) in its clipped-text check.
+- `tools/visual-check.mjs` waits for `load` and then for the network to go quiet. When Playwright never reports networkidle (seen on All themes pages with about 50 preview frames), it settles on its own check, every frame loaded and no request in flight for a second, and notes it on the shot.
+- The visual configs cover every new page, the All components page, the Static sites All themes view and both static examples.
+
+### Behavior changes
+- Modal (and Drawer, ConfirmDialog) lock scroll on `<html>` as well as `<body>`, restored when the last dialog closes. Apps with a local root-scroll lock (job-apps `useLockRootScroll`) can drop it.
+- The Tailwind base now sets the default border color (`--nish-line`) on every element and a pointer cursor on enabled `button` and `[role=button]`.
+- theme-init.js sets `<meta name="theme-color">` to the resolved theme's bg before first paint (and creates the tag when it is missing). Registered app themes keep the runtime path.
+- `kbd` elements get a bordered key style from base.css (nish.css and tailwind.css) everywhere.
+- Card's `title` prop renders a CardHeader instead of the native `title` attribute (tooltip). A titled `section`, `article` or `aside` Card gets `aria-labelledby` pointing at its heading.
+- Card forwards its ref as `HTMLElement` (was `HTMLDivElement`); it still renders a `div` by default.
+- Input and Select: the native `size` attribute is replaced by the `size` prop (`xs` | `sm` | `md`).
+- Field padding is now `pl-*` / `pr-*` instead of `px-*` (same pixels); `className="pl-9"` keeps working and `px-4` still overrides both sides.
+- Segmented: arrow keys move focus along with the selection (before, the choice moved but focus stayed behind), and Home and End work.
+- Checkbox: the box is drawn from theme roles (`appearance: none`, `line-strong` border, accent fill with an `on-accent` check) instead of the native box with `accent-color`, so the unchecked border reads in light themes.
+- ThemeToggle: segments are 44px on touch (were 40px), idle icons use `hi2` (were `hi3`), and the segments use Segmented's roving tabindex (one Tab stop instead of three).
+- Modal `title` is optional when `header` is given (it stays the accessible name otherwise).
+- Tooltip opens on `focusin`, so a focusable child inside the trigger shows the tip too, and Escape hides it. Its position is measured before paint and follows scroll and resize (shared with Popover and DropdownMenu). It uses `z-index: var(--nish-z-tooltip)` (100, the same value).
+- Toast timers pause while a toast is hovered with a mouse or holds focus, and resume (at least 1s) after. A toast pushed out by the four-toast limit has its timer cleared.
+
 ## [0.2.6] - 2026-10-25
 
 ### Added
