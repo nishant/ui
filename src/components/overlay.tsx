@@ -1071,7 +1071,7 @@ export function MenuItem({ icon, trailing, danger = false, active = false, disab
     >
       {icon ? <span className={cn('inline-flex shrink-0', danger || disabled ? '' : 'text-th-hi3')}>{icon}</span> : null}
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      {trailing ? <span className={cn('ml-auto inline-flex shrink-0 items-center', disabled ? '' : 'text-th-hi3')}>{trailing}</span> : null}
+      {trailing ? <span className={cn('ml-auto inline-flex shrink-0 items-center', disabled ? '' : 'text-th-hi2')}>{trailing}</span> : null}
     </button>
   );
 }
@@ -1079,7 +1079,7 @@ export function MenuItem({ icon, trailing, danger = false, active = false, disab
 /** A small heading over a group of MenuItems. Not focusable. */
 export function MenuLabel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div role="presentation" className={cn('px-3 pb-1 pt-2 text-2xs font-semibold uppercase tracking-wider text-th-hi3', className)}>
+    <div role="presentation" className={cn('px-3 pb-1 pt-2 text-2xs font-semibold uppercase tracking-wider text-th-hi2', className)}>
       {children}
     </div>
   );
