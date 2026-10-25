@@ -14,14 +14,19 @@
 //   "themes": ["dark", "light"],                                   // optional
 //   "setTheme": "localStorage.setItem('nish-theme','{theme}')",     // optional; runs before page scripts
 //   "fullPage": true,
+//   "maxHeight": 16000,                                            // optional; full-page shots stop here
 //   "ignoreConsole": ["regex", ...]                                 // optional
 // }
 //
 // Writes <out>/<page>/<viewport>-<theme>.jpg and <out>/report.json. Exit 1 when any
 // page fails, unless --no-fail (used for "before" shots).
+//
+// JPEG tops out at 65,535px a side, and Chromium writes an empty file past that
+// instead of failing, so full-page shots are clipped at maxHeight CSS px (default
+// 16,000; the report notes it), and a shot whose file is empty or missing fails.
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 export const VIEWPORTS = {
@@ -53,6 +58,15 @@ const viewports = config.viewports ?? ['desktop', 'phone'];
 const themes = config.themes ?? ['dark', 'light'];
 const setTheme = config.setTheme ?? "try{localStorage.setItem('nish-theme','{theme}')}catch(e){}";
 const ignoreConsole = (config.ignoreConsole ?? []).map((r) => new RegExp(r));
+const MAX_HEIGHT = config.maxHeight ?? 16_000;
+
+const fileSize = (path) => {
+  try {
+    return statSync(path).size;
+  } catch {
+    return -1;
+  }
+};
 
 mkdirSync(outDir, { recursive: true });
 
@@ -166,8 +180,18 @@ for (const pg of config.pages) {
           examples: v.nodes.slice(0, 4).map((n) => `${n.target.join(' ')}${n.any?.[0]?.message ? ' — ' + n.any[0].message.slice(0, 160) : ''}`),
         }));
         const file = join(pg.name, `${vpName}-${theme}.jpg`);
-        await page.screenshot({ path: join(outDir, file), fullPage: pg.fullPage ?? config.fullPage ?? true, type: 'jpeg', quality: 72 });
+        const fullPage = pg.fullPage ?? config.fullPage ?? true;
+        const opts = { path: join(outDir, file), fullPage, type: 'jpeg', quality: 72 };
+        if (fullPage) {
+          const height = await page.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0));
+          if (height > MAX_HEIGHT) {
+            opts.clip = { x: 0, y: 0, width: vp.width, height: MAX_HEIGHT };
+            shot.note = `clipped at ${MAX_HEIGHT}px of ${height}px`;
+          }
+        }
+        await page.screenshot(opts);
         shot.file = file;
+        shot.bytes = fileSize(opts.path);
         if (vpName === 'desktop' && theme === (pg.themes ?? themes)[0]) shot.focusMissing = await focusCheck(page);
       } catch (e) {
         shot.error = String(e.message ?? e).slice(0, 400);
@@ -182,13 +206,17 @@ for (const pg of config.pages) {
         contrast && `contrast: ${contrast.count} element(s), e.g. ${contrast.examples[0]}`,
         ...consoleErrors.map((c) => `console: ${c}`),
         ...(shot.focusMissing ?? []).map((f) => `no focus ring: ${f}`),
+        shot.file && shot.bytes <= 0 && `screenshot ${shot.file} is ${shot.bytes < 0 ? 'missing' : 'empty'}`,
+        !shot.file && !shot.error && 'no screenshot taken',
       ].filter(Boolean);
       // target-size is reported but only fails on phones, where it matters.
       const tap = shot.axe?.find((v) => v.rule === 'target-size');
       if (tap && vp.isMobile) shot.problems.push(`small tap targets: ${tap.count}, e.g. ${tap.examples[0]}`);
       if (shot.problems.length) failed++;
       report.shots.push(shot);
-      console.log(`${shot.problems.length ? 'FAIL' : 'ok  '} ${pg.name} ${vpName} ${theme}${shot.problems.length ? '\n     ' + shot.problems.join('\n     ') : ''}`);
+      console.log(
+        `${shot.problems.length ? 'FAIL' : 'ok  '} ${pg.name} ${vpName} ${theme}${shot.note ? ` (${shot.note})` : ''}${shot.problems.length ? '\n     ' + shot.problems.join('\n     ') : ''}`,
+      );
       await ctx.close();
     }
   }
