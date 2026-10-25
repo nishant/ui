@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.demo-dist/
+visual-out/
+*.log
+.DS_Store
