@@ -202,6 +202,9 @@ function Shell() {
           <IconButton label="Open navigation" className="lg:hidden" onClick={() => setDrawer(true)}>
             <MenuIcon size={18} />
           </IconButton>
+          <a className="nish-pill-link" href="https://nish.software" title="Back to nish.software">
+            ← nish.software
+          </a>
           <Logo />
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <ThemeToggle presets className="hidden sm:inline-flex" />

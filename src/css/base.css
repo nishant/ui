@@ -61,6 +61,29 @@ table,
   background-clip: padding-box;
 }
 
+/* The "← nish.software" pill every subdomain carries at the top left of its header:
+   <a class="nish-pill-link" href="https://nish.software" title="Back to nish.software">← nish.software</a> */
+.nish-pill-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--nish-hi2);
+  text-decoration: none;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 1px solid var(--nish-line);
+  border-radius: 999px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.nish-pill-link:hover {
+  color: var(--nish-hi);
+  border-color: var(--nish-line-strong);
+}
+
 /* Notches and home indicators on installed PWAs. */
 .nish-safe-area {
   padding-top: env(safe-area-inset-top);
