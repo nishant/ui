@@ -158,7 +158,7 @@ export function Callout({
         {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
       </div>
       {onDismiss ? (
-        <IconButton label="Dismiss" size="sm" onClick={onDismiss} className="-my-0.5 -mr-1 size-6 rounded-md">
+        <IconButton label="Dismiss" size="xs" onClick={onDismiss} className="-my-0.5 -mr-1">
           <XIcon size={14} />
         </IconButton>
       ) : null}
@@ -275,10 +275,7 @@ export function Stat({
     <>
       <dt className={cn('text-xs', quiet)}>
         {tip ? (
-          <Tooltip
-            tip={tip}
-            className="cursor-help underline decoration-th-hi3 decoration-dotted underline-offset-2"
-          >
+          <Tooltip tip={tip} variant="hint">
             {label}
           </Tooltip>
         ) : (
@@ -308,9 +305,8 @@ export function Stat({
   );
   const Box = inGrid ? 'div' : 'dl';
   if (variant === 'card') {
-    // Integration: becomes Card padding="sm" once the primitives lane lands.
     return (
-      <Card padded={false} className={cn('min-w-0 p-3', className)}>
+      <Card padding="sm" className={cn('min-w-0', className)}>
         {inGrid ? body : <dl>{body}</dl>}
       </Card>
     );

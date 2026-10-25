@@ -127,7 +127,7 @@ export function Tabs({ value, onChange, items, label, variant = 'underline', siz
             <span className="inline-flex items-center gap-1.5">
               {t.label}
               {t.count != null ? (
-                <Badge tone={on ? 'accent' : 'neutral'} className="px-1.5 leading-4 tabular-nums">
+                <Badge tone={on ? 'accent' : 'neutral'} size="xs" className="tabular-nums">
                   {t.count}
                 </Badge>
               ) : null}

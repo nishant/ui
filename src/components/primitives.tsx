@@ -7,7 +7,6 @@ import {
   type ReactNode,
   type Ref,
   type SelectHTMLAttributes,
-  type TextareaHTMLAttributes,
 } from 'react';
 import { cn } from '../cn';
 import { ChevronDownIcon, LoaderIcon } from './icons';
@@ -467,7 +466,7 @@ export function Badge({ tone = 'neutral', hue, size = 'sm', variant = 'pill', do
 export type FieldSize = 'xs' | 'sm' | 'md';
 
 /** The field look without size: border, fill, hover, focus ring, disabled and invalid.
- *  Internal to the package (Textarea and the forms lane build on it); apps use fieldClass(). */
+ *  Internal to the package (Textarea in forms.tsx builds on it); apps use fieldClass(). */
 export const FIELD =
   'w-full min-w-0 rounded-lg border border-th-line-strong bg-th-elevated text-th-hi placeholder:text-th-ghost ' +
   'transition-colors duration-150 hover:border-th-hi3/60 focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/25 ' +
@@ -545,67 +544,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         <span className="absolute inset-y-0 right-0 flex min-w-8 items-center justify-center pr-0.5 text-sm text-th-hi2">{trailing}</span>
       ) : null}
     </span>
-  );
-});
-
-export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
-  /** Red border and aria-invalid. */
-  invalid?: boolean;
-}
-
-/** Multi-line text with the shared field look. 16px text on phones (no iOS zoom); it
- *  grows with its rows and the reader can resize it vertically. */
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { invalid, className, rows = 4, ...rest },
-  ref,
-) {
-  return (
-    <textarea
-      ref={ref}
-      rows={rows}
-      aria-invalid={invalid || undefined}
-      className={cn(FIELD, 'block resize-y px-3 py-2 text-base leading-relaxed sm:text-sm', className)}
-      {...rest}
-    />
-  );
-});
-
-export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  /** Text beside the box; clicking it toggles the box. */
-  label: ReactNode;
-  /** A quieter line under the label. */
-  hint?: ReactNode;
-}
-
-/** A checkbox with its label. The whole row is the 44px tap target on touch screens. */
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
-  { label, hint, className, id, disabled, ...rest },
-  ref,
-) {
-  const auto = useId();
-  const boxId = id ?? auto;
-  return (
-    <label
-      htmlFor={boxId}
-      className={cn(
-        'inline-flex cursor-pointer items-start gap-2.5 text-sm text-th-hi pointer-coarse:min-h-11 pointer-coarse:py-2.5',
-        disabled && 'cursor-not-allowed opacity-50',
-        className,
-      )}
-    >
-      <input
-        ref={ref}
-        id={boxId}
-        type="checkbox"
-        disabled={disabled}
-        className="mt-0.5 size-4 shrink-0 cursor-[inherit] rounded border-th-line-strong accent-[var(--nish-accent)]"
-        {...rest}
-      />
-      <span className="min-w-0">
-        <span className="block leading-snug">{label}</span>
-        {hint ? <span className="mt-0.5 block text-xs text-th-hi3">{hint}</span> : null}
-      </span>
-    </label>
   );
 });
 

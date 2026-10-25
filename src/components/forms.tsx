@@ -21,19 +21,12 @@ import {
   type TextareaHTMLAttributes,
 } from 'react';
 import { cn } from '../cn';
-import { IconButton, Input } from './primitives';
+import { FIELD, IconButton, Input } from './primitives';
 import { XIcon } from './icons';
 
 // Form controls: Textarea, Checkbox, Switch, Field, SearchInput, Chip and ChipGroup.
 // Every interactive control grows to the 44px tap target on touch screens
 // (pointer-coarse) and stays compact under a mouse.
-
-// The shared field look. Integration note (LANE.md): this mirrors primitives' FIELD
-// and becomes `fieldClass()` from primitives.tsx once the primitives lane lands.
-const FIELD =
-  'w-full min-w-0 rounded-lg border border-th-line-strong bg-th-elevated text-th-hi placeholder:text-th-ghost ' +
-  'transition-colors duration-150 hover:border-th-hi3/60 focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/25 ' +
-  'disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-th-loss';
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 function Svg({ size = 16, children, ...rest }: IconProps) {
@@ -492,12 +485,12 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(functi
       {value && !disabled ? (
         <IconButton
           label="Clear search"
-          size="sm"
+          size="xs"
           onClick={() => {
             clear();
             inner.current?.focus();
           }}
-          className="absolute right-1 top-1/2 size-6 -translate-y-1/2 rounded-md"
+          className="absolute right-1 top-1/2 -translate-y-1/2"
         >
           <XIcon size={14} />
         </IconButton>
@@ -554,7 +547,7 @@ export const Chip = forwardRef<HTMLButtonElement, ChipProps>(function Chip(
         {children}
         {trailing}
         {onRemove ? (
-          <IconButton label={name} size="sm" onClick={onRemove} className="size-6 rounded-full hover:bg-th-overlay">
+          <IconButton label={name} size="xs" onClick={onRemove} className="rounded-full">
             <XIcon size={12} />
           </IconButton>
         ) : null}
