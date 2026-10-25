@@ -9,30 +9,65 @@ export const COMPONENTS = [
   'Button',
   'IconButton',
   'Card',
+  'CardHeader',
   'Badge',
   'Input',
   'Textarea',
   'Checkbox',
+  'Field',
+  'Switch',
+  'SearchInput',
   'Select',
   'Label',
+  'Chip',
+  'ChipGroup',
   'Skeleton',
   'SkeletonLines',
+  'Spinner',
   'EmptyState',
   'ErrorState',
   'Toaster',
+  'Callout',
+  'StatusDot',
+  'Stat',
+  'StatGrid',
+  'Meter',
+  'Sparkline',
+  'Disclosure',
+  'Kbd',
+  'CopyButton',
+  'PageHeader',
+  'AppHeader',
+  'TableWrap',
+  'Table',
+  'Th',
+  'Td',
+  'Tr',
   'Modal',
+  'Drawer',
+  'ConfirmDialog',
   'Tooltip',
+  'Popover',
+  'DropdownMenu',
+  'MenuItem',
+  'MenuSubHeader',
   'Segmented',
+  'Tabs',
+  'TabPanel',
   'ThemeToggle',
 ];
-const FUNCTIONS = ['toast', 'dismissToast', 'useToast', 'useTheme'];
-const INTERFACES = ['ThemeState', 'ToastItem', 'SegmentedProps', 'SegmentedOption'];
+const FUNCTIONS = [
+  'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
+  'buttonClass', 'iconButtonClass', 'cardClass', 'badgeClass', 'fieldClass', 'tabClass',
+  'signTone', 'toneFor', 'copyText', 'seriesColor', 'chartTheme', 'useChartTheme',
+];
+const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme'];
 
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');
 
 export function docgen(root) {
-  const entry = join(root, 'src/index.ts');
-  const program = ts.createProgram([entry], {
+  const entries = [join(root, 'src/index.ts'), join(root, 'src/chart.ts')];
+  const program = ts.createProgram(entries, {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
@@ -42,9 +77,12 @@ export function docgen(root) {
     noEmit: true,
   });
   const checker = program.getTypeChecker();
-  const mod = checker.getSymbolAtLocation(program.getSourceFile(entry));
   const exported = new Map(
-    checker.getExportsOfModule(mod).map((s) => [s.name, s.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(s) : s]),
+    entries.flatMap((entry) =>
+      checker
+        .getExportsOfModule(checker.getSymbolAtLocation(program.getSourceFile(entry)))
+        .map((s) => [s.name, s.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(s) : s]),
+    ),
   );
   const doc = (sym) => ts.displayPartsToString(sym.getDocumentationComment(checker)).trim();
 

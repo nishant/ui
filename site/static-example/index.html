@@ -5,59 +5,120 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- 1. Before any stylesheet: applies the saved theme, so the first paint is right. -->
   <script src="nish/theme-init.js"></script>
-  <!-- 2. Tokens, the Inter font and base styles in one file. -->
+  <!-- 2. Tokens, the Inter font and base styles in one file, then the opt-in component classes. -->
   <link rel="stylesheet" href="nish/nish.css">
+  <link rel="stylesheet" href="nish/nish-components.css">
   <title>Smokies trip</title>
   <style>
-    body { margin: 0; padding: 20px 16px; }
-    .card {
-      max-width: 520px; margin: 0 auto; padding: 18px 20px;
-      background: var(--nish-surface); border: 1px solid var(--nish-line);
-      border-radius: var(--nish-radius-md); box-shadow: var(--nish-shadow-card);
-    }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    /* Page layout only: every control and box below is a nish-* class. */
+    body { margin: 0; padding: 20px 16px 32px; }
+    main { display: grid; gap: 16px; max-width: 560px; margin: 0 auto; }
+    header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     h1 { margin: 0; font-size: var(--nish-text-xl); line-height: var(--nish-text-xl-lh); letter-spacing: var(--nish-tracking-tight); }
     .meta { margin: 2px 0 0; color: var(--nish-hi3); font-size: var(--nish-text-sm); }
-    p { color: var(--nish-hi2); font-size: var(--nish-text-sm); line-height: var(--nish-text-sm-lh); }
-    .chip {
-      display: inline-block; padding: 2px 8px; border-radius: var(--nish-radius-pill); font-size: var(--nish-text-xs); font-weight: 500;
-      color: var(--nish-ok); background: var(--nish-ok-soft); border: 1px solid color-mix(in srgb, var(--nish-ok) 30%, transparent);
-    }
-    button {
-      font: inherit; font-size: var(--nish-text-sm); font-weight: 500; min-height: 36px; padding: 0 12px; cursor: pointer;
-      color: var(--nish-hi); background: var(--nish-elevated); border: 1px solid var(--nish-line-strong); border-radius: var(--nish-radius-sm);
-    }
-    button:hover { background: var(--nish-overlay); }
-    @media (pointer: coarse) { button { min-height: var(--nish-tap-min); } }
-    .days { display: grid; gap: 8px; margin-top: 14px; }
-    .day { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: var(--nish-radius-sm); background: var(--nish-elevated); font-size: var(--nish-text-sm); }
-    .day span:last-child { color: var(--nish-hi3); }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .stack { display: grid; gap: 12px; }
+    .budget { display: grid; gap: 6px; }
+    .budget p { display: flex; justify-content: space-between; margin: 0; font-size: var(--nish-text-sm); color: var(--nish-hi2); }
   </style>
 </head>
 <body>
-  <main class="card">
+  <main>
     <header>
       <div>
         <h1>Great Smoky Mountains</h1>
         <p class="meta">Nov 6 to 9 · 3 nights in Gatlinburg</p>
       </div>
-      <button id="theme" type="button">Theme: <span id="choice">system</span></button>
+      <button id="theme" class="nish-theme-btn" type="button">Theme</button>
     </header>
-    <p><span class="chip">Booked</span> Cabin, rental car and the Cades Cove pass are confirmed.</p>
-    <div class="days">
-      <div class="day"><span>Thu · Fly into Knoxville</span><span>2 h drive</span></div>
-      <div class="day"><span>Fri · Alum Cave to Mount LeConte</span><span>11 mi</span></div>
-      <div class="day"><span>Sat · Cades Cove loop at sunrise</span><span>11 mi drive</span></div>
+
+    <div class="row">
+      <span class="nish-badge nish-badge--ok">Booked</span>
+      <span class="nish-badge">3 nights</span>
+      <span class="nish-badge nish-badge--warn">Pass pending</span>
     </div>
+
+    <dl class="nish-stats">
+      <div class="nish-stat"><dt class="nish-stat-label">Miles hiked</dt><dd class="nish-stat-value">22</dd></div>
+      <div class="nish-stat"><dt class="nish-stat-label">Drive</dt><dd class="nish-stat-value">2 h</dd></div>
+      <div class="nish-stat"><dt class="nish-stat-label">Budget left</dt><dd class="nish-stat-value nish-stat-value--ok">$412</dd></div>
+    </dl>
+
+    <div class="nish-callout nish-callout--warn">
+      <span class="nish-callout-icon" aria-hidden="true">!</span>
+      <div>
+        <p class="nish-callout-title">Parking tags</p>
+        <p>Every car parked over 15 minutes needs a tag. Buy it online before Thursday.</p>
+      </div>
+    </div>
+
+    <section class="nish-card nish-card--padded stack" aria-labelledby="days">
+      <div class="row" style="justify-content: space-between">
+        <h2 id="days" class="nish-label" style="margin: 0">Days</h2>
+        <div class="nish-seg" role="group" aria-label="Show">
+          <button type="button" aria-pressed="true">All</button>
+          <button type="button" aria-pressed="false">Hikes</button>
+          <button type="button" aria-pressed="false">Drives</button>
+        </div>
+      </div>
+      <div class="nish-table-wrap">
+        <table>
+          <thead><tr><th>Day</th><th>Plan</th><th class="num">Distance</th></tr></thead>
+          <tbody>
+            <tr><td>Thu</td><td>Fly into Knoxville</td><td class="num">2 h drive</td></tr>
+            <tr><td>Fri</td><td>Alum Cave to Mount LeConte</td><td class="num">11 mi</td></tr>
+            <tr><td>Sat</td><td>Cades Cove loop at sunrise</td><td class="num">11 mi drive</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="budget">
+        <p><span>Budget used</span><span>$788 of $1,200</span></p>
+        <div class="nish-meter nish-meter--ok" role="meter" aria-label="Budget used" aria-valuemin="0" aria-valuemax="1200" aria-valuenow="788"><i style="width: 66%"></i></div>
+      </div>
+      <details class="nish-disclosure">
+        <summary>Packing list</summary>
+        <p>Rain shell, microspikes if it freezes, headlamp, two liters of water each.</p>
+      </details>
+    </section>
+
+    <section class="nish-card nish-card--padded stack" aria-labelledby="note">
+      <h2 id="note" class="nish-label" style="margin: 0">Add a stop</h2>
+      <div class="nish-chips" role="group" aria-label="Kind">
+        <button type="button" class="nish-chip" aria-pressed="true">Food</button>
+        <button type="button" class="nish-chip" aria-pressed="false">Views</button>
+        <button type="button" class="nish-chip nish-chip--suggestion">Waterfall</button>
+      </div>
+      <label class="nish-field">
+        <span class="nish-field-label">Name</span>
+        <input class="nish-input" placeholder="Grotto Falls" aria-describedby="stop-hint">
+        <small class="nish-hint" id="stop-hint">Shown on the day it falls on.</small>
+      </label>
+      <div class="row">
+        <button type="button" class="nish-btn nish-btn--primary">Add stop</button>
+        <button type="button" class="nish-btn nish-btn--ghost">Cancel</button>
+      </div>
+    </section>
   </main>
+
   <!-- 3. Theme switching. A plain module: no bundler, no React. -->
   <script type="module">
-    import { initTheme, cycleTheme, getThemeChoice, onThemeChange } from './nish/theme.js';
-    const label = document.querySelector('#choice');
-    onThemeChange((choice) => (label.textContent = choice));
-    initTheme();
-    document.querySelector('#theme').addEventListener('click', cycleTheme);
-    label.textContent = getThemeChoice();
+    import * as nishTheme from './nish/theme.js';
+    nishTheme.initTheme();
+    const button = document.querySelector('#theme');
+    nishTheme.mountThemeToggle(button);
+
+    // Segmented: one pressed button per group.
+    for (const group of document.querySelectorAll('.nish-seg')) {
+      group.addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        for (const x of group.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+      });
+    }
+    // Chips: each one toggles on its own.
+    for (const chip of document.querySelectorAll('.nish-chip:not(.nish-chip--suggestion)')) {
+      chip.addEventListener('click', () => chip.setAttribute('aria-pressed', String(chip.getAttribute('aria-pressed') !== 'true')));
+    }
   </script>
 </body>
 </html>

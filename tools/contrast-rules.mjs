@@ -1,5 +1,6 @@
 // WCAG contrast math and the pairs every theme must pass. tools/contrast.mjs runs
 // them in CI; the docs site (site/pages/themes.tsx) renders the same pairs as a matrix.
+import { HUE_ROLES } from '../src/tokens.mjs';
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 
@@ -30,7 +31,7 @@ export const mix = (fg, bg, t) =>
 export const TEXT = 4.5;
 export const UI = 3;
 
-export const HUES = ['emerald', 'indigo', 'amber', 'lime', 'rose', 'sky', 'violet', 'teal'];
+export const HUES = HUE_ROLES;
 
 /** [foreground, backgrounds, minimum]. */
 export const RULES = [
@@ -83,6 +84,16 @@ export function checkTheme(colors) {
     for (const under of ['surface', 'elevated']) {
       const tint = mix(colors[role], colors[under], 0.14);
       add(role, `${role}-soft`, colors[role], tint, TEXT, `${role} on ${role}-soft over ${under}`);
+    }
+  }
+  // Hue tints (th-<hue>-soft): hub tile icons and calendar dots put the hue on its own
+  // tint straight on the page (a mark, 3:1), and tag chips put hi text on it.
+  for (const h of HUES) {
+    const onBg = mix(colors[h], colors.bg, 0.14);
+    add(h, `${h}-soft`, colors[h], onBg, UI, `${h} on ${h}-soft over bg`);
+    for (const under of ['bg', 'surface', 'elevated']) {
+      const tint = mix(colors[h], colors[under], 0.14);
+      add('hi', `${h}-soft`, colors.hi, tint, TEXT, `hi on ${h}-soft over ${under}`);
     }
   }
   return out;

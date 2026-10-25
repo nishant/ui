@@ -2,7 +2,8 @@ import { useState } from 'react';
 import docgen from 'virtual:nish-docgen';
 import { CodeBlock } from '../lib/code';
 import { href } from '../lib/router';
-import { PageHeader, Prose, Section, Tabs } from '../lib/ui';
+import { Tabs } from '../../src';
+import { PageHeader, Prose, Section } from '../lib/ui';
 
 type Kind = 'react' | 'static' | 'electron';
 
@@ -34,14 +35,15 @@ export function GettingStartedPage() {
         </Prose>
       </Section>
 
-      <Tabs<Kind>
+      <Tabs
+        variant="pill"
         label="Kind of app"
         value={kind}
-        onChange={setKind}
-        options={[
-          { id: 'react', label: 'React + Tailwind 4' },
-          { id: 'static', label: 'Static page' },
-          { id: 'electron', label: 'Electron' },
+        onChange={(v) => setKind(v as Kind)}
+        items={[
+          { value: 'react', label: 'React + Tailwind 4' },
+          { value: 'static', label: 'Static page' },
+          { value: 'electron', label: 'Electron' },
         ]}
       />
 

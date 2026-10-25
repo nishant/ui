@@ -117,28 +117,3 @@ export function PropsTable({ doc, rows }: { doc?: ComponentDocgen; rows?: PropDo
   );
 }
 
-export function Pill({ children, className }: { children: ReactNode; className?: string }) {
-  return <span className={cn('inline-flex items-center rounded-md border border-th-line bg-th-elevated px-1.5 py-0.5 font-mono text-xs text-th-hi2', className)}>{children}</span>;
-}
-
-export function Tabs<T extends string>({ value, options, onChange, label }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void; label: string }) {
-  return (
-    <div role="tablist" aria-label={label} className="inline-flex max-w-full flex-wrap gap-1 rounded-lg border border-th-line bg-th-elevated p-1">
-      {options.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          role="tab"
-          aria-selected={value === o.id}
-          onClick={() => onChange(o.id)}
-          className={cn(
-            'rounded-md px-3 py-1.5 text-sm font-medium transition-colors pointer-coarse:min-h-11',
-            value === o.id ? 'bg-th-surface text-th-hi shadow-card' : 'text-th-hi2 hover:text-th-hi',
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}

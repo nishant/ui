@@ -10,14 +10,17 @@ Used by:
 
 | App | How it installs | Stack |
 |---|---|---|
-| nish.software (the hub) | npm git tag | React + Tailwind 4 |
+| nish.software (the hub) | npm git tag | Vite + plain TypeScript and plain CSS (no React, no Tailwind): `nish.css`, `theme.js` |
 | jobs.nish.software | npm git tag | React + Tailwind 4 |
 | trading.nish.software | npm git tag | React + Tailwind 4, pnpm |
-| Nishboard (desktop) | npm git tag | Electron + React, pnpm |
-| status.nish.software | npm git tag | React + Tailwind 4 |
-| trackers.nish.software | npm git tag | React + Tailwind 4 |
+| Nishboard (desktop) | npm git tag | Electron + React + Tailwind 4, pnpm |
+| status.nish.software | codeload tarball | React + Tailwind 4 |
+| trackers.nish.software | codeload tarball | React + Tailwind 4 |
+| start.nish.software (repo nishant.github.io) | CSS consumer | Angular 16 + Angular Material, themed through the `--nish-*` roles |
 | mc.nish.software | vendored dist files | static HTML |
 | trips (hosting `static/trips`) | vendored dist files | static HTML |
+
+From v0.3.0 every app installs the codeload tarball (`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`), which needs only HTTPS; `scripts/bump-consumers.sh` writes that form.
 
 ## Install
 
@@ -81,34 +84,37 @@ initTheme(); // once, before render
 
 ## Quick start: static HTML
 
-Copy the files listed in `dist/files.json` from a tag (`nish.css`, `theme-init.js`,
-`theme.js`, `theme.global.js` and `fonts/*`). hosting does this with
+Copy the files listed in `dist/files.json` from a tag (`nish.css`, `nish-components.css`,
+`theme-init.js`, `theme.js`, `theme.global.js` and `fonts/*`). hosting does this with
 `scripts/sync-ui.mjs`. Then:
 
 ```html
 <head>
   <script src="nish/theme-init.js"></script>
   <link rel="stylesheet" href="nish/nish.css">
+  <!-- optional: .nish-btn, .nish-card, .nish-badge and the other component classes -->
+  <link rel="stylesheet" href="nish/nish-components.css">
 </head>
 <body>
-  <button id="theme" type="button">Theme</button>
+  <button id="theme" type="button" class="nish-theme-btn"></button>
   <script type="module">
-    import { initTheme, cycleTheme } from './nish/theme.js';
+    import { initTheme, mountThemeToggle } from './nish/theme.js';
     initTheme();
-    document.querySelector('#theme').addEventListener('click', cycleTheme);
+    // Fills the button with the System, Light and Dark icons, keeps its label right, cycles on click.
+    mountThemeToggle(document.querySelector('#theme'));
   </script>
 </body>
 ```
 
 Pages that cannot use modules load the classic-script build instead. It defines
 `window.nishTheme` with `initTheme`, `setThemeChoice`, `cycleTheme`, `onThemeChange`,
-`readToken`, `registerThemes` and `getThemeChoice`:
+`readToken`, `registerThemes`, `getThemeChoice` and `mountThemeToggle`:
 
 ```html
 <script src="nish/theme.global.js"></script>
 <script>
   nishTheme.initTheme();
-  document.querySelector('#theme').addEventListener('click', nishTheme.cycleTheme);
+  nishTheme.mountThemeToggle(document.querySelector('#theme'));
 </script>
 ```
 
@@ -198,26 +204,54 @@ Every value per theme, live, is on the [Color page](https://design.nish.software
 
 | Component | What it is | Docs |
 |---|---|---|
-| `Button` | The standard action: primary, secondary, ghost and danger; sm, md, lg; loading and disabled | [Button](https://design.nish.software/#/components/button) |
-| `IconButton` | Square icon-only button; the required label is its accessible name and title | [IconButton](https://design.nish.software/#/components/icon-button) |
-| `Card` | The surface panel for widgets, tables and forms; optional padding and hover | [Card](https://design.nish.software/#/components/card) |
-| `Badge` | Status pill in six tones, each its color on its own tint | [Badge](https://design.nish.software/#/components/badge) |
-| `Input` | Text field: 16px on phones (no iOS zoom), 44px on touch, invalid state | [Input](https://design.nish.software/#/components/input) |
-| `Textarea` | Multi-line text with the shared field look | [Textarea](https://design.nish.software/#/components/textarea) |
-| `Checkbox` | A checkbox with its label and hint; the whole row is the tap target | [Checkbox](https://design.nish.software/#/components/checkbox) |
-| `Select` | Native select with the field look; keeps the platform picker on phones | [Select](https://design.nish.software/#/components/select) |
+| `Button`, `buttonClass()` | The standard action: primary, secondary, ghost, danger, soft, subtle and link; xs to lg; loading; `buttonClass()` for links | [Button](https://design.nish.software/#/components/button) |
+| `IconButton`, `iconButtonClass()` | Icon-only button, xs/sm/md, ghost/subtle/soft, danger tone; the required label is its accessible name and title | [IconButton](https://design.nish.software/#/components/icon-button) |
+| `Card`, `cardClass()` | Surface panel: padding none/sm/md/lg, `as`, inset variant, optional header via title/description/action | [Card](https://design.nish.software/#/components/card) |
+| `CardHeader` | Card header row: title, description, icon, action slot, divided | [CardHeader](https://design.nish.software/#/components/card-header) |
+| `Badge`, `badgeClass()` | Status pill: 6 tones, 8 hues, xs/sm, pill or tag, optional dot | [Badge](https://design.nish.software/#/components/badge) |
+| `Input`, `fieldClass()` | Text field: xs/sm/md, leading/trailing slots, invalid; 16px on phones, 44px on touch | [Input](https://design.nish.software/#/components/input) |
+| `Textarea` | Multi-line text with the field look; sm/md, `autoGrow` | [Textarea](https://design.nish.software/#/components/textarea) |
+| `Checkbox` | A checkbox with its label and hint, indeterminate, trailing slot; the whole row is the tap target | [Checkbox](https://design.nish.software/#/components/checkbox) |
+| `Field` | Label, one control and its hint or error, wired for screen readers | [Field](https://design.nish.software/#/components/field) |
+| `Switch` | On/off setting that applies at once (`role="switch"`), with label and description | [Switch](https://design.nish.software/#/components/switch) |
+| `SearchInput` | Search field with icon, Clear button and Escape to clear | [SearchInput](https://design.nish.software/#/components/search-input) |
+| `Select` | Native select with the field look, xs/sm/md; keeps the platform picker on phones | [Select](https://design.nish.software/#/components/select) |
 | `Label` | Small uppercase label for fields and card sections | [Label](https://design.nish.software/#/components/label) |
 | `Skeleton`, `SkeletonLines` | Shimmer placeholders: one sized block, or a ready-made card body | [Skeleton](https://design.nish.software/#/components/skeleton) |
+| `Spinner` | Loader in the current text color; with a label it is `role="status"` | [Spinner](https://design.nish.software/#/components/spinner) |
 | `EmptyState` | What an empty list or widget shows: title, one line of why, an action | [EmptyState](https://design.nish.software/#/components/empty-state) |
 | `ErrorState` | A failed load, announced to screen readers, with an optional Retry | [ErrorState](https://design.nish.software/#/components/error-state) |
-| `Toaster`, `toast()` | Toast stack; `toast.success/error/warn/info` from anywhere; errors stay until dismissed | [Toast](https://design.nish.software/#/components/toast) |
-| `Modal` | Dialog; bottom sheet under 640px; Escape, focus trap, focus return, scroll lock | [Modal](https://design.nish.software/#/components/modal) |
-| `Tooltip` | Hover and focus hint in a portal, flipped and clamped to the screen | [Tooltip](https://design.nish.software/#/components/tooltip) |
-| `Segmented` | Two to five mutually exclusive choices side by side, such as a chart range | [Segmented](https://design.nish.software/#/components/segmented) |
-| `ThemeToggle`, `useTheme()` | System / Light / Dark control with an optional preset picker | [ThemeToggle](https://design.nish.software/#/components/theme-toggle) |
+| `Toaster`, `toast()` | Toast stack; `toast.success/error/warn/info` from anywhere, with body, action, duration and slot id | [Toast](https://design.nish.software/#/components/toast) |
+| `Callout` | Inline tinted notice: tone, icon, title, action, dismiss, box or bar | [Callout](https://design.nish.software/#/components/callout) |
+| `StatusDot` | Round status mark on the `-fill` roles, optional pulse and halo | [StatusDot](https://design.nish.software/#/components/status-dot) |
+| `Stat`, `StatGrid`, `signTone()` | Labelled numbers in a `<dl>` grid; tone from a signed number | [Stat](https://design.nish.software/#/components/stat) |
+| `Meter`, `toneFor()` | Thin meter or progress bar with threshold tones | [Meter](https://design.nish.software/#/components/meter) |
+| `Sparkline` | Dependency-free SVG trend line | [Sparkline](https://design.nish.software/#/components/sparkline) |
+| `Disclosure` | `<details>` show-more, plain or card | [Disclosure](https://design.nish.software/#/components/disclosure) |
+| `Kbd` | Keyboard key | [Kbd](https://design.nish.software/#/components/kbd) |
+| `CopyButton`, `copyText()` | Copy to clipboard with a "Copied" state and a live announcement | [CopyButton](https://design.nish.software/#/components/copy-button) |
+| `PageHeader` | Page title block with back link, eyebrow, description and actions | [PageHeader](https://design.nish.software/#/components/page-header) |
+| `AppHeader` | Shared app header: hub pill, wordmark, actions, theme toggle, nav row | [AppHeader](https://design.nish.software/#/components/app-header) |
+| `TableWrap`, `Table`, `Th`, `Td`, `Tr`, `tableClass` | Table primitives (sticky header, sort, tone edge) and class recipes for TanStack | [Table](https://design.nish.software/#/components/table) |
+| `Modal` | Dialog; bottom sheet under 640px; sizes md to full, top placement, custom header; Escape, focus trap, focus return, html and body scroll lock | [Modal](https://design.nish.software/#/components/modal) |
+| `Drawer` | Side or bottom panel with the Modal's focus trap, Escape and scroll lock | [Drawer](https://design.nish.software/#/components/drawer) |
+| `ConfirmDialog` | Yes-or-no question before an action, in place of `window.confirm` | [ConfirmDialog](https://design.nish.software/#/components/confirm-dialog) |
+| `Tooltip` | Hover and focus hint in a portal on any side, flipped and clamped to the screen; `hint` variant | [Tooltip](https://design.nish.software/#/components/tooltip) |
+| `Popover` | Non-modal panel anchored to an element; Escape and outside press close it | [Popover](https://design.nish.software/#/components/popover) |
+| `DropdownMenu` | Menu of actions behind a button, with `MenuItem`, `MenuLabel`, `MenuSeparator`, `MenuSubHeader` | [DropdownMenu](https://design.nish.software/#/components/dropdown-menu) |
+| `Segmented` | Two to five mutually exclusive choices side by side (xs to md, block, disabled options) | [Segmented](https://design.nish.software/#/components/segmented) |
+| `Chip`, `ChipGroup` | Multi-select filter chips, suggestions and removable tags | [Chip](https://design.nish.software/#/components/chip) |
+| `Tabs`, `TabPanel`, `tabClass()` | ARIA tabs (underline or pill); `tabClass()` for router links | [Tabs](https://design.nish.software/#/components/tabs) |
+| `ThemeToggle`, `useTheme()` | System / Light / Dark control with labels, compact mode and an optional preset picker | [ThemeToggle](https://design.nish.software/#/components/theme-toggle) |
+| `mountThemeToggle()` | `@nish/ui/theme` and `window.nishTheme`: the one-button theme toggle for static pages | [mountThemeToggle](https://design.nish.software/#/components/mount-theme-toggle) |
+| `@nish/ui/chart` | `seriesColor`, `CHART`, `tooltipStyle`, `chartTheme`, `useChartTheme` for any chart library | [Chart colors](https://design.nish.software/#/components/chart) |
+| `@nish/ui/tokens` | Token data for Node scripts, with no React import | [Color](https://design.nish.software/#/color) |
+| `.nish-prose` | Markdown and rich text styles (nish.css, tailwind.css) | [Prose](https://design.nish.software/#/components/prose) |
+| `.nish-skip-link`, `kbd`, `.scrollbar-none` | Base helpers (nish.css, tailwind.css) | [Base utilities](https://design.nish.software/#/components/base-utilities) |
+| `nish-components.css` | Static component classes for pages without React: `.nish-btn`, `.nish-card`, `.nish-badge`, fields, `.nish-seg`, `.nish-chip`, `.nish-callout`, `.nish-stats`, `.nish-table-wrap`, `.nish-meter`, `.nish-disclosure`, `.nish-dot`, `.nish-search`, `.nish-theme-btn`, empty and error states. Link it after `nish.css`. | [Static sites](https://design.nish.software/#/static-sites) |
 
 Also exported: `cn()` (clsx plus a tailwind-merge that knows the `th-*` colors), the theme
-functions, and `THEMES`, `SCALE`, `COLOR_ROLES`, `PRESETS`.
+functions, and `THEMES`, `SCALE`, `COLOR_ROLES`, `SOFT_ROLES`, `HUE_ROLES`, `SHADOWS`, `PRESETS`.
 
 ## An app's own themes: registerThemes
 
@@ -313,7 +347,8 @@ npm run preview:site  # serves site-dist/ at http://localhost:5191
 `site-dist/` is plain static files with hash routes and relative asset URLs, so it works
 served from any path. Props tables are generated from the TypeScript source at build time
 (`site/docgen.mjs`), so add JSDoc to a prop and it shows up there. Component pages,
-stories and controls live in `site/components.tsx`.
+stories and controls live in `site/components/<id>.tsx`, one file per component;
+`site/components/index.ts` lists them in `COMPONENT_DOCS`.
 
 ## Repo layout
 
@@ -323,7 +358,8 @@ stories and controls live in `site/components.tsx`.
 | `src/theme.ts`, `src/theme-init.js` | Theme switching, and the pre-paint script. |
 | `src/theme-global.ts` | Entry for `dist/theme.global.js` (`window.nishTheme`). |
 | `src/components/` | The React components. |
-| `src/css/` | `base.css` (page defaults, focus ring, scrollbars, reduced motion) and `fonts.css`. |
+| `src/chart.ts` | `@nish/ui/chart`: chart colors and tooltip styles for any chart library. |
+| `src/css/` | `base.css` (page defaults, focus ring, scrollbars, reduced motion, prose, kbd, skip link), `components.css` (the static `nish-*` classes, built to `dist/nish-components.css`) and `fonts.css`. |
 | `scripts/build.mjs` | Builds `dist/`: tokens.css, tailwind.css, nish.css, hashed fonts, theme-init.js, the JS via tsup, and tests theme-init.js and theme.global.js. |
 | `scripts/release.mjs`, `scripts/bump-consumers.sh` | Releasing. |
 | `site/` | The docs site. |

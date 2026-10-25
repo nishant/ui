@@ -119,11 +119,24 @@ function inspect() {
     }
   }
   // Text cut off without an ellipsis: a single line wider than its box with overflow hidden.
+  // Visually hidden text (.sr-only and friends: a 1px box, or clipped to nothing) is
+  // hidden on purpose, so it is skipped.
+  const visuallyHidden = (el, s) => {
+    const r = el.getBoundingClientRect();
+    return (
+      r.width <= 1 ||
+      r.height <= 1 ||
+      el.classList.contains('sr-only') ||
+      /rect\(0(px)?,?\s*0(px)?,?\s*0(px)?,?\s*0(px)?\)/.test(s.clip) ||
+      s.clipPath === 'inset(50%)'
+    );
+  };
   const clipped = [];
   for (const el of document.body.querySelectorAll('p,span,a,button,td,th,h1,h2,h3,h4,label,li,div')) {
     if (clipped.length >= 8) break;
     if (!el.childNodes.length || ![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
     const s = getComputedStyle(el);
+    if (visuallyHidden(el, s)) continue;
     if ((s.overflowX === 'hidden' || s.overflow === 'hidden') && s.textOverflow !== 'ellipsis' && el.scrollWidth > el.clientWidth + 2 && visible(el)) {
       clipped.push(`${sel(el)}: "${el.textContent.trim().slice(0, 40)}"`);
     }
@@ -178,6 +191,11 @@ for (const pg of config.pages) {
       await ctx.addInitScript({ content: setTheme.replaceAll('{theme}', theme) });
       if (config.cookies) await ctx.addCookies(config.cookies.map((c) => ({ ...c, value: c.value.replaceAll('{theme}', theme) })));
       const page = await ctx.newPage();
+      // Requests still in flight, tracked here as a cross-check for Playwright's networkidle.
+      const inflight = new Set();
+      page.on('request', (r) => inflight.add(r));
+      page.on('requestfinished', (r) => inflight.delete(r));
+      page.on('requestfailed', (r) => inflight.delete(r));
       const consoleErrors = [];
       page.on('console', (m) => {
         if (m.type() === 'error' && !ignoreConsole.some((r) => r.test(m.text())) && !pageIgnore.some((r) => r.test(m.text()))) consoleErrors.push(m.text().slice(0, 300));
@@ -186,7 +204,32 @@ for (const pg of config.pages) {
 
       const shot = { page: pg.name, viewport: vpName, theme, url: pg.url };
       try {
-        await page.goto(pg.url, { waitUntil: 'networkidle', timeout: 45_000 });
+        // Load first, then wait for the network to go quiet. goto({ waitUntil: 'networkidle' })
+        // sometimes never resolves on a page that adds dozens of same-origin iframes right
+        // after load (the All themes view of a framed component), though nothing is pending.
+        // When that happens, the page counts as settled if every frame has loaded and no
+        // request has been in flight for a second, and the shot carries a note.
+        await page.goto(pg.url, { waitUntil: 'load', timeout: 45_000 });
+        const idle = await page.waitForLoadState('networkidle', { timeout: 20_000 }).then(
+          () => true,
+          () => false,
+        );
+        if (!idle) {
+          const deadline = Date.now() + 25_000;
+          let quietSince = 0;
+          for (;;) {
+            const loaded = (await Promise.all(page.frames().map((f) => f.evaluate(() => document.readyState).catch(() => 'detached')))).every(
+              (s) => s === 'complete' || s === 'detached',
+            );
+            if (loaded && inflight.size === 0) {
+              quietSince ||= Date.now();
+              if (Date.now() - quietSince >= 1000) break;
+            } else quietSince = 0;
+            if (Date.now() > deadline) throw new Error(`network never went idle (${inflight.size} request(s) in flight)`);
+            await page.waitForTimeout(200);
+          }
+          shot.note = 'networkidle not reported; settled on its own check (all frames loaded, no requests in flight)';
+        }
         if (pg.waitFor) await page.waitForSelector(pg.waitFor, { timeout: 15_000 });
         if (pg.setup) await page.evaluate(pg.setup);
         await page.waitForTimeout(pg.settle ?? 400);
