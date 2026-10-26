@@ -141,13 +141,14 @@ function NavList({ current, onNavigate }: { current: string; onNavigate?: () => 
 
 function Logo() {
   return (
-    <a href={href('/overview')} className="flex min-w-0 items-center gap-2.5 rounded-lg">
+    <a href={href('/overview')} aria-label={`${docgen.name} overview`} className="hidden min-w-0 shrink-0 items-center gap-2.5 rounded-lg min-[360px]:flex">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-th-accent text-th-on-accent" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 18V6l12 12V6" />
         </svg>
       </span>
-      <span className="min-w-0">
+      {/* phones: the back link takes the room, so the name and version show from sm up (the mark from 360px) */}
+      <span className="hidden min-w-0 sm:block">
         <span className="block truncate text-[15px] font-semibold leading-tight text-th-hi">{docgen.name}</span>
         <span className="block truncate text-xs leading-tight text-th-hi3">
           <span className="font-mono">v{docgen.version}</span> · design system
