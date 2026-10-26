@@ -397,6 +397,16 @@ After the apps adopted v0.4.0, one more gap came back, and it shipped in v0.5.0.
 | --- | --- | --- |
 | KeyValueItem `wrap` | `KeyValueList({ items: { key, label, value, wrap? }[] })`: with `wrap`, the value cell is `min-w-0 break-all text-right` and shrinks, the label `shrink-0`; the row stays at least 44px (32px dense) and grows when the value wraps. Both the `ul` and `dl` forms. | trading SettingsPage System Status inline `<dl>` |
 
+## Gap round 3 (v0.5.2): built
+
+What came back after the apps adopted v0.5.0: prose values in a KeyValueList, and the two static-page pieces still covered by browser defaults (`window.confirm`, `title=`).
+
+| Built | API | Replaces |
+| --- | --- | --- |
+| KeyValueItem `wrap: 'words'` | `wrap?: boolean \| 'anywhere' \| 'words'`. `true`/`'anywhere'`: as in v0.5.0. `'words'`: label `min-w-0 flex-1`, value `min-w-0 max-w-[60%] text-right`, both `overflow-wrap: anywhere` so they wrap at word breaks and split a word only when it alone is wider than its cell; rows at least 44px (32px dense), `py-2`/`py-1`. Both forms. | trading SettingsPage `PHRASE_VALUE` (`inline-block max-w-44 sm:max-w-none`) |
+| `confirmDialog` and `.nish-dialog` | `confirmDialog({ title, body?, confirmLabel = 'Confirm', cancelLabel = 'Cancel', tone?: 'danger' \| 'primary' }): Promise<boolean>` in `@nish/ui/theme` and `window.nishTheme`. Native `<dialog>` + `showModal()`: focus trap, Escape cancels (and stops there), backdrop click cancels, focus returns to the opener, 44px buttons on touch. Classes `.nish-dialog`, `-title`, `-body`, `-actions`. | startpage notes dialog `window.confirm('Do you want to save before closing?')` |
+| `.nish-tooltip` and `mountTooltips` | `.nish-tooltip` (focusable trigger, `aria-describedby`) > `.nish-tooltip-content[role=tooltip]`; shows on `:hover`, `:focus-visible`, `:focus-within`; `--bottom` `--start` `--end`. `mountTooltips(root?)` adds Escape. Elevated, line-strong border, radius-sm, shadow-pop, 12px hi text, like the React Tooltip. | hub Tailnet badge `title=` |
+
 ## Tier 3 (stay local; listed to avoid duplicates)
 
 RadioGroup with dot radios (trackers 1), Slider (Nishboard 5), TagInput (jobs 3), Avatar (jobs 3, Nishboard 2),
@@ -436,6 +446,8 @@ Ship one opt-in stylesheet:
 | `.nish-empty`, `.nish-error-state` | EmptyState, ErrorState | |
 | `.nish-pill-link` | already in base.css since v0.2.6 (not in this file) | on a dark band, scope the band with `data-theme="dark" data-scheme="dark"` instead of a modifier |
 | `.nish-theme-btn` | the button `mountThemeToggle` fills | icon swap through `[data-choice]` |
+| `.nish-dialog` (`-title`, `-body`, `-actions`) | ConfirmDialog; what `confirmDialog()` renders (v0.5.2) | bottom sheet below 640px |
+| `.nish-tooltip` > `.nish-tooltip-content` | Tooltip (v0.5.2); `mountTooltips()` adds Escape | `--bottom` `--start` `--end` |
 
 ---
 

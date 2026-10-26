@@ -11,4 +11,6 @@ export {
   getThemeChoice,
   mountThemeToggle,
   showToast,
+  confirmDialog,
+  mountTooltips,
 } from './theme';

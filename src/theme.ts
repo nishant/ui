@@ -385,6 +385,141 @@ export function showToast(content: string | Node, opts: ShowToastOptions = {}): 
   return hide;
 }
 
+// --- confirmDialog (static pages) --------------------------------------------------
+
+export interface ConfirmDialogOptions {
+  /** The question, e.g. "Save before closing?". Also the dialog's name. */
+  title: string;
+  /** What happens if they confirm: text, or a Node for markup (never parsed as HTML). */
+  body?: string | Node;
+  /** The confirm button's label: a verb that names the action. Default "Confirm". */
+  confirmLabel?: string;
+  /** The cancel button's label. Default "Cancel". */
+  cancelLabel?: string;
+  /** danger: a red confirm button, and focus starts on Cancel (as in the React
+   *  ConfirmDialog). Without it: an accent confirm button that takes the first focus. */
+  tone?: 'danger' | 'primary';
+}
+
+let dialogSeq = 0;
+
+/** A yes-or-no question in place of `window.confirm`, for pages without React: a
+ *  native <dialog class="nish-dialog"> opened with showModal(), so the browser traps
+ *  focus and makes the page inert. Resolves true on the confirm button, false on Cancel,
+ *  Escape or a backdrop click; then the dialog is removed and focus returns to the
+ *  element that had it. Escape does not reach the page's own key handlers. Needs
+ *  nish-components.css. */
+export function confirmDialog(opts: ConfirmDialogOptions): Promise<boolean> {
+  if (typeof document === 'undefined') return Promise.resolve(false);
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const id = `nish-dialog-${++dialogSeq}`;
+  const danger = opts.tone === 'danger';
+
+  const dialog = document.createElement('dialog');
+  dialog.className = 'nish-dialog';
+  dialog.setAttribute('aria-labelledby', `${id}-title`);
+  const title = document.createElement('h2');
+  title.className = 'nish-dialog-title';
+  title.id = `${id}-title`;
+  title.textContent = opts.title;
+  dialog.append(title);
+  if (opts.body != null && opts.body !== '') {
+    const body = document.createElement('div');
+    body.className = 'nish-dialog-body';
+    body.id = `${id}-body`;
+    body.append(typeof opts.body === 'string' ? document.createTextNode(opts.body) : opts.body);
+    dialog.setAttribute('aria-describedby', body.id);
+    dialog.append(body);
+  }
+  const actions = document.createElement('div');
+  actions.className = 'nish-dialog-actions';
+  const button = (label: string, cls: string) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    return b;
+  };
+  const cancelBtn = button(opts.cancelLabel ?? 'Cancel', 'nish-btn');
+  const confirmBtn = button(opts.confirmLabel ?? 'Confirm', `nish-btn ${danger ? 'nish-btn--danger' : 'nish-btn--primary'}`);
+  (danger ? cancelBtn : confirmBtn).autofocus = true;
+  actions.append(cancelBtn, confirmBtn);
+  dialog.append(actions);
+
+  return new Promise<boolean>((resolve) => {
+    let done = false;
+    const finish = (ok: boolean) => {
+      if (done) return;
+      done = true;
+      if (dialog.open) dialog.close();
+      dialog.remove();
+      if (opener?.isConnected) opener.focus();
+      resolve(ok);
+    };
+    cancelBtn.addEventListener('click', () => finish(false));
+    confirmBtn.addEventListener('click', () => finish(true));
+    // Escape: the browser fires cancel; keep the key from the page's own listeners
+    // (an outer framework dialog would close too).
+    dialog.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') e.stopPropagation();
+    });
+    dialog.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      finish(false);
+    });
+    dialog.addEventListener('close', () => finish(false));
+    // A press on the backdrop targets the dialog itself, outside its box.
+    dialog.addEventListener('click', (e) => {
+      if (e.target !== dialog) return;
+      const r = dialog.getBoundingClientRect();
+      const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      if (!inside) finish(false);
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+}
+
+// --- mountTooltips (static pages) --------------------------------------------------
+
+/** Escape for .nish-tooltip triggers under root (default document): pressing it hides
+ *  the open tip until the pointer leaves or focus moves away, as the React Tooltip does.
+ *  Also links a .nish-tooltip-content without an id to its trigger by aria-describedby.
+ *  The tips show and hide on hover and focus with CSS alone; this only adds Escape.
+ *  Returns a function that removes the listeners. */
+export function mountTooltips(root: Document | HTMLElement = document): () => void {
+  if (typeof document === 'undefined') return () => undefined;
+  root.querySelectorAll<HTMLElement>('.nish-tooltip').forEach((t) => {
+    const tip = t.querySelector<HTMLElement>(':scope > .nish-tooltip-content');
+    if (!tip) return;
+    if (!tip.getAttribute('role')) tip.setAttribute('role', 'tooltip');
+    if (!tip.id) tip.id = `nish-tip-${++dialogSeq}`;
+    const ids = (t.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+    if (!ids.includes(tip.id)) t.setAttribute('aria-describedby', [...ids, tip.id].join(' '));
+  });
+  const trigger = (e: Event) => (e.target instanceof Element ? e.target.closest<HTMLElement>('.nish-tooltip') : null);
+  const onKey = (e: Event) => {
+    if ((e as KeyboardEvent).key !== 'Escape') return;
+    const open = root.querySelectorAll<HTMLElement>('.nish-tooltip:hover, .nish-tooltip:focus-within');
+    open.forEach((t) => t.setAttribute('data-tooltip-hidden', ''));
+  };
+  const reset = (e: Event) => {
+    const t = trigger(e);
+    if (!t) return;
+    const to = (e as MouseEvent | FocusEvent).relatedTarget as Node | null;
+    if (to && t.contains(to)) return;
+    t.removeAttribute('data-tooltip-hidden');
+  };
+  root.addEventListener('keydown', onKey);
+  root.addEventListener('mouseout', reset);
+  root.addEventListener('focusout', reset);
+  return () => {
+    root.removeEventListener('keydown', onKey);
+    root.removeEventListener('mouseout', reset);
+    root.removeEventListener('focusout', reset);
+  };
+}
+
 /** For pages without a framework: apply now and start syncing. */
 export function initTheme(): ThemeName {
   watch();

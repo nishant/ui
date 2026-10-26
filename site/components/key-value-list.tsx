@@ -28,6 +28,13 @@ const SYSTEM = [
   { key: 'uptime', label: 'Uptime', value: <span className="tabular-nums">3d 4h</span> },
 ];
 
+const STATUS = [
+  { key: 'alpaca', label: 'Alpaca API keys', value: 'Missing, using sample data', wrap: 'words' as const },
+  { key: 'data', label: 'Data provider', value: 'Polygon delayed quotes, 15 minutes behind', wrap: 'words' as const },
+  { key: 'iv', label: 'IV history', value: 'Backfilling 212 of 480 symbols', wrap: 'words' as const },
+  { key: 'version', label: 'Version', value: '2.14.0' },
+];
+
 export const keyValueList: ComponentDoc = {
   id: 'key-value-list',
   name: 'KeyValueList',
@@ -51,6 +58,15 @@ export const keyValueList: ComponentDoc = {
     { id: 'status', name: 'Services and status', render: () => <Card className="w-full"><KeyValueList items={SERVICES} /></Card> },
     { id: 'dl', name: 'Description list (as="dl")', render: () => <Card className="w-full"><KeyValueList as="dl" items={RUNNER} /></Card> },
     { id: 'wrap', name: 'Long value that wraps (item.wrap)', render: () => <Card className="w-full max-w-sm"><KeyValueList as="dl" items={SYSTEM} /></Card> },
+    {
+      id: 'wrap-words',
+      name: 'Phrase-long values at phone width (wrap: "words")',
+      render: () => (
+        <div className="w-full max-w-[328px]">
+          <Card padding="sm" className="w-full"><KeyValueList as="dl" items={STATUS} /></Card>
+        </div>
+      ),
+    },
     { id: 'dense', name: 'Dense', render: () => <Card padding="sm" className="w-full"><KeyValueList dense items={RUNNER} /></Card> },
   ],
   usage: `import { Badge, KeyValueList, StatusDot } from '@nish/ui';
@@ -65,6 +81,7 @@ export const keyValueList: ComponentDoc = {
   guidelines: [
     'The value sits on the right and does not shrink; keep it short (a Badge, a number, a word).',
     'For a long value with no spaces (a path, a URL, an id), set wrap on that item: the value breaks anywhere and the row grows, so it never sets the page width on a phone.',
+    'For prose (a phrase-long status, an error), set wrap: "words": the label and the value both wrap at word breaks, the value takes at most 60% of the row, and no word splits unless it alone is wider than its cell.',
     'Use as="dl" when every row reads "name: value"; the default list suits rows that are things (services, runners).',
     'Dense rows are 32px: use them only in mouse-first panels. The 44px default is the touch target size.',
   ],

@@ -291,6 +291,16 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "confirm-dialog-fn",
+      "url": "http://localhost:5191/#/components/confirm-dialog-fn",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "mount-tooltips",
+      "url": "http://localhost:5191/#/components/mount-tooltips",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "prose",
       "url": "http://localhost:5191/#/components/prose",
       "waitFor": "[data-page]"
