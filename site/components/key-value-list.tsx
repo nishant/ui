@@ -30,6 +30,7 @@ const SYSTEM = [
 
 const STATUS = [
   { key: 'alpaca', label: 'Alpaca API keys', value: 'Missing, using sample data', wrap: 'words' as const },
+  { key: 'earnings', label: 'Earnings calendar', value: 'Stale, no recent refresh', wrap: 'words' as const },
   { key: 'data', label: 'Data provider', value: 'Polygon delayed quotes, 15 minutes behind', wrap: 'words' as const },
   { key: 'iv', label: 'IV history', value: 'Backfilling 212 of 480 symbols', wrap: 'words' as const },
   { key: 'version', label: 'Version', value: '2.14.0' },
@@ -81,7 +82,7 @@ export const keyValueList: ComponentDoc = {
   guidelines: [
     'The value sits on the right and does not shrink; keep it short (a Badge, a number, a word).',
     'For a long value with no spaces (a path, a URL, an id), set wrap on that item: the value breaks anywhere and the row grows, so it never sets the page width on a phone.',
-    'For prose (a phrase-long status, an error), set wrap: "words": the label and the value both wrap at word breaks, the value takes at most 60% of the row, and no word splits unless it alone is wider than its cell.',
+    'For prose (a phrase-long status, an error), set wrap: "words": both cells wrap at word breaks, labels first. The label keeps its one-line width up to 60% of the row, the value takes the rest (at least 40%), and no word splits unless it alone is wider than its cell.',
     'Use as="dl" when every row reads "name: value"; the default list suits rows that are things (services, runners).',
     'Dense rows are 32px: use them only in mouse-first panels. The 44px default is the touch target size.',
   ],
