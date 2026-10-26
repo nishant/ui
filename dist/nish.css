@@ -1,0 +1,918 @@
+/* Generated from src/tokens.mjs by scripts/build.mjs. Do not edit. */
+
+/* Generated from src/tokens.mjs by scripts/build.mjs. Do not edit. */
+
+:root {
+  --nish-font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --nish-font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --nish-text-3xs: 0.625rem;
+  --nish-text-3xs-lh: 0.875rem;
+  --nish-text-2xs: 0.6875rem;
+  --nish-text-2xs-lh: 1rem;
+  --nish-text-xs: 0.75rem;
+  --nish-text-xs-lh: 1.1rem;
+  --nish-text-sm: 0.875rem;
+  --nish-text-sm-lh: 1.35rem;
+  --nish-text-base: 1rem;
+  --nish-text-base-lh: 1.55rem;
+  --nish-text-lg: 1.125rem;
+  --nish-text-lg-lh: 1.65rem;
+  --nish-text-xl: 1.25rem;
+  --nish-text-xl-lh: 1.75rem;
+  --nish-text-2xl: 1.5rem;
+  --nish-text-2xl-lh: 2rem;
+  --nish-text-3xl: 1.875rem;
+  --nish-text-3xl-lh: 2.3rem;
+  --nish-text-4xl: 2.25rem;
+  --nish-text-4xl-lh: 2.6rem;
+  --nish-weight-normal: 400;
+  --nish-weight-medium: 500;
+  --nish-weight-semibold: 600;
+  --nish-weight-bold: 700;
+  --nish-tracking-tight: -0.015em;
+  --nish-tracking-caps: 0.08em;
+  --nish-space-1: 4px;
+  --nish-space-2: 8px;
+  --nish-space-3: 12px;
+  --nish-space-4: 16px;
+  --nish-space-5: 20px;
+  --nish-space-6: 24px;
+  --nish-space-8: 32px;
+  --nish-space-10: 40px;
+  --nish-space-12: 48px;
+  --nish-space-16: 64px;
+  --nish-radius-xs: 4px;
+  --nish-radius-sm: 8px;
+  --nish-radius-card: 12px;
+  --nish-radius-md: 14px;
+  --nish-radius-lg: 20px;
+  --nish-radius-pill: 999px;
+  --nish-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --nish-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --nish-dur-fast: 160ms;
+  --nish-dur-med: 320ms;
+  --nish-z-base: 0;
+  --nish-z-sticky: 20;
+  --nish-z-dropdown: 40;
+  --nish-z-modal: 50;
+  --nish-z-toast: 60;
+  --nish-z-tooltip: 100;
+  --nish-page-max: 1120px;
+  --nish-gutter: 16px;
+  --nish-tap-min: 44px;
+  --nish-focus-width: 2px;
+  --nish-focus-offset: 2px;
+  --nish-bp-sm: 640px;
+  --nish-bp-md: 768px;
+  --nish-bp-lg: 1024px;
+  --nish-bp-xl: 1280px;
+}
+
+:root,
+[data-theme] {
+  --nish-shadow-card: 0 1px 2px color-mix(in srgb, var(--nish-scrim) 10%, transparent), 0 6px 20px -8px color-mix(in srgb, var(--nish-scrim) 22%, transparent);
+  --nish-shadow-pop: 0 4px 12px -2px color-mix(in srgb, var(--nish-scrim) 24%, transparent), 0 12px 32px -8px color-mix(in srgb, var(--nish-scrim) 30%, transparent);
+  --nish-shadow-modal: 0 24px 64px -16px color-mix(in srgb, var(--nish-scrim) 45%, transparent);
+  --nish-accent-soft: color-mix(in srgb, var(--nish-accent) 14%, transparent);
+  --nish-ok-soft: color-mix(in srgb, var(--nish-ok) 14%, transparent);
+  --nish-loss-soft: color-mix(in srgb, var(--nish-loss) 14%, transparent);
+  --nish-warn-soft: color-mix(in srgb, var(--nish-warn) 14%, transparent);
+  --nish-info-soft: color-mix(in srgb, var(--nish-info) 14%, transparent);
+  --nish-emerald-soft: color-mix(in srgb, var(--nish-emerald) 14%, transparent);
+  --nish-indigo-soft: color-mix(in srgb, var(--nish-indigo) 14%, transparent);
+  --nish-amber-soft: color-mix(in srgb, var(--nish-amber) 14%, transparent);
+  --nish-lime-soft: color-mix(in srgb, var(--nish-lime) 14%, transparent);
+  --nish-rose-soft: color-mix(in srgb, var(--nish-rose) 14%, transparent);
+  --nish-sky-soft: color-mix(in srgb, var(--nish-sky) 14%, transparent);
+  --nish-violet-soft: color-mix(in srgb, var(--nish-violet) 14%, transparent);
+  --nish-teal-soft: color-mix(in srgb, var(--nish-teal) 14%, transparent);
+  --nish-focus: var(--nish-accent);
+}
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --nish-bg: #0a0b0f;
+  --nish-surface: #111218;
+  --nish-elevated: #191b23;
+  --nish-overlay: #22252f;
+  --nish-line: #262935;
+  --nish-line-strong: #3a3e4d;
+  --nish-hi: #ececf1;
+  --nish-hi2: #a8aab7;
+  --nish-hi3: #8a8d9b;
+  --nish-ghost: #6b6e7c;
+  --nish-accent: #8b93ff;
+  --nish-accent2: #c084fc;
+  --nish-on-accent: #0a0b0f;
+  --nish-on-accent2: #0a0b0f;
+  --nish-on-ok: #0a0b0f;
+  --nish-on-loss: #0a0b0f;
+  --nish-on-warn: #0a0b0f;
+  --nish-on-info: #0a0b0f;
+  --nish-ok: #34d399;
+  --nish-loss: #f87171;
+  --nish-warn: #fbbf24;
+  --nish-info: #38bdf8;
+  --nish-ok-fill: #34d399;
+  --nish-loss-fill: #f87171;
+  --nish-warn-fill: #fbbf24;
+  --nish-info-fill: #38bdf8;
+  --nish-scrim: #000000;
+  --nish-invert-bg: #ececf1;
+  --nish-invert-text: #111218;
+  --nish-chart-1: #8b93ff;
+  --nish-chart-2: #34d399;
+  --nish-chart-3: #fbbf24;
+  --nish-chart-4: #fb7185;
+  --nish-chart-5: #38bdf8;
+  --nish-chart-6: #c084fc;
+  --nish-chart-7: #fb923c;
+  --nish-chart-8: #a3e635;
+  --nish-emerald: #34d399;
+  --nish-indigo: #8b93ff;
+  --nish-amber: #fbbf24;
+  --nish-lime: #a3e635;
+  --nish-rose: #fb7185;
+  --nish-sky: #38bdf8;
+  --nish-violet: #c084fc;
+  --nish-teal: #2dd4bf;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --nish-bg: #f7f6f3;
+    --nish-surface: #ffffff;
+    --nish-elevated: #f1f0ec;
+    --nish-overlay: #e6e4de;
+    --nish-line: #e2e0da;
+    --nish-line-strong: #c9c6bd;
+    --nish-hi: #17171c;
+    --nish-hi2: #4f515c;
+    --nish-hi3: #666874;
+    --nish-ghost: #8a8c98;
+    --nish-accent: #4338ca;
+    --nish-accent2: #7e22ce;
+    --nish-on-accent: #ffffff;
+    --nish-on-accent2: #ffffff;
+    --nish-on-ok: #0a0a0c;
+    --nish-on-loss: #ffffff;
+    --nish-on-warn: #0a0a0c;
+    --nish-on-info: #0a0a0c;
+    --nish-ok: #065f46;
+    --nish-loss: #a91b1b;
+    --nish-warn: #92400e;
+    --nish-info: #075985;
+    --nish-ok-fill: #059669;
+    --nish-loss-fill: #dc2626;
+    --nish-warn-fill: #c96d06;
+    --nish-info-fill: #0284c7;
+    --nish-scrim: #17171c;
+    --nish-invert-bg: #17171c;
+    --nish-invert-text: #f7f6f3;
+    --nish-chart-1: #6366f1;
+    --nish-chart-2: #059669;
+    --nish-chart-3: #c96d06;
+    --nish-chart-4: #f43f5e;
+    --nish-chart-5: #0284c7;
+    --nish-chart-6: #a855f7;
+    --nish-chart-7: #ea580c;
+    --nish-chart-8: #5a910c;
+    --nish-emerald: #046d4f;
+    --nish-indigo: #4e45e3;
+    --nish-amber: #9b4708;
+    --nish-lime: #41690d;
+    --nish-rose: #b8113a;
+    --nish-sky: #036499;
+    --nish-violet: #7e22ce;
+    --nish-teal: #0e6b64;
+  }
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --nish-bg: #f7f6f3;
+  --nish-surface: #ffffff;
+  --nish-elevated: #f1f0ec;
+  --nish-overlay: #e6e4de;
+  --nish-line: #e2e0da;
+  --nish-line-strong: #c9c6bd;
+  --nish-hi: #17171c;
+  --nish-hi2: #4f515c;
+  --nish-hi3: #666874;
+  --nish-ghost: #8a8c98;
+  --nish-accent: #4338ca;
+  --nish-accent2: #7e22ce;
+  --nish-on-accent: #ffffff;
+  --nish-on-accent2: #ffffff;
+  --nish-on-ok: #0a0a0c;
+  --nish-on-loss: #ffffff;
+  --nish-on-warn: #0a0a0c;
+  --nish-on-info: #0a0a0c;
+  --nish-ok: #065f46;
+  --nish-loss: #a91b1b;
+  --nish-warn: #92400e;
+  --nish-info: #075985;
+  --nish-ok-fill: #059669;
+  --nish-loss-fill: #dc2626;
+  --nish-warn-fill: #c96d06;
+  --nish-info-fill: #0284c7;
+  --nish-scrim: #17171c;
+  --nish-invert-bg: #17171c;
+  --nish-invert-text: #f7f6f3;
+  --nish-chart-1: #6366f1;
+  --nish-chart-2: #059669;
+  --nish-chart-3: #c96d06;
+  --nish-chart-4: #f43f5e;
+  --nish-chart-5: #0284c7;
+  --nish-chart-6: #a855f7;
+  --nish-chart-7: #ea580c;
+  --nish-chart-8: #5a910c;
+  --nish-emerald: #046d4f;
+  --nish-indigo: #4e45e3;
+  --nish-amber: #9b4708;
+  --nish-lime: #41690d;
+  --nish-rose: #b8113a;
+  --nish-sky: #036499;
+  --nish-violet: #7e22ce;
+  --nish-teal: #0e6b64;
+}
+
+[data-theme='slate'] {
+  color-scheme: dark;
+  --nish-bg: #18181b;
+  --nish-surface: #202024;
+  --nish-elevated: #2c2c32;
+  --nish-overlay: #36363d;
+  --nish-line: #3a3a42;
+  --nish-line-strong: #52525b;
+  --nish-hi: #f4f4f5;
+  --nish-hi2: #a1a1aa;
+  --nish-hi3: #8f8f99;
+  --nish-ghost: #71717a;
+  --nish-accent: #a5b4fc;
+  --nish-accent2: #c084fc;
+  --nish-on-accent: #18181b;
+  --nish-on-accent2: #18181b;
+  --nish-on-ok: #18181b;
+  --nish-on-loss: #18181b;
+  --nish-on-warn: #18181b;
+  --nish-on-info: #18181b;
+  --nish-ok: #4ade80;
+  --nish-loss: #fda4af;
+  --nish-warn: #facc15;
+  --nish-info: #38bdf8;
+  --nish-ok-fill: #4ade80;
+  --nish-loss-fill: #fda4af;
+  --nish-warn-fill: #facc15;
+  --nish-info-fill: #38bdf8;
+  --nish-scrim: #000000;
+  --nish-invert-bg: #f4f4f5;
+  --nish-invert-text: #202024;
+  --nish-chart-1: #818cf8;
+  --nish-chart-2: #4ade80;
+  --nish-chart-3: #facc15;
+  --nish-chart-4: #fb7185;
+  --nish-chart-5: #38bdf8;
+  --nish-chart-6: #c084fc;
+  --nish-chart-7: #fb923c;
+  --nish-chart-8: #a3e635;
+  --nish-emerald: #34d399;
+  --nish-indigo: #9aa1ff;
+  --nish-amber: #fbbf24;
+  --nish-lime: #a3e635;
+  --nish-rose: #fc8395;
+  --nish-sky: #38bdf8;
+  --nish-violet: #c792fc;
+  --nish-teal: #2dd4bf;
+}
+
+[data-theme='terminal'] {
+  color-scheme: dark;
+  --nish-bg: #050807;
+  --nish-surface: #0c110e;
+  --nish-elevated: #141c17;
+  --nish-overlay: #1c2820;
+  --nish-line: #233028;
+  --nish-line-strong: #34483b;
+  --nish-hi: #d1fae5;
+  --nish-hi2: #8fc4a8;
+  --nish-hi3: #74a68b;
+  --nish-ghost: #4f7a62;
+  --nish-accent: #34d399;
+  --nish-accent2: #2dd4bf;
+  --nish-on-accent: #050807;
+  --nish-on-accent2: #050807;
+  --nish-on-ok: #050807;
+  --nish-on-loss: #050807;
+  --nish-on-warn: #050807;
+  --nish-on-info: #050807;
+  --nish-ok: #4ade80;
+  --nish-loss: #f87171;
+  --nish-warn: #fbbf24;
+  --nish-info: #67e8f9;
+  --nish-ok-fill: #4ade80;
+  --nish-loss-fill: #f87171;
+  --nish-warn-fill: #fbbf24;
+  --nish-info-fill: #67e8f9;
+  --nish-scrim: #000000;
+  --nish-invert-bg: #d1fae5;
+  --nish-invert-text: #0c110e;
+  --nish-chart-1: #34d399;
+  --nish-chart-2: #67e8f9;
+  --nish-chart-3: #fbbf24;
+  --nish-chart-4: #f87171;
+  --nish-chart-5: #a3e635;
+  --nish-chart-6: #c084fc;
+  --nish-chart-7: #fb923c;
+  --nish-chart-8: #2dd4bf;
+  --nish-emerald: #34d399;
+  --nish-indigo: #8b93ff;
+  --nish-amber: #fbbf24;
+  --nish-lime: #a3e635;
+  --nish-rose: #fb7185;
+  --nish-sky: #38bdf8;
+  --nish-violet: #c084fc;
+  --nish-teal: #2dd4bf;
+}
+
+[data-theme='mocha'] {
+  color-scheme: dark;
+  --nish-bg: #1c1917;
+  --nish-surface: #292524;
+  --nish-elevated: #393432;
+  --nish-overlay: #44403c;
+  --nish-line: #44403c;
+  --nish-line-strong: #57534e;
+  --nish-hi: #f5f0eb;
+  --nish-hi2: #b3ada8;
+  --nish-hi3: #a39d98;
+  --nish-ghost: #78716c;
+  --nish-accent: #fdba74;
+  --nish-accent2: #f472b6;
+  --nish-on-accent: #1c1917;
+  --nish-on-accent2: #1c1917;
+  --nish-on-ok: #1c1917;
+  --nish-on-loss: #1c1917;
+  --nish-on-warn: #1c1917;
+  --nish-on-info: #1c1917;
+  --nish-ok: #4ade80;
+  --nish-loss: #fca5a5;
+  --nish-warn: #facc15;
+  --nish-info: #7dd3fc;
+  --nish-ok-fill: #4ade80;
+  --nish-loss-fill: #fca5a5;
+  --nish-warn-fill: #facc15;
+  --nish-info-fill: #7dd3fc;
+  --nish-scrim: #000000;
+  --nish-invert-bg: #f5f0eb;
+  --nish-invert-text: #292524;
+  --nish-chart-1: #fb923c;
+  --nish-chart-2: #4ade80;
+  --nish-chart-3: #facc15;
+  --nish-chart-4: #f472b6;
+  --nish-chart-5: #7dd3fc;
+  --nish-chart-6: #c4b5fd;
+  --nish-chart-7: #f87171;
+  --nish-chart-8: #bef264;
+  --nish-emerald: #34d399;
+  --nish-indigo: #a9afff;
+  --nish-amber: #fbbf24;
+  --nish-lime: #a3e635;
+  --nish-rose: #fc99a7;
+  --nish-sky: #3ebff8;
+  --nish-violet: #cfa2fd;
+  --nish-teal: #2dd4bf;
+}
+
+[data-theme='ocean'] {
+  color-scheme: dark;
+  --nish-bg: #020c18;
+  --nish-surface: #061528;
+  --nish-elevated: #0a243e;
+  --nish-overlay: #103658;
+  --nish-line: #123050;
+  --nish-line-strong: #1f4a72;
+  --nish-hi: #e0f2fe;
+  --nish-hi2: #9ccde6;
+  --nish-hi3: #6fa9c6;
+  --nish-ghost: #3f7392;
+  --nish-accent: #38bdf8;
+  --nish-accent2: #a78bfa;
+  --nish-on-accent: #020c18;
+  --nish-on-accent2: #020c18;
+  --nish-on-ok: #020c18;
+  --nish-on-loss: #020c18;
+  --nish-on-warn: #020c18;
+  --nish-on-info: #020c18;
+  --nish-ok: #34d399;
+  --nish-loss: #fb7185;
+  --nish-warn: #fbbf24;
+  --nish-info: #7dd3fc;
+  --nish-ok-fill: #34d399;
+  --nish-loss-fill: #fb7185;
+  --nish-warn-fill: #fbbf24;
+  --nish-info-fill: #7dd3fc;
+  --nish-scrim: #000000;
+  --nish-invert-bg: #38bdf8;
+  --nish-invert-text: #020c18;
+  --nish-chart-1: #38bdf8;
+  --nish-chart-2: #34d399;
+  --nish-chart-3: #fbbf24;
+  --nish-chart-4: #fb7185;
+  --nish-chart-5: #a78bfa;
+  --nish-chart-6: #2dd4bf;
+  --nish-chart-7: #fb923c;
+  --nish-chart-8: #a3e635;
+  --nish-emerald: #34d399;
+  --nish-indigo: #8b93ff;
+  --nish-amber: #fbbf24;
+  --nish-lime: #a3e635;
+  --nish-rose: #fb7185;
+  --nish-sky: #38bdf8;
+  --nish-violet: #c084fc;
+  --nish-teal: #2dd4bf;
+}
+
+[data-theme='contrast'] {
+  color-scheme: dark;
+  --nish-bg: #000000;
+  --nish-surface: #080808;
+  --nish-elevated: #141414;
+  --nish-overlay: #222222;
+  --nish-line: #4a4a4a;
+  --nish-line-strong: #8a8a8a;
+  --nish-hi: #ffffff;
+  --nish-hi2: #d4d4d4;
+  --nish-hi3: #bdbdbd;
+  --nish-ghost: #8f8f8f;
+  --nish-accent: #ffd60a;
+  --nish-accent2: #7dd3fc;
+  --nish-on-accent: #000000;
+  --nish-on-accent2: #000000;
+  --nish-on-ok: #000000;
+  --nish-on-loss: #000000;
+  --nish-on-warn: #000000;
+  --nish-on-info: #000000;
+  --nish-ok: #4ade80;
+  --nish-loss: #ff6b6b;
+  --nish-warn: #ffd60a;
+  --nish-info: #7dd3fc;
+  --nish-ok-fill: #4ade80;
+  --nish-loss-fill: #ff6b6b;
+  --nish-warn-fill: #ffd60a;
+  --nish-info-fill: #7dd3fc;
+  --nish-scrim: #000000;
+  --nish-invert-bg: #ffffff;
+  --nish-invert-text: #000000;
+  --nish-chart-1: #ffd60a;
+  --nish-chart-2: #4ade80;
+  --nish-chart-3: #7dd3fc;
+  --nish-chart-4: #ff6b6b;
+  --nish-chart-5: #c4b5fd;
+  --nish-chart-6: #fb923c;
+  --nish-chart-7: #f9a8d4;
+  --nish-chart-8: #bef264;
+  --nish-emerald: #34d399;
+  --nish-indigo: #8b93ff;
+  --nish-amber: #fbbf24;
+  --nish-lime: #a3e635;
+  --nish-rose: #fb7185;
+  --nish-sky: #38bdf8;
+  --nish-violet: #c084fc;
+  --nish-teal: #2dd4bf;
+}
+
+/* Inter Variable, self-hosted (from @fontsource-variable/inter, copied by the build).
+   Latin and Latin Extended cover everything these sites write. */
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/inter-latin-ext-wght-normal.34b9c504.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/inter-latin-wght-normal.3100e775.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Page-level defaults every nish.software site shares. Plain CSS so static pages can
+   link it; Tailwind apps get it through tailwind.css inside the base layer, so any
+   utility class still wins. */
+
+html {
+  background-color: var(--nish-bg);
+  color: var(--nish-hi);
+  font-family: var(--nish-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* A theme scoped to part of a page (<div data-theme="light" data-scheme="light">):
+   the tokens are re-declared there by tokens.css, but inherited text color was
+   computed on html, so set it again. Zero specificity, so any class still wins. */
+:where([data-theme]:not(html)) {
+  background-color: var(--nish-bg);
+  color: var(--nish-hi);
+}
+
+/* Numbers in tables line up as columns without per-cell classes. */
+table,
+.nish-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--nish-accent) 30%, transparent);
+}
+
+/* One keyboard-focus language everywhere. Components that draw their own focus
+   style still win; this is the fallback for everything that never thought about it. */
+:focus-visible {
+  outline: var(--nish-focus-width) solid var(--nish-focus);
+  outline-offset: var(--nish-focus-offset);
+}
+
+/* Recharts 3's accessibility layer makes the chart focusable, so a tap or click
+   focused it and drew a thick box round the whole plot. Pointer focus draws nothing;
+   keyboard focus gets a quiet accent ring. */
+.recharts-wrapper,
+.recharts-wrapper :focus {
+  outline: none;
+}
+.recharts-wrapper:focus-visible,
+.recharts-wrapper :focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--nish-accent) 45%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--nish-radius-sm);
+}
+/* Recharts' default hover cursor is a #ccc slab (bars) or line, bright on dark themes.
+   CSS beats the fill/stroke attributes Recharts writes, so every chart gets a quiet one. */
+.recharts-rectangle.recharts-tooltip-cursor {
+  fill: color-mix(in srgb, var(--nish-hi3) 14%, transparent);
+}
+.recharts-curve.recharts-tooltip-cursor {
+  stroke: var(--nish-line-strong);
+}
+
+/* Browser-default scrollbars clash with every theme, worst on light. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nish-line-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nish-line-strong);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nish-ghost);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* The "← nish.software" pill every subdomain carries at the top left of its header:
+   <a class="nish-pill-link" href="https://nish.software" title="Back to nish.software">← nish.software</a> */
+.nish-pill-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--nish-font-sans);
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--nish-hi2);
+  text-decoration: none;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 1px solid var(--nish-line);
+  border-radius: 999px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.nish-pill-link:hover {
+  color: var(--nish-hi);
+  border-color: var(--nish-line-strong);
+}
+/* Compact form for crowded headers: under 480px only the arrow shows, in a 44px circle,
+   and the words stay for screen readers. data-compact="always" keeps it compact at every
+   width.
+   <a class="nish-pill-link nish-pill-link--compact" href="https://nish.software"
+      title="Back to nish.software">&larr; <span class="nish-pill-link-label">nish.software</span></a> */
+@media (max-width: 480px) {
+  .nish-pill-link--compact {
+    min-width: var(--nish-tap-min, 44px);
+    justify-content: center;
+    padding-inline: 6px;
+  }
+  .nish-pill-link--compact .nish-pill-link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+.nish-pill-link--compact[data-compact='always'] {
+  min-width: var(--nish-tap-min, 44px);
+  justify-content: center;
+  padding-inline: 6px;
+}
+.nish-pill-link--compact[data-compact='always'] .nish-pill-link-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Scrolls, but draws no scrollbar: tab strips, chip rows, carousels. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* First thing in <body>: <a class="nish-skip-link" href="#main">Skip to content</a>.
+   Parked above the top edge (still read by screen readers) until a keyboard user tabs
+   to it, then a pill at the top left. */
+.nish-skip-link {
+  position: fixed;
+  top: var(--nish-space-2);
+  left: var(--nish-space-2);
+  z-index: var(--nish-z-tooltip);
+  transform: translateY(calc(-100% - var(--nish-space-4)));
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--nish-tap-min);
+  padding: 0 var(--nish-space-4);
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-elevated);
+  color: var(--nish-hi);
+  box-shadow: var(--nish-shadow-pop);
+  font-size: var(--nish-text-sm);
+  font-weight: var(--nish-weight-medium);
+  text-decoration: none;
+}
+.nish-skip-link:focus,
+.nish-skip-link:focus-visible {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Keyboard keys in running text and shortcut hints. The Kbd component adds sizes. */
+kbd {
+  font-family: var(--nish-font-mono);
+  font-size: 0.85em;
+  padding: 0 0.35em;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-xs);
+  background: var(--nish-elevated);
+  color: inherit;
+  white-space: nowrap;
+}
+
+/* Notches and home indicators on installed PWAs. */
+.nish-safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.nish-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--nish-elevated);
+}
+.nish-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--nish-overlay) 70%, transparent), transparent);
+  animation: nish-sheen 1.4s infinite;
+}
+
+@keyframes nish-sheen {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes nish-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nish-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes nish-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+/* Drawers: from the right edge (side="right") or the left (side="left"). */
+@keyframes nish-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes nish-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Markdown and rich text: <div class="nish-prose">…rendered HTML…</div>. Every rule
+   targets children through :where(), so a utility class on a child still wins. Sized
+   for UI text (sm); set font-size on the container to scale it all. */
+.nish-prose {
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
+  line-height: var(--nish-text-sm-lh);
+  overflow-wrap: anywhere;
+}
+.nish-prose > :where(:first-child) {
+  margin-top: 0;
+}
+.nish-prose > :where(:last-child) {
+  margin-bottom: 0;
+}
+.nish-prose :where(p, ul, ol, blockquote, pre, table, hr, figure) {
+  margin: 0.75em 0;
+}
+.nish-prose :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--nish-hi);
+  font-weight: var(--nish-weight-semibold);
+  letter-spacing: var(--nish-tracking-tight);
+  line-height: 1.3;
+  margin: 1.4em 0 0.5em;
+}
+.nish-prose :where(h1) {
+  font-size: 1.6em;
+}
+.nish-prose :where(h2) {
+  font-size: 1.35em;
+}
+.nish-prose :where(h3) {
+  font-size: 1.15em;
+}
+.nish-prose :where(h4, h5, h6) {
+  font-size: 1em;
+}
+.nish-prose :where(strong, b) {
+  color: var(--nish-hi);
+  font-weight: var(--nish-weight-semibold);
+}
+.nish-prose :where(a) {
+  color: var(--nish-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.nish-prose :where(a:hover) {
+  text-decoration-thickness: 2px;
+}
+.nish-prose :where(ul, ol) {
+  padding-left: 1.4em;
+}
+.nish-prose :where(ul) {
+  list-style: disc;
+}
+.nish-prose :where(ol) {
+  list-style: decimal;
+}
+.nish-prose :where(li) {
+  margin: 0.25em 0;
+}
+.nish-prose :where(li)::marker {
+  color: var(--nish-hi3);
+}
+.nish-prose :where(li > ul, li > ol) {
+  margin: 0.25em 0;
+}
+/* GitHub-style task lists: <li><input type="checkbox" disabled> …</li>. */
+.nish-prose :where(ul:has(> li > input[type='checkbox'])) {
+  list-style: none;
+  padding-left: 0.25em;
+}
+.nish-prose :where(li > input[type='checkbox']) {
+  margin: 0 0.5em 0 0;
+  vertical-align: -0.1em;
+  accent-color: var(--nish-accent);
+}
+.nish-prose :where(blockquote) {
+  padding-left: 1em;
+  border-left: 3px solid var(--nish-line-strong);
+  color: var(--nish-hi2);
+}
+.nish-prose :where(hr) {
+  border: 0;
+  border-top: 1px solid var(--nish-line);
+  margin: 1.5em 0;
+}
+.nish-prose :where(code) {
+  font-family: var(--nish-font-mono);
+  font-size: 0.875em;
+  padding: 0.1em 0.35em;
+  border-radius: var(--nish-radius-xs);
+  background: var(--nish-elevated);
+  color: var(--nish-hi);
+}
+.nish-prose :where(pre) {
+  padding: var(--nish-space-3) var(--nish-space-4);
+  overflow-x: auto;
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-elevated);
+  line-height: 1.55;
+}
+.nish-prose :where(pre code) {
+  padding: 0;
+  background: none;
+  font-size: 0.85em;
+  overflow-wrap: normal;
+}
+.nish-prose :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+.nish-prose :where(th, td) {
+  padding: 0.4em 0.75em;
+  border-bottom: 1px solid var(--nish-line);
+  text-align: left;
+  vertical-align: top;
+}
+.nish-prose :where(th) {
+  color: var(--nish-hi);
+  font-weight: var(--nish-weight-semibold);
+  border-bottom-color: var(--nish-line-strong);
+}
+.nish-prose :where(img, video) {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--nish-radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
