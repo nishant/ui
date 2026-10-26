@@ -37,6 +37,28 @@ table,
   outline-offset: var(--nish-focus-offset);
 }
 
+/* Recharts 3's accessibility layer makes the chart focusable, so a tap or click
+   focused it and drew a thick box round the whole plot. Pointer focus draws nothing;
+   keyboard focus gets a quiet accent ring. */
+.recharts-wrapper,
+.recharts-wrapper :focus {
+  outline: none;
+}
+.recharts-wrapper:focus-visible,
+.recharts-wrapper :focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--nish-accent) 45%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--nish-radius-sm);
+}
+/* Recharts' default hover cursor is a #ccc slab (bars) or line, bright on dark themes.
+   CSS beats the fill/stroke attributes Recharts writes, so every chart gets a quiet one. */
+.recharts-rectangle.recharts-tooltip-cursor {
+  fill: color-mix(in srgb, var(--nish-hi3) 14%, transparent);
+}
+.recharts-curve.recharts-tooltip-cursor {
+  stroke: var(--nish-line-strong);
+}
+
 /* Browser-default scrollbars clash with every theme, worst on light. */
 * {
   scrollbar-width: thin;

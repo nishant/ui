@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
 import { cn } from '../cn';
-import { FloatingTip } from './overlay';
+import { FloatingTip, keyboardFocused, touchTracker } from './overlay';
 
 export type SegmentedTone = 'accent' | 'warn' | 'loss';
 
@@ -19,9 +19,10 @@ export interface SegmentedOption<T extends string> {
   /** Hover tooltip (the native title) for a one-word hint on an icon-only option. Use
    *  tip for anything longer. */
   title?: string;
-  /** A tooltip that explains the option. It opens on hover and on keyboard focus of the
-   *  radio itself (aria-describedby points at it while shown), so keyboard users get it
-   *  too. The radio stays the group's only Tab stop. Replaces title. */
+  /** A tooltip that explains the option. It opens on mouse hover and on keyboard focus of
+   *  the radio itself (aria-describedby points at it while shown), so keyboard users get
+   *  it too; a tap or click selects and closes it. The radio stays the group's only Tab
+   *  stop. Replaces title. */
   tip?: ReactNode;
   /** The selected look: accent (default), or warn / loss for a choice that must read as
    *  a warning while it is on (a "bypass permissions" mode). */
@@ -60,6 +61,7 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
   const tipAnchor = useRef<HTMLButtonElement | null>(null);
   const [tipAt, setTipAt] = useState<number | null>(null);
   const tipId = useId();
+  const touch = useRef(touchTracker()).current;
   const showTip = (i: number) => {
     if (options[i]?.tip == null) return;
     tipAnchor.current = refs.current[i];
@@ -118,9 +120,16 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
             disabled={o.disabled}
             tabIndex={i === tabStop ? 0 : -1}
             onClick={() => pick(i)}
-            onMouseEnter={o.tip != null ? () => showTip(i) : undefined}
+            // A tap selects and nothing more: the tip opens on mouse hover and on keyboard
+            // focus only, and any press closes it, so it never stays pinned over the page.
+            onPointerEnter={touch.onPointer}
+            onPointerDown={(e) => {
+              touch.onPointer(e);
+              setTipAt(null);
+            }}
+            onMouseEnter={o.tip != null ? () => !touch.recent() && showTip(i) : undefined}
             onMouseLeave={o.tip != null ? () => hideTip(i) : undefined}
-            onFocus={o.tip != null ? () => showTip(i) : undefined}
+            onFocus={o.tip != null ? (e) => keyboardFocused(e.currentTarget) && showTip(i) : undefined}
             onBlur={o.tip != null ? () => hideTip(i) : undefined}
             className={cn(
               'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium tabular-nums transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11',

@@ -305,8 +305,16 @@ other non-color tokens are in `SCALE` (`SCALE['bp-md']`).
   4.5:1 on bg, surface and their own soft tint; every `on-*` color at 4.5:1 on its fill;
   placeholders, chart series, fills and hues at 3:1. The docs site's
   [Themes page](https://design.nish.software/#/themes) shows the same pairs as a matrix.
+- **Target device: Samsung Galaxy Z Fold 7.** Every app built on this package is reviewed
+  on it. The cover screen is narrow (about 360–390 CSS px), and unfolded it is a near-square
+  ~840px. Components, and every page that uses them, must look right with no horizontal page
+  scroll at 360px, at ~840px and at desktop width, in light and dark. `visual-check.mjs`
+  checks exactly those sizes by default (`phone-small`, `fold`, `desktop`).
 - **Tap targets.** Buttons, icon buttons, fields and toggles grow to 44px on touch screens
   (`pointer-coarse:`) and stay compact under a mouse.
+- **Tips on touch.** Tooltip and Segmented `tip` open on mouse hover and keyboard focus, never
+  on a tap of the control they explain, so a tip never stays pinned over a phone screen. A
+  hint term (the trigger itself) still opens on a tap.
 - **Focus.** base.css gives every element a visible `:focus-visible` ring in the accent
   color. Modal traps Tab and returns focus to the opener; Tooltip triggers are focusable.
 - **Reduced motion.** Under `prefers-reduced-motion`, base.css cuts animations and

@@ -3,6 +3,18 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.6.1] - 2026-10-26
+
+### Fixed
+
+- Segmented option `tip`: opens on mouse hover and on keyboard focus (`:focus-visible`) only, and closes on any press. On a phone a tap focused the radio and fired an emulated mouseenter, so the tip stayed pinned over the page after the choice was made.
+- Tooltip: a focusable child inside the trigger (a button, a chip) opens the tip on keyboard focus only, and a press on it closes the tip. The emulated mouseenter after a tap no longer opens it either. A trigger that is itself the focus stop (a `hint` term, a badge) still opens on a tap, which is the only way to read it on a phone.
+- Recharts charts (base.css, so every app gets it): a tap or click no longer draws a thick focus box round the plot. `.recharts-wrapper` drops the outline on pointer focus and shows a 1px accent ring on keyboard focus. The tooltip cursor (Recharts' `#ccc` slab or line) becomes a faint `hi3` tint (bars) or `line-strong` (lines).
+
+### Changed
+
+- The Samsung Galaxy Z Fold 7 is the target device for every app (README, Accessibility guarantees): no horizontal page scroll at 360px (cover screen), ~840px (unfolded) or desktop. `tools/visual-check.mjs` gains a `fold` viewport (840×760, touch) and now defaults to `desktop`, `fold` and `phone-small` (360px) instead of `desktop` and `phone` (390px).
+
 ## [0.6.0] - 2026-10-26
 
 ### Changed

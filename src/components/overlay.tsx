@@ -570,6 +570,31 @@ export interface TooltipProps {
 
 const TIP_MAX_WIDTH = 320;
 
+/** True when focus on `el` came from the keyboard (`:focus-visible`), false when a
+ *  pointer put it there. A focus event on an element that is not actually focused
+ *  (a synthetic event in a test) counts as keyboard. Internal to the package. */
+export function keyboardFocused(el: Element): boolean {
+  if (typeof document !== 'undefined' && document.activeElement !== el) return true;
+  try {
+    return el.matches(':focus-visible');
+  } catch {
+    return true;
+  }
+}
+
+/** Phones fire mouseenter after a tap, which would pin a hover tip open with no
+ *  mouseleave ever coming. Feed pointerenter/pointerdown to `onPointer`; `recent()`
+ *  says whether the last pointer was a finger. Internal to the package. */
+export function touchTracker(): { onPointer: (e: { pointerType: string }) => void; recent: () => boolean } {
+  let touch = false;
+  return {
+    onPointer: (e) => {
+      touch = e.pointerType === 'touch';
+    },
+    recent: () => touch,
+  };
+}
+
 /** Hover/focus tooltip rendered through a portal to <body>, so `overflow:hidden`
  *  ancestors (truncated labels, scrolling tables) can never clip it. Positioned
  *  from the trigger's viewport rect, flipped and clamped to stay on screen. */
@@ -582,21 +607,39 @@ export function Tooltip({ tip, children, className, side = 'top', as = 'span', f
   useEffect(() => {
     const el = triggerRef.current;
     if (!el) return;
+    const touch = touchTracker();
     const show = () => setOpen(true);
     const hide = () => setOpen(false);
+    const onMouseEnter = () => {
+      if (!touch.recent()) show();
+    };
+    // focusin, so a focusable child (a button inside the trigger) shows it too, but only
+    // from the keyboard: a tap on that child does its job and must not pin the tip open.
+    // The trigger itself (a hint term) still opens on a tap, the only way to read it on a phone.
+    const onFocusIn = (e: FocusEvent) => {
+      if (e.target === el || (e.target instanceof Element && keyboardFocused(e.target))) show();
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.target !== el) hide();
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
-    el.addEventListener('mouseenter', show);
+    el.addEventListener('pointerenter', touch.onPointer);
+    el.addEventListener('pointerdown', touch.onPointer);
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('mouseenter', onMouseEnter);
     el.addEventListener('mouseleave', hide);
-    // focusin/focusout, so a focusable child (a button inside the trigger) shows it too.
-    el.addEventListener('focusin', show);
+    el.addEventListener('focusin', onFocusIn);
     el.addEventListener('focusout', hide);
     el.addEventListener('keydown', onKey);
     return () => {
-      el.removeEventListener('mouseenter', show);
+      el.removeEventListener('pointerenter', touch.onPointer);
+      el.removeEventListener('pointerdown', touch.onPointer);
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('mouseenter', onMouseEnter);
       el.removeEventListener('mouseleave', hide);
-      el.removeEventListener('focusin', show);
+      el.removeEventListener('focusin', onFocusIn);
       el.removeEventListener('focusout', hide);
       el.removeEventListener('keydown', onKey);
     };
