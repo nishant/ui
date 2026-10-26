@@ -965,6 +965,10 @@ export interface KeyValueItem {
   label: ReactNode;
   /** The right side: a value, a Badge, a status. */
   value: ReactNode;
+  /** Let a long value wrap instead of setting the row's width: a path, a URL, an id with no
+   *  spaces. The value cell may shrink and breaks anywhere (`break-all`), the label keeps its
+   *  width, and the row grows taller than 44px (32px dense) when the text wraps. */
+  wrap?: boolean;
 }
 
 export interface KeyValueListProps {
@@ -978,19 +982,24 @@ export interface KeyValueListProps {
 }
 
 /** Label and value rows with dividers: services and their status, runner details,
- *  vitals. Each row is 44px tall (32px dense). */
+ *  vitals. Each row is at least 44px tall (32px dense); an item with `wrap` lets a long
+ *  value wrap and grows its row. */
 export function KeyValueList({ items, dense = false, as = 'ul', className }: KeyValueListProps) {
-  const row = cn(
-    'flex min-w-0 items-center justify-between gap-3 border-b border-th-line last:border-b-0',
-    dense ? 'min-h-8' : 'min-h-11',
-  );
+  // A wrapping row gets vertical padding so wrapped lines clear the dividers; a single
+  // line still fits inside the 44px (32px dense) minimum, so its height is unchanged.
+  const row = (wrap?: boolean) =>
+    cn(
+      'flex min-w-0 items-center justify-between gap-3 border-b border-th-line last:border-b-0',
+      dense ? 'min-h-8' : 'min-h-11',
+      wrap && (dense ? 'py-1' : 'py-2'),
+    );
   if (as === 'dl') {
     return (
       <dl className={cn('grid text-sm text-th-hi', className)}>
         {items.map((it) => (
-          <div key={it.key} className={row}>
-            <dt className="min-w-0 text-th-hi2">{it.label}</dt>
-            <dd className="m-0 shrink-0 text-right">{it.value}</dd>
+          <div key={it.key} className={row(it.wrap)}>
+            <dt className={cn('text-th-hi2', it.wrap ? 'shrink-0' : 'min-w-0')}>{it.label}</dt>
+            <dd className={cn('m-0 text-right', it.wrap ? 'min-w-0 break-all' : 'shrink-0')}>{it.value}</dd>
           </div>
         ))}
       </dl>
@@ -999,9 +1008,11 @@ export function KeyValueList({ items, dense = false, as = 'ul', className }: Key
   return (
     <ul className={cn('grid text-sm text-th-hi', className)}>
       {items.map((it) => (
-        <li key={it.key} className={row}>
-          <span className="flex min-w-0 items-center gap-2">{it.label}</span>
-          <span className="flex shrink-0 items-center gap-2 text-right">{it.value}</span>
+        <li key={it.key} className={row(it.wrap)}>
+          <span className={cn('flex items-center gap-2', it.wrap ? 'shrink-0' : 'min-w-0')}>{it.label}</span>
+          <span className={cn('flex items-center gap-2 text-right', it.wrap ? 'min-w-0 break-all' : 'shrink-0')}>
+            {it.value}
+          </span>
         </li>
       ))}
     </ul>

@@ -385,9 +385,17 @@ were the same component and shipped once as `SkeletonRows`.
 | AppHeader `homeHref`, `hideNameBelow`, `navLabel` | `homeHref`: the icon and name are one 44px link; `hideNameBelow="sm"`: icon only on phones, the name stays for screen readers; `navLabel`: `aria-label` on the nav row. | status `Header`; trackers' unnamed nav |
 | `SectionHeader` | `SectionHeader({ id?, title, as?: 'h1' \| 'h2' \| 'h3', meta?, action?, className })`. | status `SectionHeader` |
 | `SkeletonRows` | `SkeletonRows({ rows = 5, height = 56, gap = 'md', label = 'Loading', className, rowClassName })`: `role="status"` column of rounded-xl rows. | status `SkeletonStack`, trackers `SkeletonRows` |
-| `KeyValueList` | `KeyValueList({ items: { key, label, value }[], dense?, as?: 'ul' \| 'dl' })`: 44px rows (32px dense) with dividers. | status `KeyValueList` |
+| `KeyValueList` | `KeyValueList({ items: { key, label, value, wrap? }[], dense?, as?: 'ul' \| 'dl' })`: 44px rows (32px dense) with dividers. | status `KeyValueList` |
 | `ChartLegend` | `ChartLegend({ items: { label, tone }[], marker?: 'line' \| 'dot', label?, className })`: `ul` named "Legend", chart and status tones. | status `ChartLegend` |
 | Tabs `block` | `Tabs({ block })`: full-width list, equal `flex-1` tabs; `tabClass({ block })`. | trackers TripPage (accepted left-packed) |
+
+## Gap round 2 (v0.5.0): built
+
+After the apps adopted v0.4.0, one more gap came back, and it shipped in v0.5.0.
+
+| Built | API | Replaces |
+| --- | --- | --- |
+| KeyValueItem `wrap` | `KeyValueList({ items: { key, label, value, wrap? }[] })`: with `wrap`, the value cell is `min-w-0 break-all text-right` and shrinks, the label `shrink-0`; the row stays at least 44px (32px dense) and grows when the value wraps. Both the `ul` and `dl` forms. | trading SettingsPage System Status inline `<dl>` |
 
 ## Tier 3 (stay local; listed to avoid duplicates)
 
