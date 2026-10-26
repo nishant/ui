@@ -63,6 +63,10 @@ export interface ThemeToggleProps {
    *  top bar (the React twin of .nish-theme-btn--pill). With labels, the pill also shows
    *  the current choice as a word (.nish-theme-btn--labelled). Ignores block and presets. */
   variant?: 'segmented' | 'pill';
+  /** What the segmented toggle shows below 640px. compact (default): the one cycling
+   *  button, so a phone header keeps to one row. segmented: the radio group at every
+   *  width. A block toggle is always segmented. */
+  phone?: 'compact' | 'segmented';
   className?: string;
 }
 
@@ -75,6 +79,7 @@ export function ThemeToggle({
   size = 'sm',
   compact = false,
   variant = 'segmented',
+  phone = 'compact',
   className,
 }: ThemeToggleProps) {
   const { choice, theme, scheme, setChoice } = useTheme();
@@ -128,8 +133,9 @@ export function ThemeToggle({
     title: labels ? undefined : label,
   }));
 
-  return (
-    <div className={cn('items-center gap-2', block ? 'flex w-full' : 'inline-flex', className)}>
+  const twin = phone === 'compact' && !block;
+  const group = (
+    <div className={cn('items-center gap-2', block ? 'flex w-full' : 'inline-flex', className, twin && 'max-sm:hidden')}>
       <Segmented
         label="Theme"
         options={options}
@@ -159,5 +165,13 @@ export function ThemeToggle({
         </select>
       ) : null}
     </div>
+  );
+  if (!twin) return group;
+  // Phones get the cycling button; three 44px touch segments crowd a header row.
+  return (
+    <>
+      <ThemeToggle compact size={size} className={cn(className, 'sm:hidden')} />
+      {group}
+    </>
   );
 }

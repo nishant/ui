@@ -208,8 +208,7 @@ function Shell() {
           </a>
           <Logo />
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
-            <ThemeToggle presets className="hidden sm:inline-flex" />
-            <ThemeToggle className="sm:hidden" />
+            <ThemeToggle presets />
             <a
               href={GITHUB}
               target="_blank"
