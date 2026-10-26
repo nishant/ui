@@ -29,6 +29,12 @@ export const themeToggle: ComponentDoc = {
     { id: 'block', name: 'Block, with labels', wide: true, render: () => <div className="w-full max-w-sm"><ThemeToggle labels block /></div> },
     { id: 'compact', name: 'Compact', note: 'One button that cycles System, Light, Dark.', render: () => <ThemeToggle compact /> },
     {
+      id: 'phone',
+      name: 'Segmented on phones too',
+      note: 'By default the segmented toggle becomes the compact button below 640px, so a phone header keeps to one row. phone="segmented" keeps the radio group at every width.',
+      render: () => <ThemeToggle phone="segmented" />,
+    },
+    {
       id: 'header',
       name: 'In an app header',
       wide: true,

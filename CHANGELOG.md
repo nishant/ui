@@ -3,6 +3,12 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.6.0] - 2026-10-26
+
+### Changed
+
+- ThemeToggle: below 640px the segmented toggle now renders as the compact cycling button, so phone headers (AppHeader, app shells) keep the hub pill, actions and theme on one row instead of wrapping a 140px three-segment group onto a second line. New `phone?: 'compact' | 'segmented'` (default `'compact'`); `phone="segmented"` restores the old behavior. `block` toggles stay segmented at every width. The docs site header drops its own two-toggle workaround.
+
 ## [0.5.3] - 2026-10-25
 
 ### Fixed
