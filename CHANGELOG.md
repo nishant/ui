@@ -3,6 +3,14 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.5.1] - 2026-10-25
+
+Docs site only; the package is unchanged.
+
+### Fixed
+
+- design.nish.software header on phones: below 640px the logo shows without the name and version (they were squeezed to "@…" next to the "← nish.software" link), and below 360px the logo hides so the theme switch never overlaps it.
+
 ## [0.5.0] - 2026-10-25
 
 Gap round 2: the one wrapper the apps still needed after adopting 0.4.0. Additive.
