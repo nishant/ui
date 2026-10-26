@@ -91,6 +91,36 @@ export const appHeader: ComponentDoc = {
         </div>
       ),
     },
+
+    {
+      id: 'home-link',
+      name: 'Name links home; icon only on phones',
+      note: 'homeHref makes the icon and name one 44px link. hideNameBelow="sm" keeps only the icon under 640px (the name stays for screen readers). compactPill shrinks the hub pill under 480px.',
+      wide: true,
+      render: () => (
+        <div className="w-full overflow-hidden rounded-xl border border-th-line">
+          <AppHeader
+            name="Status"
+            icon={<ChartIcon />}
+            homeHref="#/components/app-header"
+            hideNameBelow="sm"
+            compactPill
+            sticky={false}
+            navLabel="Status"
+            nav={
+              <>
+                <a href="#/components/app-header" aria-current="page" className={tabClass({ active: true })}>
+                  Services
+                </a>
+                <a href="#/components/app-header" className={tabClass({ active: false })}>
+                  This PC
+                </a>
+              </>
+            }
+          />
+        </div>
+      ),
+    },
   ],
   usage: `import { AppHeader } from '@nish/ui';
 import { NavLink } from 'react-router';

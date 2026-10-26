@@ -97,6 +97,11 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "field-group",
+      "url": "http://localhost:5191/#/components/field-group",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "switch",
       "url": "http://localhost:5191/#/components/switch",
       "waitFor": "[data-page]"
@@ -119,6 +124,11 @@
     {
       "name": "skeleton",
       "url": "http://localhost:5191/#/components/skeleton",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "skeleton-rows",
+      "url": "http://localhost:5191/#/components/skeleton-rows",
       "waitFor": "[data-page]"
     },
     {
@@ -192,6 +202,16 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "section-header",
+      "url": "http://localhost:5191/#/components/section-header",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "key-value-list",
+      "url": "http://localhost:5191/#/components/key-value-list",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "table",
       "url": "http://localhost:5191/#/components/table",
       "waitFor": "[data-page]"
@@ -199,6 +219,11 @@
     {
       "name": "chart",
       "url": "http://localhost:5191/#/components/chart",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "chart-legend",
+      "url": "http://localhost:5191/#/components/chart-legend",
       "waitFor": "[data-page]"
     },
     {
@@ -258,6 +283,11 @@
     {
       "name": "mount-theme-toggle",
       "url": "http://localhost:5191/#/components/mount-theme-toggle",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "show-toast",
+      "url": "http://localhost:5191/#/components/show-toast",
       "waitFor": "[data-page]"
     },
     {

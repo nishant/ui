@@ -4,6 +4,38 @@ import type { ComponentDoc } from './types';
 
 // --- Segmented ----------------------------------------------------------------------
 
+function TipDemo() {
+  const [v, setV] = useState('1y');
+  return (
+    <Segmented
+      label="Lookback"
+      value={v}
+      onChange={setV}
+      options={[
+        { value: '3m', label: '3M', tip: 'Last 3 months: fast, but only one season of data.' },
+        { value: '1y', label: '1Y', tip: 'Last 12 months: the default, one full cycle.' },
+        { value: '5y', label: '5Y', tip: 'Last 5 years: slow, includes several regimes.' },
+      ]}
+    />
+  );
+}
+
+function ToneDemo() {
+  const [v, setV] = useState('auto');
+  return (
+    <Segmented
+      label="Permission mode"
+      value={v}
+      onChange={setV}
+      options={[
+        { value: 'ask', label: 'Ask' },
+        { value: 'edits', label: 'Accept edits' },
+        { value: 'auto', label: 'Auto', tone: 'warn', tip: 'Bypasses permission prompts.' },
+      ]}
+    />
+  );
+}
+
 type Range = '24h' | '7d' | '30d' | '1y';
 
 function RangeDemo({ size = 'sm', block, withDisabled }: { size?: 'xs' | 'sm' | 'md'; block?: boolean; withDisabled?: boolean }) {
@@ -63,6 +95,9 @@ export const segmented: ComponentDoc = {
         </Card>
       ),
     },
+
+    { id: 'tip', name: 'Options with tips', note: 'Hover a choice, or Tab in and use the arrow keys: the tip follows keyboard focus.', render: () => <TipDemo /> },
+    { id: 'tone', name: 'A warning choice (tone="warn")', note: 'The selected look turns warn while that option is on.', render: () => <ToneDemo /> },
   ],
   usage: `import { useState } from 'react';
 import { Segmented } from '@nish/ui';

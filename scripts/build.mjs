@@ -233,7 +233,7 @@ function testGlobal(code) {
   ctx.window = ctx;
   vm.runInNewContext(code, ctx);
   const api = ctx.window.nishTheme;
-  const want = ['initTheme', 'setThemeChoice', 'cycleTheme', 'onThemeChange', 'readToken', 'registerThemes', 'getThemeChoice', 'mountThemeToggle'];
+  const want = ['initTheme', 'setThemeChoice', 'cycleTheme', 'onThemeChange', 'readToken', 'registerThemes', 'getThemeChoice', 'mountThemeToggle', 'showToast'];
   const missing = want.filter((k) => typeof api?.[k] !== 'function');
   if (missing.length) throw new Error(`theme.global.js: window.nishTheme is missing ${missing.join(', ')}`);
   if (api.initTheme() !== 'light' || attrs['data-theme'] !== 'light') {
@@ -247,11 +247,13 @@ function testGlobal(code) {
     return { getAttribute: (k) => a[k] ?? null, setAttribute: (k, v) => (a[k] = v), removeAttribute: (k) => delete a[k], a };
   });
   const handlers = {};
+  const word = { textContent: '' };
   const button = {
     tagName: 'BUTTON',
     innerHTML: '',
     getAttribute: (k) => btnAttrs[k] ?? null,
     setAttribute: (k, v) => (btnAttrs[k] = v),
+    querySelector: (sel) => (sel === '[data-theme-word]' && button.innerHTML.includes('data-theme-word') ? word : null),
     querySelectorAll: () => icons,
     addEventListener: (t, fn) => (handlers[t] = fn),
     removeEventListener: (t, fn) => handlers[t] === fn && delete handlers[t],
@@ -279,6 +281,15 @@ function testGlobal(code) {
   const labelled = api.mountThemeToggle(button, { labels: { system: 'Auto', dark: 'Night' } });
   expectLabel('Theme: Mocha (set on another site). Switch to Auto', 'with labels');
   labelled();
+  // showLabel: the visible word follows the choice; the label is unchanged.
+  const worded = api.mountThemeToggle(button, { showLabel: true });
+  if (!button.innerHTML.includes('data-theme-word') || word.textContent !== 'Mocha') {
+    throw new Error(`theme.global.js: mountThemeToggle showLabel word "${word.textContent}", expected "Mocha"`);
+  }
+  expectLabel('Theme: Mocha (set on another site). Switch to System', 'with showLabel');
+  handlers.click();
+  if (word.textContent !== 'System') throw new Error(`theme.global.js: showLabel word "${word.textContent}" after a click, expected "System"`);
+  worded();
 }
 
 /** Run the pre-paint script against a stub document: v0.1.0 shipped one that threw. */

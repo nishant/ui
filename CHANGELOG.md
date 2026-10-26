@@ -3,6 +3,53 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.4.0] - 2026-10-25
+
+Gap round 1: the pieces the apps still covered with local wrappers after adopting 0.3.0 (jobs, trading, Nishboard, the hub, the trip skill, mc and trips, status, trackers), so they can delete them. Additive, apart from the behavior change listed at the end.
+
+### Added
+
+Primitives and forms
+- Badge `tone="on-accent"` (and `badgeClass({ tone: 'on-accent' })`, `.nish-badge--on-accent`): a small label inside a solid accent fill, such as a "Direct" tag in a primary Apply button. The contrast check covers on-accent on its 20% tint over accent.
+- IconButton `size="2xs"` (20px, `rounded`, 44px on touch) and `iconButtonClass({ size: '2xs' })`, `.nish-icon-btn--2xs`: row-level reveal actions and 22px title bars.
+- `chipClass({ pressed, variant, size, className })`: the exact Chip recipe for router links and anchors that look like chips (links take `aria-current`). Chip now calls it.
+- `FieldGroup({ label, hint, error, optional })`: Field for a group of controls, a `<fieldset>` with a `<legend>` styled like Field's label and the hint or error tied by `aria-describedby`. Static: `fieldset.nish-field` with `legend.nish-field-label`.
+- Segmented option `tip`: a tooltip that opens on hover and on keyboard focus of the radio itself, with `aria-describedby` while shown. The radio stays the only Tab stop.
+- Segmented option `tone` (`accent` | `warn` | `loss`): the selected look in that tone, for a choice that must read as a warning while it is on.
+- Tabs `size="xs"` (pill `h-6 px-2 text-2xs`, underline `h-7 text-2xs`, 44px on touch) and `tabClass({ size: 'xs' })`.
+- Tabs `block`: the tab list fills its container with equal-width tabs (`tabClass({ block })`).
+- Tabs `hideFrom` and TabPanel `showFrom` (`md` | `lg`): responsive panes. Below the breakpoint, ARIA tabs; from it, the tab list is not rendered and every panel renders as a plain region side by side (a matchMedia hook, since Tailwind preflight's `[hidden]` rule is `!important`).
+- TabPanel `keepMounted`: keeps a hidden panel's content mounted.
+
+Overlays
+- Popover `onOpenChange(open, reason)`: the second argument says why it closed (`'escape'`, `'outside'` or `'tab'`). DropdownMenu passes the same reason when it closes itself. Type `PopoverCloseReason`.
+- Popover `dismissOnOutside` (default true): false keeps the panel open on outside presses (an editor whose targets sit outside it); Escape and Tab out still close it.
+- `menuItemClass({ active, danger, disabled, className })`: MenuItem's row look for tabbable buttons in a Popover that also holds IconButtons, inputs or color pickers. MenuItem now calls it.
+
+Display and feedback
+- Toaster `offsetUntil` (`sm` | `md` | `lg`): where `offset` stops applying, to match the breakpoint where an app's bottom tab bar hides.
+- Meter `tone="neutral"` (`bg-th-hi3`) and `.nish-meter--neutral`: a quantity with no status meaning.
+- `SkeletonRows({ rows, height, gap, label, className, rowClassName })`: a `role="status"` column of full-width rounded-xl shimmer rows for lists and pages of cards.
+- `SectionHeader({ title, id, as, meta, action })`: the heading row of a section inside a page.
+- `KeyValueList({ items, dense, as })`: label and value rows with dividers, 44px tall (32px dense), as a list or a `<dl>`.
+- `ChartLegend({ items, marker, label })`: the key for multi-series canvas charts, a color mark (line or dot) and a name per series.
+- AppHeader `homeHref` (the icon and name become one 44px link home), `hideNameBelow="sm"` (icon only on phones, the name stays for screen readers), `navLabel` (names the nav landmark) and `compactPill` (the hub pill shrinks to its arrow under 480px).
+- ThemeToggle `variant="pill"`: one cycling button in a 44px pill with a line-strong border, to sit next to the hub pill; with `labels` it shows the current choice as a word.
+
+Static pages (`@nish/ui/theme`, nish.css, nish-components.css)
+- `showToast(content, { tone, duration, action, dismissLabel })` in `@nish/ui/theme` and `window.nishTheme`: one `.nish-toast` in a single polite live region, with the React toast's policy (the timer pauses on hover and focus). Text is never parsed as HTML; pass a Node for markup. Returns a function that hides it.
+- `.nish-toast` with `.nish-toast-body`, `.nish-toast-action`, `.nish-toast-close` and tone modifiers `--ok`, `--warn`, `--loss`, `--info`.
+- `mountThemeToggle(button, { showLabel: true })`: adds a `<span data-theme-word aria-hidden="true">` with the current choice (System, Light, Dark, or a preset's name) and keeps it in sync. `aria-label` and `title` are unchanged.
+- `.nish-theme-btn--pill` (44px pill on every pointer, line-strong border) and `.nish-theme-btn--labelled` (the pill with the word), to sit next to `.nish-pill-link`.
+- `.nish-glass`: a see-through fill (`bg` at 60% with a 4px backdrop blur) for controls scoped dark over a photo or gradient.
+- `.nish-pill-link--compact` with `.nish-pill-link-label`: under 480px only the arrow shows, in a 44px circle, and the words stay for screen readers; `data-compact="always"` keeps it compact at every width.
+
+### Fixed
+- `.nish-pill-link` sets `font-family: var(--nish-font-sans)`, so the pill looks the same on pages with a serif body.
+
+### Behavior changes
+- Input, Select, SearchInput, Textarea and `fieldClass()`: the 16px text that stops iOS zooming now applies on touch screens (`pointer-coarse:text-base`) instead of under 640px. A narrow window driven by a mouse (Nishboard's popouts) keeps the size's own text; phones are unchanged. Static `.nish-input`, `.nish-select` and `.nish-textarea` follow the same rule.
+
 ## [0.3.0] - 2026-10-25
 
 The adoption release: every piece the apps had each built for themselves (from an audit of jobs, trading, Nishboard, the hub, status, trackers, mc and trips), so they can delete their local copies. Additive, apart from the behavior changes listed at the end.

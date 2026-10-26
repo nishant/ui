@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
-import { Button, Card, Checkbox, IconButton, Select } from '../../src';
+import { Button, Card, Checkbox, IconButton, Select, menuItemClass } from '../../src';
 import { Popover } from '../../src';
-import { SettingsIcon } from '../lib/icons';
+import { PinIcon, SettingsIcon, TrashIcon } from '../lib/icons';
 import type { ComponentDoc } from './types';
 
 // --- Popover (framed) ---------------------------------------------------------------
@@ -75,6 +75,66 @@ function PopoverPreview({
   );
 }
 
+/** menuItemClass rows next to IconButtons: a Popover, not a DropdownMenu. */
+function SavedRows() {
+  const anchor = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(true);
+  const [current, setCurrent] = useState('Focus');
+  return (
+    <div className="flex w-full justify-center self-start">
+      <Button ref={anchor} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        Layouts
+      </Button>
+      <Popover open={open} onOpenChange={setOpen} anchor={anchor} width={240} aria-label="Layouts" className="p-1">
+        {['Focus', 'Trading', 'Streams'].map((name) => (
+          <div key={name} className="group flex items-center rounded-md">
+            <button type="button" aria-current={current === name || undefined} onClick={() => setCurrent(name)} className={menuItemClass({ active: current === name, className: 'rounded-md' })}>
+              {name}
+            </button>
+            <IconButton size="2xs" label={`Pin ${name}`}>
+              <PinIcon size={12} />
+            </IconButton>
+            <IconButton size="2xs" label={`Delete ${name}`} tone="danger" className="mr-1">
+              <TrashIcon size={12} />
+            </IconButton>
+          </div>
+        ))}
+        <button type="button" className={menuItemClass({ danger: true, className: 'rounded-md' })}>
+          Reset all layouts
+        </button>
+      </Popover>
+    </div>
+  );
+}
+
+/** Stays open on outside presses; Escape and Tab out still close it. */
+function EditorPreview() {
+  const anchor = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(true);
+  const [last, setLast] = useState('none yet');
+  return (
+    <div className="flex w-full justify-center self-start">
+      <Button ref={anchor} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        Edit tiles
+      </Button>
+      <Popover
+        open={open}
+        onOpenChange={(next, reason) => {
+          setLast(reason);
+          setOpen(next);
+        }}
+        dismissOnOutside={false}
+        anchor={anchor}
+        width={240}
+        aria-label="Tile editor"
+      >
+        <p>Drag tiles on the page; this panel stays open. Press Escape to close.</p>
+        <p className="mt-2 text-xs text-th-hi2">Last close reason: {last}</p>
+      </Popover>
+    </div>
+  );
+}
+
 function CardPreview() {
   const anchor = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(true);
@@ -102,6 +162,7 @@ export const popover: ComponentDoc = {
   id: 'popover',
   name: 'Popover',
   exports: ['Popover'],
+  api: { functions: ['menuItemClass'], interfaces: [] },
   summary:
     'A non-modal floating panel anchored to an element: filters, a picker, a details card. Portaled so no parent clips it, flipped and clamped to the screen, closed by Escape and a press outside, with focus back on the anchor.',
   importLine: "import { Popover } from '@nish/ui';",
@@ -138,6 +199,9 @@ export const popover: ComponentDoc = {
     { id: 'top', name: 'Above', note: 'Flips below when there is no room.', render: () => <PopoverPreview side="top" body="note" width={240} /> },
     { id: 'note', name: 'Text only, no padding override', render: () => <PopoverPreview body="note" width={240} /> },
     { id: 'card', name: 'From a card', render: () => <CardPreview /> },
+
+    { id: 'editor', name: 'Stays open on outside presses', note: 'dismissOnOutside={false}; onOpenChange gets the reason (escape, outside, tab).', render: () => <EditorPreview /> },
+    { id: 'menu-rows', name: 'Menu-looking rows (menuItemClass)', note: 'Tabbable rows beside IconButtons, so a Popover rather than a DropdownMenu.', render: () => <SavedRows /> },
   ],
   usage: `import { useRef, useState } from 'react';
 import { Button, Popover } from '@nish/ui';

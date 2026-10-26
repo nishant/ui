@@ -10,10 +10,21 @@ const BTN =
   'inline-flex size-9 items-center justify-center rounded-lg border border-th-line bg-th-surface text-th-hi2 transition-colors hover:bg-th-elevated hover:text-th-hi pointer-coarse:size-11';
 
 /** A plain <button> handed to mountThemeToggle, the way a static page uses it. */
-function StaticThemeButton({ labels, className }: { labels?: ThemeToggleLabels; className?: string }) {
+function StaticThemeButton({
+  labels,
+  showLabel,
+  className,
+  plain = false,
+}: {
+  labels?: ThemeToggleLabels;
+  showLabel?: boolean;
+  className?: string;
+  /** Use only className (the static .nish-theme-btn classes), not the IconButton look. */
+  plain?: boolean;
+}) {
   const ref = useRef<HTMLButtonElement>(null);
-  useEffect(() => (ref.current ? mountThemeToggle(ref.current, { labels }) : undefined), [labels]);
-  return <button ref={ref} className={cn(BTN, className)} />;
+  useEffect(() => (ref.current ? mountThemeToggle(ref.current, { labels, showLabel }) : undefined), [labels, showLabel]);
+  return <button ref={ref} className={plain ? className : cn(BTN, className)} />;
 }
 
 const SPANISH: ThemeToggleLabels = { system: 'Sistema', light: 'Claro', dark: 'Oscuro' };
@@ -28,12 +39,20 @@ export const mountThemeToggleDoc: ComponentDoc & { source: string } = {
   summary:
     'The one-button theme toggle for static pages (mc, trips, the hub, trip gates): hand it a <button> and it fills in the icon, the label and the click. It cycles System → Light → Dark like ThemeToggle compact, and stays in sync across tabs and subdomains.',
   importLine: "import { initTheme, mountThemeToggle } from '@nish/ui/theme';",
-  controls: [{ key: 'labels', label: 'Custom labels', type: 'boolean' }],
-  initial: { labels: false },
-  render: (a) => <StaticThemeButton labels={a.labels ? SPANISH : undefined} />,
+  controls: [
+    { key: 'labels', label: 'Custom labels', type: 'boolean' },
+    { key: 'showLabel', label: 'Show the word', type: 'boolean' },
+  ],
+  initial: { labels: false, showLabel: false },
+  render: (a) =>
+    a.showLabel ? (
+      <StaticThemeButton plain labels={a.labels ? SPANISH : undefined} showLabel className="nish-theme-btn nish-theme-btn--labelled" />
+    ) : (
+      <StaticThemeButton labels={a.labels ? SPANISH : undefined} />
+    ),
   code: (a) =>
-    a.labels
-      ? "mountThemeToggle(button, {\n  labels: { system: 'Sistema', light: 'Claro', dark: 'Oscuro' },\n});"
+    a.labels || a.showLabel
+      ? `mountThemeToggle(button, {\n${a.labels ? "  labels: { system: 'Sistema', light: 'Claro', dark: 'Oscuro' },\n" : ''}${a.showLabel ? '  showLabel: true,\n' : ''}});`
       : 'mountThemeToggle(document.getElementById(\'theme\'));',
   api: { functions: ['mountThemeToggle'], interfaces: ['MountThemeToggleOptions'] },
   stories: [
@@ -48,6 +67,20 @@ export const mountThemeToggleDoc: ComponentDoc & { source: string } = {
       name: 'Custom labels',
       note: 'labels replaces the words in aria-label and title.',
       render: () => <StaticThemeButton labels={SPANISH} />,
+    },
+    {
+      id: 'pill',
+      name: 'Pill and labelled pill, next to the hub pill',
+      note: '.nish-theme-btn--pill is 44px on every pointer; showLabel adds the word, styled by .nish-theme-btn--labelled.',
+      render: () => (
+        <div className="flex flex-wrap items-center gap-2">
+          <a className="nish-pill-link" href="https://nish.software" title="Back to nish.software">
+            ← nish.software
+          </a>
+          <StaticThemeButton plain className="nish-theme-btn nish-theme-btn--pill" />
+          <StaticThemeButton plain showLabel className="nish-theme-btn nish-theme-btn--labelled" />
+        </div>
+      ),
     },
     {
       id: 'round',

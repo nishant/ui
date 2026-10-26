@@ -133,6 +133,18 @@ export const meter: ComponentDoc = {
         </Card>
       ),
     },
+
+    {
+      id: 'neutral',
+      name: 'Neutral tone',
+      note: 'A gray fill for a quantity with no status meaning (swap, a share of a total).',
+      render: () => (
+        <div className="grid w-full max-w-xs gap-2 text-xs text-th-hi3">
+          <span>Swap 3.1 of 8 GB</span>
+          <Meter value={39} label="Swap used" tone="neutral" showValue />
+        </div>
+      ),
+    },
   ],
   usage: `import { Meter, toneFor } from '@nish/ui';
 

@@ -79,6 +79,9 @@ export function checkTheme(colors) {
   };
   for (const [fg, bgs, min] of RULES) for (const bg of bgs) add(fg, bg, colors[fg], colors[bg], min);
   for (const [fg, bg] of ON_FILL) add(fg, bg, colors[fg], colors[bg], TEXT);
+  // Badge tone="on-accent": a small label inside a primary button, on-accent text over
+  // a 20% on-accent tint on the accent fill.
+  add('on-accent', 'on-accent-tint', colors['on-accent'], mix(colors['on-accent'], colors.accent, 0.2), TEXT, 'on-accent on on-accent/20 over accent');
   // Checked over surface and elevated (hovered table rows).
   for (const role of SOFT_TEXT) {
     for (const under of ['surface', 'elevated']) {

@@ -186,6 +186,12 @@ export interface MountThemeToggleOptions {
   /** Replace the words "System", "Light" and "Dark" in the button's label, e.g. for
    *  another language. The label reads "Theme: Light. Switch to Dark". */
   labels?: ThemeToggleLabels;
+  /** Also show the current choice as a word after the icon (System, Light, Dark, or a
+   *  preset's name such as "Mocha" when one was saved on another site): a
+   *  <span data-theme-word aria-hidden="true">, kept in sync on click and on theme
+   *  changes. aria-label and title stay as they are. Style the button with
+   *  .nish-theme-btn--labelled. */
+  showLabel?: boolean;
 }
 
 // Same geometry as ThemeToggle's MonitorIcon, SunIcon and MoonIcon (lucide, 24px grid).
@@ -229,12 +235,14 @@ function themeLabel(choice: ThemeChoice, words: Record<'system' | 'light' | 'dar
 export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOptions = {}): () => void {
   const words = { ...DEFAULT_TOGGLE_LABELS, ...opts.labels };
   if (button.tagName === 'BUTTON' && !button.getAttribute('type')) button.setAttribute('type', 'button');
-  button.innerHTML = (Object.keys(TOGGLE_ICONS) as (keyof typeof TOGGLE_ICONS)[])
-    .map(
-      (id) =>
-        `<svg data-icon="${id}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TOGGLE_ICONS[id]}</svg>`,
-    )
-    .join('');
+  button.innerHTML =
+    (Object.keys(TOGGLE_ICONS) as (keyof typeof TOGGLE_ICONS)[])
+      .map(
+        (id) =>
+          `<svg data-icon="${id}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TOGGLE_ICONS[id]}</svg>`,
+      )
+      .join('') + (opts.showLabel ? '<span data-theme-word aria-hidden="true"></span>' : '');
+  const word = button.querySelector<HTMLElement>('[data-theme-word]');
 
   const render = (choice: ThemeChoice) => {
     // A preset shows the icon of the scheme it is built on.
@@ -248,6 +256,7 @@ export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOpti
     const label = `Theme: ${themeLabel(choice, words)}${elsewhere}. Switch to ${themeLabel(nextChoice(choice), words)}`;
     button.setAttribute('aria-label', label);
     button.setAttribute('title', label);
+    if (word) word.textContent = themeLabel(choice, words);
   };
 
   const onClick = () => {
@@ -260,6 +269,120 @@ export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOpti
     button.removeEventListener('click', onClick);
     off();
   };
+}
+
+// --- showToast (static pages) ------------------------------------------------------
+
+export type StaticToastTone = 'neutral' | 'ok' | 'warn' | 'loss' | 'info';
+
+export interface ShowToastOptions {
+  /** Border tint: ok, warn, loss or info (the /30 tint border). Default neutral. */
+  tone?: StaticToastTone;
+  /** Milliseconds before it hides itself, or 'sticky' to stay until dismissed. Default
+   *  6000. The timer pauses while the toast is hovered or holds focus, so a keyboard
+   *  user can reach a link inside it. */
+  duration?: number | 'sticky';
+  /** One text action after the message: a link (href) or a button (onClick). Clicking
+   *  it hides the toast. */
+  action?: { label: string; href?: string; onClick?: () => void };
+  /** Accessible name of the dismiss button. Default "Dismiss". */
+  dismissLabel?: string;
+}
+
+const TOAST_MS = 6_000;
+let toastRegion: HTMLElement | null = null;
+let hideCurrent: (() => void) | null = null;
+
+/** Show one toast on a static page: a .nish-toast inside a single role="status"
+ *  aria-live="polite" region (created on first use). A new toast replaces the one on
+ *  screen. content is text, or a Node for markup (a <strong>, a link): text is never
+ *  parsed as HTML. Same policy as the React toast: the timer pauses on hover and on
+ *  focus. Returns a function that hides it now. Needs nish-components.css. */
+export function showToast(content: string | Node, opts: ShowToastOptions = {}): () => void {
+  hideCurrent?.();
+  if (!toastRegion || !toastRegion.isConnected) {
+    toastRegion = document.createElement('div');
+    toastRegion.setAttribute('role', 'status');
+    toastRegion.setAttribute('aria-live', 'polite');
+    toastRegion.className = 'nish-toast-region';
+    document.body.appendChild(toastRegion);
+  }
+  const region = toastRegion;
+  const box = document.createElement('div');
+  box.className = 'nish-toast' + (opts.tone && opts.tone !== 'neutral' ? ` nish-toast--${opts.tone}` : '');
+  const body = document.createElement('p');
+  body.className = 'nish-toast-body';
+  body.append(typeof content === 'string' ? document.createTextNode(content) : content);
+  box.append(body);
+
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let remaining = opts.duration === 'sticky' ? Infinity : (opts.duration ?? TOAST_MS);
+  let started = 0;
+  let holds = 0;
+  const hide = () => {
+    if (timer != null) clearTimeout(timer);
+    timer = null;
+    box.remove();
+    if (hideCurrent === hide) hideCurrent = null;
+  };
+  const run = (ms: number) => {
+    if (!Number.isFinite(ms)) return;
+    started = Date.now();
+    timer = setTimeout(hide, ms);
+  };
+  const pause = () => {
+    holds += 1;
+    if (holds > 1 || timer == null) return;
+    clearTimeout(timer);
+    timer = null;
+    remaining = Math.max(0, remaining - (Date.now() - started));
+  };
+  const resume = () => {
+    if (holds === 0) return;
+    holds -= 1;
+    // Give the reader a moment after they move away, even if the time had nearly run out.
+    if (holds === 0) run(Math.max(remaining, 1_000));
+  };
+
+  if (opts.action) {
+    const a = opts.action;
+    const el = document.createElement(a.href ? 'a' : 'button');
+    el.className = 'nish-toast-action';
+    el.textContent = a.label;
+    if (a.href) (el as HTMLAnchorElement).href = a.href;
+    else (el as HTMLButtonElement).type = 'button';
+    el.addEventListener('click', () => {
+      a.onClick?.();
+      hide();
+    });
+    box.append(el);
+  }
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'nish-toast-close';
+  close.setAttribute('aria-label', opts.dismissLabel ?? 'Dismiss');
+  close.innerHTML =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  close.addEventListener('click', hide);
+  box.append(close);
+
+  // Mouse only: a tap fires enter with no leave, which would pin the toast forever.
+  box.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && pause());
+  box.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && resume());
+  box.addEventListener('focusin', (e) => !box.contains(e.relatedTarget as Node | null) && pause());
+  box.addEventListener('focusout', (e) => !box.contains(e.relatedTarget as Node | null) && resume());
+  box.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hide();
+  });
+
+  // Insert after the region is in the DOM, so screen readers announce the change.
+  setTimeout(() => {
+    if (hideCurrent !== hide) return;
+    region.append(box);
+    run(remaining);
+  }, 50);
+  hideCurrent = hide;
+  return hide;
 }
 
 /** For pages without a framework: apply now and start syncing. */

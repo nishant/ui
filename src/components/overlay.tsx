@@ -575,9 +575,7 @@ const TIP_MAX_WIDTH = 320;
  *  from the trigger's viewport rect, flipped and clamped to stay on screen. */
 export function Tooltip({ tip, children, className, side = 'top', as = 'span', focusable = true, variant = 'default' }: TooltipProps) {
   const triggerRef = useRef<HTMLElement>(null);
-  const tipRef = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
-  const pos = useAnchoredPosition(triggerRef, tipRef, open, side, 'center');
   const id = useId();
 
   // Native listeners: React's synthetic onMouseEnter never fires for a `tr` trigger.
@@ -623,25 +621,42 @@ export function Tooltip({ tip, children, className, side = 'top', as = 'span', f
           {children}
         </span>
       )}
-      {open
-        ? createPortal(
-            <span
-              ref={tipRef}
-              id={id}
-              role="tooltip"
-              data-side={pos?.side}
-              style={floatingStyle(pos, {
-                maxWidth: Math.min(TIP_MAX_WIDTH, (window.innerWidth || TIP_MAX_WIDTH) - 2 * EDGE),
-                zIndex: 'var(--nish-z-tooltip, 100)',
-              })}
-              className="pointer-events-none block w-max rounded-lg border border-th-line-strong bg-th-elevated px-3 py-2 text-xs font-normal normal-case leading-snug tracking-normal text-th-hi shadow-pop"
-            >
-              {tip}
-            </span>,
-            document.body,
-          )
-        : null}
+      {open ? <FloatingTip anchor={triggerRef} id={id} tip={tip} side={side} /> : null}
     </>
+  );
+}
+
+/** The tooltip bubble on its own, for components that are their own trigger (a
+ *  Segmented option): portaled to <body>, placed next to `anchor` while mounted.
+ *  Internal to the package; mount it only while the tip shows, keyed by the anchor. */
+export function FloatingTip({
+  anchor,
+  id,
+  tip,
+  side = 'top',
+}: {
+  anchor: RefObject<HTMLElement | null>;
+  id: string;
+  tip: ReactNode;
+  side?: Side;
+}) {
+  const tipRef = useRef<HTMLSpanElement>(null);
+  const pos = useAnchoredPosition(anchor, tipRef, true, side, 'center');
+  return createPortal(
+    <span
+      ref={tipRef}
+      id={id}
+      role="tooltip"
+      data-side={pos?.side}
+      style={floatingStyle(pos, {
+        maxWidth: Math.min(TIP_MAX_WIDTH, (window.innerWidth || TIP_MAX_WIDTH) - 2 * EDGE),
+        zIndex: 'var(--nish-z-tooltip, 100)',
+      })}
+      className="pointer-events-none block w-max rounded-lg border border-th-line-strong bg-th-elevated px-3 py-2 text-xs font-normal normal-case leading-snug tracking-normal text-th-hi shadow-pop"
+    >
+      {tip}
+    </span>,
+    document.body,
   );
 }
 
@@ -717,11 +732,19 @@ function useReturnFocus(open: boolean, panel: RefObject<HTMLElement | null>, anc
   }, [open, anchor]);
 }
 
+/** Why a Popover or DropdownMenu closed itself: Escape, a press outside, or Tab out. */
+export type PopoverCloseReason = 'escape' | 'outside' | 'tab';
+
 export interface PopoverProps {
   /** Whether the panel shows. The popover is controlled: pair it with `onOpenChange`. */
   open: boolean;
-  /** Called with false on Escape, a press outside, and Tab out of the panel. */
-  onOpenChange: (open: boolean) => void;
+  /** Called with false on Escape, a press outside, and Tab out of the panel. The second
+   *  argument says which one: 'escape', 'outside' or 'tab'. */
+  onOpenChange: (open: boolean, reason: PopoverCloseReason) => void;
+  /** Close on a press outside the panel and its anchor (default true). Set false for
+   *  an editor that must stay open while the user drags things outside it; Escape and
+   *  Tab out still close it. */
+  dismissOnOutside?: boolean;
   /** The element the panel sits next to (usually the button that opens it). Focus
    *  returns here when the panel closes. */
   anchor: RefObject<HTMLElement | null>;
@@ -744,6 +767,7 @@ export interface PopoverProps {
 export function Popover({
   open,
   onOpenChange,
+  dismissOnOutside = true,
   anchor,
   side = 'bottom',
   align = 'start',
@@ -756,7 +780,12 @@ export function Popover({
   const pos = useAnchoredPosition(anchor, panelRef, open, side, align);
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
-  useDismiss(open, panelRef, anchor, () => onOpenChangeRef.current(false));
+  const outsideRef = useRef(dismissOnOutside);
+  outsideRef.current = dismissOnOutside;
+  useDismiss(open, panelRef, anchor, (reason) => {
+    if (reason === 'outside' && !outsideRef.current) return;
+    onOpenChangeRef.current(false, reason);
+  });
   useReturnFocus(open, panelRef, anchor);
 
   // Focus in: [data-autofocus] or [autofocus], else the panel itself.
@@ -781,7 +810,7 @@ export function Popover({
     const atEnd = nodes.length === 0 || active === nodes[nodes.length - 1];
     if ((e.shiftKey && atStart) || (!e.shiftKey && atEnd)) {
       e.preventDefault();
-      onOpenChangeRef.current(false);
+      onOpenChangeRef.current(false, 'tab');
     }
   }
 
@@ -839,8 +868,10 @@ export interface DropdownMenuProps {
   children: ReactNode;
   /** Controlled open state (optional; the menu manages it otherwise). */
   open?: boolean;
-  /** Called whenever the menu opens or closes. */
-  onOpenChange?: (open: boolean) => void;
+  /** Called whenever the menu opens or closes. When the menu closed itself, the second
+   *  argument says why: 'escape', 'outside' or 'tab' (undefined after a selection or a
+   *  trigger click). */
+  onOpenChange?: (open: boolean, reason?: PopoverCloseReason) => void;
   /** Opens on mount when uncontrolled (previews, tests). */
   defaultOpen?: boolean;
   /** Accessible name of the menu. Default: the trigger's name (aria-labelledby). */
@@ -875,14 +906,15 @@ export function DropdownMenu({
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
   const setOpen = useCallback(
-    (next: boolean) => {
+    (next: boolean, reason?: PopoverCloseReason) => {
       if (openProp === undefined) setOpenState(next);
-      onOpenChangeRef.current?.(next);
+      onOpenChangeRef.current?.(next, reason);
     },
     [openProp],
   );
   const close = useCallback(() => setOpen(false), [setOpen]);
-  useDismiss(open, menuRef, triggerRef, close);
+  const dismiss = useCallback((reason: PopoverCloseReason) => setOpen(false, reason), [setOpen]);
+  useDismiss(open, menuRef, triggerRef, dismiss);
   useReturnFocus(open, menuRef, triggerRef);
 
   // Focus in on open, and again whenever the focused row disappears (a submenu view
@@ -933,7 +965,7 @@ export function DropdownMenu({
         return go(items.length - 1);
       case 'Tab':
         e.preventDefault();
-        close();
+        dismiss('tab');
         return;
       default:
         // Typeahead: the first key jumps to the next row starting with that letter.
@@ -1017,6 +1049,34 @@ export function DropdownMenu({
 const ROW =
   'flex w-full select-none items-center gap-2 px-3 py-1.5 text-left text-xs outline-none transition-colors pointer-coarse:min-h-11';
 
+export interface MenuItemClassOptions {
+  /** The current choice: the highlighted look (set aria-current on the row too). */
+  active?: boolean;
+  /** A destructive action: loss-colored text and hover. */
+  danger?: boolean;
+  /** The disabled look (set disabled or aria-disabled on the row too). */
+  disabled?: boolean;
+  /** Extra classes, merged last. */
+  className?: string;
+}
+
+/** The classes `<MenuItem>` renders, for menu-looking rows that are not in a
+ *  DropdownMenu: tabbable buttons in a Popover panel that also holds IconButtons,
+ *  inputs or color pickers. The rows keep their own roles (plain buttons, Tab order);
+ *  hover and keyboard focus get the same highlight as MenuItem. */
+export function menuItemClass({ active = false, danger = false, disabled = false, className }: MenuItemClassOptions = {}): string {
+  return cn(
+    ROW,
+    disabled
+      ? 'cursor-default text-th-ghost'
+      : danger
+        ? 'text-th-loss hover:bg-th-loss-soft focus-visible:bg-th-loss-soft'
+        : 'text-th-hi2 hover:bg-th-overlay hover:text-th-hi focus-visible:bg-th-overlay focus-visible:text-th-hi',
+    active && !disabled && !danger && 'bg-th-overlay font-medium text-th-hi',
+    className,
+  );
+}
+
 export interface MenuItemProps {
   /** Leading icon (14px reads best). */
   icon?: ReactNode;
@@ -1058,16 +1118,14 @@ export function MenuItem({ icon, trailing, danger = false, active = false, disab
         // Hover moves the keyboard position too, as in native menus.
         if (!disabled && document.activeElement !== e.currentTarget) e.currentTarget.focus();
       }}
-      className={cn(
-        ROW,
-        disabled
-          ? 'cursor-default text-th-ghost'
-          : danger
-            ? 'text-th-loss hover:bg-th-loss-soft focus:bg-th-loss-soft'
-            : 'text-th-hi2 hover:bg-th-overlay hover:text-th-hi focus:bg-th-overlay focus:text-th-hi',
-        active && !disabled && !danger && 'bg-th-overlay font-medium text-th-hi',
-        className,
-      )}
+      // In a menu, focus follows the pointer and the arrow keys, so plain :focus (not
+      // only :focus-visible) shows the highlight.
+      className={menuItemClass({
+        active,
+        danger,
+        disabled,
+        className: cn(!disabled && (danger ? 'focus:bg-th-loss-soft' : 'focus:bg-th-overlay focus:text-th-hi'), className),
+      })}
     >
       {icon ? <span className={cn('inline-flex shrink-0', danger || disabled ? '' : 'text-th-hi3')}>{icon}</span> : null}
       <span className="min-w-0 flex-1 truncate">{children}</span>

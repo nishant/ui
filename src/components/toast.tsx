@@ -170,14 +170,26 @@ const TONE: Record<ToastTone, { icon: ReactNode; className: string }> = {
 export interface ToasterProps {
   /** Extra classes for the stack, e.g. to lift it above a bottom nav: sm:bottom-20. */
   className?: string;
-  /** Distance from the bottom of the screen on phones (under 640px), e.g.
-   *  'calc(4.5rem + env(safe-area-inset-bottom))' to clear a bottom tab bar.
-   *  Default: 12px or the safe area, whichever is larger. */
+  /** Distance from the bottom of the screen on phones (under 640px, or up to
+   *  offsetUntil), e.g. 'calc(4.5rem + env(safe-area-inset-bottom))' to clear a bottom
+   *  tab bar. Default: 12px or the safe area, whichever is larger. */
   offset?: string;
+  /** The breakpoint where offset stops applying: sm 640px (default), md 768px or lg
+   *  1024px. Match it to where the app's bottom tab bar hides, so a toast never covers
+   *  the bar. From sm the stack still moves to the bottom right; between sm and this
+   *  breakpoint it keeps the offset. */
+  offsetUntil?: 'sm' | 'md' | 'lg';
 }
 
+// Full literal class names, so Tailwind's scanner finds every one.
+const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
+  sm: 'sm:bottom-5 sm:pb-0',
+  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] md:bottom-5 md:pb-0',
+  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] lg:bottom-5 lg:pb-0',
+};
+
 /** The toast stack: bottom-center full width on phones, bottom-right on wider screens. */
-export function Toaster({ className, offset }: ToasterProps) {
+export function Toaster({ className, offset, offsetUntil = 'sm' }: ToasterProps) {
   const list = useToasts();
   if (typeof document === 'undefined') return null;
   const style = offset ? ({ '--nish-toast-offset': offset } as CSSProperties) : undefined;
@@ -188,7 +200,8 @@ export function Toaster({ className, offset }: ToasterProps) {
       className={cn(
         'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-3',
         'pb-[var(--nish-toast-offset,max(12px,env(safe-area-inset-bottom)))]',
-        'sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-96 sm:items-stretch sm:px-0 sm:pb-0',
+        'sm:inset-x-auto sm:right-5 sm:w-96 sm:items-stretch sm:px-0',
+        DESKTOP_BOTTOM[offsetUntil],
         className,
       )}
     >

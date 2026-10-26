@@ -67,6 +67,7 @@ table,
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--nish-font-sans);
   font-size: 14px;
   line-height: 1.2;
   color: var(--nish-hi2);
@@ -82,6 +83,39 @@ table,
 .nish-pill-link:hover {
   color: var(--nish-hi);
   border-color: var(--nish-line-strong);
+}
+/* Compact form for crowded headers: under 480px only the arrow shows, in a 44px circle,
+   and the words stay for screen readers. data-compact="always" keeps it compact at every
+   width.
+   <a class="nish-pill-link nish-pill-link--compact" href="https://nish.software"
+      title="Back to nish.software">&larr; <span class="nish-pill-link-label">nish.software</span></a> */
+@media (max-width: 480px) {
+  .nish-pill-link--compact {
+    min-width: var(--nish-tap-min, 44px);
+    justify-content: center;
+    padding-inline: 6px;
+  }
+  .nish-pill-link--compact .nish-pill-link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+.nish-pill-link--compact[data-compact='always'] {
+  min-width: var(--nish-tap-min, 44px);
+  justify-content: center;
+  padding-inline: 6px;
+}
+.nish-pill-link--compact[data-compact='always'] .nish-pill-link-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Scrolls, but draws no scrollbar: tab strips, chip rows, carousels. */

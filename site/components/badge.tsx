@@ -1,4 +1,4 @@
-import { Badge, Card } from '../../src';
+import { Badge, Button, Card, buttonClass } from '../../src';
 import { badgeClass } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -192,6 +192,28 @@ export const badge: ComponentDoc = {
       name: 'Long text',
       note: 'Badges never wrap. Keep them to two or three words.',
       render: () => <Badge tone="warn">Waiting on recruiter</Badge>,
+    },
+
+    {
+      id: 'on-accent',
+      name: 'On a solid accent fill (tone="on-accent")',
+      note: 'A small label inside a primary Button or an accent link. Pair a short label with sr-only text.',
+      render: () => (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="primary">
+            Apply
+            <Badge tone="on-accent" size="xs" variant="tag">
+              Direct<span className="sr-only"> (applies on the company's own site)</span>
+            </Badge>
+          </Button>
+          <a href="#/components/badge" className={buttonClass({ variant: 'primary', size: 'sm' })}>
+            Apply
+            <Badge tone="on-accent" size="xs" variant="tag">
+              Direct
+            </Badge>
+          </a>
+        </div>
+      ),
     },
   ],
   api: { functions: ['badgeClass'], interfaces: [] },

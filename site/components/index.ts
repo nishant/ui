@@ -10,11 +10,13 @@ import { input } from './input';
 import { textarea } from './textarea';
 import { checkbox } from './checkbox';
 import { field } from './field';
+import { fieldGroup } from './field-group';
 import { switchDoc } from './switch';
 import { searchInput } from './search-input';
 import { select } from './select';
 import { label } from './label';
 import { skeleton } from './skeleton';
+import { skeletonRows } from './skeleton-rows';
 import { spinner } from './spinner';
 import { emptyState } from './empty-state';
 import { errorState } from './error-state';
@@ -29,6 +31,9 @@ import { kbd } from './kbd';
 import { copyButton } from './copy-button';
 import { pageHeader } from './page-header';
 import { appHeader } from './app-header';
+import { sectionHeader } from './section-header';
+import { keyValueList } from './key-value-list';
+import { chartLegend } from './chart-legend';
 import { table } from './table';
 import { chartDoc } from './chart';
 import { modal } from './modal';
@@ -42,6 +47,7 @@ import { chip } from './chip';
 import { tabs } from './tabs';
 import { themeToggle } from './theme-toggle';
 import { mountThemeToggleDoc } from './mount-theme-toggle';
+import { showToastDoc } from './show-toast';
 import { prose } from './prose';
 import { baseUtilities } from './base-utilities';
 import type { ComponentDoc } from './types';
@@ -59,11 +65,13 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   textarea,
   checkbox,
   field,
+  fieldGroup,
   switchDoc,
   searchInput,
   select,
   label,
   skeleton,
+  skeletonRows,
   spinner,
   emptyState,
   errorState,
@@ -78,8 +86,11 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   copyButton,
   pageHeader,
   appHeader,
+  sectionHeader,
+  keyValueList,
   table,
   chartDoc,
+  chartLegend,
   modal,
   drawer,
   confirmDialog,
@@ -91,6 +102,7 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   tabs,
   themeToggle,
   mountThemeToggleDoc,
+  showToastDoc,
   prose,
   baseUtilities,
 ];

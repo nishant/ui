@@ -58,22 +58,55 @@ export interface ThemeToggleProps {
   /** One icon button that cycles System, Light, Dark and shows the current choice; for
    *  collapsed sidebars and tight headers. Ignores labels, block and presets. */
   compact?: boolean;
+  /** segmented: the System / Light / Dark radio group (default). pill: one cycling
+   *  button in a 44px pill with a line-strong border, to sit next to the hub pill in a
+   *  top bar (the React twin of .nish-theme-btn--pill). With labels, the pill also shows
+   *  the current choice as a word (.nish-theme-btn--labelled). Ignores block and presets. */
+  variant?: 'segmented' | 'pill';
   className?: string;
 }
 
 /** System / Light / Dark as a Segmented radio group, optionally with a preset picker,
  *  or one cycling icon button when compact. */
-export function ThemeToggle({ presets = false, labels = false, block = false, size = 'sm', compact = false, className }: ThemeToggleProps) {
+export function ThemeToggle({
+  presets = false,
+  labels = false,
+  block = false,
+  size = 'sm',
+  compact = false,
+  variant = 'segmented',
+  className,
+}: ThemeToggleProps) {
   const { choice, theme, scheme, setChoice } = useTheme();
   const extra = PRESETS.filter((p) => p.id !== 'dark' && p.id !== 'light');
   const isPreset = extra.some((p) => p.id === choice);
 
-  if (compact) {
+  if (compact || variant === 'pill') {
     const i = TOGGLE_ORDER.indexOf(choice);
     const next = TOGGLE_ORDER[(i + 1) % TOGGLE_ORDER.length];
     const mode = MODES.find((m) => m.id === choice);
     const Icon = mode ? mode.Icon : scheme === 'light' ? SunIcon : MoonIcon;
-    const text = `Theme: ${nameOf(mode ? choice : theme)}. Switch to ${nameOf(next)}`;
+    const elsewhere = mode ? '' : ' (set on another site)';
+    const text = `Theme: ${nameOf(mode ? choice : theme)}${elsewhere}. Switch to ${nameOf(next)}`;
+    if (variant === 'pill') {
+      return (
+        <button
+          type="button"
+          aria-label={text}
+          title={text}
+          data-choice={choice}
+          onClick={() => setChoice(next)}
+          className={cn(
+            'inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-th-line-strong transition-colors duration-150 hover:bg-th-elevated hover:text-th-hi',
+            labels ? 'gap-2 pl-3 pr-3.5 text-sm font-medium text-th-hi' : 'w-11 text-th-hi3',
+            className,
+          )}
+        >
+          <Icon size={16} />
+          {labels ? <span aria-hidden="true">{nameOf(mode ? choice : theme)}</span> : null}
+        </button>
+      );
+    }
     return (
       <IconButton label={text} size={size === 'md' ? 'md' : 'sm'} data-choice={choice} onClick={() => setChoice(next)} className={className}>
         <Icon size={size === 'md' ? 16 : 14} />
