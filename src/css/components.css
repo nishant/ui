@@ -1370,6 +1370,10 @@
   line-height: 1.375;
   overflow-wrap: anywhere;
 }
+/* A title-only question gets the body's bottom gap. */
+:where(.nish-dialog-title:has(+ .nish-dialog-actions)) {
+  padding-bottom: 20px;
+}
 :where(.nish-dialog-body) {
   margin: 0;
   padding: 0 20px 20px;
