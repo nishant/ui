@@ -10,7 +10,8 @@
 // {
 //   "name": "jobs",
 //   "pages": [{ "name": "home", "url": "http://localhost:5173/", "waitFor": "main", "setup": "js run after load" }],
-//   "viewports": ["desktop", "laptop", "phone", "phone-small"],   // optional, names from VIEWPORTS
+//   "viewports": ["desktop", "laptop", "phone", "phone-small", "fold"], // optional, names from VIEWPORTS;
+//                                                                  // default desktop, fold, phone-small
 //   "themes": ["dark", "light"],                                   // optional
 //   "setTheme": "localStorage.setItem('nish-theme','{theme}')",     // optional; runs before page scripts
 //   "fullPage": true,
@@ -33,7 +34,10 @@ export const VIEWPORTS = {
   desktop: { width: 1440, height: 900 },
   laptop: { width: 1280, height: 800 },
   phone: { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  // The Galaxy Z Fold 7 is the phone every app is reviewed on: its cover screen is
+  // the narrow case (phone-small), unfolded it is a near-square tablet width (fold).
   'phone-small': { width: 360, height: 740, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  fold: { width: 840, height: 760, isMobile: true, hasTouch: true, deviceScaleFactor: 2.5 },
   popout: { width: 420, height: 720 },
 };
 
@@ -54,7 +58,7 @@ const config = JSON.parse(readFileSync(configPath, 'utf8'));
 const outDir = resolve(flag('--out') ?? join('visual-out', config.name ?? 'site'));
 const only = flag('--only')?.split(',');
 const noFail = args.includes('--no-fail');
-const viewports = config.viewports ?? ['desktop', 'phone'];
+const viewports = config.viewports ?? ['desktop', 'fold', 'phone-small'];
 const themes = config.themes ?? ['dark', 'light'];
 const setTheme = config.setTheme ?? "try{localStorage.setItem('nish-theme','{theme}')}catch(e){}";
 const ignoreConsole = (config.ignoreConsole ?? []).map((r) => new RegExp(r));
