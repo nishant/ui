@@ -112,6 +112,8 @@ toast.success('Archived', { action: { label: 'Undo', onClick: () => restore(id) 
 // Lift the stack above a bottom tab bar on phones.
 <Toaster offset="calc(4.5rem + env(safe-area-inset-bottom))" />`,
   guidelines: [
+    'An app with a bottom tab bar passes offset (the bar height plus the safe area) and offsetUntil (where the bar hides: sm, md or lg), so a toast never covers the bar.',
+    'Static pages: showToast() from @nish/ui/theme (window.nishTheme.showToast) with nish-components.css gives the same toast policy.',
     'Toasts confirm what just happened. Anything people must act on belongs on the page or in a Modal.',
     'Errors stay until dismissed, because a failure you did not see is one you will assume succeeded.',
     'Keep the title to a few words; put detail in the body.',

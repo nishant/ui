@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card } from '../../src';
-import { Chip, ChipGroup } from '../../src';
+import { Chip, ChipGroup, chipClass } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 
@@ -44,6 +44,7 @@ export const chip: ComponentDoc = {
   id: 'chip',
   name: 'Chip',
   exports: ['Chip', 'ChipGroup'],
+  api: { functions: ['chipClass'], interfaces: [] },
   summary:
     'Small pills for multi-select filters (toggle, aria-pressed), quick suggestions (dashed, with a leading +) and removable tags. ChipGroup names and lays out a set of them.',
   importLine: "import { Chip, ChipGroup } from '@nish/ui';",
@@ -117,6 +118,21 @@ export const chip: ComponentDoc = {
           <p className="mb-3 text-sm font-semibold text-th-hi">Applications</p>
           <Filters size="sm" />
         </Card>
+      ),
+    },
+
+    {
+      id: 'links',
+      name: 'Links that look like chips (chipClass)',
+      note: 'Navigation, not toggles: the active link takes aria-current="page".',
+      render: () => (
+        <nav aria-label="Watchlist" className="flex flex-wrap gap-2">
+          {['AAPL', 'MSFT', 'NVDA'].map((t, i) => (
+            <a key={t} href="#/components/chip" className={chipClass({ pressed: i === 0, size: 'sm' })} aria-current={i === 0 ? 'page' : undefined}>
+              {t}
+            </a>
+          ))}
+        </nav>
       ),
     },
   ],

@@ -72,7 +72,7 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
    *  (Field does both for you). */
   invalid?: boolean;
   /** md: the standard field. sm: tighter padding and 12px text under a mouse, for dense
-   *  panels. Phones always get 16px text so iOS does not zoom. */
+   *  panels. Touch screens always get 16px text so iOS does not zoom. */
   size?: 'sm' | 'md';
   /** Grow with the content instead of scrolling (chat composers, notes). `true` grows
    *  without limit; `{ maxRows }` stops growing and scrolls past that many lines. `rows`
@@ -80,7 +80,7 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
   autoGrow?: boolean | { maxRows: number };
 }
 
-/** Multi-line text with the shared field look. 16px text on phones (no iOS zoom); the
+/** Multi-line text with the shared field look. 16px text on touch screens (no iOS zoom); the
  *  reader can resize it vertically, or it grows with its content when autoGrow is set. */
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
   { invalid, size = 'md', autoGrow = false, className, rows = 4, value, onInput, ...rest },
@@ -127,8 +127,9 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       }}
       className={cn(
         FIELD,
-        'block text-base leading-relaxed',
-        size === 'sm' ? 'px-2.5 py-1.5 sm:text-xs' : 'px-3 py-2 sm:text-sm',
+        'block leading-relaxed',
+        size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm',
+        'pointer-coarse:text-base',
         grow ? 'resize-none' : 'resize-y',
         className,
       )}
@@ -405,12 +406,60 @@ export function Field({ label, hint, error, optional = false, htmlFor, layout = 
   );
 }
 
+// --- FieldGroup -------------------------------------------------------------------
+
+export interface FieldGroupProps extends Omit<HTMLAttributes<HTMLFieldSetElement>, 'children'> {
+  /** The group's visible name, in sentence case ("Work mode"). Rendered as the
+   *  fieldset's <legend>, styled like Field's stack label. */
+  label: ReactNode;
+  /** Help text under the controls, tied to the fieldset by aria-describedby. Hidden
+   *  while an error shows. */
+  hint?: ReactNode;
+  /** Error message under the controls, announced (role="alert") and tied by
+   *  aria-describedby. */
+  error?: ReactNode;
+  /** Shows a quiet "Optional" tag after the label. */
+  optional?: boolean;
+  /** Several controls: a ChipGroup, a city and state pair, a column of Checkboxes. */
+  children: ReactNode;
+}
+
+/** Field for a group of controls: a <fieldset> whose <legend> looks like Field's label,
+ *  with the hint or error tied to the whole group. Use Field when there is exactly one
+ *  control to label. */
+export function FieldGroup({ label, hint, error, optional = false, className, children, ...rest }: FieldGroupProps) {
+  const auto = useId();
+  const hasError = error != null && error !== false && error !== '';
+  const hintId = `${auto}-hint`;
+  const errorId = `${auto}-error`;
+  const describedBy =
+    [rest['aria-describedby'], hasError ? errorId : hint != null ? hintId : undefined].filter(Boolean).join(' ') || undefined;
+  return (
+    <fieldset {...rest} aria-describedby={describedBy} className={cn('m-0 grid min-w-0 gap-1.5 border-0 p-0', className)}>
+      <legend className="mb-1.5 flex flex-wrap items-baseline gap-x-1.5 p-0 text-sm font-medium text-th-hi">
+        <span>{label}</span>
+        {optional ? <span className="text-xs font-normal text-th-hi3">Optional</span> : null}
+      </legend>
+      {children}
+      {hasError ? (
+        <p id={errorId} role="alert" className="text-xs text-th-loss">
+          {error}
+        </p>
+      ) : hint != null ? (
+        <p id={hintId} className="text-xs text-th-hi3">
+          {hint}
+        </p>
+      ) : null}
+    </fieldset>
+  );
+}
+
 // --- SearchInput ------------------------------------------------------------------
 
 const SEARCH_SIZE = {
-  xs: 'h-7 text-base sm:text-2xs',
-  sm: 'h-8 text-base sm:text-xs',
-  md: 'h-9 text-base sm:text-sm',
+  xs: 'h-7 text-2xs pointer-coarse:text-base',
+  sm: 'h-8 text-xs pointer-coarse:text-base',
+  md: 'h-9 text-sm pointer-coarse:text-base',
 } as const;
 
 export interface SearchInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'size' | 'type'> {
@@ -420,7 +469,7 @@ export interface SearchInputProps extends Omit<InputHTMLAttributes<HTMLInputElem
   onChange: (value: string, event?: ChangeEvent<HTMLInputElement>) => void;
   /** Also called after Clear or Escape empties the field (e.g. to reset results). */
   onClear?: () => void;
-  /** md: 36px, sm: 32px, xs: 28px (dense toolbars). All 44px on touch, 16px text on phones. */
+  /** md: 36px, sm: 32px, xs: 28px (dense toolbars). All 44px with 16px text on touch screens. */
   size?: 'xs' | 'sm' | 'md';
   /** field: the standard bordered field. bare: no border or fill, for a search bar
    *  inside a header that already draws the box. The focus ring stays. */
@@ -506,6 +555,38 @@ type ChipVariant = 'toggle' | 'suggestion' | 'tag';
 const CHIP_BASE = 'inline-flex shrink-0 select-none items-center gap-1.5 whitespace-nowrap rounded-full border font-medium transition-colors duration-150';
 const CHIP_SIZE = { sm: 'h-7 px-2.5 text-xs', md: 'h-8 px-3 text-sm' } as const;
 
+const CHIP_LOOK: Record<ChipVariant | 'pressed', string> = {
+  toggle: 'border-th-line-strong text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
+  pressed: 'border-th-accent/60 bg-th-accent-soft text-th-accent hover:bg-th-accent/20',
+  suggestion: 'border-dashed border-th-line-strong text-th-hi3 hover:border-th-hi3 hover:text-th-hi',
+  tag: 'border-th-line bg-th-elevated text-th-hi2',
+};
+
+export interface ChipClassOptions {
+  /** The pressed (on) look of a toggle chip: the accent tint. On a link, set
+   *  aria-current="page" for the active one (links take aria-current, not aria-pressed). */
+  pressed?: boolean;
+  /** Same variants as Chip. Default "toggle". */
+  variant?: ChipVariant;
+  /** md: 32px (default), sm: 28px. Both reach 44px on touch screens. */
+  size?: 'sm' | 'md';
+  /** Extra classes, merged last. */
+  className?: string;
+}
+
+/** The classes `<Chip>` renders, for router links and anchors that look like chips:
+ *  `<Link className={chipClass({ pressed: active })} aria-current={active ? 'page' : undefined}>`.
+ *  Mirrors .nish-chip in nish-components.css. */
+export function chipClass({ pressed = false, variant = 'toggle', size = 'md', className }: ChipClassOptions = {}): string {
+  return cn(
+    CHIP_BASE,
+    CHIP_SIZE[size],
+    variant !== 'tag' && 'pointer-coarse:min-h-11',
+    CHIP_LOOK[variant === 'toggle' && pressed ? 'pressed' : variant],
+    className,
+  );
+}
+
 export interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** toggle: an on/off filter (`aria-pressed`). suggestion: a dashed "+ add this" chip.
    *  tag: a static label (a <span>) with an optional remove button. */
@@ -534,15 +615,7 @@ export const Chip = forwardRef<HTMLButtonElement, ChipProps>(function Chip(
   if (variant === 'tag') {
     const name = removeLabel ?? (typeof children === 'string' ? `Remove ${children}` : 'Remove');
     return (
-      <span
-        className={cn(
-          CHIP_BASE,
-          CHIP_SIZE[size],
-          'border-th-line bg-th-elevated text-th-hi2',
-          onRemove && (size === 'sm' ? 'pr-0.5' : 'pr-1'),
-          className,
-        )}
-      >
+      <span className={chipClass({ variant: 'tag', size, className: cn(onRemove && (size === 'sm' ? 'pr-0.5' : 'pr-1'), className) })}>
         {icon}
         {children}
         {trailing}
@@ -560,17 +633,12 @@ export const Chip = forwardRef<HTMLButtonElement, ChipProps>(function Chip(
       ref={ref}
       type={type}
       aria-pressed={suggestion ? undefined : !!pressed}
-      className={cn(
-        CHIP_BASE,
-        CHIP_SIZE[size],
-        'pointer-coarse:min-h-11 disabled:pointer-events-none disabled:opacity-50',
-        suggestion
-          ? 'border-dashed border-th-line-strong text-th-hi3 hover:border-th-hi3 hover:text-th-hi'
-          : pressed
-            ? 'border-th-accent/60 bg-th-accent-soft text-th-accent hover:bg-th-accent/20'
-            : 'border-th-line-strong text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
-        className,
-      )}
+      className={chipClass({
+        variant: suggestion ? 'suggestion' : 'toggle',
+        pressed: !!pressed,
+        size,
+        className: cn('disabled:pointer-events-none disabled:opacity-50', className),
+      })}
       {...rest}
     >
       {icon ?? (suggestion ? <PlusIcon size={size === 'sm' ? 12 : 14} /> : null)}

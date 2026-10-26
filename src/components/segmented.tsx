@@ -1,13 +1,31 @@
-import { useRef, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { cn } from '../cn';
+import { FloatingTip } from './overlay';
+
+export type SegmentedTone = 'accent' | 'warn' | 'loss';
+
+// Full literal class names, so Tailwind's scanner finds every one.
+const SELECTED: Record<SegmentedTone, string> = {
+  accent: 'bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40',
+  warn: 'bg-th-warn-soft text-th-warn ring-1 ring-th-warn/40',
+  loss: 'bg-th-loss-soft text-th-loss ring-1 ring-th-loss/40',
+};
 
 export interface SegmentedOption<T extends string> {
   value: T;
   label: ReactNode;
   /** Screen-reader name when the label is only an icon. */
   ariaLabel?: string;
-  /** Hover tooltip (the native title), mainly for icon-only options. */
+  /** Hover tooltip (the native title) for a one-word hint on an icon-only option. Use
+   *  tip for anything longer. */
   title?: string;
+  /** A tooltip that explains the option. It opens on hover and on keyboard focus of the
+   *  radio itself (aria-describedby points at it while shown), so keyboard users get it
+   *  too. The radio stays the group's only Tab stop. Replaces title. */
+  tip?: ReactNode;
+  /** The selected look: accent (default), or warn / loss for a choice that must read as
+   *  a warning while it is on (a "bypass permissions" mode). */
+  tone?: SegmentedTone;
   /** Shown but not selectable; the arrow keys skip it. */
   disabled?: boolean;
 }
@@ -39,6 +57,15 @@ export interface SegmentedProps<T extends string> {
  *  like a native radio group. For multi-select toggles use ChipGroup and Chip. */
 export function Segmented<T extends string>({ label, options, value, onChange, size = 'sm', block = false, className }: SegmentedProps<T>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tipAnchor = useRef<HTMLButtonElement | null>(null);
+  const [tipAt, setTipAt] = useState<number | null>(null);
+  const tipId = useId();
+  const showTip = (i: number) => {
+    if (options[i]?.tip == null) return;
+    tipAnchor.current = refs.current[i];
+    setTipAt(i);
+  };
+  const hideTip = (i: number) => setTipAt((cur) => (cur === i ? null : cur));
   const enabled = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
   const selected = options.findIndex((o) => o.value === value);
 
@@ -66,6 +93,7 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
       onKeyDown={(e) => {
         const from = refs.current.findIndex((el) => el === document.activeElement);
         const at = from >= 0 ? from : selected;
+        if (e.key === 'Escape' && tipAt != null) { setTipAt(null); return; }
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); move(at, 1); }
         else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); move(at, -1); }
         else if (e.key === 'Home') { e.preventDefault(); if (enabled.length) pick(enabled[0]); }
@@ -74,6 +102,7 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
     >
       {options.map((o, i) => {
         const on = o.value === value;
+        const tipShown = tipAt === i && o.tip != null;
         return (
           <button
             key={o.value}
@@ -84,22 +113,28 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
             role="radio"
             aria-checked={on}
             aria-label={o.ariaLabel}
-            title={o.title}
+            aria-describedby={tipShown ? tipId : undefined}
+            title={o.tip != null ? undefined : o.title}
             disabled={o.disabled}
             tabIndex={i === tabStop ? 0 : -1}
             onClick={() => pick(i)}
+            onMouseEnter={o.tip != null ? () => showTip(i) : undefined}
+            onMouseLeave={o.tip != null ? () => hideTip(i) : undefined}
+            onFocus={o.tip != null ? () => showTip(i) : undefined}
+            onBlur={o.tip != null ? () => hideTip(i) : undefined}
             className={cn(
               'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium tabular-nums transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11',
               'disabled:cursor-not-allowed disabled:text-th-ghost',
               block && 'min-w-0 flex-1',
               SIZE[size],
-              on ? 'bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40' : 'text-th-hi2 hover:text-th-hi disabled:hover:text-th-ghost',
+              on ? SELECTED[o.tone ?? 'accent'] : 'text-th-hi2 hover:text-th-hi disabled:hover:text-th-ghost',
             )}
           >
             {o.label}
           </button>
         );
       })}
+      {tipAt != null && options[tipAt]?.tip != null ? <FloatingTip key={tipAt} anchor={tipAnchor} id={tipId} tip={options[tipAt].tip} /> : null}
     </div>
   );
 }

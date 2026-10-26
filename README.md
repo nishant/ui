@@ -205,50 +205,56 @@ Every value per theme, live, is on the [Color page](https://design.nish.software
 | Component | What it is | Docs |
 |---|---|---|
 | `Button`, `buttonClass()` | The standard action: primary, secondary, ghost, danger, soft, subtle and link; xs to lg; loading; `buttonClass()` for links | [Button](https://design.nish.software/#/components/button) |
-| `IconButton`, `iconButtonClass()` | Icon-only button, xs/sm/md, ghost/subtle/soft, danger tone; the required label is its accessible name and title | [IconButton](https://design.nish.software/#/components/icon-button) |
+| `IconButton`, `iconButtonClass()` | Icon-only button, 2xs/xs/sm/md, ghost/subtle/soft, danger tone; the required label is its accessible name and title | [IconButton](https://design.nish.software/#/components/icon-button) |
 | `Card`, `cardClass()` | Surface panel: padding none/sm/md/lg, `as`, inset variant, optional header via title/description/action | [Card](https://design.nish.software/#/components/card) |
 | `CardHeader` | Card header row: title, description, icon, action slot, divided | [CardHeader](https://design.nish.software/#/components/card-header) |
-| `Badge`, `badgeClass()` | Status pill: 6 tones, 8 hues, xs/sm, pill or tag, optional dot | [Badge](https://design.nish.software/#/components/badge) |
-| `Input`, `fieldClass()` | Text field: xs/sm/md, leading/trailing slots, invalid; 16px on phones, 44px on touch | [Input](https://design.nish.software/#/components/input) |
+| `Badge`, `badgeClass()` | Status pill: 6 tones plus on-accent, 8 hues, xs/sm, pill or tag, optional dot | [Badge](https://design.nish.software/#/components/badge) |
+| `Input`, `fieldClass()` | Text field: xs/sm/md, leading/trailing slots, invalid; 16px text and 44px on touch | [Input](https://design.nish.software/#/components/input) |
 | `Textarea` | Multi-line text with the field look; sm/md, `autoGrow` | [Textarea](https://design.nish.software/#/components/textarea) |
 | `Checkbox` | A checkbox with its label and hint, indeterminate, trailing slot; the whole row is the tap target | [Checkbox](https://design.nish.software/#/components/checkbox) |
 | `Field` | Label, one control and its hint or error, wired for screen readers | [Field](https://design.nish.software/#/components/field) |
+| `FieldGroup` | Field for a group of controls: a fieldset and legend, hint and error tied to the group | [FieldGroup](https://design.nish.software/#/components/field-group) |
 | `Switch` | On/off setting that applies at once (`role="switch"`), with label and description | [Switch](https://design.nish.software/#/components/switch) |
 | `SearchInput` | Search field with icon, Clear button and Escape to clear | [SearchInput](https://design.nish.software/#/components/search-input) |
 | `Select` | Native select with the field look, xs/sm/md; keeps the platform picker on phones | [Select](https://design.nish.software/#/components/select) |
 | `Label` | Small uppercase label for fields and card sections | [Label](https://design.nish.software/#/components/label) |
 | `Skeleton`, `SkeletonLines` | Shimmer placeholders: one sized block, or a ready-made card body | [Skeleton](https://design.nish.software/#/components/skeleton) |
+| `SkeletonRows` | A loading column of full-width rounded rows for lists and card pages | [SkeletonRows](https://design.nish.software/#/components/skeleton-rows) |
 | `Spinner` | Loader in the current text color; with a label it is `role="status"` | [Spinner](https://design.nish.software/#/components/spinner) |
 | `EmptyState` | What an empty list or widget shows: title, one line of why, an action | [EmptyState](https://design.nish.software/#/components/empty-state) |
 | `ErrorState` | A failed load, announced to screen readers, with an optional Retry | [ErrorState](https://design.nish.software/#/components/error-state) |
-| `Toaster`, `toast()` | Toast stack; `toast.success/error/warn/info` from anywhere, with body, action, duration and slot id | [Toast](https://design.nish.software/#/components/toast) |
+| `Toaster`, `toast()` | Toast stack; `toast.success/error/warn/info` from anywhere, with body, action, duration and slot id; `offset` and `offsetUntil` clear a bottom tab bar | [Toast](https://design.nish.software/#/components/toast) |
 | `Callout` | Inline tinted notice: tone, icon, title, action, dismiss, box or bar | [Callout](https://design.nish.software/#/components/callout) |
 | `StatusDot` | Round status mark on the `-fill` roles, optional pulse and halo | [StatusDot](https://design.nish.software/#/components/status-dot) |
 | `Stat`, `StatGrid`, `signTone()` | Labelled numbers in a `<dl>` grid; tone from a signed number | [Stat](https://design.nish.software/#/components/stat) |
-| `Meter`, `toneFor()` | Thin meter or progress bar with threshold tones | [Meter](https://design.nish.software/#/components/meter) |
+| `Meter`, `toneFor()` | Thin meter or progress bar with threshold tones, or a neutral fill | [Meter](https://design.nish.software/#/components/meter) |
 | `Sparkline` | Dependency-free SVG trend line | [Sparkline](https://design.nish.software/#/components/sparkline) |
 | `Disclosure` | `<details>` show-more, plain or card | [Disclosure](https://design.nish.software/#/components/disclosure) |
 | `Kbd` | Keyboard key | [Kbd](https://design.nish.software/#/components/kbd) |
 | `CopyButton`, `copyText()` | Copy to clipboard with a "Copied" state and a live announcement | [CopyButton](https://design.nish.software/#/components/copy-button) |
 | `PageHeader` | Page title block with back link, eyebrow, description and actions | [PageHeader](https://design.nish.software/#/components/page-header) |
-| `AppHeader` | Shared app header: hub pill, wordmark, actions, theme toggle, nav row | [AppHeader](https://design.nish.software/#/components/app-header) |
+| `AppHeader` | Shared app header: hub pill, wordmark (optionally a home link, icon only on phones), actions, theme toggle, named nav row | [AppHeader](https://design.nish.software/#/components/app-header) |
+| `SectionHeader` | A section's heading row inside a page, with meta and an action | [SectionHeader](https://design.nish.software/#/components/section-header) |
+| `KeyValueList` | Label and value rows with dividers, as a list or a `<dl>` | [KeyValueList](https://design.nish.software/#/components/key-value-list) |
+| `ChartLegend` | The key for multi-series charts: a color mark and a name per series | [ChartLegend](https://design.nish.software/#/components/chart-legend) |
 | `TableWrap`, `Table`, `Th`, `Td`, `Tr`, `tableClass` | Table primitives (sticky header, sort, tone edge) and class recipes for TanStack | [Table](https://design.nish.software/#/components/table) |
 | `Modal` | Dialog; bottom sheet under 640px; sizes md to full, top placement, custom header; Escape, focus trap, focus return, html and body scroll lock | [Modal](https://design.nish.software/#/components/modal) |
 | `Drawer` | Side or bottom panel with the Modal's focus trap, Escape and scroll lock | [Drawer](https://design.nish.software/#/components/drawer) |
 | `ConfirmDialog` | Yes-or-no question before an action, in place of `window.confirm` | [ConfirmDialog](https://design.nish.software/#/components/confirm-dialog) |
 | `Tooltip` | Hover and focus hint in a portal on any side, flipped and clamped to the screen; `hint` variant | [Tooltip](https://design.nish.software/#/components/tooltip) |
-| `Popover` | Non-modal panel anchored to an element; Escape and outside press close it | [Popover](https://design.nish.software/#/components/popover) |
+| `Popover`, `menuItemClass()` | Non-modal panel anchored to an element; Escape and outside press close it (with the reason; `dismissOnOutside`); `menuItemClass()` for menu-looking rows inside it | [Popover](https://design.nish.software/#/components/popover) |
 | `DropdownMenu` | Menu of actions behind a button, with `MenuItem`, `MenuLabel`, `MenuSeparator`, `MenuSubHeader` | [DropdownMenu](https://design.nish.software/#/components/dropdown-menu) |
-| `Segmented` | Two to five mutually exclusive choices side by side (xs to md, block, disabled options) | [Segmented](https://design.nish.software/#/components/segmented) |
-| `Chip`, `ChipGroup` | Multi-select filter chips, suggestions and removable tags | [Chip](https://design.nish.software/#/components/chip) |
-| `Tabs`, `TabPanel`, `tabClass()` | ARIA tabs (underline or pill); `tabClass()` for router links | [Tabs](https://design.nish.software/#/components/tabs) |
-| `ThemeToggle`, `useTheme()` | System / Light / Dark control with labels, compact mode and an optional preset picker | [ThemeToggle](https://design.nish.software/#/components/theme-toggle) |
-| `mountThemeToggle()` | `@nish/ui/theme` and `window.nishTheme`: the one-button theme toggle for static pages | [mountThemeToggle](https://design.nish.software/#/components/mount-theme-toggle) |
+| `Segmented` | Two to five mutually exclusive choices side by side (xs to md, block, disabled options, per-option tip and tone) | [Segmented](https://design.nish.software/#/components/segmented) |
+| `Chip`, `ChipGroup`, `chipClass()` | Multi-select filter chips, suggestions and removable tags; `chipClass()` for links | [Chip](https://design.nish.software/#/components/chip) |
+| `Tabs`, `TabPanel`, `tabClass()` | ARIA tabs (underline or pill, xs to md, block, responsive panes); `tabClass()` for router links | [Tabs](https://design.nish.software/#/components/tabs) |
+| `ThemeToggle`, `useTheme()` | System / Light / Dark control with labels, compact mode, a pill variant and an optional preset picker | [ThemeToggle](https://design.nish.software/#/components/theme-toggle) |
+| `mountThemeToggle()` | `@nish/ui/theme` and `window.nishTheme`: the one-button theme toggle for static pages, optionally with the word | [mountThemeToggle](https://design.nish.software/#/components/mount-theme-toggle) |
+| `showToast()` | `@nish/ui/theme` and `window.nishTheme`: one toast for static pages, with the React toast's timer policy | [showToast](https://design.nish.software/#/components/show-toast) |
 | `@nish/ui/chart` | `seriesColor`, `CHART`, `tooltipStyle`, `chartTheme`, `useChartTheme` for any chart library | [Chart colors](https://design.nish.software/#/components/chart) |
 | `@nish/ui/tokens` | Token data for Node scripts, with no React import | [Color](https://design.nish.software/#/color) |
 | `.nish-prose` | Markdown and rich text styles (nish.css, tailwind.css) | [Prose](https://design.nish.software/#/components/prose) |
 | `.nish-skip-link`, `kbd`, `.scrollbar-none` | Base helpers (nish.css, tailwind.css) | [Base utilities](https://design.nish.software/#/components/base-utilities) |
-| `nish-components.css` | Static component classes for pages without React: `.nish-btn`, `.nish-card`, `.nish-badge`, fields, `.nish-seg`, `.nish-chip`, `.nish-callout`, `.nish-stats`, `.nish-table-wrap`, `.nish-meter`, `.nish-disclosure`, `.nish-dot`, `.nish-search`, `.nish-theme-btn`, empty and error states. Link it after `nish.css`. | [Static sites](https://design.nish.software/#/static-sites) |
+| `nish-components.css` | Static component classes for pages without React: `.nish-btn`, `.nish-card`, `.nish-badge`, fields, `.nish-seg`, `.nish-chip`, `.nish-callout`, `.nish-stats`, `.nish-table-wrap`, `.nish-meter`, `.nish-disclosure`, `.nish-dot`, `.nish-search`, `.nish-theme-btn` (and `--pill`, `--labelled`), `.nish-toast`, `.nish-glass`, empty and error states. Link it after `nish.css`. | [Static sites](https://design.nish.software/#/static-sites) |
 
 Also exported: `cn()` (clsx plus a tailwind-merge that knows the `th-*` colors), the theme
 functions, and `THEMES`, `SCALE`, `COLOR_ROLES`, `SOFT_ROLES`, `HUE_ROLES`, `SHADOWS`, `PRESETS`.

@@ -95,6 +95,7 @@ export const field: ComponentDoc = {
   <Input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
 </Field>`,
   guidelines: [
+    'For a group of controls (chips, a city and state pair, radio rows), use FieldGroup: a fieldset with a legend.',
     'One control per Field. For a group of checkboxes or radios, use a fieldset with a legend.',
     'Labels are sentence case. The uppercase Label component is for section and card labels, not form fields.',
     'Write errors as the fix ("Enter a number above 0"), not the fault ("Invalid").',

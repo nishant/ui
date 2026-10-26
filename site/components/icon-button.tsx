@@ -232,6 +232,28 @@ export const iconButton: ComponentDoc = {
         </div>
       ),
     },
+
+    {
+      id: '2xs',
+      name: 'Size 2xs (20px)',
+      note: 'Row-level reveal actions and 22px title bars. 44px on touch, like every size.',
+      render: () => (
+        <div className="flex w-full max-w-xs items-center justify-between rounded-lg border border-th-line px-2 py-1 text-xs text-th-hi2">
+          <span>Weather</span>
+          <span className="flex gap-0.5">
+            <IconButton size="2xs" label="Refresh">
+              <RefreshIcon size={12} />
+            </IconButton>
+            <IconButton size="2xs" label="Settings">
+              <SettingsIcon size={12} />
+            </IconButton>
+            <IconButton size="2xs" label="Remove" tone="danger">
+              <TrashIcon size={12} />
+            </IconButton>
+          </span>
+        </div>
+      ),
+    },
   ],
   api: { functions: ['iconButtonClass'], interfaces: [] },
   usage: `import { IconButton, iconButtonClass } from '@nish/ui';

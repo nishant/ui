@@ -84,6 +84,7 @@ export const skeleton: ComponentDoc = {
   {isLoading ? <SkeletonLines lines={4} /> : <JobList jobs={data} />}
 </Card>`,
   guidelines: [
+    'For a list or a page of cards, SkeletonRows draws full-width rounded rows and announces itself once.',
     'Match the shape of what is coming, so the page does not jump when it arrives.',
     'The shimmer stops under prefers-reduced-motion; the blocks stay.',
     'SkeletonLines sets aria-busy and an aria-label of "Loading"; a bare Skeleton is hidden from screen readers.',

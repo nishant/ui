@@ -131,12 +131,13 @@ export const STATIC_STORIES: StaticStory[] = [
     cls: '.nish-icon-btn',
     mirrors: 'IconButton',
     name: 'Icon buttons',
-    note: 'Always give it aria-label (and title). --sm 28px, --xs 24px, --round for circles.',
+    note: 'Always give it aria-label (and title). --sm 28px, --xs 24px, --2xs 20px, --round for circles.',
     html: `<div ${ROW}>
   <button type="button" class="nish-icon-btn" aria-label="Refresh" title="Refresh">${svg(REFRESH)}</button>
   <button type="button" class="nish-icon-btn" aria-label="Settings" title="Settings" aria-pressed="true">${svg(GEAR)}</button>
   <button type="button" class="nish-icon-btn nish-icon-btn--sm" aria-label="Delete" title="Delete">${svg(TRASH, 14)}</button>
   <button type="button" class="nish-icon-btn nish-icon-btn--xs" aria-label="Delete" title="Delete">${svg(TRASH, 12)}</button>
+  <button type="button" class="nish-icon-btn nish-icon-btn--2xs" aria-label="Delete" title="Delete">${svg(TRASH, 12)}</button>
   <button type="button" class="nish-icon-btn nish-icon-btn--round" aria-label="Refresh" title="Refresh">${svg(REFRESH)}</button>
 </div>`,
     react: () => (
@@ -528,6 +529,87 @@ export const STATIC_STORIES: StaticStory[] = [
         <ErrorState message="Failed to load the realm status." onRetry={() => {}} />
       </div>
     ),
+  },
+  {
+    id: 'theme-btn-pill',
+    cls: '.nish-theme-btn--pill / --labelled',
+    mirrors: 'ThemeToggle variant="pill"',
+    name: 'Theme button as a pill',
+    note: 'Next to .nish-pill-link in a top bar: 44px on every pointer, the same pill border. --labelled shows the word mountThemeToggle(button, { showLabel: true }) adds.',
+    html: `<div ${ROW}>
+  <a class="nish-pill-link" href="#/static-sites" title="Back to nish.software">&larr; nish.software</a>
+  <button type="button" class="nish-theme-btn nish-theme-btn--pill" data-choice="dark" aria-label="Theme: Dark. Switch to System" title="Theme: Dark. Switch to System">${THEME_ICONS}</button>
+  <button type="button" class="nish-theme-btn nish-theme-btn--labelled" data-choice="light" aria-label="Theme: Light. Switch to Dark" title="Theme: Light. Switch to Dark">${THEME_ICONS}<span data-theme-word aria-hidden="true">Light</span></button>
+</div>`,
+    react: () => (
+      <Row>
+        <ThemeToggle variant="pill" />
+        <ThemeToggle variant="pill" labels />
+      </Row>
+    ),
+  },
+  {
+    id: 'pill-link-compact',
+    cls: '.nish-pill-link--compact',
+    mirrors: 'AppHeader compactPill',
+    name: 'Compact hub pill',
+    note: 'Under 480px only the arrow shows, in a 44px circle; the words stay for screen readers. data-compact="always" (second pill) keeps it compact at every width.',
+    html: `<div ${ROW}>
+  <a class="nish-pill-link nish-pill-link--compact" href="#/static-sites" title="Back to nish.software">&larr; <span class="nish-pill-link-label">nish.software</span></a>
+  <a class="nish-pill-link nish-pill-link--compact" data-compact="always" href="#/static-sites" title="Back to nish.software">&larr; <span class="nish-pill-link-label">nish.software</span></a>
+  <span style="font-family:Georgia,serif">Serif page text</span>
+</div>`,
+  },
+  {
+    id: 'badge-on-accent',
+    cls: '.nish-badge--on-accent',
+    mirrors: 'Badge tone="on-accent"',
+    name: 'Badge on a solid accent fill',
+    html: `<div ${ROW}>
+  <a class="nish-btn nish-btn--primary" href="#/static-sites">Apply <span class="nish-badge nish-badge--on-accent nish-badge--tag nish-badge--xs">Direct</span></a>
+</div>`,
+    react: () => (
+      <Button variant="primary">
+        Apply
+        <Badge tone="on-accent" size="xs" variant="tag">
+          Direct
+        </Badge>
+      </Button>
+    ),
+  },
+  {
+    id: 'meter-neutral',
+    cls: '.nish-meter--neutral',
+    mirrors: 'Meter tone="neutral"',
+    name: 'Neutral meter',
+    html: `<div ${STACK}>
+  <div class="nish-meter nish-meter--neutral" role="meter" aria-label="Swap used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="39"><i style="width:39%"></i></div>
+</div>`,
+    react: () => <Meter value={39} label="Swap used" tone="neutral" />,
+  },
+  {
+    id: 'toast',
+    cls: '.nish-toast',
+    mirrors: 'Toaster',
+    name: 'Toast',
+    note: 'What showToast() renders (fixed at the bottom center; shown in place here). Tone modifiers tint the border: --ok, --warn, --loss, --info.',
+    html: `<div ${STACK}>
+  <div class="nish-toast nish-toast--warn" style="position:static;width:100%;animation:none"><p class="nish-toast-body"><strong>mc.nish.software</strong> is not reachable from here. You can still <a href="#/static-sites">open it anyway</a>.</p><button type="button" class="nish-toast-close" aria-label="Dismiss">${svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)}</button></div>
+  <div class="nish-toast nish-toast--ok" style="position:static;width:100%;animation:none"><p class="nish-toast-body">Tile hidden.</p><button type="button" class="nish-toast-action">Undo</button><button type="button" class="nish-toast-close" aria-label="Dismiss">${svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)}</button></div>
+</div>`,
+  },
+  {
+    id: 'glass',
+    cls: '.nish-glass',
+    mirrors: 'bg-th-bg/60 backdrop-blur-sm',
+    name: 'Glass over imagery',
+    note: 'Controls scoped dark (data-theme="dark" data-scheme="dark") over a hero: .nish-glass lets the gradient show through.',
+    html: `<div style="width:100%;padding:16px;border-radius:12px;background:linear-gradient(135deg,var(--nish-indigo),var(--nish-teal))">
+  <div data-theme="dark" data-scheme="dark" ${ROW}>
+    <a class="nish-pill-link nish-glass" href="#/static-sites" title="Back to nish.software">&larr; nish.software</a>
+    <button type="button" class="nish-theme-btn nish-theme-btn--pill nish-glass" data-choice="dark" aria-label="Theme: Dark. Switch to System" title="Theme: Dark. Switch to System">${THEME_ICONS}</button>
+  </div>
+</div>`,
   },
   {
     id: 'in-a-card',

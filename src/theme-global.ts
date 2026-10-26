@@ -10,4 +10,5 @@ export {
   registerThemes,
   getThemeChoice,
   mountThemeToggle,
+  showToast,
 } from './theme';

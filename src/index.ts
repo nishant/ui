@@ -20,20 +20,54 @@ export type {
   CardElement,
   CardClassOptions,
   BadgeHue,
+  BadgeTone,
   BadgeClassOptions,
   FieldSize,
   FieldClassOptions,
 } from './components/primitives';
-export { Textarea, Checkbox, Switch, Field, SearchInput, Chip, ChipGroup } from './components/forms';
-export type { TextareaProps, CheckboxProps, SwitchProps, FieldProps, SearchInputProps, ChipProps, ChipGroupProps } from './components/forms';
+export { Textarea, Checkbox, Switch, Field, FieldGroup, SearchInput, Chip, ChipGroup, chipClass } from './components/forms';
+export type {
+  TextareaProps,
+  CheckboxProps,
+  SwitchProps,
+  FieldProps,
+  FieldGroupProps,
+  SearchInputProps,
+  ChipProps,
+  ChipGroupProps,
+  ChipClassOptions,
+} from './components/forms';
 export { Tabs, TabPanel, tabClass } from './components/tabs';
-export type { TabsProps, TabPanelProps, TabItem } from './components/tabs';
-export { Skeleton, SkeletonLines, EmptyState, ErrorState, Spinner } from './components/feedback';
-export type { EmptyStateProps, ErrorStateProps, SpinnerProps } from './components/feedback';
+export type { TabsProps, TabPanelProps, TabItem, TabsSize, TabsBreakpoint } from './components/tabs';
+export { Skeleton, SkeletonLines, SkeletonRows, EmptyState, ErrorState, Spinner } from './components/feedback';
+export type { EmptyStateProps, ErrorStateProps, SpinnerProps, SkeletonRowsProps } from './components/feedback';
 export { Toaster, toast, useToast, dismissToast } from './components/toast';
 export type { ToastTone, ToastItem, ToastOptions, ToastAction, ToasterProps } from './components/toast';
-export { Modal, Tooltip, Drawer, ConfirmDialog, Popover, DropdownMenu, MenuItem, MenuLabel, MenuSeparator, MenuSubHeader } from './components/overlay';
-export type { ModalProps, TooltipProps, DrawerProps, ConfirmDialogProps, PopoverProps, DropdownMenuProps, MenuItemProps, MenuSubHeaderProps } from './components/overlay';
+export {
+  Modal,
+  Tooltip,
+  Drawer,
+  ConfirmDialog,
+  Popover,
+  DropdownMenu,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  MenuSubHeader,
+  menuItemClass,
+} from './components/overlay';
+export type {
+  ModalProps,
+  TooltipProps,
+  DrawerProps,
+  ConfirmDialogProps,
+  PopoverProps,
+  PopoverCloseReason,
+  DropdownMenuProps,
+  MenuItemProps,
+  MenuItemClassOptions,
+  MenuSubHeaderProps,
+} from './components/overlay';
 export {
   Callout,
   StatusDot,
@@ -49,6 +83,9 @@ export {
   copyText,
   PageHeader,
   AppHeader,
+  SectionHeader,
+  KeyValueList,
+  ChartLegend,
 } from './components/display';
 export type {
   CalloutProps,
@@ -65,10 +102,16 @@ export type {
   CopyButtonProps,
   PageHeaderProps,
   AppHeaderProps,
+  SectionHeaderProps,
+  KeyValueListProps,
+  KeyValueItem,
+  ChartLegendProps,
+  ChartLegendItem,
+  ChartLegendTone,
 } from './components/display';
 export { TableWrap, Table, Th, Td, Tr, tableClass } from './components/table';
 export type { TableWrapProps, TableProps, ThProps, TdProps, TrProps } from './components/table';
 export { ThemeToggle, useTheme } from './components/theme-toggle';
 export { Segmented } from './components/segmented';
-export type { SegmentedProps, SegmentedOption } from './components/segmented';
+export type { SegmentedProps, SegmentedOption, SegmentedTone } from './components/segmented';
 export type { ThemeState, ThemeToggleProps } from './components/theme-toggle';

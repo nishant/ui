@@ -1,6 +1,6 @@
 # @nish/ui: components to add and extend (adoption round 1)
 
-Status: **spec, not yet built.** Written 2026-10-25 from an audit of every app and site that uses
+Status: **Tier 1 and Tier 2 shipped in v0.3.0; gap round 1 shipped in v0.4.0** (see "Gap round 1" below). Written 2026-10-25 from an audit of every app and site that uses
 @nish/ui v0.2.1: jobs, trading, Nishboard, the hub, status, trackers, mc, trips and the trip-plan
 skill. v0.2.2 through v0.2.6 shipped the same day (see below). Refreshed 2026-10-25 15:55 CDT. Each app had hand-rolled the same pieces. This file is the source of truth for the **APIs and
 looks** of what @nish/ui adds next, so the apps can delete their local copies.
@@ -354,6 +354,40 @@ IconButton that cycles system, light, dark, shows the current icon and is labell
 | **CopyButton** and **copyText** | `copyText(text): Promise<boolean>` (Clipboard API with a textarea fallback); `CopyButton({ text, label?: 'Copy', copiedLabel?: 'Copied', iconOnly?, size?, variant? })`: shows the copied state for 1.5s and announces it through a polite live region. | mc 13 (static), Nishboard 2, jobs 1, trading 1 |
 | **Kbd** | `Kbd({ children })`: `rounded border border-th-line-strong bg-th-elevated px-1.5 font-mono text-2xs text-th-hi2`. | Nishboard palette, jobs legend, mc |
 | **`.nish-prose`** | Markdown and rich text styles in base.css (headings, lists, code, tables, task lists, links) on roles and radius tokens. | Nishboard `.md-render`, jobs `.jd`, trading chat markdown |
+
+## Gap round 1 (v0.4.0): built
+
+After the apps adopted v0.3.0, their agents reported the pieces they still covered with local wrappers. Every one shipped
+in v0.4.0, so each app swaps its wrapper for the shared piece. Two reports (status `SkeletonStack`, trackers `SkeletonRows`)
+were the same component and shipped once as `SkeletonRows`.
+
+| Item | API | Replaces (app wrapper) |
+|---|---|---|
+| Badge `tone="on-accent"` | `Badge({ tone: 'on-accent', size: 'xs', variant: 'tag' })`, `badgeClass({ tone: 'on-accent' })`, `.nish-badge--on-accent`: `bg-th-on-accent/20 text-th-on-accent`, no border, no hover. Pair a short label with sr-only text. | jobs `DirectTag` |
+| Toaster `offsetUntil` | `Toaster({ offset, offsetUntil?: 'sm' \| 'md' \| 'lg' })`: offset applies below that breakpoint (default sm); from sm the stack sits bottom right, keeping the offset until the breakpoint. | jobs `AppToaster` |
+| Responsive tabs | `Tabs({ hideFrom?: 'md' \| 'lg' })` and `TabPanel({ showFrom?, keepMounted? })`: below the breakpoint, ARIA tabs; from it, no tab list and every panel a plain region (matchMedia, not CSS on `[hidden]`). | jobs `ResponsiveTabPanel`, `useMediaQuery` |
+| `FieldGroup` | `FieldGroup({ label, hint?, error?, optional?, className, children })`: `<fieldset>` + `<legend>` in Field's stack-label look; hint and error by `aria-describedby`, error `role="alert"`. Static: `fieldset.nish-field` + `legend.nish-field-label`. | jobs `FieldGroup` |
+| `chipClass()` | `chipClass({ pressed?, variant?, size?, className? })`: exactly what Chip renders (Chip calls it). Links take `aria-current`. | trading `ChipLink` |
+| Segmented option `tip` | `SegmentedOption.tip?: ReactNode`: a Tooltip on hover and on keyboard focus of the radio, `aria-describedby` while shown; roving tabindex unchanged; replaces `title`. | trading inline Tooltips (Lookback, Chain window) |
+| Field text on touch | Input, Select, SearchInput, Textarea, `fieldClass`: `text-{size} pointer-coarse:text-base` instead of `text-base sm:text-{size}`; static fields `@media (pointer: coarse)`. | Nishboard `nishGaps` Input/Select/SearchInput |
+| Meter `tone="neutral"` | `bg-th-hi3` fill; `.nish-meter--neutral`. | Nishboard `METER_NEUTRAL` |
+| Segmented option `tone` | `SegmentedOption.tone?: 'accent' \| 'warn' \| 'loss'`: selected `bg-th-{tone}-soft text-th-{tone} ring-1 ring-th-{tone}/40`. | Nishboard ModeSwitch override |
+| Tabs `size="xs"` | pill `h-6 px-2 text-2xs`, underline `h-7 text-2xs`, 44px on touch; `tabClass({ size: 'xs' })`. | Nishboard Timer, Embed search |
+| IconButton `size="2xs"` | `size-5 rounded` (20px), 44px on touch; `iconButtonClass`, `.nish-icon-btn--2xs`. | Nishboard `HeaderAction`, `size-5` overrides |
+| `menuItemClass()` | `menuItemClass({ active?, danger?, disabled?, className? })`: MenuItem's row (MenuItem calls it), for tabbable rows in a Popover. | Nishboard `menuRowClass` |
+| Popover close reason | `onOpenChange(open, reason: 'escape' \| 'outside' \| 'tab')` (DropdownMenu too) and `Popover({ dismissOnOutside?: boolean })`. | Nishboard LayoutsMenu escape listeners |
+| `mountThemeToggle` `showLabel` | `mountThemeToggle(button, { labels?, showLabel? })` adds `<span data-theme-word aria-hidden="true">` kept in sync; `.nish-theme-btn--labelled`. | hub `setupTheme` word span |
+| `showToast` and `.nish-toast` | `showToast(content: string \| Node, { tone?, duration?, action?, dismissLabel? }): () => void` in `@nish/ui/theme` and `window.nishTheme`; one polite region; pauses on hover and focus. `.nish-toast` + `--ok/--warn/--loss/--info`. | hub `showToast` + `.toast` |
+| `.nish-theme-btn--pill` | 44px pill on every pointer, line-strong border; React `ThemeToggle variant="pill"` (with `labels`, the word). | trip gate and trips index theme-button rules |
+| `.nish-glass` | `color-mix(bg 60%)` + `backdrop-filter: blur(4px)` for controls scoped dark over imagery. React: `bg-th-bg/60 backdrop-blur-sm`. | trip-plan `encrypt-trip.mjs` TOP rule |
+| `.nish-pill-link--compact` | `.nish-pill-link-label` visually hidden under 480px (or always with `data-compact="always"`), the pill a 44px circle. AppHeader `compactPill`. | mc `site.css` 480px block, `.pill-text` |
+| `.nish-pill-link` font | `font-family: var(--nish-font-sans)` in base.css. | trips index `.topbar` font |
+| AppHeader `homeHref`, `hideNameBelow`, `navLabel` | `homeHref`: the icon and name are one 44px link; `hideNameBelow="sm"`: icon only on phones, the name stays for screen readers; `navLabel`: `aria-label` on the nav row. | status `Header`; trackers' unnamed nav |
+| `SectionHeader` | `SectionHeader({ id?, title, as?: 'h1' \| 'h2' \| 'h3', meta?, action?, className })`. | status `SectionHeader` |
+| `SkeletonRows` | `SkeletonRows({ rows = 5, height = 56, gap = 'md', label = 'Loading', className, rowClassName })`: `role="status"` column of rounded-xl rows. | status `SkeletonStack`, trackers `SkeletonRows` |
+| `KeyValueList` | `KeyValueList({ items: { key, label, value }[], dense?, as?: 'ul' \| 'dl' })`: 44px rows (32px dense) with dividers. | status `KeyValueList` |
+| `ChartLegend` | `ChartLegend({ items: { label, tone }[], marker?: 'line' \| 'dot', label?, className })`: `ul` named "Legend", chart and status tones. | status `ChartLegend` |
+| Tabs `block` | `Tabs({ block })`: full-width list, equal `flex-1` tabs; `tabClass({ block })`. | trackers TripPage (accepted left-packed) |
 
 ## Tier 3 (stay local; listed to avoid duplicates)
 

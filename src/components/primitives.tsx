@@ -118,10 +118,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
 // --- IconButton ---------------------------------------------------------------------
 
-export type IconButtonSize = 'xs' | 'sm' | 'md';
+export type IconButtonSize = '2xs' | 'xs' | 'sm' | 'md';
 export type IconButtonVariant = 'ghost' | 'subtle' | 'soft';
 
 const ICON_SIZE: Record<IconButtonSize, string> = {
+  '2xs': 'size-5 rounded',
   xs: 'size-6 rounded-md',
   sm: 'size-7 rounded-lg',
   md: 'size-9 rounded-lg',
@@ -174,7 +175,8 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   /** Required: an icon-only button needs a name for screen readers and tooltips. It is
    *  also the title, so tests that query by title keep working. */
   label: string;
-  /** xs: 24px (dense headers), sm: 28px, md: 36px. All grow to 44px on touch screens. */
+  /** 2xs: 20px (row-level reveal actions, 22px widget title bars), xs: 24px (dense
+   *  headers), sm: 28px, md: 36px. All grow to 44px on touch screens. */
   size?: IconButtonSize;
   /** Pressed state for toggles (sets aria-pressed). */
   active?: boolean;
@@ -363,7 +365,8 @@ export const Card = forwardRef<HTMLElement, CardProps>(function Card(
 
 // --- Badge --------------------------------------------------------------------------
 
-type Tone = 'neutral' | 'accent' | 'ok' | 'loss' | 'warn' | 'info';
+export type BadgeTone = 'neutral' | 'accent' | 'ok' | 'loss' | 'warn' | 'info' | 'on-accent';
+type Tone = BadgeTone;
 export type BadgeHue = 'emerald' | 'indigo' | 'amber' | 'lime' | 'rose' | 'sky' | 'violet' | 'teal';
 
 const BADGE_TONE: Record<Tone, string> = {
@@ -373,6 +376,8 @@ const BADGE_TONE: Record<Tone, string> = {
   loss: 'border-th-loss/30 bg-th-loss-soft text-th-loss',
   warn: 'border-th-warn/30 bg-th-warn-soft text-th-warn',
   info: 'border-th-info/30 bg-th-info-soft text-th-info',
+  // A label on a solid accent fill (inside a primary Button or an accent link).
+  'on-accent': 'border-transparent bg-th-on-accent/20 text-th-on-accent',
 };
 
 // Full literal class names, so Tailwind's scanner finds every one.
@@ -395,6 +400,7 @@ const DOT_TONE: Record<Tone, string> = {
   loss: 'bg-th-loss-fill',
   warn: 'bg-th-warn-fill',
   info: 'bg-th-info-fill',
+  'on-accent': 'bg-th-on-accent',
 };
 
 const DOT_HUE: Record<BadgeHue, string> = {
@@ -434,7 +440,10 @@ export function badgeClass({ tone = 'neutral', hue, size = 'sm', variant = 'pill
 }
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  /** Text on its own soft tint; every tone clears 4.5:1 in every theme. */
+  /** Text on its own soft tint; every tone clears 4.5:1 in every theme. on-accent: a
+   *  small label inside a solid accent fill (a primary Button, an accent link), in the
+   *  on-accent color over a 20% on-accent tint. It has no hover state; pair a short
+   *  label with sr-only text that says what it means. */
   tone?: Tone;
   /** A color with no meaning (stores, categories, tags): the hue's soft tint with hi
    *  text, so it reads in every theme. Overrides tone. */
@@ -472,14 +481,15 @@ export const FIELD =
   'transition-colors duration-150 hover:border-th-hi3/60 focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/25 ' +
   'disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-th-loss';
 
-// Phones always get 16px text (text-base), so iOS does not zoom on focus; from 640px
-// the size's own text size applies.
+// Touch screens always get 16px text (text-base), so iOS does not zoom on focus. Under a
+// mouse the size's own text size applies at every width, so a narrow popout window
+// driven by a mouse keeps its dense text.
 // Padding is split into pl and pr, so a slot or a select chevron can replace one side
 // without fighting a px class.
 const FIELD_SIZE: Record<FieldSize, { box: string; pad: string; text: string }> = {
-  xs: { box: 'h-7 pointer-coarse:min-h-11', pad: 'pl-2 pr-2', text: 'text-base sm:text-2xs' },
-  sm: { box: 'h-8 pointer-coarse:min-h-11', pad: 'pl-2.5 pr-2.5', text: 'text-base sm:text-xs' },
-  md: { box: 'h-9 pointer-coarse:min-h-11', pad: 'pl-3 pr-3', text: 'text-base sm:text-sm' },
+  xs: { box: 'h-7 pointer-coarse:min-h-11', pad: 'pl-2 pr-2', text: 'text-2xs pointer-coarse:text-base' },
+  sm: { box: 'h-8 pointer-coarse:min-h-11', pad: 'pl-2.5 pr-2.5', text: 'text-xs pointer-coarse:text-base' },
+  md: { box: 'h-9 pointer-coarse:min-h-11', pad: 'pl-3 pr-3', text: 'text-sm pointer-coarse:text-base' },
 };
 
 const FIELD_INVALID = 'border-th-loss hover:border-th-loss';
@@ -503,8 +513,8 @@ export function fieldClass({ size = 'md', invalid = false, className }: FieldCla
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /** Red border and aria-invalid. Pair it with an error message tied by aria-describedby. */
   invalid?: boolean;
-  /** md h-9 (default), sm h-8 with 12px text, xs h-7 with 11px text. Phones always get
-   *  16px text and a 44px height. (Replaces the native size attribute; set a width with
+  /** md h-9 (default), sm h-8 with 12px text, xs h-7 with 11px text. Touch screens
+   *  always get 16px text and a 44px height. (Replaces the native size attribute; set a width with
    *  className instead.) */
   size?: FieldSize;
   /** A decorative slot inside the left edge: a search icon, a "$" prefix. It ignores
@@ -518,7 +528,7 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   wrapperClassName?: string;
 }
 
-/** Text input. 16px text on phones so iOS does not zoom the page on focus. */
+/** Text input. 16px text on touch screens so iOS does not zoom the page on focus. */
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { invalid, size = 'md', leading, trailing, wrapperClassName, className, ...rest },
   ref,
@@ -556,8 +566,8 @@ const SELECT_SIZE: Record<FieldSize, { pad: string; chevron: string; icon: numbe
 export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   /** Red border and aria-invalid. */
   invalid?: boolean;
-  /** md h-9 (default), sm h-8, xs h-7, the same as Input. Phones get 16px text and a
-   *  44px height. (Replaces the native size attribute, which turns a select into a list box.) */
+  /** md h-9 (default), sm h-8, xs h-7, the same as Input. Touch screens get 16px text
+   *  and a 44px height. (Replaces the native size attribute, which turns a select into a list box.) */
   size?: FieldSize;
   /** Classes for the inner <select> itself. className sizes the wrapper (width, margin);
    *  use this instead of reaching in with [&>select]:… */

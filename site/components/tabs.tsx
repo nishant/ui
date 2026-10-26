@@ -13,11 +13,23 @@ const ITEMS = [
   { value: 'archive', label: 'Archive', disabled: true },
 ];
 
-function Demo({ variant, size, panels = true, items = ITEMS }: { variant?: 'underline' | 'pill'; size?: 'sm' | 'md'; panels?: boolean; items?: typeof ITEMS }) {
+function Demo({
+  variant,
+  size,
+  block,
+  panels = true,
+  items = ITEMS,
+}: {
+  variant?: 'underline' | 'pill';
+  size?: 'xs' | 'sm' | 'md';
+  block?: boolean;
+  panels?: boolean;
+  items?: typeof ITEMS;
+}) {
   const [tab, setTab] = useState(items[0].value);
   return (
     <div className="w-full min-w-0">
-      <Tabs label="Profile sections" value={tab} onChange={setTab} items={items} variant={variant} size={size}>
+      <Tabs label="Profile sections" value={tab} onChange={setTab} items={items} variant={variant} size={size} block={block}>
         {panels
           ? items.map((t) => (
               <TabPanel key={t.value} value={t.value} className="pt-3 text-sm text-th-hi2">
@@ -26,6 +38,34 @@ function Demo({ variant, size, panels = true, items = ITEMS }: { variant?: 'unde
             ))
           : null}
       </Tabs>
+    </div>
+  );
+}
+
+function Responsive() {
+  const [tab, setTab] = useState('suggestions');
+  return (
+    <div className="w-full min-w-0">
+      <Tabs
+        label="Review panes"
+        idBase="review"
+        hideFrom="lg"
+        controlsPanels
+        value={tab}
+        onChange={setTab}
+        items={[
+          { value: 'suggestions', label: 'Suggestions', count: 4 },
+          { value: 'chat', label: 'Chat' },
+        ]}
+      />
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <TabPanel idBase="review" value="suggestions" active={tab === 'suggestions'} showFrom="lg" className="rounded-lg border border-th-line p-3 text-sm text-th-hi2">
+          Suggestions pane.
+        </TabPanel>
+        <TabPanel idBase="review" value="chat" active={tab === 'chat'} showFrom="lg" className="rounded-lg border border-th-line p-3 text-sm text-th-hi2">
+          Chat pane.
+        </TabPanel>
+      </div>
     </div>
   );
 }
@@ -55,10 +95,13 @@ export const tabs: ComponentDoc = {
   importLine: "import { Tabs, TabPanel, tabClass } from '@nish/ui';",
   controls: [
     { key: 'variant', label: 'Variant', type: 'select', options: ['underline', 'pill'] },
-    { key: 'size', label: 'Size', type: 'select', options: ['md', 'sm'] },
+    { key: 'size', label: 'Size', type: 'select', options: ['md', 'sm', 'xs'] },
+    { key: 'block', label: 'Block', type: 'boolean' },
   ],
-  initial: { variant: 'underline', size: 'md' },
-  render: (a) => <Demo variant={a.variant === 'pill' ? 'pill' : 'underline'} size={a.size === 'sm' ? 'sm' : 'md'} />,
+  initial: { variant: 'underline', size: 'md', block: false },
+  render: (a) => (
+    <Demo variant={a.variant === 'pill' ? 'pill' : 'underline'} size={a.size === 'sm' || a.size === 'xs' ? a.size : 'md'} block={!!a.block} />
+  ),
   code: (a) =>
     jsx(
       'Tabs',
@@ -69,6 +112,7 @@ export const tabs: ComponentDoc = {
         items: '{items}',
         variant: a.variant === 'underline' ? undefined : a.variant,
         size: a.size === 'md' ? undefined : a.size,
+        block: a.block,
       },
       '<TabPanel value="overview">…</TabPanel>',
     ),
@@ -107,6 +151,18 @@ export const tabs: ComponentDoc = {
           <Demo size="sm" />
         </Card>
       ),
+    },
+
+    { id: 'xs', name: 'Size xs (dense widget strips)', render: () => <Demo variant="pill" size="xs" panels={false} /> },
+    { id: 'xs-underline', name: 'Size xs, underline', render: () => <Demo size="xs" panels={false} /> },
+    { id: 'block', name: 'Block (equal widths)', render: () => <Demo block panels={false} items={ITEMS.slice(0, 2)} /> },
+    { id: 'block-pill', name: 'Block pills', render: () => <Demo variant="pill" block panels={false} items={ITEMS.slice(0, 2)} /> },
+    {
+      id: 'responsive',
+      name: 'Tabs on phones, side by side from lg',
+      note: 'hideFrom="lg" on Tabs and showFrom="lg" on each TabPanel: from 1024px every pane renders as a plain region.',
+      wide: true,
+      render: () => <Responsive />,
     },
   ],
   usage: `import { Tabs, TabPanel } from '@nish/ui';

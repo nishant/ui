@@ -186,6 +186,12 @@
   height: 24px;
   border-radius: 6px;
 }
+/* 20px, for row-level reveal actions and 22px title bars. */
+:where(.nish-icon-btn--2xs) {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--nish-radius-xs, 4px);
+}
 :where(.nish-icon-btn--round) {
   border-radius: var(--nish-radius-pill);
 }
@@ -226,6 +232,31 @@
 :where([data-scheme='light'] .nish-theme-btn:not([data-choice='system'], [data-choice='light'], [data-choice='dark'])) :where([data-icon='light']),
 :where([data-scheme='dark'] .nish-theme-btn:not([data-choice='system'], [data-choice='light'], [data-choice='dark'])) :where([data-icon='dark']) {
   display: block;
+}
+/* The pill form, to sit next to .nish-pill-link in a top bar: the same 44px height and
+   pill border on every pointer. */
+:where(.nish-theme-btn--pill, .nish-theme-btn--labelled) {
+  height: var(--nish-tap-min, 44px);
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-pill);
+}
+:where(.nish-theme-btn--pill) {
+  width: var(--nish-tap-min, 44px);
+}
+/* The pill with the current choice as a word: mountThemeToggle(button, { showLabel: true })
+   adds <span data-theme-word aria-hidden="true">Light</span> after the icons. */
+:where(.nish-theme-btn--labelled) {
+  width: auto;
+  gap: 8px;
+  padding: 0 14px 0 12px;
+  color: var(--nish-hi);
+  font-size: var(--nish-text-sm);
+  font-weight: var(--nish-weight-medium);
+  line-height: 1.25rem;
+  white-space: nowrap;
+}
+:where(.nish-theme-btn--labelled) > :where(svg) {
+  flex-shrink: 0;
 }
 
 /* --- Card (.nish-card) --------------------------------------------------------------
@@ -389,9 +420,15 @@
   font-size: var(--nish-text-3xs, 0.625rem);
   line-height: 1rem;
 }
+/* A small label inside a solid accent fill (a primary button or an accent link). */
+:where(.nish-badge--on-accent) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--nish-on-accent) 20%, transparent);
+  color: var(--nish-on-accent);
+}
 
 /* --- Fields (.nish-input, .nish-select, .nish-textarea) ------------------------------
-   16px text on phones and touch screens (no iOS zoom), 44px tall on touch. The focus
+   16px text on touch screens (no iOS zoom), 44px tall on touch. The focus
    ring is base.css's outline, drawn on the border edge in a soft accent. */
 :where(.nish-input, .nish-select, .nish-textarea) {
   --nish-focus: color-mix(in srgb, var(--nish-accent) 25%, transparent);
@@ -454,7 +491,7 @@
   line-height: 1.625;
   resize: vertical;
 }
-@media (max-width: 639.98px), (pointer: coarse) {
+@media (pointer: coarse) {
   :where(.nish-input, .nish-select, .nish-textarea) {
     font-size: var(--nish-text-base);
   }
@@ -504,6 +541,19 @@
   font-size: var(--nish-text-xs);
   line-height: 1rem;
 }
+/* A group of controls: <fieldset class="nish-field"><legend class="nish-field-label">…</legend>…</fieldset>
+   (React: FieldGroup). */
+:where(fieldset.nish-field) {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+:where(legend.nish-field-label) {
+  margin-bottom: 6px;
+  padding: 0;
+}
+
 /* Label beside the control; hint and error indent under the control. */
 :where(.nish-field--inline) {
   grid-template-columns: var(--nish-field-label-width, 7rem) minmax(0, 1fr);
@@ -1001,6 +1051,10 @@
 :where(.nish-meter--info) > :where(i) {
   background: var(--nish-info-fill);
 }
+/* A quantity with no status meaning (swap, a share of a total). */
+:where(.nish-meter--neutral) > :where(i) {
+  background: var(--nish-hi3);
+}
 
 /* --- Disclosure (details.nish-disclosure) --------------------------------------------
    <details class="nish-disclosure"><summary>Sources</summary><div>…</div></details>
@@ -1171,12 +1225,123 @@
   line-height: 1.25rem;
 }
 
+/* --- Toast (.nish-toast) -----------------------------------------------------------
+   What showToast() from @nish/ui/theme (window.nishTheme.showToast) renders, inside one
+   role="status" aria-live="polite" region. By hand:
+   <div class="nish-toast nish-toast--warn"><p class="nish-toast-body"><strong>mc</strong> is
+   not reachable. <a href="…">Open it anyway</a></p><button class="nish-toast-close" …></div> */
+:where(.nish-toast) {
+  box-sizing: border-box;
+  position: fixed;
+  /* Centered with margins, not a transform: the rise animation owns transform. */
+  left: 0;
+  right: 0;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: var(--nish-z-toast, 60);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(100% - 2 * var(--nish-gutter, 16px), 520px);
+  margin: 0 auto;
+  padding: 12px 12px 12px 16px;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-md);
+  background: var(--nish-elevated);
+  box-shadow: var(--nish-shadow-pop);
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
+  line-height: 1.25rem;
+  animation: nish-rise-in 160ms var(--nish-ease-out, ease-out) both;
+}
+:where(.nish-toast-body) {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding-block: 2px;
+  overflow-wrap: anywhere;
+}
+:where(.nish-toast) :where(strong, a) {
+  color: var(--nish-hi);
+}
+:where(.nish-toast) :where(strong) {
+  font-weight: var(--nish-weight-semibold);
+}
+:where(.nish-toast) :where(a) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+:where(.nish-toast-action) {
+  flex-shrink: 0;
+  margin: -2px 0;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--nish-radius-xs, 4px);
+  background: transparent;
+  color: var(--nish-accent);
+  font: inherit;
+  font-weight: var(--nish-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+}
+:where(.nish-toast) :where(a.nish-toast-action) {
+  color: var(--nish-accent);
+  text-decoration: none;
+}
+:where(.nish-toast-action:hover) {
+  background: var(--nish-accent-soft);
+}
+:where(.nish-toast-close) {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--nish-radius-xs, 4px);
+  background: transparent;
+  color: var(--nish-hi3);
+  cursor: pointer;
+}
+:where(.nish-toast-close:hover) {
+  background: var(--nish-overlay);
+  color: var(--nish-hi);
+}
+:where(.nish-toast--ok) {
+  border-color: color-mix(in srgb, var(--nish-ok) 30%, transparent);
+}
+:where(.nish-toast--warn) {
+  border-color: color-mix(in srgb, var(--nish-warn) 30%, transparent);
+}
+:where(.nish-toast--loss) {
+  border-color: color-mix(in srgb, var(--nish-loss) 30%, transparent);
+}
+:where(.nish-toast--info) {
+  border-color: color-mix(in srgb, var(--nish-info) 30%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.nish-toast) {
+    animation: none;
+  }
+}
+
+/* --- Glass (.nish-glass) -------------------------------------------------------------
+   A see-through fill for controls over a photo or gradient: scope them dark with
+   data-theme="dark" data-scheme="dark" and add .nish-glass, so the hero shows through.
+   React: bg-th-bg/60 backdrop-blur-sm. */
+:where(.nish-glass) {
+  background: color-mix(in srgb, var(--nish-bg) 60%, transparent);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
 /* --- Touch: every control is a 44px target under a coarse pointer ---------------------- */
 @media (pointer: coarse) {
   :where(.nish-btn, .nish-input, .nish-select, .nish-chip, .nish-disclosure > summary) {
     min-height: var(--nish-tap-min);
   }
-  :where(.nish-icon-btn, .nish-theme-btn, .nish-seg > button, .nish-seg > a, .nish-seg > [role='radio']) {
+  :where(.nish-icon-btn, .nish-theme-btn, .nish-toast-action, .nish-toast-close, .nish-seg > button, .nish-seg > a, .nish-seg > [role='radio']) {
     min-width: var(--nish-tap-min);
     min-height: var(--nish-tap-min);
   }

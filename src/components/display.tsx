@@ -353,7 +353,7 @@ export function toneFor(value: number, t: { warn: number; loss: number }): 'ok' 
 }
 
 type ChartTone = `chart-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
-export type MeterTone = 'accent' | 'ok' | 'warn' | 'loss' | 'info' | ChartTone;
+export type MeterTone = 'accent' | 'ok' | 'warn' | 'loss' | 'info' | 'neutral' | ChartTone;
 
 const METER_FILL: Record<MeterTone, string> = {
   accent: 'bg-th-accent',
@@ -361,6 +361,7 @@ const METER_FILL: Record<MeterTone, string> = {
   warn: 'bg-th-warn-fill',
   loss: 'bg-th-loss-fill',
   info: 'bg-th-info-fill',
+  neutral: 'bg-th-hi3',
   'chart-1': 'bg-th-chart-1',
   'chart-2': 'bg-th-chart-2',
   'chart-3': 'bg-th-chart-3',
@@ -383,7 +384,8 @@ export interface MeterProps {
   max?: number;
   /** Accessible name: what is being measured ("Disk used"). Required, since the bar has no text. */
   label: string;
-  /** Fill color. Overrides thresholds. Default: from thresholds, else accent. */
+  /** Fill color. Overrides thresholds. Default: from thresholds, else accent. neutral:
+   *  a gray fill for a quantity with no status meaning (swap, a share of a total). */
   tone?: MeterTone;
   /** Picks ok, warn or loss from the value (see toneFor) when tone is not given. */
   thresholds?: { warn: number; loss: number };
@@ -837,6 +839,17 @@ export interface AppHeaderProps {
   sticky?: boolean;
   /** Classes for the inner rows, e.g. "mx-auto max-w-6xl" to match the page width. */
   innerClassName?: string;
+  /** Makes the icon and name one link home (a 44px target), e.g. "/". */
+  homeHref?: string;
+  /** Under 640px show only the icon; the name stays for screen readers, so the pill,
+   *  actions and theme toggle fit on one row. Needs an icon. */
+  hideNameBelow?: 'sm';
+  /** Names the nav row's <nav> landmark ("Trackers"), so several navs on a page can be
+   *  told apart. */
+  navLabel?: string;
+  /** Under 480px the hub pill shrinks to its arrow (.nish-pill-link--compact), for
+   *  headers with a long name. */
+  compactPill?: boolean;
   className?: string;
 }
 
@@ -851,9 +864,21 @@ export function AppHeader({
   themeToggle,
   sticky = true,
   innerClassName,
+  homeHref,
+  hideNameBelow,
+  navLabel,
+  compactPill = false,
   className,
 }: AppHeaderProps) {
   const toggle = themeToggle === false ? null : (themeToggle ?? <ThemeToggle />);
+  const hideName = hideNameBelow === 'sm' && icon != null;
+  const mark = (
+    <>
+      {icon ? <span className="shrink-0 text-th-accent [&>svg]:size-5">{icon}</span> : null}
+      <span className={cn('truncate', hideName && 'max-sm:sr-only')}>{name}</span>
+    </>
+  );
+  const markClass = 'inline-flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight text-th-hi';
   return (
     <header
       className={cn(
@@ -863,21 +888,180 @@ export function AppHeader({
       )}
     >
       <div className={cn('flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 sm:px-6', innerClassName)}>
-        <a className="nish-pill-link" href={hubHref} title="Back to nish.software">
-          ← nish.software
-        </a>
-        <span className="inline-flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight text-th-hi">
-          {icon ? <span className="shrink-0 text-th-accent [&>svg]:size-5">{icon}</span> : null}
-          <span className="truncate">{name}</span>
-        </span>
+        {compactPill ? (
+          <a className="nish-pill-link nish-pill-link--compact" href={hubHref} title="Back to nish.software">
+            ← <span className="nish-pill-link-label">nish.software</span>
+          </a>
+        ) : (
+          <a className="nish-pill-link" href={hubHref} title="Back to nish.software">
+            ← nish.software
+          </a>
+        )}
+        {homeHref != null ? (
+          <a href={homeHref} className={cn(markClass, 'min-h-11 min-w-11 rounded-lg', hideName && 'max-sm:justify-center')}>
+            {mark}
+          </a>
+        ) : (
+          <span className={markClass}>{mark}</span>
+        )}
         <div className="ml-auto flex items-center gap-2">
           {actions}
           {toggle}
         </div>
       </div>
       {nav ? (
-        <nav className={cn('scrollbar-none -mb-px flex gap-1 overflow-x-auto px-4 sm:px-6', innerClassName)}>{nav}</nav>
+        <nav aria-label={navLabel} className={cn('scrollbar-none -mb-px flex gap-1 overflow-x-auto px-4 sm:px-6', innerClassName)}>
+          {nav}
+        </nav>
       ) : null}
     </header>
+  );
+}
+
+// =====================================================================================
+// SectionHeader
+// =====================================================================================
+
+export interface SectionHeaderProps {
+  /** The section's title. */
+  title: ReactNode;
+  /** id for the heading, so the section can point aria-labelledby at it. */
+  id?: string;
+  /** Heading level. Default h2. */
+  as?: 'h1' | 'h2' | 'h3';
+  /** Quiet text on the right ("Updated 2 min ago", "3 of 12"). */
+  meta?: ReactNode;
+  /** A control on the right, after meta (a Button, a Segmented, a link). */
+  action?: ReactNode;
+  className?: string;
+}
+
+/** The heading row of a section inside a page: the title, with optional meta text
+ *  and an action on the right. Smaller than PageHeader, larger than CardHeader. */
+export function SectionHeader({ title, id, as: H = 'h2', meta, action, className }: SectionHeaderProps) {
+  return (
+    <div className={cn('mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1', className)}>
+      <H id={id} className="min-w-0 text-lg font-semibold tracking-tight text-th-hi [overflow-wrap:anywhere]">
+        {title}
+      </H>
+      {meta != null || action != null ? (
+        <div className="flex items-center gap-3">
+          {meta != null ? <span className="text-sm text-th-hi3">{meta}</span> : null}
+          {action}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// =====================================================================================
+// KeyValueList
+// =====================================================================================
+
+export interface KeyValueItem {
+  /** React key; unique in the list. */
+  key: string;
+  /** The left side: a name, often with a StatusDot or an icon. */
+  label: ReactNode;
+  /** The right side: a value, a Badge, a status. */
+  value: ReactNode;
+}
+
+export interface KeyValueListProps {
+  items: KeyValueItem[];
+  /** Rows 32px tall instead of 44px, for dense panels. */
+  dense?: boolean;
+  /** ul: a list of rows (default). dl: a description list with dt and dd, for label
+   *  and value pairs that read as "name: value". */
+  as?: 'ul' | 'dl';
+  className?: string;
+}
+
+/** Label and value rows with dividers: services and their status, runner details,
+ *  vitals. Each row is 44px tall (32px dense). */
+export function KeyValueList({ items, dense = false, as = 'ul', className }: KeyValueListProps) {
+  const row = cn(
+    'flex min-w-0 items-center justify-between gap-3 border-b border-th-line last:border-b-0',
+    dense ? 'min-h-8' : 'min-h-11',
+  );
+  if (as === 'dl') {
+    return (
+      <dl className={cn('grid text-sm text-th-hi', className)}>
+        {items.map((it) => (
+          <div key={it.key} className={row}>
+            <dt className="min-w-0 text-th-hi2">{it.label}</dt>
+            <dd className="m-0 shrink-0 text-right">{it.value}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+  return (
+    <ul className={cn('grid text-sm text-th-hi', className)}>
+      {items.map((it) => (
+        <li key={it.key} className={row}>
+          <span className="flex min-w-0 items-center gap-2">{it.label}</span>
+          <span className="flex shrink-0 items-center gap-2 text-right">{it.value}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// =====================================================================================
+// ChartLegend
+// =====================================================================================
+
+export type ChartLegendTone = ChartTone | 'accent' | 'ok' | 'warn' | 'loss' | 'info';
+
+// Full literal class names, so Tailwind's scanner finds every one. Marks use -fill.
+const LEGEND_FILL: Record<ChartLegendTone, string> = {
+  'chart-1': 'bg-th-chart-1',
+  'chart-2': 'bg-th-chart-2',
+  'chart-3': 'bg-th-chart-3',
+  'chart-4': 'bg-th-chart-4',
+  'chart-5': 'bg-th-chart-5',
+  'chart-6': 'bg-th-chart-6',
+  'chart-7': 'bg-th-chart-7',
+  'chart-8': 'bg-th-chart-8',
+  accent: 'bg-th-accent',
+  ok: 'bg-th-ok-fill',
+  warn: 'bg-th-warn-fill',
+  loss: 'bg-th-loss-fill',
+  info: 'bg-th-info-fill',
+};
+
+export interface ChartLegendItem {
+  /** The series name. */
+  label: string;
+  /** The series color, the same role the chart draws it in. */
+  tone: ChartLegendTone;
+}
+
+export interface ChartLegendProps {
+  items: ChartLegendItem[];
+  /** line: a short 3px x 10px stroke, for line charts (default). dot: an 8px dot, for
+   *  bars and points. */
+  marker?: 'line' | 'dot';
+  /** Accessible name of the list. Default "Legend". */
+  label?: string;
+  className?: string;
+}
+
+/** The key for a multi-series chart (uPlot and canvas charts draw none of their own):
+ *  each series' color mark and name. The marks are decorative; the names carry it. */
+export function ChartLegend({ items, marker = 'line', label = 'Legend', className }: ChartLegendProps) {
+  return (
+    <ul aria-label={label} className={cn('flex flex-wrap gap-x-4 gap-y-1 text-xs text-th-hi2', className)}>
+      {items.map((it) => (
+        <li key={it.label} className="inline-flex items-center gap-1.5">
+          <i
+            aria-hidden="true"
+            className={cn('inline-block shrink-0', marker === 'dot' ? 'size-2 rounded-full' : 'h-0.75 w-2.5 rounded-sm', LEGEND_FILL[it.tone])}
+          />
+          {it.label}
+        </li>
+      ))}
+    </ul>
   );
 }

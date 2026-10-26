@@ -54,6 +54,21 @@ export const themeToggle: ComponentDoc = {
         </Card>
       ),
     },
+
+    {
+      id: 'pill',
+      name: 'Pill (variant="pill")',
+      note: 'One cycling button in a 44px pill, to sit next to the hub pill. With labels it shows the current choice.',
+      render: () => (
+        <div className="flex flex-wrap items-center gap-2">
+          <a className="nish-pill-link" href="#/components/theme-toggle" title="Back to nish.software">
+            ← nish.software
+          </a>
+          <ThemeToggle variant="pill" />
+          <ThemeToggle variant="pill" labels />
+        </div>
+      ),
+    },
   ],
   usage: `import { ThemeToggle, useTheme, initTheme } from '@nish/ui';
 

@@ -15,6 +15,34 @@ export function Skeleton({
   return <div aria-hidden="true" className={cn('nish-skeleton rounded-md', className)} style={style} />;
 }
 
+export interface SkeletonRowsProps {
+  /** How many rows. Default 5. */
+  rows?: number;
+  /** Height of each row: pixels or any CSS length. Default 56. */
+  height?: number | string;
+  /** Space between rows: sm 6px, md 10px (default). */
+  gap?: 'sm' | 'md';
+  /** Accessible name of the loading region. Default "Loading". */
+  label?: string;
+  /** Classes for the column (padding, margins). */
+  className?: string;
+  /** Classes for every row, e.g. "h-16" instead of height, or "rounded-lg". */
+  rowClassName?: string;
+}
+
+/** A column of full-width, card-shaped shimmer rows (rounded-xl) while a list or table
+ *  loads, announced once (role="status"). The shimmer stops under reduced motion. For a
+ *  card body's text lines, use SkeletonLines. */
+export function SkeletonRows({ rows = 5, height = 56, gap = 'md', label = 'Loading', className, rowClassName }: SkeletonRowsProps) {
+  return (
+    <div role="status" aria-label={label} className={cn('grid', gap === 'sm' ? 'gap-1.5' : 'gap-2.5', className)}>
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className={cn('w-full rounded-xl', rowClassName)} style={rowClassName && /\bh-/.test(rowClassName) ? undefined : { height }} />
+      ))}
+    </div>
+  );
+}
+
 const SPINNER_SIZE = { xs: 12, sm: 14, md: 16, lg: 24 } as const;
 
 export interface SpinnerProps {

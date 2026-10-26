@@ -15,6 +15,7 @@ export const COMPONENTS = [
   'Textarea',
   'Checkbox',
   'Field',
+  'FieldGroup',
   'Switch',
   'SearchInput',
   'Select',
@@ -23,6 +24,7 @@ export const COMPONENTS = [
   'ChipGroup',
   'Skeleton',
   'SkeletonLines',
+  'SkeletonRows',
   'Spinner',
   'EmptyState',
   'ErrorState',
@@ -38,6 +40,9 @@ export const COMPONENTS = [
   'CopyButton',
   'PageHeader',
   'AppHeader',
+  'SectionHeader',
+  'KeyValueList',
+  'ChartLegend',
   'TableWrap',
   'Table',
   'Th',
@@ -58,10 +63,10 @@ export const COMPONENTS = [
 ];
 const FUNCTIONS = [
   'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
-  'buttonClass', 'iconButtonClass', 'cardClass', 'badgeClass', 'fieldClass', 'tabClass',
+  'buttonClass', 'iconButtonClass', 'cardClass', 'badgeClass', 'fieldClass', 'tabClass', 'chipClass', 'menuItemClass', 'showToast',
   'signTone', 'toneFor', 'copyText', 'seriesColor', 'chartTheme', 'useChartTheme',
 ];
-const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme'];
+const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'KeyValueItem', 'ChartLegendItem'];
 
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');
 
