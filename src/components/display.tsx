@@ -969,10 +969,11 @@ export interface KeyValueItem {
    *  dense) when the text wraps. Both the `ul` and `dl` forms.
    *  - `true` or `'anywhere'`: a long value with no spaces (a path, a URL, an id). The value
    *    cell may shrink and breaks anywhere (`break-all`); the label keeps its width.
-   *  - `'words'`: prose (a phrase-long status or error). Both cells shrink and wrap at word
-   *    breaks: the label takes the free width (`min-w-0 flex-1`), the value at most 60% of
-   *    the row (`min-w-0 max-w-[60%] text-right`). A word splits only when it alone is wider
-   *    than its cell (`overflow-wrap: anywhere`).
+   *  - `'words'`: prose (a phrase-long status or error). Both cells wrap at word breaks,
+   *    labels first: the label keeps its one-line width up to 60% of the row
+   *    (`shrink-0 max-w-[calc(60%-0.75rem)]`), so a short label never wraps one word per
+   *    line, and the value takes the rest, at least 40% (`min-w-0 flex-1 text-right`). A
+   *    word splits only when it alone is wider than its cell (`overflow-wrap: anywhere`).
    *  Without `wrap` the value keeps its full width, so keep it short. */
   wrap?: boolean | 'anywhere' | 'words';
 }
@@ -1000,11 +1001,17 @@ export function KeyValueList({ items, dense = false, as = 'ul', className }: Key
       wrap && (dense ? 'py-1' : 'py-2'),
     );
   // Cell widths per mode. None: the value keeps its width. anywhere: the value shrinks and
-  // breaks anywhere, the label keeps its width. words: both shrink and wrap at word breaks.
+  // breaks anywhere, the label keeps its width. words: both wrap at word breaks; the label
+  // does not shrink below its one-line width until it reaches 60% of the row (so a flex
+  // shrink never tips "Earnings Calendar" onto two lines), and the value fills the rest.
   const labelCls = (wrap: KeyValueItem['wrap']) =>
-    wrap === 'words' ? 'min-w-0 flex-1 [overflow-wrap:anywhere]' : wrap ? 'shrink-0' : 'min-w-0';
+    wrap === 'words'
+      ? 'min-w-0 shrink-0 max-w-[calc(60%_-_0.75rem)] [overflow-wrap:anywhere]'
+      : wrap
+        ? 'shrink-0'
+        : 'min-w-0';
   const valueCls = (wrap: KeyValueItem['wrap']) =>
-    wrap === 'words' ? 'min-w-0 max-w-[60%] [overflow-wrap:anywhere]' : wrap ? 'min-w-0 break-all' : 'shrink-0';
+    wrap === 'words' ? 'min-w-0 flex-1 [overflow-wrap:anywhere]' : wrap ? 'min-w-0 break-all' : 'shrink-0';
   if (as === 'dl') {
     return (
       <dl className={cn('grid text-sm text-th-hi', className)}>

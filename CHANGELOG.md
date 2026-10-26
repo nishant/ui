@@ -3,6 +3,12 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.5.3] - 2026-10-25
+
+### Fixed
+
+- KeyValueItem `wrap: 'words'` now wraps labels first: the label keeps its one-line width up to 60% of the row (`shrink-0 max-w-[calc(60%-0.75rem)]`) and the value fills the rest, at least 40% (`min-w-0 flex-1 text-right`). In 0.5.2 the value took up to 60% and the label only what was left, so a flex shrink of a pixel or two put a two-word label such as "Earnings Calendar" on two lines at 360px. Rows, padding and the `overflow-wrap: anywhere` fallback are unchanged.
+
 ## [0.5.2] - 2026-10-25
 
 Gap round 3: the last gaps the apps reported after 0.5.0. Additive.
