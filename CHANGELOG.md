@@ -3,6 +3,14 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.5.0] - 2026-10-25
+
+Gap round 2: the one wrapper the apps still needed after adopting 0.4.0. Additive.
+
+### Added
+
+- KeyValueItem `wrap`: a long value (a path, a URL, an id with no spaces) wraps with `break-all` instead of setting the row's width; the label keeps its width and the row grows past 44px (32px dense). Both the `ul` and `dl` forms of `KeyValueList`.
+
 ## [0.4.0] - 2026-10-25
 
 Gap round 1: the pieces the apps still covered with local wrappers after adopting 0.3.0 (jobs, trading, Nishboard, the hub, the trip skill, mc and trips, status, trackers), so they can delete them. Additive, apart from the behavior change listed at the end.
