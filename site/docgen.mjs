@@ -63,10 +63,10 @@ export const COMPONENTS = [
 ];
 const FUNCTIONS = [
   'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
-  'buttonClass', 'iconButtonClass', 'cardClass', 'badgeClass', 'fieldClass', 'tabClass', 'chipClass', 'menuItemClass', 'showToast',
+  'buttonClass', 'iconButtonClass', 'cardClass', 'badgeClass', 'fieldClass', 'tabClass', 'chipClass', 'menuItemClass', 'showToast', 'confirmDialog', 'mountTooltips',
   'signTone', 'toneFor', 'copyText', 'seriesColor', 'chartTheme', 'useChartTheme',
 ];
-const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'KeyValueItem', 'ChartLegendItem'];
+const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem'];
 
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');
 

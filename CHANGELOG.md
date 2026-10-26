@@ -3,6 +3,16 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.5.2] - 2026-10-25
+
+Gap round 3: the last gaps the apps reported after 0.5.0. Additive.
+
+### Added
+
+- KeyValueItem `wrap: 'words'` (and `'anywhere'`, the same as `true`): for prose values, both cells shrink and wrap at word breaks, the label `min-w-0 flex-1`, the value at most 60% of the row (`min-w-0 max-w-[60%] text-right`); a word splits only when it alone is wider than its cell. The row stays at least 44px (32px dense) and grows when the text wraps. Both the `ul` and `dl` forms.
+- `confirmDialog({ title, body?, confirmLabel = 'Confirm', cancelLabel = 'Cancel', tone? }): Promise<boolean>` in `@nish/ui/theme` and `window.nishTheme`: `window.confirm` for static pages, on a native `<dialog class="nish-dialog">` opened with `showModal()`. Escape and a backdrop click cancel (Escape does not reach the page's own key handlers), focus returns to the opener, 44px buttons on touch; `tone: 'danger'` gives a red confirm button and starts focus on Cancel, as the React ConfirmDialog does. New `.nish-dialog`, `.nish-dialog-title`, `.nish-dialog-body`, `.nish-dialog-actions` in nish-components.css.
+- `.nish-tooltip` with a `.nish-tooltip-content` child (`role="tooltip"`, linked by `aria-describedby`): a CSS-only tooltip that shows on hover and keyboard focus, with the React Tooltip's look; `--bottom`, `--start`, `--end` placements. `mountTooltips(root?)` in `@nish/ui/theme` and `window.nishTheme` adds Escape to hide it (and links a tip without an id).
+
 ## [0.5.1] - 2026-10-25
 
 Docs site only; the package is unchanged.

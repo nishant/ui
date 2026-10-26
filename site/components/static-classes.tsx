@@ -31,6 +31,7 @@ import {
   Textarea,
   Th,
   ThemeToggle,
+  Tooltip,
   Tr,
 } from '../../src';
 import { RefreshIcon, SettingsIcon, TrashIcon } from '../lib/icons';
@@ -597,6 +598,36 @@ export const STATIC_STORIES: StaticStory[] = [
   <div class="nish-toast nish-toast--warn" style="position:static;width:100%;animation:none"><p class="nish-toast-body"><strong>mc.nish.software</strong> is not reachable from here. You can still <a href="#/static-sites">open it anyway</a>.</p><button type="button" class="nish-toast-close" aria-label="Dismiss">${svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)}</button></div>
   <div class="nish-toast nish-toast--ok" style="position:static;width:100%;animation:none"><p class="nish-toast-body">Tile hidden.</p><button type="button" class="nish-toast-action">Undo</button><button type="button" class="nish-toast-close" aria-label="Dismiss">${svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)}</button></div>
 </div>`,
+  },
+  {
+    id: 'dialog',
+    cls: '.nish-dialog',
+    mirrors: 'ConfirmDialog',
+    name: 'Dialog',
+    note: 'What confirmDialog() renders: a native <dialog> opened with showModal() (a bottom sheet on phones). Shown in place here with the open attribute; a page calls confirmDialog() instead of writing it.',
+    html: `<div ${STACK}>
+  <dialog open class="nish-dialog" aria-labelledby="{id}-t" aria-describedby="{id}-b" style="position:static;width:100%;margin:0;border-bottom:1px solid var(--nish-line);border-radius:16px;animation:none">
+    <h2 class="nish-dialog-title" id="{id}-t">Save before closing?</h2>
+    <div class="nish-dialog-body" id="{id}-b">Your note has changes that are not saved yet.</div>
+    <div class="nish-dialog-actions"><button type="button" class="nish-btn">Close without saving</button><button type="button" class="nish-btn nish-btn--primary">Save</button></div>
+  </dialog>
+</div>`,
+  },
+  {
+    id: 'tooltip',
+    cls: '.nish-tooltip',
+    mirrors: 'Tooltip',
+    name: 'Tooltip',
+    note: 'Hover or Tab to the badges. The trigger is focusable (tabindex="0" on a span) and names the tip with aria-describedby; mountTooltips() adds Escape. The last one is pinned open (style="display:block") to show the look.',
+    html: `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:56px 0 8px">
+  <span class="nish-badge nish-badge--info nish-tooltip" tabindex="0" aria-describedby="{id}-a">Tailnet<span class="nish-tooltip-content" role="tooltip" id="{id}-a">Only reachable on the tailnet.</span></span>
+  <span class="nish-badge nish-tooltip nish-tooltip--start" tabindex="0" aria-describedby="{id}-b">Shown<span class="nish-tooltip-content" role="tooltip" id="{id}-b" style="display:block">Elevated, line-strong border, 12px text.</span></span>
+</div>`,
+    react: () => (
+      <Tooltip tip="Only reachable on the tailnet.">
+        <Badge tone="info">Tailnet</Badge>
+      </Tooltip>
+    ),
   },
   {
     id: 'glass',

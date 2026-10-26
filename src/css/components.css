@@ -1326,6 +1326,146 @@
   }
 }
 
+/* --- Dialog (dialog.nish-dialog) ----------------------------------------------------
+   What confirmDialog() from @nish/ui/theme (window.nishTheme.confirmDialog) renders: a
+   native <dialog> opened with showModal(), so the browser traps focus and Escape cancels.
+   By hand:
+   <dialog class="nish-dialog" aria-labelledby="t" aria-describedby="b">
+     <h2 class="nish-dialog-title" id="t">Discard changes?</h2>
+     <div class="nish-dialog-body" id="b">Your edits are lost.</div>
+     <div class="nish-dialog-actions"><button class="nish-btn">Cancel</button>
+       <button class="nish-btn nish-btn--danger">Discard</button></div>
+   </dialog>
+   A bottom sheet on phones, a centered 448px panel from 640px, like the React Modal. */
+:where(.nish-dialog) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  max-height: 92dvh;
+  margin: auto auto 0;
+  padding: 0 0 env(safe-area-inset-bottom);
+  overflow-y: auto;
+  border: 1px solid var(--nish-line);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  background: var(--nish-surface);
+  box-shadow: var(--nish-shadow-modal);
+  color: var(--nish-hi2);
+  font-family: var(--nish-font-sans, inherit);
+  font-size: var(--nish-text-sm);
+  line-height: var(--nish-text-sm-lh, 1.35rem);
+  animation: nish-sheet-in 240ms var(--nish-ease-out, ease-out) both;
+}
+:where(.nish-dialog)::backdrop {
+  background: rgb(0 0 0 / 0.6);
+  background: color-mix(in srgb, var(--nish-scrim, #000) 60%, transparent);
+  animation: nish-fade-in 160ms ease-out both;
+}
+:where(.nish-dialog-title) {
+  margin: 0;
+  padding: 16px 20px 8px;
+  color: var(--nish-hi);
+  font-size: var(--nish-text-base);
+  font-weight: var(--nish-weight-semibold);
+  line-height: 1.375;
+  overflow-wrap: anywhere;
+}
+/* A title-only question gets the body's bottom gap. */
+:where(.nish-dialog-title:has(+ .nish-dialog-actions)) {
+  padding-bottom: 20px;
+}
+:where(.nish-dialog-body) {
+  margin: 0;
+  padding: 0 20px 20px;
+  overflow-wrap: anywhere;
+}
+:where(.nish-dialog-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--nish-line);
+}
+@media (min-width: 640px) {
+  :where(.nish-dialog) {
+    width: min(100% - 32px, 448px);
+    max-height: 85vh;
+    margin: auto;
+    padding-bottom: 0;
+    border-bottom: 1px solid var(--nish-line);
+    border-radius: 16px;
+    animation-name: nish-rise-in;
+    animation-duration: 200ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.nish-dialog),
+  :where(.nish-dialog)::backdrop {
+    animation: none;
+  }
+}
+
+/* --- Tooltip (.nish-tooltip > .nish-tooltip-content) ---------------------------------
+   A CSS-only tip for static pages. The trigger must be focusable (tabindex="0" on a span)
+   and point at the content with aria-describedby:
+   <span class="nish-badge nish-tooltip" tabindex="0" aria-describedby="tip-1">Tailnet
+     <span class="nish-tooltip-content" role="tooltip" id="tip-1">Only on the tailnet.</span>
+   </span>
+   It shows on hover and on keyboard focus; mountTooltips() from @nish/ui/theme adds
+   Escape to hide it. Above the trigger by default; --bottom puts it below, --start and
+   --end align it to the trigger's left or right edge instead of centering it. An
+   overflow:hidden ancestor clips it: use the React Tooltip (portaled) there. */
+:where(.nish-tooltip) {
+  position: relative;
+}
+:where(.nish-tooltip) > :where(.nish-tooltip-content) {
+  box-sizing: border-box;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: var(--nish-z-tooltip, 100);
+  display: none;
+  width: max-content;
+  max-width: min(320px, 100vw - 16px);
+  padding: 8px 12px;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-elevated);
+  box-shadow: var(--nish-shadow-pop);
+  color: var(--nish-hi);
+  font-size: var(--nish-text-xs);
+  font-weight: var(--nish-weight-normal);
+  line-height: 1.375;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+:where(.nish-tooltip--bottom) > :where(.nish-tooltip-content) {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+:where(.nish-tooltip--start) > :where(.nish-tooltip-content) {
+  left: 0;
+  transform: none;
+}
+:where(.nish-tooltip--end) > :where(.nish-tooltip-content) {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+:where(.nish-tooltip:hover, .nish-tooltip:focus-visible, .nish-tooltip:focus-within) > :where(.nish-tooltip-content) {
+  display: block;
+}
+/* mountTooltips() sets data-tooltip-hidden on Escape until the pointer or focus leaves. */
+:where(.nish-tooltip[data-tooltip-hidden]) > :where(.nish-tooltip-content) {
+  display: none;
+}
+
 /* --- Glass (.nish-glass) -------------------------------------------------------------
    A see-through fill for controls over a photo or gradient: scope them dark with
    data-theme="dark" data-scheme="dark" and add .nish-glass, so the hero shows through.
@@ -1341,7 +1481,10 @@
   :where(.nish-btn, .nish-input, .nish-select, .nish-chip, .nish-disclosure > summary) {
     min-height: var(--nish-tap-min);
   }
-  :where(.nish-icon-btn, .nish-theme-btn, .nish-toast-action, .nish-toast-close, .nish-seg > button, .nish-seg > a, .nish-seg > [role='radio']) {
+  :where(.nish-dialog-actions) > :where(.nish-btn) {
+    min-width: var(--nish-tap-min);
+  }
+  :where(.nish-icon-btn, .nish-theme-btn, .nish-toast-action, .nish-toast-close,.nish-seg > button, .nish-seg > a, .nish-seg > [role='radio']) {
     min-width: var(--nish-tap-min);
     min-height: var(--nish-tap-min);
   }

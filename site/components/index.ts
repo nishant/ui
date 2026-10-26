@@ -48,6 +48,8 @@ import { tabs } from './tabs';
 import { themeToggle } from './theme-toggle';
 import { mountThemeToggleDoc } from './mount-theme-toggle';
 import { showToastDoc } from './show-toast';
+import { confirmDialogFnDoc } from './confirm-dialog-fn';
+import { mountTooltipsDoc } from './mount-tooltips';
 import { prose } from './prose';
 import { baseUtilities } from './base-utilities';
 import type { ComponentDoc } from './types';
@@ -103,6 +105,8 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   themeToggle,
   mountThemeToggleDoc,
   showToastDoc,
+  confirmDialogFnDoc,
+  mountTooltipsDoc,
   prose,
   baseUtilities,
 ];

@@ -965,10 +965,16 @@ export interface KeyValueItem {
   label: ReactNode;
   /** The right side: a value, a Badge, a status. */
   value: ReactNode;
-  /** Let a long value wrap instead of setting the row's width: a path, a URL, an id with no
-   *  spaces. The value cell may shrink and breaks anywhere (`break-all`), the label keeps its
-   *  width, and the row grows taller than 44px (32px dense) when the text wraps. */
-  wrap?: boolean;
+  /** Let the row wrap instead of staying on one line; it grows taller than 44px (32px
+   *  dense) when the text wraps. Both the `ul` and `dl` forms.
+   *  - `true` or `'anywhere'`: a long value with no spaces (a path, a URL, an id). The value
+   *    cell may shrink and breaks anywhere (`break-all`); the label keeps its width.
+   *  - `'words'`: prose (a phrase-long status or error). Both cells shrink and wrap at word
+   *    breaks: the label takes the free width (`min-w-0 flex-1`), the value at most 60% of
+   *    the row (`min-w-0 max-w-[60%] text-right`). A word splits only when it alone is wider
+   *    than its cell (`overflow-wrap: anywhere`).
+   *  Without `wrap` the value keeps its full width, so keep it short. */
+  wrap?: boolean | 'anywhere' | 'words';
 }
 
 export interface KeyValueListProps {
@@ -982,24 +988,30 @@ export interface KeyValueListProps {
 }
 
 /** Label and value rows with dividers: services and their status, runner details,
- *  vitals. Each row is at least 44px tall (32px dense); an item with `wrap` lets a long
- *  value wrap and grows its row. */
+ *  vitals. Each row is at least 44px tall (32px dense); an item with `wrap` lets its row
+ *  wrap and grow: `true`/`'anywhere'` for a path or URL, `'words'` for prose. */
 export function KeyValueList({ items, dense = false, as = 'ul', className }: KeyValueListProps) {
   // A wrapping row gets vertical padding so wrapped lines clear the dividers; a single
   // line still fits inside the 44px (32px dense) minimum, so its height is unchanged.
-  const row = (wrap?: boolean) =>
+  const row = (wrap: KeyValueItem['wrap']) =>
     cn(
       'flex min-w-0 items-center justify-between gap-3 border-b border-th-line last:border-b-0',
       dense ? 'min-h-8' : 'min-h-11',
       wrap && (dense ? 'py-1' : 'py-2'),
     );
+  // Cell widths per mode. None: the value keeps its width. anywhere: the value shrinks and
+  // breaks anywhere, the label keeps its width. words: both shrink and wrap at word breaks.
+  const labelCls = (wrap: KeyValueItem['wrap']) =>
+    wrap === 'words' ? 'min-w-0 flex-1 [overflow-wrap:anywhere]' : wrap ? 'shrink-0' : 'min-w-0';
+  const valueCls = (wrap: KeyValueItem['wrap']) =>
+    wrap === 'words' ? 'min-w-0 max-w-[60%] [overflow-wrap:anywhere]' : wrap ? 'min-w-0 break-all' : 'shrink-0';
   if (as === 'dl') {
     return (
       <dl className={cn('grid text-sm text-th-hi', className)}>
         {items.map((it) => (
           <div key={it.key} className={row(it.wrap)}>
-            <dt className={cn('text-th-hi2', it.wrap ? 'shrink-0' : 'min-w-0')}>{it.label}</dt>
-            <dd className={cn('m-0 text-right', it.wrap ? 'min-w-0 break-all' : 'shrink-0')}>{it.value}</dd>
+            <dt className={cn('text-th-hi2', labelCls(it.wrap))}>{it.label}</dt>
+            <dd className={cn('m-0 text-right', valueCls(it.wrap))}>{it.value}</dd>
           </div>
         ))}
       </dl>
@@ -1009,8 +1021,8 @@ export function KeyValueList({ items, dense = false, as = 'ul', className }: Key
     <ul className={cn('grid text-sm text-th-hi', className)}>
       {items.map((it) => (
         <li key={it.key} className={row(it.wrap)}>
-          <span className={cn('flex items-center gap-2', it.wrap ? 'shrink-0' : 'min-w-0')}>{it.label}</span>
-          <span className={cn('flex items-center gap-2 text-right', it.wrap ? 'min-w-0 break-all' : 'shrink-0')}>
+          <span className={cn('flex items-center gap-2', labelCls(it.wrap))}>{it.label}</span>
+          <span className={cn('flex items-center justify-end gap-2 text-right', valueCls(it.wrap))}>
             {it.value}
           </span>
         </li>

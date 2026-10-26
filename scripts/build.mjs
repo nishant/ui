@@ -233,7 +233,7 @@ function testGlobal(code) {
   ctx.window = ctx;
   vm.runInNewContext(code, ctx);
   const api = ctx.window.nishTheme;
-  const want = ['initTheme', 'setThemeChoice', 'cycleTheme', 'onThemeChange', 'readToken', 'registerThemes', 'getThemeChoice', 'mountThemeToggle', 'showToast'];
+  const want = ['initTheme', 'setThemeChoice', 'cycleTheme', 'onThemeChange', 'readToken', 'registerThemes', 'getThemeChoice', 'mountThemeToggle', 'showToast', 'confirmDialog', 'mountTooltips'];
   const missing = want.filter((k) => typeof api?.[k] !== 'function');
   if (missing.length) throw new Error(`theme.global.js: window.nishTheme is missing ${missing.join(', ')}`);
   if (api.initTheme() !== 'light' || attrs['data-theme'] !== 'light') {
