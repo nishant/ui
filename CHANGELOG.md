@@ -34,7 +34,7 @@ Mobile chrome, a layout contract and the components every app kept hand-rolling.
 - Hooks and `RelativeTime`: `useMediaQuery`, `useBreakpoint`, `useDocumentTitle`, `useNow`, `useLocalStorage`.
 - `revealClass()` and `linkClass()` helpers; `buttonClass` and `Button` take `inline` (link variant, skips the 44px touch area).
 - AppHeader: `glass`, `overflowActions` (a "More actions" menu under sm). PageHeader: `collapseWhenStuck`. Callout: `sticky`, `clamp`, `href`, `onClick`, `count`.
-- Modal: `sheetHeight` (`'auto' | 'tall' | 'full'`), `dismissible`, `closeOnBack`. Drawer: `dismissible`, `closeOnBack`. DropdownMenu: `sheetBelow` and `sheetTitle` (opt-in bottom-sheet menu under 640px).
+- Modal: `sheetHeight` (`'auto' | 'tall' | 'full'`), `dismissible`, `closeOnBack`. Drawer: `dismissible`, `closeOnBack`. Modal and Drawer: `canClose` (return false to refuse a close from X, Escape, scrim, swipe or back, with no exit animation). DropdownMenu: `sheetBelow` and `sheetTitle` (opt-in bottom-sheet menu under 640px).
 - Segmented: `overflow` and `fullWidth`. TableWrap: `fade` and `stickyFirstColumn`. Td: `nowrap`.
 - Static parity (nish-components.css): `.nish-skeleton` shapes, `.nish-spinner`, busy `.nish-btn`, `.nish-sheet`, `.nish-check-row`, `.nish-checkbox`, `.nish-switch`, `.nish-subnav`, `.nish-link-card`, `.nish-sticky`, `.nish-bottom-nav`, `.nish-checklist`.
 - `@nish/ui/theme` and `window.nishTheme`: `openSheet(dialog)`, `mountHeightVar(el, name)`, `mountStuck(el)`, `mountScrollspy(nav, options?)`, `mountChecklist(list)`.

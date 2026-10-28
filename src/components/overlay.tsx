@@ -244,17 +244,20 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
 /** Keeps a sheet mounted while it plays its exit animation. Modal and Drawer have no
  *  `open` prop (the parent unmounts them in `onClose`), so the exit runs between the
  *  close request and the `onClose` call. */
-function useSheetExit(onClose: () => void) {
+function useSheetExit(onClose: () => void, canClose?: () => boolean) {
   const [closing, setClosing] = useState(false);
   const closingRef = useRef(false);
   const timer = useRef(0);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const canCloseRef = useRef(canClose);
+  canCloseRef.current = canClose;
   useEffect(() => () => window.clearTimeout(timer.current), []);
   /** Plays the exit animation, then calls `onClose`. */
   const requestClose = useCallback(() => {
     if (closingRef.current) return;
     if (closeVetoes.get(onCloseRef.current)?.()) return;
+    if (canCloseRef.current && !canCloseRef.current()) return;
     if (prefersReducedMotion()) {
       onCloseRef.current();
       return;
@@ -273,7 +276,9 @@ function useSheetExit(onClose: () => void) {
     onCloseRef.current();
   }, []);
   const isClosing = useCallback(() => closingRef.current, []);
-  return { closing, requestClose, closeNow, isClosing };
+  /** False when the app's canClose refuses: a swipe springs back instead of dismissing. */
+  const allowClose = useCallback(() => !canCloseRef.current || canCloseRef.current(), []);
+  return { closing, requestClose, closeNow, isClosing, allowClose };
 }
 
 /** Pointer-driven swipe down on a bottom sheet. Spread the result on the drag handle and
@@ -284,6 +289,7 @@ function useSheetSwipe(
   scrimRef: RefObject<HTMLElement | null>,
   enabled: () => boolean,
   onDismiss: () => void,
+  allow: () => boolean = () => true,
 ) {
   const drag = useRef<{ startY: number; dy: number; lastY: number; lastT: number; v: number } | null>(null);
   const timer = useRef(0);
@@ -291,6 +297,8 @@ function useSheetSwipe(
   enabledRef.current = enabled;
   const dismissRef = useRef(onDismiss);
   dismissRef.current = onDismiss;
+  const allowRef = useRef(allow);
+  allowRef.current = allow;
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const onPointerDown = useCallback(
@@ -337,7 +345,8 @@ function useSheetSwipe(
       if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
       const scrim = scrimRef.current;
       const velocity = e.timeStamp - d.lastT > 100 ? 0 : d.v;
-      const dismiss = !cancelled && (d.dy > panel.offsetHeight * 0.3 || velocity > 0.5);
+      // allow() runs only for a gesture that would dismiss: it may show the app's reason.
+      const dismiss = !cancelled && (d.dy > panel.offsetHeight * 0.3 || velocity > 0.5) && allowRef.current();
       const ms = SHEET_EXIT_MS - 20;
       panel.style.transition = `transform ${ms}ms ease-out`;
       if (scrim) scrim.style.transition = `opacity ${ms}ms ease-out`;
@@ -438,6 +447,10 @@ export interface ModalProps {
   /** Android back and the browser back button close the dialog instead of leaving the
    *  page (default true). Pass false for a dialog that must not touch history. */
   closeOnBack?: boolean;
+  /** Asked before any close (X, Escape, scrim, swipe, back). Return false to keep the
+   *  dialog open with no exit animation, e.g. while a form holds invalid input; show
+   *  the reason yourself. */
+  canClose?: () => boolean;
   className?: string;
 }
 
@@ -472,14 +485,15 @@ export function Modal({
   sheetHeight = 'auto',
   dismissible = true,
   closeOnBack = true,
+  canClose,
   className,
 }: ModalProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
-  const { closing, requestClose, closeNow, isClosing } = useSheetExit(onClose);
+  const { closing, requestClose, closeNow, isClosing, allowClose } = useSheetExit(onClose, canClose);
   useDialog(panelRef, requestClose, closeOnBack);
-  const swipe = useSheetSwipe(panelRef, scrimRef, () => dismissible && !isClosing() && isPhoneViewport(), closeNow);
+  const swipe = useSheetSwipe(panelRef, scrimRef, () => dismissible && !isClosing() && isPhoneViewport(), closeNow, allowClose);
   const showTitle = header === undefined && title !== undefined && title !== null;
 
   return createPortal(
@@ -587,6 +601,9 @@ export interface DrawerProps {
   /** Android back and the browser back button close the drawer instead of leaving the
    *  page (default true). Pass false for a drawer that must not touch history. */
   closeOnBack?: boolean;
+  /** Asked before any close (X, Escape, scrim, swipe, back). Return false to keep the
+   *  drawer open with no exit animation; show the reason yourself. */
+  canClose?: () => boolean;
   /** Accessible name, when the title alone does not say enough. */
   'aria-label'?: string;
   /** The body. It scrolls on its own; header and footer stay put. */
@@ -612,6 +629,7 @@ export function Drawer({
   bottomOffset,
   dismissible = true,
   closeOnBack = true,
+  canClose,
   'aria-label': ariaLabel,
   children,
   className,
@@ -619,10 +637,10 @@ export function Drawer({
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
-  const { closing, requestClose, closeNow, isClosing } = useSheetExit(onClose);
+  const { closing, requestClose, closeNow, isClosing, allowClose } = useSheetExit(onClose, canClose);
   useDialog(panelRef, requestClose, closeOnBack);
   const bottom = side === 'bottom';
-  const swipe = useSheetSwipe(panelRef, scrimRef, () => bottom && dismissible && !isClosing(), closeNow);
+  const swipe = useSheetSwipe(panelRef, scrimRef, () => bottom && dismissible && !isClosing(), closeNow, allowClose);
   const swipeHeader = bottom && dismissible;
 
   return createPortal(
