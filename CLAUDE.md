@@ -6,9 +6,10 @@ package is built, released and consumed: [README.md](README.md). Every release:
 
 ## Autonomy
 
-Claude sessions build, commit, push, open and merge PRs, cut releases (`npm run release`),
-and bump consumers (`scripts/bump-consumers.sh`, then merge and deploy those PRs) on their
-own judgment, without asking Nish. Work is done only when it is merged, released, adopted by
+Claude sessions build, commit, push, open and merge PRs and cut releases (`npm run release`,
+which also bumps, merges and deploys every consumer through `scripts/bump-consumers.sh`;
+re-run that script for any consumer it reports as failed) on their own judgment, without
+asking Nish. Work is done only when it is merged, released, adopted by
 the apps that need it, and confirmed live. Pick sensible defaults instead of asking; stop for
 Nish only when it is critically necessary (credentials, account signups, anything
 destructive to production data).

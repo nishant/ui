@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Cut a release: npm run release <patch|minor|major|x.y.z>
+// Cut a release: npm run release <patch|minor|major|x.y.z> [--no-bump]
 //
 // master never carries dist/. A release bumps the version on master, then makes a
 // tag commit on top of it that adds the built dist/, so `github:nishant/ui#vX.Y.Z`
@@ -44,4 +44,17 @@ sh('git checkout -q master');
 
 sh('git push -q origin master');
 sh(`git push -q origin ${tag}`);
-console.log(`\nReleased ${tag}. Bump consumers: scripts/bump-consumers.sh ${tag}`);
+console.log(`\nReleased ${tag}.`);
+
+// Every app moves to the new tag now: bump, merge on green, watch the deploys.
+// --no-bump skips it (e.g. a release nothing should adopt yet).
+if (process.argv.includes('--no-bump')) {
+  console.log(`Skipped the consumers. Later: scripts/bump-consumers.sh ${tag}`);
+} else {
+  try {
+    sh(`bash scripts/bump-consumers.sh ${tag}`);
+  } catch {
+    console.error(`\nSome consumers did not move to ${tag} (above). Fix them, then: scripts/bump-consumers.sh ${tag}`);
+    process.exit(1);
+  }
+}

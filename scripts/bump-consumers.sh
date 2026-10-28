@@ -1,32 +1,51 @@
 #!/usr/bin/env bash
-# Open a PR in each consumer repo that moves @nish/ui to <tag>.
-#   scripts/bump-consumers.sh v0.3.0            # clone, bump, push and open the PRs
-#   scripts/bump-consumers.sh v0.3.0 --dry-run  # show each package.json change, push nothing
-# Needs gh logged in as nishant. Either dependency form (github:nishant/ui#vX or
-# https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX) is rewritten to the
-# codeload form, which installs on the hosting PC runner (GitHub rejects its SSH key).
-# Static sites in hosting vendor the CSS instead: there, move ui.json and run
+# Move every consumer to <tag>: open a PR in each, merge it once it is green, and watch the
+# deploy the merge starts. `npm run release` runs this by itself after pushing the tag.
+#   scripts/bump-consumers.sh v0.3.0             # bump, merge, confirm the deploys
+#   scripts/bump-consumers.sh v0.3.0 --no-merge  # open the PRs and stop
+#   scripts/bump-consumers.sh v0.3.0 --dry-run   # show each change, push nothing
+# Needs gh logged in as nishant (with write access to taarora/arora-home). Either dependency
+# form (github:nishant/ui#vX or https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX)
+# is rewritten to the codeload form, which installs on the hosting PC runner (GitHub
+# rejects its SSH key).
+# taarora/arora-home vendors dist/ with its own palette pass instead of installing the
+# package: there the bump is its scripts/sync-nish-ui.py, and the merge follows its
+# CLAUDE.md rule 10 (pr_status.py, then a merge commit).
+# Static sites in hosting vendor the CSS too: there, move ui.json and run
 # scripts/sync-ui.mjs by hand.
 set -euo pipefail
-tag="${1:?usage: bump-consumers.sh vX.Y.Z [--dry-run]}"
-dry="${2:-}"
+tag="${1:?usage: bump-consumers.sh vX.Y.Z [--dry-run|--no-merge]}"
+mode="${2:-}"
 [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag must look like v0.3.0, got $tag" >&2; exit 2; }
 url="https://codeload.github.com/nishant/ui/tar.gz/refs/tags/$tag"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# repo  package-dir  package-manager  base-branch
+# repo  package-dir  kind  base-branch  pr-ci  gate
+#   kind   npm | pnpm: rewrite package.json and the lockfile; arora: run sync-nish-ui.py
+#   pr-ci  yes when the repo runs checks on pull requests; the merge waits for them
+#   gate   run from the repo root before pushing ("-" for none). Repos without PR checks
+#          build here instead, since their only check runs after the merge.
 consumers=(
-  "job-apps apps/web npm master"
-  "trading apps/web pnpm master"
-  "nishboard apps/renderer pnpm master"
-  "nish.software . npm master"
-  "status . npm master"
-  "trackers . npm master"
+  "nishant/job-apps apps/web npm master no npm ci && npm run build"
+  "nishant/trading apps/web pnpm master yes -"
+  "nishant/nishboard apps/renderer pnpm master yes -"
+  "nishant/nish.software . npm master no npm ci && npm run build"
+  "nishant/status . npm master no npm ci && npm run build"
+  "nishant/trackers . npm master no npm ci && npm run build"
+  # GitHub Pages and start.nish.software serve the committed docs/ bundle, so rebuild it.
+  "nishant/nishant.github.io . npm master no npm ci && npm run deploy && git add -A docs"
+  "taarora/arora-home packages/arora-ui arora main yes -"
 )
 
+# A python that runs; on Windows `python3` can be the Store stub.
+py=""
+for p in python3 python; do
+  if "$p" -c 'import sys' >/dev/null 2>&1; then py="$p"; break; fi
+done
+
 # Rewrites the "@nish/ui" dependency in package.json ($1) to $url. Prints nothing;
-# the caller compares the file before and after.
+# the caller asks git whether the file changed.
 rewrite() {
   sed -E -i.bak \
     "s~(\"@nish/ui\"[[:space:]]*:[[:space:]]*\")(github:nishant/ui#v[^\"]+|https://codeload\.github\.com/nishant/ui/tar\.gz/refs/tags/v[^\"]+)(\")~\1$url\3~" \
@@ -34,35 +53,140 @@ rewrite() {
   rm -f "$1.bak"
 }
 
+opened=()  # "repo number pr-ci branch" for each PR this run opened
+failed=()
+
 for line in "${consumers[@]}"; do
-  read -r repo dir pm base <<<"$line"
+  read -r repo dir kind base ci gate <<<"$line"
+  name="${repo#*/}"
   echo "== $repo"
-  if ! gh repo clone "nishant/$repo" "$work/$repo" -- -q --depth 1 --branch "$base"; then
-    echo "skip: cannot clone nishant/$repo ($base)"
+  # autocrlf off: on Windows sed writes LF back over a CRLF checkout.
+  if ! gh repo clone "$repo" "$work/$name" -- -q --depth 1 --branch "$base" -c core.autocrlf=false; then
+    echo "skip: cannot clone $repo ($base)"
+    failed+=("$repo: clone")
     continue
   fi
-  pkg="$work/$repo/$dir/package.json"
-  if [ ! -f "$pkg" ] || ! grep -q '"@nish/ui"' "$pkg"; then
-    echo "skip: $dir/package.json has no @nish/ui dependency"
-    continue
+  root="$work/$name"
+
+  if [ "$kind" = arora ]; then
+    version="$root/$dir/VERSION"
+    if [ "$(head -1 "$version")" = "tag $tag" ]; then echo "skip: already on $tag"; continue; fi
+    head -1 "$version"
+    if [ "$mode" = "--dry-run" ]; then echo "would run scripts/sync-nish-ui.py $tag"; continue; fi
+    [ -n "$py" ] || { echo "skip: no python to run sync-nish-ui.py"; failed+=("$repo: no python"); continue; }
+    branch="chore/packages-nish-ui-${tag//./-}"
+    title="packages: move @nish/ui to $tag"
+    if ! (cd "$root" && "$py" scripts/sync-nish-ui.py "$tag"); then
+      echo "skip: sync-nish-ui.py $tag failed (palette or contrast check); left for a person"
+      failed+=("$repo: sync-nish-ui.py")
+      continue
+    fi
+    body="## What
+
+\`packages/arora-ui/nish/\` is regenerated from @nish/ui $tag by \`scripts/sync-nish-ui.py\`, with the colour-blind palette pass applied.
+
+## Why
+
+A new @nish/ui release: https://github.com/nishant/ui/blob/$tag/CHANGELOG.md. Opened by nishant/ui \`scripts/bump-consumers.sh\`.
+
+## Blast radius
+
+- **Apps:** every app that loads \`/ui/\` restarts; only design-system styling changes
+- **Shared code:** \`packages/arora-ui\`
+- **Deploy:** the merge deploys itself
+
+## Verified
+
+- \`scripts/sync-nish-ui.py $tag\`: fetch, contrast and red/green checks passed
+- **Not run:** the suites locally; CI runs them on this PR and the merge waits for them"
+  else
+    pkg="$root/$dir/package.json"
+    if [ ! -f "$pkg" ] || ! grep -q '"@nish/ui"' "$pkg"; then
+      echo "skip: $dir/package.json has no @nish/ui dependency"
+      continue
+    fi
+    rewrite "$pkg"
+    if git -C "$root" diff --quiet -- "$dir/package.json"; then
+      echo "skip: already on $tag, or the @nish/ui spec is a form this script does not know:"
+      grep '"@nish/ui"' "$pkg" || true
+      continue
+    fi
+    grep '"@nish/ui"' "$pkg"
+    if [ "$mode" = "--dry-run" ]; then continue; fi
+    branch="ui/$tag"
+    title="Move @nish/ui to $tag"
+    body="Release notes: https://github.com/nishant/ui/blob/$tag/CHANGELOG.md"
+    if [ "$kind" = pnpm ]; then
+      (cd "$root/$dir" && pnpm install --lockfile-only --silent)
+    else
+      (cd "$root/$dir" && npm install --package-lock-only --ignore-scripts --silent)
+    fi
+    if [ "$gate" != "-" ] && ! (cd "$root" && bash -c "$gate"); then
+      echo "skip: \`$gate\` failed on $tag; nothing pushed"
+      failed+=("$repo: $gate")
+      continue
+    fi
   fi
-  before="$(cat "$pkg")"
-  rewrite "$pkg"
-  if [ "$before" = "$(cat "$pkg")" ]; then
-    echo "skip: already on $tag, or the @nish/ui spec is a form this script does not know:"
-    grep '"@nish/ui"' "$pkg" || true
-    continue
-  fi
-  grep '"@nish/ui"' "$pkg"
-  if [ "$dry" = "--dry-run" ]; then continue; fi
+
   (
-    cd "$work/$repo/$dir"
-    git -C "$work/$repo" checkout -q -b "ui/$tag"
-    if [ "$pm" = pnpm ]; then pnpm install --lockfile-only --silent; else npm install --package-lock-only --ignore-scripts --silent; fi
-    git -C "$work/$repo" commit -qam "Move @nish/ui to $tag"
-    git -C "$work/$repo" push -q -u origin "ui/$tag"
-    gh pr create --repo "nishant/$repo" --base "$base" --head "ui/$tag" \
-      --title "Move @nish/ui to $tag" \
-      --body "Release notes: https://github.com/nishant/ui/releases/tag/$tag"
+    cd "$root"
+    git checkout -q -b "$branch"
+    git add -A "$dir"
+    git commit -qam "$title"
+    git push -q -u origin "$branch"
   )
+  pr_url="$(cd "$root" && gh pr create --repo "$repo" --base "$base" --head "$branch" --title "$title" --body "$body")"
+  echo "$pr_url"
+  opened+=("$repo ${pr_url##*/} $ci $branch")
 done
+
+if [ "$mode" = "--dry-run" ] || [ "$mode" = "--no-merge" ] || [ ${#opened[@]} -eq 0 ]; then
+  [ ${#failed[@]} -eq 0 ] || { printf 'failed: %s\n' "${failed[@]}"; exit 1; }
+  exit 0
+fi
+
+# Merge each PR once its checks pass, then watch the runs the merge commit starts.
+deployed=()
+for entry in "${opened[@]}"; do
+  read -r repo num ci branch <<<"$entry"
+  name="${repo#*/}"
+  echo "== merge $repo#$num"
+  if [ "$name" = arora-home ]; then
+    if ! (cd "$work/$name" && "$py" skills/merge-pr/scripts/pr_status.py "$num" --wait); then
+      echo "left open: pr_status.py says no"; failed+=("$repo#$num: checks"); continue
+    fi
+  elif [ "$ci" = yes ]; then
+    sleep 15  # let the pull_request runs register, or gh reports "no checks"
+    if ! gh pr checks "$num" --repo "$repo" --watch --fail-fast >/dev/null; then
+      echo "left open: checks failed"; failed+=("$repo#$num: checks"); continue
+    fi
+  fi
+  if ! gh pr merge "$num" --repo "$repo" --merge; then
+    failed+=("$repo#$num: merge"); continue
+  fi
+  git -C "$work/$name" push -q origin --delete "$branch" || true
+  deployed+=("$repo $(gh pr view "$num" --repo "$repo" --json mergeCommit -q .mergeCommit.oid)")
+done
+
+for entry in "${deployed[@]}"; do
+  read -r repo sha <<<"$entry"
+  echo "== deploy $repo ${sha:0:7}"
+  runs=""
+  for _ in $(seq 18); do
+    runs="$(gh run list --repo "$repo" --commit "$sha" --event push --json databaseId -q '.[].databaseId')"
+    [ -n "$runs" ] && break
+    sleep 5
+  done
+  [ -n "$runs" ] || { echo "no run started for $sha"; failed+=("$repo: no deploy run"); continue; }
+  for id in $runs; do
+    if gh run watch "$id" --repo "$repo" --exit-status >/dev/null; then
+      echo "ok: $(gh run view "$id" --repo "$repo" --json workflowName,url -q '.workflowName + " " + .url')"
+    else
+      echo "FAILED: $(gh run view "$id" --repo "$repo" --json url -q .url)"
+      failed+=("$repo: run $id")
+    fi
+  done
+done
+
+[ ${#failed[@]} -eq 0 ] || { printf 'failed: %s\n' "${failed[@]}"; exit 1; }
+echo "All consumers on $tag."
