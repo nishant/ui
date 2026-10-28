@@ -329,16 +329,26 @@ errors, missing focus rings and empty screenshots.
 ## Releasing
 
 ```bash
-npm run release patch      # or minor, major, 1.2.3
-scripts/bump-consumers.sh v0.1.3
+npm run release patch      # or minor, major, 1.2.3; also moves every app to the new tag
+npm run release patch -- --no-bump   # release only
+scripts/bump-consumers.sh v0.1.3     # move the apps by hand (re-run after a failure)
 ```
 
 - `npm run release` runs `npm run check`, bumps the version on `master` and commits it, then
   makes a detached commit on top that adds the built `dist/`, tags it `vX.Y.Z` and pushes
   both. `master` never contains `dist/`; the tag does, so a git install needs no build step.
-- `scripts/bump-consumers.sh vX.Y.Z` clones each app repo, moves its `@nish/ui` dependency to
-  the tag, updates the lockfile (npm or pnpm) and opens a PR. Each app moves when its PR
-  merges.
+- Then the release runs `scripts/bump-consumers.sh vX.Y.Z`. It clones each app repo, moves
+  its `@nish/ui` dependency to the tag, updates the lockfile (npm or pnpm) and opens a PR.
+  Repos with no PR checks build locally first (startpage also rebuilds its committed
+  `docs/`); repos with PR checks wait for them. Each green PR is merged and the deploy the
+  merge starts is watched to the end. A failed build, check or deploy leaves that PR open
+  and the script exits non-zero; the others still move. `--no-merge` only opens the PRs,
+  `--dry-run` only prints the changes.
+- `taarora/arora-home` vendors `dist/` with a colour-blind palette pass instead of installing
+  the package. Its PR comes from that repo's `scripts/sync-nish-ui.py vX.Y.Z` and merges
+  after its `pr_status.py` passes, per its CLAUDE.md. If the palette or contrast check fails
+  on a new release, no PR is opened and someone has to look.
+- Add a consumer by adding a line to the `consumers` list at the top of the script.
 - Static sites move in nishant/hosting: change `tag` in `ui.json`, run
   `node scripts/sync-ui.mjs` (it copies the vendored files and updates their hashes), then
   restamp the pages. `scripts/sync-ui.mjs --check --offline` fails CI if a vendored copy
