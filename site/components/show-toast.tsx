@@ -9,7 +9,7 @@ import { Row } from './shared';
 function unreachable(): Node {
   const p = document.createDocumentFragment();
   const host = document.createElement('strong');
-  host.textContent = 'mc.nish.software';
+  host.textContent = 'minecraft.nish.software';
   const link = document.createElement('a');
   link.href = '#/components/show-toast';
   link.textContent = 'open it anyway';

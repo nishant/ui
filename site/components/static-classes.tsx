@@ -595,7 +595,7 @@ export const STATIC_STORIES: StaticStory[] = [
     name: 'Toast',
     note: 'What showToast() renders (fixed at the bottom center; shown in place here). Tone modifiers tint the border: --ok, --warn, --loss, --info.',
     html: `<div ${STACK}>
-  <div class="nish-toast nish-toast--warn" style="position:static;width:100%;animation:none"><p class="nish-toast-body"><strong>mc.nish.software</strong> is not reachable from here. You can still <a href="#/static-sites">open it anyway</a>.</p><button type="button" class="nish-toast-close" aria-label="Dismiss">${svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)}</button></div>
+  <div class="nish-toast nish-toast--warn" style="position:static;width:100%;animation:none"><p class="nish-toast-body"><strong>minecraft.nish.software</strong> is not reachable from here. You can still <a href="#/static-sites">open it anyway</a>.</p><button type="button" class="nish-toast-close" aria-label="Dismiss">${svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)}</button></div>
   <div class="nish-toast nish-toast--ok" style="position:static;width:100%;animation:none"><p class="nish-toast-body">Tile hidden.</p><button type="button" class="nish-toast-action">Undo</button><button type="button" class="nish-toast-close" aria-label="Dismiss">${svg('<path d="M18 6 6 18M6 6l12 12"/>', 14)}</button></div>
 </div>`,
   },

@@ -17,7 +17,7 @@ Used by:
 | status.nish.software | codeload tarball | React + Tailwind 4 |
 | trackers.nish.software | codeload tarball | React + Tailwind 4 |
 | start.nish.software (repo nishant.github.io) | CSS consumer | Angular 16 + Angular Material, themed through the `--nish-*` roles |
-| mc.nish.software | vendored dist files | static HTML |
+| minecraft.nish.software | vendored dist files | static HTML |
 | trips (hosting `static/trips`) | vendored dist files | static HTML |
 
 From v0.3.0 every app installs the codeload tarball (`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`), which needs only HTTPS; `scripts/bump-consumers.sh` writes that form.

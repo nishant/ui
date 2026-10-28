@@ -1920,7 +1920,7 @@
 
 /* --- Link card (.nish-link-card) ----------------------------------------------------
    The whole card is the link (the LinkCard component).
-   <a class="nish-link-card" data-accent="chart-3" href="https://mc.nish.software">
+   <a class="nish-link-card" data-accent="chart-3" href="https://minecraft.nish.software">
      <span class="nish-link-card-icon" aria-hidden="true">…</span>
      <span class="nish-link-card-title">Minecraft</span>
      <span class="nish-link-card-blurb">Server status and controls.</span>

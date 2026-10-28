@@ -11,7 +11,7 @@ const SITES = [
   { host: 'nish.software', what: 'Hub', status: 'ok', p95: 38, uptime: '100%' },
   { host: 'jobs.nish.software', what: 'Job search', status: 'ok', p95: 41, uptime: '99.98%' },
   { host: 'trading.nish.software', what: 'Options ideas', status: 'ok', p95: 88, uptime: '99.95%' },
-  { host: 'mc.nish.software', what: 'Minecraft guides', status: 'warn', p95: 612, uptime: '99.40%' },
+  { host: 'minecraft.nish.software', what: 'Minecraft guides', status: 'warn', p95: 612, uptime: '99.40%' },
   { host: 'trackers.nish.software', what: 'Price trackers', status: 'loss', p95: null, uptime: '97.12%' },
 ] as const;
 

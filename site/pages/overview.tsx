@@ -12,7 +12,7 @@ const APPS: { host: string; name: string; what: string; how: 'npm' | 'vendored';
   { host: 'Nishboard', name: 'Nishboard', what: 'Desktop dashboard with its own extra themes.', how: 'npm', stack: 'Electron + React, pnpm' },
   { host: 'status.nish.software', name: 'Status', what: 'Uptime and response times for every site.', how: 'npm', stack: 'React + Tailwind 4' },
   { host: 'trackers.nish.software', name: 'Trackers', what: 'Price trackers and drop alerts.', how: 'npm', stack: 'React + Tailwind 4' },
-  { host: 'mc.nish.software', name: 'Minecraft', what: 'Build guides, with a pixel display face.', how: 'vendored', stack: 'Static HTML' },
+  { host: 'minecraft.nish.software', name: 'Minecraft', what: 'Build guides, with a pixel display face.', how: 'vendored', stack: 'Static HTML' },
   { host: 'trips.nish.software', name: 'Trips', what: 'Trip pages, with a serif display face.', how: 'vendored', stack: 'Static HTML' },
 ];
 
