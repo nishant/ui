@@ -27,16 +27,29 @@ trap 'rm -rf "$work"' EXIT
 #   gate   run from the repo root before pushing ("-" for none). Repos without PR checks
 #          build here instead, since their only check runs after the merge.
 consumers=(
-  "nishant/job-apps apps/web npm master no npm ci && npm run build"
+  "nishant/job-apps apps/web npm master no npm10 ci && npm run build"
   "nishant/trading apps/web pnpm master yes -"
   "nishant/nishboard apps/renderer pnpm master yes -"
-  "nishant/nish.software . npm master no npm ci && npm run build"
-  "nishant/status . npm master no npm ci && npm run build"
-  "nishant/trackers . npm master no npm ci && npm run build"
+  "nishant/nish.software . npm master no npm10 ci && npm run build"
+  "nishant/status . npm master no npm10 ci && npm run build"
+  "nishant/trackers . npm master no npm10 ci && npm run build"
   # GitHub Pages and start.nish.software serve the committed docs/ bundle, so rebuild it.
-  "nishant/nishant.github.io . npm master no npm ci && npm run deploy && git add -A docs"
+  "nishant/nishant.github.io . npm master no npm10 ci && npm run deploy && git add -A docs"
   "taarora/arora-home packages/arora-ui arora main yes -"
 )
+
+# The apps' CI runs Node 18/22, whose npm 10 `npm ci` rejects a lockfile written by npm 11:
+# npm 11 drops optional peer entries npm 10 requires (startpage's deploy failed on exactly
+# that, twice). So lockfiles are written, and the gate's `npm ci` run, with npm 10.
+npm10() { npx -y npm@10 "$@"; }
+export -f npm10
+
+# Commit as the gh account when this machine has no git identity of its own (the hosting
+# PC sets one per repo, not globally).
+if [ -z "$(git config --global user.email || true)" ]; then
+  read -r GIT_AUTHOR_EMAIL GIT_AUTHOR_NAME < <(gh api user -q '"\(.id)+\(.login)@users.noreply.github.com \(.name // .login)"')
+  export GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+fi
 
 # A python that runs; on Windows `python3` can be the Store stub.
 py=""
@@ -119,7 +132,7 @@ A new @nish/ui release: https://github.com/nishant/ui/blob/$tag/CHANGELOG.md. Op
     if [ "$kind" = pnpm ]; then
       (cd "$root/$dir" && pnpm install --lockfile-only --silent)
     else
-      (cd "$root/$dir" && npm install --package-lock-only --ignore-scripts --silent)
+      (cd "$root/$dir" && npm10 install --package-lock-only --ignore-scripts --silent)
     fi
     if [ "$gate" != "-" ] && ! (cd "$root" && bash -c "$gate"); then
       echo "skip: \`$gate\` failed on $tag; nothing pushed"
