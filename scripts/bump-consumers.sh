@@ -14,6 +14,8 @@
 # Static sites in hosting vendor the CSS too: there, move ui.json and run
 # scripts/sync-ui.mjs by hand.
 set -euo pipefail
+# arora-home's pr_status.py prints arrows; Windows Python defaults to cp1252 and crashes on them.
+export PYTHONIOENCODING=utf-8 PYTHONUTF8=1
 tag="${1:?usage: bump-consumers.sh vX.Y.Z [--dry-run|--no-merge]}"
 mode="${2:-}"
 [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag must look like v0.3.0, got $tag" >&2; exit 2; }
