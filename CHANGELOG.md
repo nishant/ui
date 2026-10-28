@@ -54,6 +54,9 @@ Mobile chrome, a layout contract and the components every app kept hand-rolling.
 - TableWrap contains absolutely positioned children, so a wide table no longer widens the page.
 - No grey tap flash on Android.
 - `scrollbar-gutter: stable` stops the page shifting when a dialog locks scroll on desktop.
+- A router link inside a sheet (MoreSheet `renderLink`, CommandPalette) lands on the new page with no dead history entry, also with async routers.
+- `useStuck` and `mountStuck` report stuck only for a `position: sticky` element resting at its sticky top after a scroll.
+- Toasts sit 20px from the bottom with no bottom bar, above the BottomNav when one shows, and above an open StickyActionBar.
 
 ## [0.6.1] - 2026-10-26
 
