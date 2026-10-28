@@ -11,6 +11,7 @@ import {
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactElement,
   type ReactNode,
   type Ref,
@@ -30,6 +31,35 @@ import { Button, IconButton } from './primitives';
 // confirm dialog over an editor (or a menu inside a drawer) closes alone.
 const layerStack: object[] = [];
 const isTop = (self: object) => layerStack[layerStack.length - 1] === self;
+
+// Dialog layers (Modal, Drawer, ConfirmDialog; not popovers or menus) mark <html> with
+// data-nish-layer-open, so CSS elsewhere (the Toaster moving to the top of a phone) can
+// react without React state.
+let dialogCount = 0;
+
+function syncLayerAttr() {
+  if (typeof document === 'undefined') return;
+  const html = document.documentElement;
+  if (dialogCount > 0) html.setAttribute('data-nish-layer-open', '');
+  else html.removeAttribute('data-nish-layer-open');
+}
+
+const SHEET_EXIT_MS = 200;
+const PHONE_QUERY = '(max-width: 639px)';
+
+function isPhoneViewport(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches;
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// Close handlers that can refuse to close (ConfirmDialog while its action runs), so
+// the exit animation is not played for a close that is then ignored.
+const closeVetoes = new WeakMap<() => void, () => boolean>();
+
+let layerSeq = 0;
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -70,7 +100,7 @@ function layerHost(anchor: HTMLElement | null | undefined): HTMLElement {
 
 /** The internals every modal surface shares (Modal, Drawer, ConfirmDialog): stack
  *  membership, focus in, Tab trap, Escape, focus return and the html + body lock. */
-function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void) {
+function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void, closeOnBack = false) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -79,6 +109,28 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void)
     const panel = panelRef.current;
     const self = {};
     layerStack.push(self);
+    dialogCount++;
+    syncLayerAttr();
+
+    // Android back / browser back closes the top layer: the layer owns one history
+    // entry. The push is deferred a tick so a Strict Mode mount-unmount-mount does not
+    // push and pop an entry.
+    const layerId = `nish-layer-${++layerSeq}`;
+    let pushed = false;
+    const pushTimer = closeOnBack
+      ? window.setTimeout(() => {
+          const prev = history.state && typeof history.state === 'object' ? (history.state as object) : {};
+          history.pushState({ ...prev, nishLayer: layerId }, '');
+          pushed = true;
+        }, 0)
+      : 0;
+    function onPop() {
+      if (!pushed || !isTop(self)) return;
+      if ((history.state as { nishLayer?: string } | null)?.nishLayer === layerId) return;
+      pushed = false;
+      onCloseRef.current();
+    }
+    if (closeOnBack) window.addEventListener('popstate', onPop);
     // React's autoFocus focuses the element itself and writes no attribute, so let it
     // run first; only if focus is still outside the panel, pick [data-autofocus] /
     // [autofocus], else the panel.
@@ -119,12 +171,173 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void)
     document.addEventListener('keydown', onKey);
     return () => {
       window.clearTimeout(focusTimer);
+      window.clearTimeout(pushTimer);
+      window.removeEventListener('popstate', onPop);
       layerStack.splice(layerStack.indexOf(self), 1);
+      dialogCount--;
+      syncLayerAttr();
       document.removeEventListener('keydown', onKey);
       unlock();
       opener?.focus?.();
+      // Closed by anything but back: drop the entry this layer pushed.
+      if (pushed && (history.state as { nishLayer?: string } | null)?.nishLayer === layerId) history.back();
     };
-  }, [panelRef]);
+  }, [panelRef, closeOnBack]);
+}
+
+/** Keeps a sheet mounted while it plays its exit animation. Modal and Drawer have no
+ *  `open` prop (the parent unmounts them in `onClose`), so the exit runs between the
+ *  close request and the `onClose` call. */
+function useSheetExit(onClose: () => void) {
+  const [closing, setClosing] = useState(false);
+  const closingRef = useRef(false);
+  const timer = useRef(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  /** Plays the exit animation, then calls `onClose`. */
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return;
+    if (closeVetoes.get(onCloseRef.current)?.()) return;
+    if (prefersReducedMotion()) {
+      onCloseRef.current();
+      return;
+    }
+    closingRef.current = true;
+    setClosing(true);
+    timer.current = window.setTimeout(() => {
+      onCloseRef.current();
+      // Still mounted (the parent kept it): show it again.
+      closingRef.current = false;
+      setClosing(false);
+    }, SHEET_EXIT_MS);
+  }, []);
+  /** Calls `onClose` at once, for a swipe that already animated the sheet away. */
+  const closeNow = useCallback(() => {
+    onCloseRef.current();
+  }, []);
+  const isClosing = useCallback(() => closingRef.current, []);
+  return { closing, requestClose, closeNow, isClosing };
+}
+
+/** Pointer-driven swipe down on a bottom sheet. Spread the result on the drag handle and
+ *  the header. The sheet follows the finger (rubber-banded upward), then closes past 30%
+ *  of its height or at 0.5 px/ms, and otherwise springs back over 180ms. */
+function useSheetSwipe(
+  panelRef: RefObject<HTMLElement | null>,
+  scrimRef: RefObject<HTMLElement | null>,
+  enabled: () => boolean,
+  onDismiss: () => void,
+) {
+  const drag = useRef<{ startY: number; dy: number; lastY: number; lastT: number; v: number } | null>(null);
+  const timer = useRef(0);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      if (drag.current || !enabledRef.current()) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const hit = (e.target as HTMLElement).closest('button,a,input,select,textarea,[role="button"]');
+      if (hit && hit !== e.currentTarget) return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      window.clearTimeout(timer.current);
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      panel.style.transition = 'none';
+      if (scrimRef.current) scrimRef.current.style.transition = 'none';
+      drag.current = { startY: e.clientY, dy: 0, lastY: e.clientY, lastT: e.timeStamp, v: 0 };
+    },
+    [panelRef, scrimRef],
+  );
+
+  const onPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      const d = drag.current;
+      const panel = panelRef.current;
+      if (!d || !panel) return;
+      d.dy = e.clientY - d.startY;
+      const dt = e.timeStamp - d.lastT;
+      if (dt > 0) d.v = (e.clientY - d.lastY) / dt;
+      d.lastY = e.clientY;
+      d.lastT = e.timeStamp;
+      panel.style.transform = `translateY(${d.dy < 0 ? d.dy * 0.3 : d.dy}px)`;
+      if (scrimRef.current) {
+        scrimRef.current.style.opacity = String(Math.max(0, 1 - Math.max(0, d.dy) / Math.max(1, panel.offsetHeight)));
+      }
+    },
+    [panelRef, scrimRef],
+  );
+
+  const end = useCallback(
+    (e: ReactPointerEvent<HTMLElement>, cancelled: boolean) => {
+      const d = drag.current;
+      const panel = panelRef.current;
+      drag.current = null;
+      if (!d || !panel) return;
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+      const scrim = scrimRef.current;
+      const velocity = e.timeStamp - d.lastT > 100 ? 0 : d.v;
+      const dismiss = !cancelled && (d.dy > panel.offsetHeight * 0.3 || velocity > 0.5);
+      const ms = SHEET_EXIT_MS - 20;
+      panel.style.transition = `transform ${ms}ms ease-out`;
+      if (scrim) scrim.style.transition = `opacity ${ms}ms ease-out`;
+      if (dismiss) {
+        panel.style.transform = 'translateY(100%)';
+        if (scrim) scrim.style.opacity = '0';
+        timer.current = window.setTimeout(() => dismissRef.current(), ms);
+      } else {
+        panel.style.transform = 'translateY(0)';
+        if (scrim) scrim.style.opacity = '1';
+        timer.current = window.setTimeout(() => {
+          panel.style.transform = '';
+          panel.style.transition = '';
+          if (scrim) {
+            scrim.style.opacity = '';
+            scrim.style.transition = '';
+          }
+        }, ms);
+      }
+    },
+    [panelRef, scrimRef],
+  );
+
+  return {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: (e: ReactPointerEvent<HTMLElement>) => end(e, false),
+    onPointerCancel: (e: ReactPointerEvent<HTMLElement>) => end(e, true),
+  };
+}
+
+type SheetSwipe = ReturnType<typeof useSheetSwipe>;
+
+/** The grab bar on top of a bottom sheet: drag it down to dismiss, or press Enter or
+ *  Space when it has focus. */
+function SheetHandle({ onClose, swipe, className }: { onClose: () => void; swipe: SheetSwipe; className?: string }) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label="Close"
+      {...swipe}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClose();
+        }
+      }}
+      className={cn(
+        'flex h-5 w-full shrink-0 cursor-grab touch-none items-center justify-center rounded-t-2xl outline-none focus-visible:bg-th-overlay',
+        className,
+      )}
+    >
+      <span className="h-1 w-10 rounded-full bg-th-line-strong" aria-hidden="true" />
+    </div>
+  );
 }
 
 const CLOSE_BUTTON =
@@ -160,8 +373,23 @@ export interface ModalProps {
   hideClose?: boolean;
   /** Accessible name when there is no visible `title` (required with `header`). */
   'aria-label'?: string;
+  /** Phone sheet height (under 640px). auto: as tall as the content, up to 92% of the
+   *  screen (default). tall: always 92%. full: the whole screen, square at the top. */
+  sheetHeight?: 'auto' | 'tall' | 'full';
+  /** Phone sheet: draw the grab handle and let a swipe down on it or the header close
+   *  the sheet (default true). false: no handle, no swipe. */
+  dismissible?: boolean;
+  /** Android back and the browser back button close the dialog instead of leaving the
+   *  page (default true). Pass false for a dialog that must not touch history. */
+  closeOnBack?: boolean;
   className?: string;
 }
+
+const SHEET_HEIGHT_CLASS = {
+  auto: 'max-h-[92dvh]',
+  tall: 'max-h-[92dvh] max-sm:h-[92dvh]',
+  full: 'max-h-dvh max-sm:h-dvh max-sm:rounded-t-none max-sm:pt-[env(safe-area-inset-top)]',
+};
 
 const SIZE = {
   md: 'sm:max-w-md',
@@ -185,22 +413,30 @@ export function Modal({
   header,
   hideClose = false,
   'aria-label': ariaLabel,
+  sheetHeight = 'auto',
+  dismissible = true,
+  closeOnBack = true,
   className,
 }: ModalProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
-  useDialog(panelRef, onClose);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  const { closing, requestClose, closeNow, isClosing } = useSheetExit(onClose);
+  useDialog(panelRef, requestClose, closeOnBack);
+  const swipe = useSheetSwipe(panelRef, scrimRef, () => dismissible && !isClosing() && isPhoneViewport(), closeNow);
   const showTitle = header === undefined && title !== undefined && title !== null;
 
   return createPortal(
     <div
+      ref={scrimRef}
       data-nish-layer=""
       className={cn(
-        'fixed inset-0 z-50 flex items-end justify-center bg-th-scrim/60 animate-[nish-fade-in_160ms_ease-out] sm:p-4',
+        'fixed inset-0 z-50 flex items-end justify-center bg-th-scrim/60 sm:p-4',
+        closing ? 'pointer-events-none animate-[nish-fade-out_200ms_ease-in_forwards]' : 'animate-[nish-fade-in_160ms_ease-out]',
         placement === 'top' ? 'sm:items-start sm:pt-[12vh]' : 'sm:items-center',
       )}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) requestClose();
       }}
     >
       <div
@@ -211,25 +447,34 @@ export function Modal({
         aria-label={ariaLabel}
         tabIndex={-1}
         className={cn(
-          'flex max-h-[92dvh] w-full flex-col border border-th-line bg-th-surface shadow-modal outline-none',
-          'rounded-t-2xl animate-[nish-sheet-in_240ms_var(--nish-ease-out)] pb-[env(safe-area-inset-bottom)]',
-          'sm:max-h-[85vh] sm:rounded-2xl sm:pb-0 sm:animate-[nish-rise-in_200ms_var(--nish-ease-out)]',
-          placement === 'top' && 'sm:max-h-[76vh]',
+          'flex w-full flex-col border border-th-line bg-th-surface shadow-modal outline-none',
+          'rounded-t-2xl pb-[env(safe-area-inset-bottom)]',
+          closing
+            ? 'max-sm:animate-[nish-sheet-out_200ms_ease-in_forwards] sm:animate-[nish-fade-out_200ms_ease-in_forwards]'
+            : 'animate-[nish-sheet-in_240ms_var(--nish-ease-out)] sm:animate-[nish-rise-in_200ms_var(--nish-ease-out)]',
+          'sm:max-h-[85dvh] sm:rounded-2xl sm:pb-0',
+          placement === 'top' && 'sm:max-h-[76dvh]',
+          SHEET_HEIGHT_CLASS[sheetHeight],
           SIZE[size],
           className,
         )}
       >
-        <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-th-line-strong sm:hidden" aria-hidden="true" />
+        {dismissible ? <SheetHandle onClose={requestClose} swipe={swipe} className="sm:hidden" /> : null}
         {header !== undefined ? (
-          <div className="shrink-0">{header}</div>
+          <div className={cn('shrink-0', dismissible && 'max-sm:touch-pan-x')} {...(dismissible ? swipe : {})}>
+            {header}
+          </div>
         ) : (
-          <div className="flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-3 sm:pt-4">
+          <div
+            className={cn('flex shrink-0 items-start justify-between gap-3 px-5 pb-2 pt-3 sm:pt-4', dismissible && 'max-sm:touch-pan-x')}
+            {...(dismissible ? swipe : {})}
+          >
             {/* Long titles (product names) wrap to two lines rather than lose their end. */}
             <h2 id={titleId} className="min-w-0 line-clamp-2 break-words pt-1 text-base font-semibold leading-snug text-th-hi">
               {title}
             </h2>
             {hideClose ? null : (
-              <button type="button" onClick={onClose} aria-label="Close" className={CLOSE_BUTTON}>
+              <button type="button" onClick={requestClose} aria-label="Close" className={CLOSE_BUTTON}>
                 <XIcon size={16} />
               </button>
             )}
@@ -280,6 +525,12 @@ export interface DrawerProps {
   /** Bottom sheets: lifts the sheet above an app's bottom tab bar, e.g.
    *  'calc(4rem + env(safe-area-inset-bottom))'. */
   bottomOffset?: string;
+  /** Bottom sheets: draw the grab handle and let a swipe down on it or the header close
+   *  the sheet (default true). false: no handle, no swipe. */
+  dismissible?: boolean;
+  /** Android back and the browser back button close the drawer instead of leaving the
+   *  page (default true). Pass false for a drawer that must not touch history. */
+  closeOnBack?: boolean;
   /** Accessible name, when the title alone does not say enough. */
   'aria-label'?: string;
   /** The body. It scrolls on its own; header and footer stay put. */
@@ -303,22 +554,32 @@ export function Drawer({
   actions,
   footer,
   bottomOffset,
+  dismissible = true,
+  closeOnBack = true,
   'aria-label': ariaLabel,
   children,
   className,
 }: DrawerProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
-  useDialog(panelRef, onClose);
+  const scrimRef = useRef<HTMLDivElement>(null);
+  const { closing, requestClose, closeNow, isClosing } = useSheetExit(onClose);
+  useDialog(panelRef, requestClose, closeOnBack);
   const bottom = side === 'bottom';
+  const swipe = useSheetSwipe(panelRef, scrimRef, () => bottom && dismissible && !isClosing(), closeNow);
+  const swipeHeader = bottom && dismissible;
 
   return createPortal(
     <div
+      ref={scrimRef}
       data-nish-layer=""
-      className="fixed inset-0 z-50 bg-th-scrim/50 animate-[nish-fade-in_160ms_ease-out]"
+      className={cn(
+        'fixed inset-0 z-50 bg-th-scrim/50',
+        closing ? 'pointer-events-none animate-[nish-fade-out_200ms_ease-in_forwards]' : 'animate-[nish-fade-in_160ms_ease-out]',
+      )}
       style={bottom && bottomOffset ? { bottom: bottomOffset } : undefined}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) requestClose();
       }}
     >
       <div
@@ -332,7 +593,10 @@ export function Drawer({
           'absolute flex flex-col border-th-line bg-th-surface shadow-modal outline-none',
           bottom
             ? cn(
-                'inset-x-0 bottom-0 rounded-t-2xl border-t animate-[nish-sheet-in_240ms_var(--nish-ease-out)]',
+                'inset-x-0 bottom-0 rounded-t-2xl border-t',
+                closing
+                  ? 'animate-[nish-sheet-out_200ms_ease-in_forwards]'
+                  : 'animate-[nish-sheet-in_240ms_var(--nish-ease-out)]',
                 bottomOffset ? '' : 'pb-[env(safe-area-inset-bottom)]',
                 SHEET_HEIGHT[size],
               )
@@ -340,14 +604,31 @@ export function Drawer({
                 'inset-y-0 w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
                 DRAWER_WIDTH[size],
                 side === 'right'
-                  ? 'right-0 border-l pr-[env(safe-area-inset-right)] animate-[nish-slide-in-right_240ms_var(--nish-ease-out)]'
-                  : 'left-0 border-r pl-[env(safe-area-inset-left)] animate-[nish-slide-in-left_240ms_var(--nish-ease-out)]',
+                  ? cn(
+                      'right-0 border-l pr-[env(safe-area-inset-right)]',
+                      closing
+                        ? 'translate-x-full transition-transform duration-200 ease-in'
+                        : 'animate-[nish-slide-in-right_240ms_var(--nish-ease-out)]',
+                    )
+                  : cn(
+                      'left-0 border-r pl-[env(safe-area-inset-left)]',
+                      closing
+                        ? '-translate-x-full transition-transform duration-200 ease-in'
+                        : 'animate-[nish-slide-in-left_240ms_var(--nish-ease-out)]',
+                    ),
               ),
           className,
         )}
       >
-        {bottom ? <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-th-line-strong" aria-hidden="true" /> : null}
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-th-line px-5 py-3">
+        {swipeHeader ? (
+          <SheetHandle onClose={requestClose} swipe={swipe} />
+        ) : bottom ? (
+          <div className="h-3 shrink-0" aria-hidden="true" />
+        ) : null}
+        <div
+          className={cn('flex shrink-0 items-start justify-between gap-3 border-b border-th-line px-5 py-3', swipeHeader && 'touch-pan-x')}
+          {...(swipeHeader ? swipe : {})}
+        >
           <div className="min-w-0 pt-1">
             <h2 id={titleId} className="line-clamp-2 break-words text-base font-semibold leading-snug text-th-hi">
               {title}
@@ -356,7 +637,7 @@ export function Drawer({
           </div>
           <div className="-mr-1.5 flex shrink-0 items-center gap-1">
             {actions}
-            <IconButton label="Close" onClick={onClose}>
+            <IconButton label="Close" onClick={requestClose}>
               <XIcon size={16} />
             </IconButton>
           </div>
@@ -415,6 +696,7 @@ export function ConfirmDialog({
   const cancel = useCallback(() => {
     if (!pendingRef.current) onCancel();
   }, [onCancel]);
+  closeVetoes.set(cancel, () => pendingRef.current);
   const danger = tone === 'danger';
   return (
     <Modal
@@ -453,6 +735,8 @@ interface AnchoredPosition {
   top: number;
   left: number;
   side: Side;
+  /** Room left on the chosen side (px), for the panel's max-height. */
+  maxHeight: number;
 }
 
 const GAP = 8;
@@ -483,11 +767,16 @@ function place(r: DOMRect, w: number, h: number, side: Side, align: Align, gap: 
   if (chosen === 'top' || chosen === 'bottom') {
     const top = chosen === 'top' ? r.top - gap - h : r.bottom + gap;
     const left = align === 'start' ? r.left : align === 'end' ? r.right - w : r.left + r.width / 2 - w / 2;
-    return { side: chosen, top: clamp(top, h, vh), left: clamp(left, w, vw) };
+    return {
+      side: chosen,
+      top: clamp(top, h, vh),
+      left: clamp(left, w, vw),
+      maxHeight: Math.max(0, room[chosen] - gap - EDGE),
+    };
   }
   const left = chosen === 'left' ? r.left - gap - w : r.right + gap;
   const top = align === 'start' ? r.top : align === 'end' ? r.bottom - h : r.top + r.height / 2 - h / 2;
-  return { side: chosen, top: clamp(top, h, vh), left: clamp(left, w, vw) };
+  return { side: chosen, top: clamp(top, h, vh), left: clamp(left, w, vw), maxHeight: Math.max(0, vh - 2 * EDGE) };
 }
 
 /** Positions `floating` next to `anchor` while `open`: measured before paint, flipped
@@ -512,9 +801,14 @@ function useAnchoredPosition(
       const a = anchor.current;
       const f = floating.current;
       if (!a || !f) return;
-      const next = place(a.getBoundingClientRect(), f.offsetWidth, f.offsetHeight, side, align, gap);
+      // The natural height, not the clamped one, so the flip decision does not change
+      // once the panel has been given a max-height.
+      const naturalH = f.scrollHeight + (f.offsetHeight - f.clientHeight);
+      const next = place(a.getBoundingClientRect(), f.offsetWidth, Math.max(f.offsetHeight, naturalH), side, align, gap);
       setPos((prev) =>
-        prev && prev.top === next.top && prev.left === next.left && prev.side === next.side ? prev : next,
+        prev && prev.top === next.top && prev.left === next.left && prev.side === next.side && prev.maxHeight === next.maxHeight
+          ? prev
+          : next,
       );
     };
     update();
@@ -865,9 +1159,9 @@ export function Popover({
       tabIndex={-1}
       data-side={pos?.side}
       onKeyDown={onKeyDown}
-      style={floatingStyle(pos, { width, zIndex: 'var(--nish-z-dropdown, 40)' })}
+      style={floatingStyle(pos, { width, maxHeight: pos?.maxHeight, zIndex: 'var(--nish-z-dropdown, 40)' })}
       className={cn(
-        'max-w-[calc(100vw-1rem)] rounded-lg border border-th-line bg-th-elevated p-3 text-sm text-th-hi2 shadow-pop outline-none',
+        'max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-lg border border-th-line bg-th-elevated p-3 text-sm text-th-hi2 shadow-pop outline-none',
         'animate-[nish-fade-in_120ms_ease-out]',
         className,
       )}
@@ -919,8 +1213,30 @@ export interface DropdownMenuProps {
   defaultOpen?: boolean;
   /** Accessible name of the menu. Default: the trigger's name (aria-labelledby). */
   'aria-label'?: string;
+  /** `'sm'`: under 640px the menu opens as a bottom sheet with 48px rows instead of a
+   *  floating panel. Default false (always a floating panel). */
+  sheetBelow?: 'sm' | false;
+  /** Title of the bottom sheet when `sheetBelow` is set. Default "Menu". */
+  sheetTitle?: string;
   /** Classes for the menu panel (e.g. a width, or `app-region-no-drag`). */
   className?: string;
+}
+
+/** True while the viewport is under 640px (live). */
+function usePhoneViewport(enabled: boolean): boolean {
+  const [phone, setPhone] = useState(() => enabled && isPhoneViewport());
+  useEffect(() => {
+    if (!enabled || typeof window.matchMedia !== 'function') {
+      setPhone(false);
+      return;
+    }
+    const mq = window.matchMedia(PHONE_QUERY);
+    const update = () => setPhone(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [enabled]);
+  return phone;
 }
 
 /** A menu of actions behind a button: role="menu" with arrow keys, Home and End,
@@ -934,6 +1250,8 @@ export function DropdownMenu({
   onOpenChange,
   defaultOpen = false,
   'aria-label': ariaLabel,
+  sheetBelow = false,
+  sheetTitle,
   className,
 }: DropdownMenuProps) {
   const [openState, setOpenState] = useState(defaultOpen);
@@ -944,7 +1262,8 @@ export function DropdownMenu({
   const triggerId = useId();
   // Which item takes focus when the menu opens.
   const initial = useRef<'first' | 'last' | 'menu'>('first');
-  const pos = useAnchoredPosition(triggerRef, menuRef, open, side, align, 4);
+  const asSheet = usePhoneViewport(sheetBelow === 'sm');
+  const pos = useAnchoredPosition(triggerRef, menuRef, open && !asSheet, side, align, 4);
 
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
@@ -957,7 +1276,8 @@ export function DropdownMenu({
   );
   const close = useCallback(() => setOpen(false), [setOpen]);
   const dismiss = useCallback((reason: PopoverCloseReason) => setOpen(false, reason), [setOpen]);
-  useDismiss(open, menuRef, triggerRef, dismiss);
+  // As a sheet, the Drawer owns Escape, the scrim and the back gesture.
+  useDismiss(open && !asSheet, menuRef, triggerRef, dismiss);
   useReturnFocus(open, menuRef, triggerRef);
 
   // Focus in on open, and again whenever the focused row disappears (a submenu view
@@ -983,7 +1303,7 @@ export function DropdownMenu({
       window.clearTimeout(t);
       mo.disconnect();
     };
-  }, [open]);
+  }, [open, asSheet]);
 
   function openWith(where: 'first' | 'last' | 'menu') {
     initial.current = where;
@@ -1056,41 +1376,62 @@ export function DropdownMenu({
     },
   });
 
+  const menuProps = {
+    ref: menuRef,
+    id: menuId,
+    role: 'menu',
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabel ? undefined : (tp.id ?? triggerId),
+    'aria-orientation': 'vertical' as const,
+    tabIndex: -1,
+    onKeyDown: onMenuKeyDown,
+  };
+
   return (
     <>
       {triggerEl}
-      {open
-        ? createPortal(
-            <MenuContext.Provider value={{ close }}>
-              <div
-                ref={menuRef}
-                id={menuId}
-                role="menu"
-                aria-label={ariaLabel}
-                aria-labelledby={ariaLabel ? undefined : (tp.id ?? triggerId)}
-                aria-orientation="vertical"
-                tabIndex={-1}
-                data-side={pos?.side}
-                onKeyDown={onMenuKeyDown}
-                style={floatingStyle(pos, { zIndex: 'var(--nish-z-dropdown, 40)' })}
-                className={cn(
-                  'max-h-[min(24rem,calc(100dvh-1rem))] min-w-44 max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain',
-                  'rounded-lg border border-th-line bg-th-elevated py-1 shadow-pop outline-none animate-[nish-fade-in_120ms_ease-out]',
-                  className,
-                )}
-              >
-                {children}
-              </div>
-            </MenuContext.Provider>,
-            layerHost(triggerRef.current),
-          )
-        : null}
+      {open && asSheet ? (
+        <MenuContext.Provider value={{ close }}>
+          <Drawer side="bottom" size="md" title={sheetTitle ?? 'Menu'} onClose={close}>
+            <div
+              {...menuProps}
+              className={cn(
+                '-mx-5 -my-4 py-2 outline-none [&_[role=menuitem]]:min-h-12 [&_[role=menuitem]]:px-5 [&_[role=menuitem]]:text-sm',
+                className,
+              )}
+            >
+              {children}
+            </div>
+          </Drawer>
+        </MenuContext.Provider>
+      ) : open ? (
+        createPortal(
+          <MenuContext.Provider value={{ close }}>
+            <div
+              {...menuProps}
+              data-side={pos?.side}
+              style={floatingStyle(pos, {
+                maxHeight: pos ? Math.min(pos.maxHeight, 384) : undefined,
+                zIndex: 'var(--nish-z-dropdown, 40)',
+              })}
+              className={cn(
+                'max-h-[min(24rem,calc(100dvh-1rem))] min-w-44 max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain',
+                'rounded-lg border border-th-line bg-th-elevated py-1 shadow-pop outline-none animate-[nish-fade-in_120ms_ease-out]',
+                className,
+              )}
+            >
+              {children}
+            </div>
+          </MenuContext.Provider>,
+          layerHost(triggerRef.current),
+        )
+      ) : null}
     </>
   );
 }
 
 const ROW =
-  'flex w-full select-none items-center gap-2 px-3 py-1.5 text-left text-xs outline-none transition-colors pointer-coarse:min-h-11';
+  'flex w-full select-none items-center gap-2 px-3 py-1.5 text-left text-xs outline-none transition-colors pointer-coarse:min-h-11 pointer-coarse:gap-3 pointer-coarse:text-sm';
 
 export interface MenuItemClassOptions {
   /** The current choice: the highlighted look (set aria-current on the row too). */

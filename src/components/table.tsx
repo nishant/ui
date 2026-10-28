@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useRef,
   type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
@@ -9,6 +10,7 @@ import {
   type ThHTMLAttributes,
 } from 'react';
 import { cn } from '../cn';
+import { useScrollEdges } from './layout-vars';
 
 // Table primitives: plain <table> markup with the shared look. No table library; for
 // TanStack (or any renderer that wants strings) use tableClass, the same recipes.
@@ -25,16 +27,23 @@ const ROW_TONE: Record<RowTone, string> = {
   loss: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--nish-loss-fill)] [&>th:first-child]:shadow-[inset_3px_0_0_var(--nish-loss-fill)]',
 };
 
-const WRAP = 'overflow-auto rounded-xl border border-th-line bg-th-surface';
+const WRAP = 'relative overflow-auto rounded-xl border border-th-line bg-th-surface';
 const STICKY = '[&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-[1] [&_thead_th]:bg-th-surface';
 const TABLE = 'w-full border-collapse text-sm tabular-nums text-th-hi2';
 const ZEBRA = '[&_tbody>tr:nth-child(even)]:bg-th-elevated/50';
-const TH = 'whitespace-nowrap border-b border-th-line px-3 text-left align-bottom text-xs font-medium uppercase tracking-wider text-th-hi3';
+const TH = 'whitespace-nowrap border-b border-th-line px-3 text-left align-middle text-xs font-medium uppercase tracking-wider text-th-hi3';
 const TD = 'px-3 align-middle';
 const PAD = { normal: 'py-2.5', dense: 'py-1.5' } as const;
 const TR = 'border-b border-th-line last:border-b-0';
 const TR_INTERACTIVE = 'cursor-pointer transition-colors hover:bg-th-elevated focus-within:bg-th-elevated';
-const NUMERIC = 'text-right tabular-nums';
+const NUMERIC = 'whitespace-nowrap text-right tabular-nums';
+// A pinned first column: opaque (bg-inherit takes the row's color, rows get a solid base),
+// above the other cells, with a soft edge that shows once the table is scrolled sideways.
+const STICKY_COL =
+  '[&_thead_tr]:bg-th-surface [&_tbody_tr]:bg-th-surface [&_tr>:first-child]:sticky [&_tr>:first-child]:left-0 [&_tr>:first-child]:z-10 [&_tr>:first-child]:bg-inherit ' +
+  '[&_tr>:first-child]:after:pointer-events-none [&_tr>:first-child]:after:absolute [&_tr>:first-child]:after:inset-y-0 [&_tr>:first-child]:after:left-full [&_tr>:first-child]:after:w-2.5 ' +
+  '[&_tr>:first-child]:after:bg-gradient-to-r [&_tr>:first-child]:after:from-[color-mix(in_srgb,var(--nish-hi)_14%,transparent)] [&_tr>:first-child]:after:to-transparent ' +
+  '[&_tr>:first-child]:after:opacity-0 [&_tr>:first-child]:after:transition-opacity [&[data-at-start=false]_tr>:first-child]:after:opacity-100';
 
 /** The table recipes as strings, for renderers that take classes (TanStack Table cells,
  *  static markup). The components below use exactly these. */
@@ -73,18 +82,45 @@ export interface TableWrapProps extends HTMLAttributes<HTMLDivElement> {
   maxHeight?: number | string;
   /** Keeps the header row visible while the body scrolls. Pair it with maxHeight. */
   stickyHeader?: boolean;
+  /** Fades the left and right edges while there is more to scroll sideways. Default true. */
+  fade?: boolean;
+  /** Pins the first column (header and body cells) to the left edge while the table
+   *  scrolls sideways, with an edge shadow once it has scrolled. */
+  stickyFirstColumn?: boolean;
 }
 
 /** The bordered scroll box a table sits in. Use it instead of a Card for tables. */
-export function TableWrap({ minWidth, maxHeight, stickyHeader = false, className, style, children, ...rest }: TableWrapProps) {
+export function TableWrap({
+  minWidth,
+  maxHeight,
+  stickyHeader = false,
+  fade = true,
+  stickyFirstColumn = false,
+  className,
+  style,
+  children,
+  ...rest
+}: TableWrapProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  useScrollEdges(ref);
   const css = {
+    // With a pinned first column the left fade would wash it out, so only the right edge fades.
+    ...(fade && stickyFirstColumn ? { '--nish-fade-start': '#000' } : null),
     ...style,
     ...(maxHeight !== undefined ? { maxHeight } : null),
     ...(minWidth !== undefined ? { '--nish-table-min': typeof minWidth === 'number' ? `${minWidth}px` : minWidth } : null),
   } as CSSProperties;
   return (
     <div
-      className={cn(WRAP, minWidth !== undefined && '[&>table]:min-w-[var(--nish-table-min)]', stickyHeader && STICKY, className)}
+      ref={ref}
+      className={cn(
+        WRAP,
+        fade && 'nish-scroll-fade',
+        minWidth !== undefined && '[&>table]:min-w-[var(--nish-table-min)]',
+        stickyHeader && STICKY,
+        stickyFirstColumn && STICKY_COL,
+        className,
+      )}
       style={css}
       {...rest}
     >
@@ -167,15 +203,22 @@ function SortMark({ sort }: { sort: 'asc' | 'desc' | false }) {
 export interface TdProps extends Omit<TdHTMLAttributes<HTMLTableCellElement>, 'align'> {
   /** Text alignment. Default left (right when numeric). */
   align?: Align;
-  /** A number column: right-aligned with tabular figures. */
+  /** A number column: right-aligned with tabular figures, never wrapping. */
   numeric?: boolean;
+  /** Keeps the cell's text on one line. */
+  nowrap?: boolean;
 }
 
 /** A body cell. */
-export function Td({ align, numeric = false, className, ...rest }: TdProps) {
+export function Td({ align, numeric = false, nowrap = false, className, ...rest }: TdProps) {
   const { dense } = useContext(TableCtx);
   const a = align ?? (numeric ? 'right' : 'left');
-  return <td className={cn(TD, dense ? PAD.dense : PAD.normal, ALIGN[a], numeric && 'tabular-nums', className)} {...rest} />;
+  return (
+    <td
+      className={cn(TD, dense ? PAD.dense : PAD.normal, ALIGN[a], numeric && 'whitespace-nowrap tabular-nums', nowrap && 'whitespace-nowrap', className)}
+      {...rest}
+    />
+  );
 }
 
 export interface TrProps extends HTMLAttributes<HTMLTableRowElement> {

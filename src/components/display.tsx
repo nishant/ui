@@ -10,9 +10,10 @@ import {
 } from 'react';
 import { cn } from '../cn';
 import { Skeleton } from './feedback';
-import { AlertTriangleIcon, CheckCircleIcon, InfoIcon, XIcon } from './icons';
-import { Tooltip } from './overlay';
-import { Button, Card, IconButton, type ButtonProps } from './primitives';
+import { AlertTriangleIcon, CheckCircleIcon, ChevronDownIcon, InfoIcon, XIcon } from './icons';
+import { useHeightVar, useStuck } from './layout-vars';
+import { DropdownMenu, Tooltip } from './overlay';
+import { Badge, Button, Card, IconButton, type ButtonProps } from './primitives';
 import { ThemeToggle } from './theme-toggle';
 
 // Read-only display pieces: notices, status marks, numbers, meters, small charts,
@@ -82,14 +83,18 @@ const FILL: Record<StatusTone, string> = {
 
 export type CalloutTone = 'neutral' | 'accent' | 'info' | 'ok' | 'warn' | 'loss';
 
-const CALLOUT_TONE: Record<CalloutTone, { box: string; icon: string }> = {
-  neutral: { box: 'border-th-line bg-th-elevated', icon: 'text-th-hi3' },
-  accent: { box: 'border-th-accent/30 bg-th-accent-soft', icon: 'text-th-accent' },
-  info: { box: 'border-th-info/30 bg-th-info-soft', icon: 'text-th-info' },
-  ok: { box: 'border-th-ok/30 bg-th-ok-soft', icon: 'text-th-ok' },
-  warn: { box: 'border-th-warn/30 bg-th-warn-soft', icon: 'text-th-warn' },
-  loss: { box: 'border-th-loss/30 bg-th-loss-soft', icon: 'text-th-loss' },
+// box: translucent tint that sits in the flow. bar: the same tint flattened onto the page
+// background (-soft-solid), so content scrolling under a sticky bar never shows through.
+const CALLOUT_TONE: Record<CalloutTone, { box: string; bar: string; icon: string }> = {
+  neutral: { box: 'border-th-line bg-th-elevated', bar: 'border-th-line bg-th-elevated', icon: 'text-th-hi3' },
+  accent: { box: 'border-th-accent/30 bg-th-accent-soft', bar: 'border-th-accent/30 bg-th-accent-soft-solid', icon: 'text-th-accent' },
+  info: { box: 'border-th-info/30 bg-th-info-soft', bar: 'border-th-info/30 bg-th-info-soft-solid', icon: 'text-th-info' },
+  ok: { box: 'border-th-ok/30 bg-th-ok-soft', bar: 'border-th-ok/30 bg-th-ok-soft-solid', icon: 'text-th-ok' },
+  warn: { box: 'border-th-warn/30 bg-th-warn-soft', bar: 'border-th-warn/30 bg-th-warn-soft-solid', icon: 'text-th-warn' },
+  loss: { box: 'border-th-loss/30 bg-th-loss-soft', bar: 'border-th-loss/30 bg-th-loss-soft-solid', icon: 'text-th-loss' },
 };
+
+const CALLOUT_CLAMP = { 1: 'line-clamp-1', 2: 'line-clamp-2', 3: 'line-clamp-3' } as const;
 
 function defaultCalloutIcon(tone: CalloutTone, size: number): ReactNode {
   if (tone === 'ok') return <CheckCircleIcon size={size} />;
@@ -97,7 +102,7 @@ function defaultCalloutIcon(tone: CalloutTone, size: number): ReactNode {
   return <InfoIcon size={size} />;
 }
 
-export interface CalloutProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface CalloutProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title' | 'onClick'> {
   /** What kind of notice: info and accent for news, ok for success, warn for something to
    *  check, loss for a failure. neutral is a plain grey note. */
   tone?: CalloutTone;
@@ -119,9 +124,23 @@ export interface CalloutProps extends Omit<HTMLAttributes<HTMLDivElement>, 'titl
   /** Announce it when it appears: role="alert" for loss, role="status" otherwise.
    *  Leave it off for notices that are part of the page from the start. */
   live?: boolean;
+  /** Sticks under the app header (`top: var(--nish-header-h)`), above page content. Pair
+   *  with variant="bar". */
+  sticky?: boolean;
+  /** Limits the body to 1, 2 or 3 lines with an ellipsis, instead of growing. */
+  clamp?: 1 | 2 | 3;
+  /** Makes the icon, title and text one link (at least 44px tall) with a trailing
+   *  chevron. `action` and the dismiss button stay separate controls beside it. */
+  href?: string;
+  /** Like href, but a button. */
+  onClick?: () => void;
+  /** Shows a "+{count}" badge after the title, for "and 3 more" notices. */
+  count?: number;
 }
 
-/** An inline notice: a tinted box with an icon, an optional title, text and an action. */
+/** An inline notice: a tinted box with an icon, an optional title, text and an action.
+ *  variant="bar" is opaque, so it can stick under the header without content showing
+ *  through. */
 export function Callout({
   tone = 'info',
   icon,
@@ -132,11 +151,50 @@ export function Callout({
   variant = 'box',
   compact = false,
   live = false,
+  sticky = false,
+  clamp,
+  href,
+  onClick,
+  count,
   className,
   ...rest
 }: CalloutProps) {
   const t = CALLOUT_TONE[tone];
   const shown = icon === false ? null : (icon ?? defaultCalloutIcon(tone, compact ? 14 : 16));
+  const interactive = href != null || onClick != null;
+  const iconEl = shown ? <span className={cn('shrink-0', compact ? 'mt-px' : 'mt-0.5', t.icon)}>{shown}</span> : null;
+  const text = (
+    <div className="min-w-0 flex-1 basis-60">
+      {title || count != null ? (
+        <p className="flex items-center gap-2 font-medium leading-snug text-th-hi">
+          {title ? <span className="min-w-0">{title}</span> : null}
+          {count != null ? (
+            <Badge tone={tone} aria-label={`${count} more`} className="shrink-0">
+              +{count}
+            </Badge>
+          ) : null}
+        </p>
+      ) : null}
+      {children ? (
+        <div className={cn('leading-snug text-th-hi2', title || count != null ? 'mt-0.5' : null, clamp && CALLOUT_CLAMP[clamp])}>
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+  const actionEl = action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null;
+  const dismissEl = onDismiss ? (
+    <IconButton label="Dismiss" size="xs" onClick={onDismiss} className="-my-0.5 -mr-1">
+      <XIcon size={14} />
+    </IconButton>
+  ) : null;
+  const chevron = <ChevronDownIcon size={16} className="-rotate-90 shrink-0 self-center text-th-hi3" />;
+  const hit = cn(
+    'flex min-h-11 min-w-0 flex-1 items-start text-left outline-none focus-visible:ring-2 focus-visible:ring-th-accent/40',
+    compact ? 'gap-2' : 'gap-3',
+    // Pull the padding of the row into the link so the whole row is the target.
+    compact ? '-my-2 py-2' : '-my-3 py-3',
+  );
   return (
     <div
       role={live ? (tone === 'loss' ? 'alert' : 'status') : undefined}
@@ -144,24 +202,40 @@ export function Callout({
         'flex items-start border',
         compact ? 'gap-2 px-3 py-2 text-xs' : 'gap-3 px-4 py-3 text-sm',
         variant === 'bar' ? 'w-full rounded-none border-x-0' : 'rounded-xl',
-        t.box,
+        variant === 'bar' ? t.bar : t.box,
+        sticky && 'sticky top-[var(--nish-header-h,0px)] z-20',
         className,
       )}
       {...rest}
     >
-      {shown ? <span className={cn('shrink-0', compact ? 'mt-px' : 'mt-0.5', t.icon)}>{shown}</span> : null}
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="min-w-0 flex-1 basis-60">
-          {title ? <p className="font-medium leading-snug text-th-hi">{title}</p> : null}
-          {children ? <div className={cn('leading-snug text-th-hi2', title ? 'mt-0.5' : null)}>{children}</div> : null}
-        </div>
-        {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
-      </div>
-      {onDismiss ? (
-        <IconButton label="Dismiss" size="xs" onClick={onDismiss} className="-my-0.5 -mr-1">
-          <XIcon size={14} />
-        </IconButton>
-      ) : null}
+      {interactive ? (
+        <>
+          {href != null ? (
+            <a href={href} className={hit}>
+              {iconEl}
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">{text}</span>
+              {chevron}
+            </a>
+          ) : (
+            <button type="button" onClick={onClick} className={hit}>
+              {iconEl}
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">{text}</span>
+              {chevron}
+            </button>
+          )}
+          {actionEl}
+          {dismissEl}
+        </>
+      ) : (
+        <>
+          {iconEl}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+            {text}
+            {actionEl}
+          </div>
+          {dismissEl}
+        </>
+      )}
     </div>
   );
 }
@@ -780,8 +854,12 @@ export interface PageHeaderProps {
   actions?: ReactNode;
   /** Heading level. Default h1. */
   as?: 'h1' | 'h2';
-  /** Sticks to the top with the glass background while the page scrolls. */
+  /** Sticks under the app header (`top: var(--nish-header-h)`) with an opaque background
+   *  while the page scrolls; a bottom border appears once it is stuck. */
   sticky?: boolean;
+  /** Sticky only: under 640px, once stuck, hide the description and show the title as
+   *  one truncated line, so the bar stays short. Default true. */
+  collapseWhenStuck?: boolean;
   className?: string;
 }
 
@@ -795,13 +873,22 @@ export function PageHeader({
   actions,
   as: H = 'h1',
   sticky = false,
+  collapseWhenStuck = true,
   className,
 }: PageHeaderProps) {
+  const ref = useRef<HTMLElement>(null);
+  const stuck = useStuck(ref) && sticky;
+  const collapsed = stuck && collapseWhenStuck;
   return (
     <header
+      ref={ref}
       className={cn(
         'flex flex-col gap-2',
-        sticky && 'sticky top-0 z-(--nish-z-sticky) -mx-4 border-b border-th-line bg-th-bg/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6',
+        sticky &&
+          cn(
+            'sticky top-[var(--nish-header-h,0px)] z-20 -mx-[var(--nish-page-gutter,1rem)] border-b bg-th-bg px-[var(--nish-page-gutter,1rem)] py-3',
+            stuck ? 'border-th-line' : 'border-transparent',
+          ),
         className,
       )}
     >
@@ -809,8 +896,15 @@ export function PageHeader({
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1 basis-64">
           {eyebrow ? <p className="mb-1 text-xs font-medium uppercase tracking-wider text-th-hi3">{eyebrow}</p> : null}
-          <H className="text-2xl font-semibold tracking-tight text-th-hi [overflow-wrap:anywhere]">{title}</H>
-          {description ? <p className="mt-1 text-sm text-th-hi2">{description}</p> : null}
+          <H
+            className={cn(
+              'text-2xl font-semibold tracking-tight text-th-hi [overflow-wrap:anywhere]',
+              collapsed && 'max-sm:truncate max-sm:text-base max-sm:[overflow-wrap:normal]',
+            )}
+          >
+            {title}
+          </H>
+          {description ? <p className={cn('mt-1 text-sm text-th-hi2', collapsed && 'max-sm:hidden')}>{description}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
@@ -850,11 +944,29 @@ export interface AppHeaderProps {
   /** Under 480px the hub pill shrinks to its arrow (.nish-pill-link--compact), for
    *  headers with a long name. */
   compactPill?: boolean;
+  /** Frosted glass (`bg-th-bg/80 backdrop-blur-xl`) where the browser supports
+   *  backdrop-filter. Off by default: the header is opaque. */
+  glass?: boolean;
+  /** Extra MenuItems. From 640px they render after `actions`; under 640px they collapse
+   *  into a "More actions" kebab menu, so the row never wraps. */
+  overflowActions?: ReactNode;
   className?: string;
 }
 
+/** A 3-dot "more" icon for the overflow kebab. */
+function MoreVerticalIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="5" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="12" cy="19" r="1.8" />
+    </svg>
+  );
+}
+
 /** The shared app header: the hub pill, the wordmark, actions and the theme toggle,
- *  with an optional nav row. Glass background, safe-area aware. */
+ *  with an optional nav row. Opaque by default (glass is opt-in), safe-area aware. A
+ *  sticky header publishes its height as `--nish-header-h` for the rest of the layout. */
 export function AppHeader({
   name,
   icon,
@@ -868,8 +980,13 @@ export function AppHeader({
   hideNameBelow,
   navLabel,
   compactPill = false,
+  glass = false,
+  overflowActions,
   className,
 }: AppHeaderProps) {
+  const ref = useRef<HTMLElement>(null);
+  useHeightVar(ref, '--nish-header-h', sticky);
+  const stuck = useStuck(ref) && sticky;
   const toggle = themeToggle === false ? null : (themeToggle ?? <ThemeToggle />);
   const hideName = hideNameBelow === 'sm' && icon != null;
   const mark = (
@@ -881,20 +998,32 @@ export function AppHeader({
   const markClass = 'inline-flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight text-th-hi';
   return (
     <header
+      ref={ref}
       className={cn(
-        'border-b border-th-line bg-th-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur',
-        sticky && 'sticky top-0 z-(--nish-z-sticky)',
+        'border-b border-th-line pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]',
+        glass ? 'bg-th-bg supports-[backdrop-filter]:bg-th-bg/80 supports-[backdrop-filter]:backdrop-blur-xl' : 'bg-th-bg',
+        sticky && 'sticky top-0 z-30 transition-shadow',
+        stuck && 'shadow-[var(--nish-shadow-card)]',
         className,
       )}
     >
-      <div className={cn('flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 sm:px-6', innerClassName)}>
+      <div
+        className={cn(
+          '@container/header flex min-h-14 flex-nowrap items-center gap-2 px-[var(--nish-page-gutter,1rem)] py-2 sm:gap-3',
+          innerClassName,
+        )}
+      >
         {compactPill ? (
           <a className="nish-pill-link nish-pill-link--compact" href={hubHref} title="Back to nish.software">
             ← <span className="nish-pill-link-label">nish.software</span>
           </a>
         ) : (
-          <a className="nish-pill-link" href={hubHref} title="Back to nish.software">
-            ← nish.software
+          <a
+            className="nish-pill-link @max-[400px]/header:min-w-11 @max-[400px]/header:justify-center @max-[400px]/header:px-1.5 @max-[400px]/header:[&_.nish-pill-link-label]:sr-only"
+            href={hubHref}
+            title="Back to nish.software"
+          >
+            ← <span className="nish-pill-link-label">nish.software</span>
           </a>
         )}
         {homeHref != null ? (
@@ -904,13 +1033,33 @@ export function AppHeader({
         ) : (
           <span className={markClass}>{mark}</span>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {actions}
+          {overflowActions ? (
+            <>
+              <div className="hidden items-center gap-2 sm:flex">{overflowActions}</div>
+              <div className="sm:hidden">
+                <DropdownMenu
+                  align="end"
+                  trigger={
+                    <IconButton label="More actions">
+                      <MoreVerticalIcon />
+                    </IconButton>
+                  }
+                >
+                  {overflowActions}
+                </DropdownMenu>
+              </div>
+            </>
+          ) : null}
           {toggle}
         </div>
       </div>
       {nav ? (
-        <nav aria-label={navLabel} className={cn('scrollbar-none -mb-px flex gap-1 overflow-x-auto px-4 sm:px-6', innerClassName)}>
+        <nav
+          aria-label={navLabel}
+          className={cn('nish-no-scrollbar -mb-px flex gap-1 overflow-x-auto px-[var(--nish-page-gutter,1rem)]', innerClassName)}
+        >
           {nav}
         </nav>
       ) : null}

@@ -60,18 +60,45 @@ export const COMPONENTS = [
   'Tabs',
   'TabPanel',
   'ThemeToggle',
+  'BottomNav',
+  'MoreSheet',
+  'NavRail',
+  'ScrollRow',
+  'SectionNav',
+  'StickyBar',
+  'StickyActionBar',
+  'LoadingBar',
+  'PageContainer',
+  'ConnectionBanner',
+  'ResponsiveTable',
+  'ListRow',
+  'LinkCard',
+  'Favicon',
+  'AsyncPanel',
+  'SkeletonCard',
+  'StatGridSkeleton',
+  'CardListSkeleton',
+  'LineChart',
+  'BarChart',
+  'RangeBar',
+  'CommandPalette',
+  'RelativeTime',
 ];
 const FUNCTIONS = [
   'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
   'buttonClass', 'iconButtonClass', 'cardClass', 'badgeClass', 'fieldClass', 'tabClass', 'chipClass', 'menuItemClass', 'showToast', 'confirmDialog', 'mountTooltips',
   'signTone', 'toneFor', 'copyText', 'seriesColor', 'chartTheme', 'useChartTheme',
+  'revealClass', 'linkClass', 'useHeightVar', 'useStuck', 'useScrollEdges', 'useScrollSpy', 'useOnline', 'useCommandHotkey',
+  'useMediaQuery', 'useBreakpoint', 'useDocumentTitle', 'useNow', 'useLocalStorage',
+  'money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago', 'date', 'time', 'dateTime', 'dateRange',
+  'openSheet', 'mountHeightVar', 'mountStuck', 'mountScrollspy', 'mountChecklist',
 ];
 const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem'];
 
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');
 
 export function docgen(root) {
-  const entries = [join(root, 'src/index.ts'), join(root, 'src/chart.ts')];
+  const entries = [join(root, 'src/index.ts'), join(root, 'src/chart.ts'), join(root, 'src/format.ts')];
   const program = ts.createProgram(entries, {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,

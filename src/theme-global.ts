@@ -13,4 +13,9 @@ export {
   showToast,
   confirmDialog,
   mountTooltips,
+  openSheet,
+  mountScrollspy,
+  mountStuck,
+  mountChecklist,
+  mountHeightVar,
 } from './theme';

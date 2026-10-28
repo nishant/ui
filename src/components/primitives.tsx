@@ -51,7 +51,15 @@ const LINK_SIZE: Record<ButtonSize, string> = {
 };
 
 const BUTTON_BASE =
-  'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-lg font-medium transition-colors duration-150';
+  'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-lg font-medium transition-[color,background-color,border-color,transform] duration-150';
+
+// Touch press feedback for filled buttons and icon buttons; never on a disabled one.
+const PRESS = 'pointer-coarse:not-disabled:active:scale-[0.97]';
+
+// A link button's hit area grows to 44px on touch with an invisible ::after, so the
+// layout does not move.
+const LINK_HIT =
+  "pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-2 pointer-coarse:after:-inset-y-3 pointer-coarse:after:content-['']";
 
 // Disabled reads as disabled in every theme: a flat, quiet fill and faint text, instead
 // of a dimmed copy of the enabled color. A link only fades its text.
@@ -64,14 +72,51 @@ export interface ButtonClassOptions {
   variant?: ButtonVariant;
   /** Same sizes as Button. Default "md". */
   size?: ButtonSize;
+  /** Link variant only: skip the 44px touch hit area, for a link inside running text. */
+  inline?: boolean;
   /** Extra classes, merged last (tailwind-merge resolves conflicts). */
   className?: string;
 }
 
 /** The classes `<Button>` renders, minus its `disabled:` styles. Use it on `<a>`, router
  *  `<Link>`s and `<a download>` so links that look like buttons match them exactly. */
-export function buttonClass({ variant = 'secondary', size = 'md', className }: ButtonClassOptions = {}): string {
-  return cn(BUTTON_BASE, variant === 'link' ? LINK_SIZE[size] : BUTTON_SIZE[size], BUTTON_VARIANT[variant], className);
+export function buttonClass({ variant = 'secondary', size = 'md', inline = false, className }: ButtonClassOptions = {}): string {
+  return cn(
+    BUTTON_BASE,
+    variant === 'link' ? LINK_SIZE[size] : BUTTON_SIZE[size],
+    variant === 'link' ? !inline && LINK_HIT : PRESS,
+    BUTTON_VARIANT[variant],
+    className,
+  );
+}
+
+export interface LinkClassOptions {
+  /** accent: the accent color (default). muted: grey text that lights up on hover. */
+  tone?: 'accent' | 'muted';
+  /** Skip the 44px touch hit area, for a link inside running text. */
+  inline?: boolean;
+  /** Extra classes, merged last. */
+  className?: string;
+}
+
+/** The classes for a text link on a router `<Link>` or `<a>`: tone, underline on hover
+ *  and, on touch screens, a 44px hit area that does not move the layout. */
+export function linkClass({ tone = 'accent', inline = false, className }: LinkClassOptions = {}): string {
+  return cn(
+    'font-medium underline-offset-2 transition-colors duration-150 hover:underline',
+    tone === 'accent' ? 'text-th-accent' : 'text-th-hi3 hover:text-th-hi',
+    !inline && LINK_HIT,
+    className,
+  );
+}
+
+/** Classes that hide a row action until its row is hovered or focused, and always show
+ *  it on touch screens (there is no hover). Put `group` on the row. */
+export function revealClass(className?: string): string {
+  return cn(
+    'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100',
+    className,
+  );
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -79,11 +124,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
    *  toolbars and quiet actions. danger: destructive actions. soft: an accent action
    *  that is not the main one (replaces "accent outline" buttons). subtle: a filled,
    *  quiet button for dense toolbars and chips on a surface. link: looks like a text
-   *  link and sits inline in text (no height, no padding, no touch growth). */
+   *  link and sits inline in text (no height or padding; on touch screens an invisible
+   *  44px hit area, unless `inline`). */
   variant?: ButtonVariant;
   /** xs for dense tool rows (24px), sm for dense rows and toolbars, lg for a page's
    *  main call to action. xs, sm and md grow to 44px on touch screens. */
   size?: ButtonSize;
+  /** Link variant only: skip the 44px touch hit area, for a link inside running text. */
+  inline?: boolean;
   /** Shows a spinner and disables the button. */
   loading?: boolean;
   /** Icon before the label (16px for md and lg, 12–14px for xs and sm). Replaced by the
@@ -94,7 +142,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 /** The standard button. Defaults to type="button", so it never submits a form by
  *  accident; pass type="submit" for the one that should. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = 'secondary', size = 'md', loading = false, icon, className, children, disabled, type = 'button', ...rest },
+  { variant = 'secondary', size = 'md', inline = false, loading = false, icon, className, children, disabled, type = 'button', ...rest },
   ref,
 ) {
   return (
@@ -106,6 +154,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       className={buttonClass({
         variant,
         size,
+        inline,
         className: cn(variant === 'link' ? LINK_DISABLED : BUTTON_DISABLED, className),
       })}
       {...rest}
@@ -159,7 +208,8 @@ export function iconButtonClass({
   className,
 }: IconButtonClassOptions = {}): string {
   return cn(
-    'inline-flex shrink-0 items-center justify-center transition-colors duration-150',
+    'inline-flex shrink-0 items-center justify-center transition-[color,background-color,border-color,transform] duration-150',
+    PRESS,
     'disabled:pointer-events-none disabled:bg-transparent disabled:text-th-ghost',
     'pointer-coarse:min-h-11 pointer-coarse:min-w-11',
     ICON_SIZE[size],

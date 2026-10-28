@@ -52,6 +52,31 @@ import { confirmDialogFnDoc } from './confirm-dialog-fn';
 import { mountTooltipsDoc } from './mount-tooltips';
 import { prose } from './prose';
 import { baseUtilities } from './base-utilities';
+import { bottomNav } from './bottom-nav';
+import { moreSheet } from './more-sheet';
+import { navRail } from './nav-rail';
+import { scrollRow } from './scroll-row';
+import { sectionNav } from './section-nav';
+import { stickyBar } from './sticky-bar';
+import { stickyActionBar } from './sticky-action-bar';
+import { loadingBar } from './loading-bar';
+import { pageContainer } from './page-container';
+import { connectionBanner } from './connection-banner';
+import { responsiveTable } from './responsive-table';
+import { listRow } from './list-row';
+import { linkCard } from './link-card';
+import { favicon } from './favicon';
+import { asyncPanel } from './async-panel';
+import { skeletonPresets } from './skeleton-presets';
+import { lineChart } from './line-chart';
+import { barChart } from './bar-chart';
+import { rangeBar } from './range-bar';
+import { commandPalette } from './command-palette';
+import { relativeTime } from './relative-time';
+import { format } from './format';
+import { hooks } from './hooks';
+import { layoutContract } from './layout-contract';
+import { staticParity } from './static-parity';
 import type { ComponentDoc } from './types';
 
 export type { Control, Story, ComponentDoc } from './types';
@@ -109,4 +134,29 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   mountTooltipsDoc,
   prose,
   baseUtilities,
+  bottomNav,
+  moreSheet,
+  navRail,
+  scrollRow,
+  sectionNav,
+  stickyBar,
+  stickyActionBar,
+  loadingBar,
+  pageContainer,
+  connectionBanner,
+  responsiveTable,
+  listRow,
+  linkCard,
+  favicon,
+  asyncPanel,
+  skeletonPresets,
+  lineChart,
+  barChart,
+  rangeBar,
+  commandPalette,
+  relativeTime,
+  format,
+  hooks,
+  layoutContract,
+  staticParity,
 ];

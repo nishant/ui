@@ -520,6 +520,335 @@ export function mountTooltips(root: Document | HTMLElement = document): () => vo
   };
 }
 
+// --- Static layout helpers (sheets, scrollspy, stuck, checklists, height vars) -------
+
+const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Open a <dialog class="nish-sheet"> as a modal bottom sheet (a centered panel from
+ *  640px): showModal, Escape and a backdrop click close it, a downward swipe on the handle
+ *  or header closes it on touch, `[data-sheet-close]` elements inside close it, and focus
+ *  returns to the element that opened it. The exit animation plays before the dialog
+ *  closes (none under reduced motion). The dialog's own `close` event still fires. Returns
+ *  a function that closes the sheet. Needs nish-components.css. */
+export function openSheet(dialog: HTMLDialogElement): () => void {
+  if (typeof document === 'undefined') return () => undefined;
+  if (dialog.open) return () => closeNow();
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  let closing = false;
+  let dragging = false;
+
+  function closeNow(): void {
+    if (closing || !dialog.open) return;
+    closing = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = () => {
+      dialog.removeEventListener('animationend', onEnd);
+      if (timer !== undefined) clearTimeout(timer);
+      dialog.removeAttribute('data-closing');
+      dialog.style.transform = '';
+      dialog.style.transition = '';
+      closing = false;
+      if (dialog.open) dialog.close();
+    };
+    const onEnd = (e: AnimationEvent) => {
+      if (e.target === dialog) finish();
+    };
+    if (reducedMotion()) {
+      finish();
+      return;
+    }
+    dialog.style.transform = '';
+    dialog.setAttribute('data-closing', '');
+    dialog.addEventListener('animationend', onEnd);
+    timer = setTimeout(finish, 260);
+  }
+
+  const onCancel = (e: Event) => {
+    e.preventDefault();
+    closeNow();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    // Keep Escape from an outer framework dialog; the cancel event does the closing.
+    if (e.key === 'Escape') e.stopPropagation();
+  };
+  const onClick = (e: MouseEvent) => {
+    if (e.target === dialog) {
+      const r = dialog.getBoundingClientRect();
+      const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      if (!inside) closeNow();
+      return;
+    }
+    if (e.target instanceof Element && e.target.closest('[data-sheet-close]')) closeNow();
+  };
+
+  // Swipe down on the handle or header (touch and pen, phone layout only).
+  let startY = 0;
+  let lastY = 0;
+  let lastT = 0;
+  let velocity = 0;
+  let height = 1;
+  const onDown = (e: PointerEvent) => {
+    if (e.pointerType === 'mouse' || closing || !e.isPrimary) return;
+    if (typeof matchMedia !== 'undefined' && matchMedia('(min-width: 640px)').matches) return;
+    const r = dialog.getBoundingClientRect();
+    const onHeader = e.target instanceof Element && e.target.closest('.nish-sheet-header') != null;
+    if (!onHeader && e.clientY - r.top > 28) return;
+    dragging = true;
+    startY = lastY = e.clientY;
+    lastT = e.timeStamp;
+    velocity = 0;
+    height = r.height || 1;
+    dialog.style.transition = 'none';
+    dialog.setPointerCapture?.(e.pointerId);
+  };
+  const onMove = (e: PointerEvent) => {
+    if (!dragging) return;
+    const dy = e.clientY - startY;
+    const dt = e.timeStamp - lastT;
+    if (dt > 0) velocity = (e.clientY - lastY) / dt;
+    lastY = e.clientY;
+    lastT = e.timeStamp;
+    dialog.style.transform = `translateY(${dy >= 0 ? dy : dy * 0.3}px)`;
+  };
+  const onUp = (e: PointerEvent) => {
+    if (!dragging) return;
+    dragging = false;
+    dialog.releasePointerCapture?.(e.pointerId);
+    const dy = e.clientY - startY;
+    if (e.type !== 'pointercancel' && (dy > height * 0.3 || velocity > 0.5)) {
+      closeNow();
+      return;
+    }
+    dialog.style.transition = 'transform 180ms var(--nish-ease-out, ease-out)';
+    dialog.style.transform = '';
+    setTimeout(() => {
+      if (!closing) dialog.style.transition = '';
+    }, 200);
+  };
+
+  const onClose = () => {
+    dialog.removeEventListener('cancel', onCancel);
+    dialog.removeEventListener('keydown', onKey);
+    dialog.removeEventListener('click', onClick);
+    dialog.removeEventListener('pointerdown', onDown);
+    dialog.removeEventListener('pointermove', onMove);
+    dialog.removeEventListener('pointerup', onUp);
+    dialog.removeEventListener('pointercancel', onUp);
+    dialog.removeEventListener('close', onClose);
+    if (opener?.isConnected) opener.focus();
+  };
+  dialog.addEventListener('cancel', onCancel);
+  dialog.addEventListener('keydown', onKey);
+  dialog.addEventListener('click', onClick);
+  dialog.addEventListener('pointerdown', onDown);
+  dialog.addEventListener('pointermove', onMove);
+  dialog.addEventListener('pointerup', onUp);
+  dialog.addEventListener('pointercancel', onUp);
+  dialog.addEventListener('close', onClose);
+  dialog.showModal();
+  return closeNow;
+}
+
+/** Publish an element's height as a CSS variable on <html> (the static twin of
+ *  useHeightVar): `mountHeightVar(nav, '--nish-bottom-nav-h')`. Written now and on every
+ *  resize; removed when the element is hidden (height 0) and by the returned cleanup. */
+export function mountHeightVar(el: HTMLElement, name: string): () => void {
+  if (typeof document === 'undefined') return () => undefined;
+  const root = document.documentElement;
+  const write = () => {
+    const h = el.offsetHeight;
+    if (h > 0) root.style.setProperty(name, `${h}px`);
+    else root.style.removeProperty(name);
+  };
+  write();
+  let ro: ResizeObserver | undefined;
+  if (typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(write);
+    ro.observe(el);
+  } else {
+    window.addEventListener('resize', write);
+  }
+  return () => {
+    ro?.disconnect();
+    window.removeEventListener('resize', write);
+    root.style.removeProperty(name);
+  };
+}
+
+/** Toggle `data-stuck` on a position:sticky element while it is stuck to its `top` (a
+ *  1px sentinel is inserted before it). Style `.nish-sticky[data-stuck]` or your own.
+ *  Returns a function that stops watching and removes the sentinel. */
+export function mountStuck(el: HTMLElement): () => void {
+  const parent = el.parentNode;
+  if (typeof document === 'undefined' || !parent || typeof IntersectionObserver === 'undefined') return () => undefined;
+  const sentinel = document.createElement('div');
+  sentinel.setAttribute('aria-hidden', 'true');
+  sentinel.style.cssText = 'height:1px;margin-bottom:-1px;pointer-events:none;visibility:hidden';
+  parent.insertBefore(sentinel, el);
+  const top = Math.round(parseFloat(getComputedStyle(el).top) || 0);
+  const io = new IntersectionObserver(
+    ([entry]) => {
+      const stuck = !entry.isIntersecting && entry.boundingClientRect.top < top;
+      if (stuck) el.setAttribute('data-stuck', '');
+      else el.removeAttribute('data-stuck');
+    },
+    { threshold: [0, 1], rootMargin: `${-top - 1}px 0px 0px 0px` },
+  );
+  io.observe(sentinel);
+  return () => {
+    io.disconnect();
+    sentinel.remove();
+    el.removeAttribute('data-stuck');
+  };
+}
+
+export interface MountScrollspyOptions {
+  /** Pixels from the top of the viewport where a section counts as current. Default: the
+   *  `--nish-header-h` variable plus the nav's own height plus 8. */
+  offset?: number;
+}
+
+/** Scrollspy for a `.nish-subnav`: each `a[href^="#"]` maps to the element with that id.
+ *  The link whose section is current gets `aria-current="true"` (the last section whose top
+ *  has passed the offset, the first one at the top of the page), is scrolled into view
+ *  inside the nav, and the nav gets `data-at-start` / `data-at-end` for its edge fades.
+ *  Publishes the nav's height as `--nish-sticky-extra` so `.nish-scroll-target` clears it.
+ *  Returns a function that removes everything. */
+export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}): () => void {
+  if (typeof document === 'undefined') return () => undefined;
+  const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')).filter((a) => a.hash.length > 1);
+  const target = (a: HTMLAnchorElement) => {
+    try {
+      return document.getElementById(decodeURIComponent(a.hash.slice(1)));
+    } catch {
+      return null;
+    }
+  };
+  const unheight = mountHeightVar(nav, '--nish-sticky-extra');
+  let current: HTMLAnchorElement | null = null;
+
+  const edges = () => {
+    const max = nav.scrollWidth - nav.clientWidth;
+    nav.dataset.atStart = String(nav.scrollLeft <= 1);
+    nav.dataset.atEnd = String(max <= 1 || nav.scrollLeft >= max - 1);
+  };
+  const reveal = (a: HTMLAnchorElement) => {
+    const left = a.offsetLeft - nav.offsetLeft;
+    const view = nav.clientWidth;
+    if (left < nav.scrollLeft + 24) nav.scrollLeft = Math.max(0, left - 24);
+    else if (left + a.offsetWidth > nav.scrollLeft + view - 24) nav.scrollLeft = left + a.offsetWidth - view + 24;
+  };
+  const activate = (a: HTMLAnchorElement | null) => {
+    if (a === current) return;
+    current?.removeAttribute('aria-current');
+    current = a;
+    if (a) {
+      a.setAttribute('aria-current', 'true');
+      reveal(a);
+    }
+  };
+  const update = () => {
+    const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nish-header-h')) || 0;
+    const line = o.offset ?? header + nav.offsetHeight + 8;
+    let found: HTMLAnchorElement | null = links[0] ?? null;
+    for (const a of links) {
+      const t = target(a);
+      if (t && t.getBoundingClientRect().top <= line + 1) found = a;
+    }
+    activate(found);
+  };
+  let frame = 0;
+  const schedule = () => {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      update();
+    });
+  };
+  const onClick = (e: MouseEvent) => {
+    const a = e.target instanceof Element ? e.target.closest<HTMLAnchorElement>('a[href^="#"]') : null;
+    if (a && links.includes(a)) activate(a);
+  };
+  edges();
+  update();
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', schedule);
+  nav.addEventListener('scroll', edges, { passive: true });
+  nav.addEventListener('click', onClick);
+  let ro: ResizeObserver | undefined;
+  if (typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(() => {
+      edges();
+      schedule();
+    });
+    ro.observe(nav);
+  }
+  return () => {
+    if (frame) cancelAnimationFrame(frame);
+    window.removeEventListener('scroll', schedule);
+    window.removeEventListener('resize', schedule);
+    nav.removeEventListener('scroll', edges);
+    nav.removeEventListener('click', onClick);
+    ro?.disconnect();
+    unheight();
+    current?.removeAttribute('aria-current');
+    delete nav.dataset.atStart;
+    delete nav.dataset.atEnd;
+  };
+}
+
+/** Persist a checklist: the `input[type=checkbox]` inside each `li[data-id]` of `list` is
+ *  saved to localStorage under `list.dataset.store` (a JSON array of checked ids) and
+ *  restored now. Updates the `.nish-checklist-progress` element before the list (or the
+ *  first one in its parent) to "{done} of {total}" and its `--p` meter. Without
+ *  `data-store` it still counts. Storage failures are ignored. Returns a function that
+ *  removes the listener. */
+export function mountChecklist(list: HTMLElement): () => void {
+  if (typeof document === 'undefined') return () => undefined;
+  const key = list.dataset.store ? `nish-checklist:${list.dataset.store}` : null;
+  const boxes = () => Array.from(list.querySelectorAll<HTMLInputElement>('li[data-id] input[type="checkbox"]'));
+  const idOf = (b: HTMLInputElement) => b.closest<HTMLElement>('li[data-id]')?.dataset.id ?? '';
+  let progress: Element | null = null;
+  for (let sib = list.previousElementSibling; sib; sib = sib.previousElementSibling) {
+    if (sib.classList.contains('nish-checklist-progress')) {
+      progress = sib;
+      break;
+    }
+  }
+  progress ??= list.parentElement?.querySelector('.nish-checklist-progress') ?? null;
+
+  if (key) {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
+      if (Array.isArray(saved)) for (const b of boxes()) b.checked = saved.includes(idOf(b));
+    } catch {
+      /* storage blocked or corrupt: start unchecked */
+    }
+  }
+  const render = () => {
+    const all = boxes();
+    const done = all.filter((b) => b.checked).length;
+    if (progress) {
+      progress.textContent = `${done} of ${all.length}`;
+      (progress as HTMLElement).style.setProperty('--p', `${all.length ? (done / all.length) * 100 : 0}%`);
+    }
+  };
+  const onChange = (e: Event) => {
+    if (!(e.target instanceof HTMLInputElement) || e.target.type !== 'checkbox') return;
+    if (key) {
+      try {
+        localStorage.setItem(key, JSON.stringify(boxes().filter((b) => b.checked).map(idOf)));
+      } catch {
+        /* storage blocked: the state lasts for this page view */
+      }
+    }
+    render();
+  };
+  render();
+  list.addEventListener('change', onChange);
+  return () => list.removeEventListener('change', onChange);
+}
+
 /** For pages without a framework: apply now and start syncing. */
 export function initTheme(): ThemeName {
   watch();

@@ -89,6 +89,11 @@ export function checkTheme(colors) {
       add(role, `${role}-soft`, colors[role], tint, TEXT, `${role} on ${role}-soft over ${under}`);
     }
   }
+  // The opaque twin (-soft-solid: 14% over bg) carries the same text in sticky bars.
+  for (const role of SOFT_TEXT) {
+    const tint = mix(colors[role], colors.bg, 0.14);
+    add(role, `${role}-soft-solid`, colors[role], tint, TEXT, `${role} on ${role}-soft-solid`);
+  }
   // Hue tints (th-<hue>-soft): hub tile icons and calendar dots put the hue on its own
   // tint straight on the page (a mark, 3:1), and tag chips put hi text on it.
   for (const h of HUES) {

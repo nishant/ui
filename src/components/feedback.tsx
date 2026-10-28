@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '../cn';
 import { AlertTriangleIcon, LoaderIcon, RotateIcon } from './icons';
+import { cardClass } from './primitives';
 
 /** One shimmer block; size it with width/height classes. */
 export function Skeleton({
@@ -82,6 +83,70 @@ export function SkeletonLines({
       <Skeleton className="h-4 w-2/5" />
       {Array.from({ length: lines }, (_, i) => (
         <Skeleton key={i} className={cn('h-3', i % 2 === 0 ? 'w-full' : 'w-4/5')} />
+      ))}
+    </div>
+  );
+}
+
+export interface SkeletonCardProps {
+  /** Text lines under the title bar. Default 3. */
+  lines?: number;
+  /** A media block above the text: square (96px), wide (16:9) or none (default). */
+  media?: 'square' | 'wide' | 'none';
+  className?: string;
+}
+
+/** A card-shaped shimmer for one loading card: optional media, a title bar and text lines. */
+export function SkeletonCard({ lines = 3, media = 'none', className }: SkeletonCardProps) {
+  return (
+    <div aria-hidden="true" className={cn(cardClass({ padding: 'md' }), 'flex flex-col gap-3', className)}>
+      {media === 'square' ? <Skeleton className="size-24 rounded-lg" /> : null}
+      {media === 'wide' ? <Skeleton className="aspect-video w-full rounded-lg" /> : null}
+      <Skeleton className="h-4 w-2/5" />
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: lines }, (_, i) => (
+          <Skeleton key={i} className={cn('h-3', i % 2 === 0 ? 'w-full' : 'w-4/5')} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export interface StatGridSkeletonProps {
+  /** How many tiles. Default 4. */
+  count?: number;
+  className?: string;
+}
+
+/** Shimmer tiles that match a StatGrid (2 columns, 4 from md) while its numbers load. */
+export function StatGridSkeleton({ count = 4, className }: StatGridSkeletonProps) {
+  return (
+    <div role="status" aria-label="Loading" className={cn('grid grid-cols-2 gap-3 md:grid-cols-4', className)}>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className={cn(cardClass({ padding: 'sm' }), 'min-w-0')}>
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="mt-2 h-7 w-24" />
+          <Skeleton className="mt-1.5 h-3 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export interface CardListSkeletonProps {
+  /** How many cards. Default 3. */
+  count?: number;
+  /** Text lines in each card. Default 2. */
+  lines?: number;
+  className?: string;
+}
+
+/** A stack of shimmer cards while a card list loads, announced once (role="status"). */
+export function CardListSkeleton({ count = 3, lines = 2, className }: CardListSkeletonProps) {
+  return (
+    <div role="status" aria-label="Loading" className={cn('grid gap-2.5', className)}>
+      {Array.from({ length: count }, (_, i) => (
+        <SkeletonCard key={i} lines={lines} />
       ))}
     </div>
   );

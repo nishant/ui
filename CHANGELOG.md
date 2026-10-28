@@ -3,6 +3,58 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.7.0] - 2026-10-28
+
+Mobile chrome, a layout contract and the components every app kept hand-rolling. Reviewed on the Galaxy Z Fold 7 (360px, ~840px, desktop). Several defaults change; see "Behavior changes".
+
+### Behavior changes
+
+- AppHeader, PageHeader and Callout `variant="bar"` are opaque by default (`bg-th-bg`, `bg-th-<tone>-soft-solid`). The old translucent blur is opt-in with `AppHeader glass`.
+- Modal, Drawer and ConfirmDialog `closeOnBack` defaults to true: each pushes a history entry so Android back closes the top sheet. Pass `closeOnBack={false}` to opt out.
+- Toaster: the default bottom offset follows `--nish-bottom-inset`, so toasts sit above a BottomNav or StickyActionBar with no `offset`. While a Modal, Drawer or ConfirmDialog is open under 640px, the stack moves to the top of the screen.
+- Segmented `overflow` defaults to `'scroll'`: a long row scrolls with edge fades instead of wrapping. Pass `overflow="wrap"` for the old behavior. Tabs strips also scroll with fades.
+- Modal and Drawer now exit with an animation: `onClose` is called about 200ms after the close request (immediately under reduced motion). The drag handle is a focusable `role="button"` and is no longer drawn at sm and up.
+- `theme-init.js` removes a static `<meta name="theme-color">` an app ships and manages its own. Do not ship one.
+- Modal `max-h` uses `dvh`; `.nish-dialog` max-height is `85dvh` at every width.
+- Menu items and MenuSubHeader get `pointer-coarse:text-sm pointer-coarse:gap-3`.
+- Table: `TableWrap` is `relative`; `numeric` cells are `whitespace-nowrap tabular-nums text-right`; `Th` is `align-middle`.
+
+### Added
+
+- Layout contract: CSS variables on `<html>` (`--nish-header-h`, `--nish-bottom-nav-h`, `--nish-bottom-bar-h`, `--nish-bottom-inset`, `--nish-sticky-extra`, `--nish-page-gutter`) written by the bars and read by Toaster, sticky elements and page padding. `html[data-nish-layer-open]` is set while a Modal, Drawer or ConfirmDialog is open.
+- `useHeightVar(ref, name, enabled?)`, `useStuck(ref)` and `useScrollEdges(ref)` hooks.
+- base.css: `.nish-scroll-target`, `.nish-scroll-fade`, `.nish-no-scrollbar`, `.nish-pad-bottom-inset`, `-webkit-tap-highlight-color: transparent`, `scrollbar-gutter: stable` on fine pointers, and the keyframes `nish-sheet-out`, `nish-fade-out`, `nish-toast-in-top`, `nish-bar-in`, `nish-loading-bar`, `nish-pulse`.
+- Tokens: `--nish-<role>-soft-solid` and Tailwind `th-<role>-soft-solid` (the soft tint over the page background, opaque). The contrast check covers soft text roles on it.
+- Navigation: `BottomNav`, `MoreSheet`, `NavRail`, `ScrollRow`, `SectionNav`, `useScrollSpy`, and the `NavItem` and `RenderLink` types.
+- Layout: `StickyBar`, `StickyActionBar`, `LoadingBar`, `PageContainer`, `ConnectionBanner`, `useOnline`.
+- Data: `ResponsiveTable` (table from md, cards below), `ListRow`, `Favicon`, `LinkCard`, `AsyncPanel`; `SkeletonCard`, `StatGridSkeleton`, `CardListSkeleton`.
+- Charts (dependency-free SVG): `LineChart`, `BarChart`, `RangeBar`.
+- `CommandPalette` and `useCommandHotkey` (Ctrl/Cmd+K and `/`).
+- `@nish/ui/format`, a React-free entry: `money`, `signedMoney`, `pct`, `num`, `signed`, `bytes`, `duration`, `ago`, `date`, `time`, `dateTime`, `dateRange`. It is not re-exported from the main entry.
+- Hooks and `RelativeTime`: `useMediaQuery`, `useBreakpoint`, `useDocumentTitle`, `useNow`, `useLocalStorage`.
+- `revealClass()` and `linkClass()` helpers; `buttonClass` and `Button` take `inline` (link variant, skips the 44px touch area).
+- AppHeader: `glass`, `overflowActions` (a "More actions" menu under sm). PageHeader: `collapseWhenStuck`. Callout: `sticky`, `clamp`, `href`, `onClick`, `count`.
+- Modal: `sheetHeight` (`'auto' | 'tall' | 'full'`), `dismissible`, `closeOnBack`. Drawer: `dismissible`, `closeOnBack`. DropdownMenu: `sheetBelow` and `sheetTitle` (opt-in bottom-sheet menu under 640px).
+- Segmented: `overflow` and `fullWidth`. TableWrap: `fade` and `stickyFirstColumn`. Td: `nowrap`.
+- Static parity (nish-components.css): `.nish-skeleton` shapes, `.nish-spinner`, busy `.nish-btn`, `.nish-sheet`, `.nish-check-row`, `.nish-checkbox`, `.nish-switch`, `.nish-subnav`, `.nish-link-card`, `.nish-sticky`, `.nish-bottom-nav`, `.nish-checklist`.
+- `@nish/ui/theme` and `window.nishTheme`: `openSheet(dialog)`, `mountHeightVar(el, name)`, `mountStuck(el)`, `mountScrollspy(nav, options?)`, `mountChecklist(list)`.
+
+### Changed
+
+- Sticky chrome stacks under the header: PageHeader (`z-20`) and sticky Callouts sit at `--nish-header-h`; AppHeader is `z-30`, keeps one row (`flex-nowrap`) and collapses the hub pill to its arrow below 400px of header width.
+- Bottom sheets swipe down to dismiss (30% of the height or 0.5 px/ms) and animate out. Toasts swipe sideways to dismiss.
+- Popover and DropdownMenu panels are clamped to the room on screen and scroll inside it; the flip decision uses the panel's natural height.
+- Link buttons get a 44px hit area on touch; buttons press-scale on touch.
+- `.nish-toast` bottom follows `--nish-bottom-inset`.
+- `npm run check` also runs `tools/format-check.mjs`.
+
+### Fixed
+
+- Spinners keep moving under `prefers-reduced-motion` (a slow pulse instead of a freeze).
+- TableWrap contains absolutely positioned children, so a wide table no longer widens the page.
+- No grey tap flash on Android.
+- `scrollbar-gutter: stable` stops the page shifting when a dialog locks scroll on desktop.
+
 ## [0.6.1] - 2026-10-26
 
 ### Fixed
