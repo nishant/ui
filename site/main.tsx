@@ -245,7 +245,7 @@ function Shell() {
         name={
           <>
             {docgen.name}
-            <span className="hidden font-mono text-xs font-normal text-th-hi3 md:inline">v{docgen.version}</span>
+            <span className="ml-2 hidden font-mono text-xs font-normal text-th-hi3 md:inline">v{docgen.version}</span>
           </>
         }
         icon={MARK}
