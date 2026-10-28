@@ -182,11 +182,13 @@ export interface ToasterProps {
   offsetUntil?: 'sm' | 'md' | 'lg';
 }
 
-// Full literal class names, so Tailwind's scanner finds every one.
+// Full literal class names, so Tailwind's scanner finds every one. From sm the stack sits
+// 1.25rem above --nish-bottom-inset; while a StickyActionBar is open (it floats 1.5rem above
+// the nav from sm) the min() term adds 1rem more, so the stack clears the pill by 0.75rem.
 const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
-  sm: 'sm:bottom-0 sm:pb-[max(calc(var(--nish-bottom-inset,0px)+2.25rem),1.25rem)]',
-  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem))] md:pb-[max(calc(var(--nish-bottom-inset,0px)+2.25rem),1.25rem)]',
-  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem))] lg:pb-[max(calc(var(--nish-bottom-inset,0px)+2.25rem),1.25rem)]',
+  sm: 'sm:bottom-0 sm:pb-[calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem))]',
+  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem)))] md:pb-[calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem))]',
+  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem)))] lg:pb-[calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem))]',
 };
 
 /** The toast stack: bottom-center full width on phones, bottom-right on wider screens.

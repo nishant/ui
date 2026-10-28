@@ -675,31 +675,53 @@ export function mountHeightVar(el: HTMLElement, name: string): () => void {
   };
 }
 
-/** Toggle `data-stuck` on a position:sticky element while it is stuck to its `top`. Observes
- *  the element itself with a root margin that cuts 1px off the top of the scroll root below
- *  the sticky `top`; nothing is inserted into the DOM, so flex and grid parents are
- *  unaffected. The sticky `top` is re-read on resize and `<html>` style changes, and the
- *  observer is rebuilt when it differs. Style `.nish-sticky[data-stuck]` or your own.
- *  Returns a function that stops watching. */
-export function mountStuck(el: HTMLElement): () => void {
+/** Toggle `data-stuck` on a position:sticky element while it is stuck to its `top`: the page
+ *  (or a scrolling ancestor) has scrolled and the element rests at its sticky `top`. Not
+ *  stuck at scroll 0, when the element is not position:sticky, or once its container has
+ *  carried it past the top. Nothing is inserted into the DOM, so flex and grid parents are
+ *  unaffected. An IntersectionObserver (its root margin cut 1px below the sticky `top`)
+ *  and scroll events trigger the check; the `top` is re-read on resize and `<html>` style
+ *  changes. Style `.nish-sticky[data-stuck]` or your own. `onChange` is called with every
+ *  change. Returns a function that stops watching. */
+export function mountStuck(el: HTMLElement, onChange?: (stuck: boolean) => void): () => void {
   if (typeof document === 'undefined' || typeof IntersectionObserver === 'undefined') return () => undefined;
   let io: IntersectionObserver | undefined;
   let builtTop = Number.NaN;
+  let current = false;
+  const scrolled = () => {
+    if ((window.scrollY || document.documentElement.scrollTop || 0) > 0) return true;
+    for (let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+      if (p.scrollTop > 0) return true;
+    }
+    return false;
+  };
+  const evaluate = () => {
+    const style = getComputedStyle(el);
+    const next =
+      style.position === 'sticky' &&
+      Math.abs(el.getBoundingClientRect().top - (parseFloat(style.top) || 0)) < 1 &&
+      scrolled();
+    if (next === current) return;
+    current = next;
+    if (next) el.setAttribute('data-stuck', '');
+    else el.removeAttribute('data-stuck');
+    onChange?.(next);
+  };
   const build = () => {
     const top = Math.round(parseFloat(getComputedStyle(el).top) || 0);
-    if (top === builtTop) return;
-    builtTop = top;
-    io?.disconnect();
-    io = new IntersectionObserver(
-      ([entry]) => {
-        const stuck = entry.intersectionRatio < 1 && entry.boundingClientRect.top < top + 1;
-        if (stuck) el.setAttribute('data-stuck', '');
-        else el.removeAttribute('data-stuck');
-      },
-      { threshold: [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1], rootMargin: `${-top - 1}px 0px 0px 0px` },
-    );
-    io.observe(el);
+    if (top !== builtTop) {
+      builtTop = top;
+      io?.disconnect();
+      io = new IntersectionObserver(evaluate, {
+        threshold: [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1],
+        rootMargin: `${-top - 1}px 0px 0px 0px`,
+      });
+      io.observe(el);
+    }
+    evaluate();
   };
+  // Capture: scroll does not bubble, and a scrolling ancestor may be the sticky root.
+  window.addEventListener('scroll', evaluate, { passive: true, capture: true });
   build();
   let ro: ResizeObserver | undefined;
   if (typeof ResizeObserver !== 'undefined') {
@@ -712,6 +734,7 @@ export function mountStuck(el: HTMLElement): () => void {
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
   }
   return () => {
+    window.removeEventListener('scroll', evaluate, { capture: true });
     io?.disconnect();
     ro?.disconnect();
     mo?.disconnect();

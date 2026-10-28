@@ -1,4 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react';
+import { mountStuck } from '../theme';
 
 // Several bars can publish the same variable (a SectionNav inside a StickyBar both
 // write `--nish-sticky-extra`). Each variable keeps its live owners' heights; the
@@ -54,13 +55,12 @@ export function useHeightVar(ref: RefObject<HTMLElement | null>, name: string, e
 }
 
 /**
- * True once a sticky element is stuck to its scroll edge. Observes the element itself
- * with a root margin that cuts 1px off the top of the scroll root below the sticky
- * `top`: once the element sticks, that 1px is clipped and it is no longer fully visible.
- * Nothing is inserted into the DOM, so flex and grid parents are unaffected. Also sets
- * `data-stuck` on the element, so CSS can react without React state. The sticky `top` is
- * re-read when the element resizes or `<html>` style changes (`--nish-header-h`), and
- * the observer is rebuilt when it differs.
+ * True while a sticky element is stuck to its scroll edge: the page has scrolled and the
+ * element rests at its sticky `top`. False at scroll 0 and for an element that is not
+ * position:sticky. Also sets `data-stuck` on the element, so CSS can react without React
+ * state. Same rules as `mountStuck` in `@nish/ui/theme`, which it uses: nothing is
+ * inserted into the DOM, and the sticky `top` is re-read when the element resizes or
+ * `<html>` style changes (`--nish-header-h`).
  *
  * @param ref - The sticky element.
  * @param enabled - Set false to skip observing (a header that is not sticky).
@@ -69,55 +69,10 @@ export function useStuck(ref: RefObject<HTMLElement | null>, enabled = true): bo
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
     const el = ref.current;
-    if (!enabled || !el || typeof IntersectionObserver === 'undefined') return;
-    let io: IntersectionObserver | undefined;
-    let builtTop = Number.NaN;
-    const readTop = () => Math.round(parseFloat(getComputedStyle(el).top) || 0);
-    const build = () => {
-      const top = readTop();
-      if (top === builtTop) return;
-      builtTop = top;
-      io?.disconnect();
-      io = new IntersectionObserver(
-        ([entry]) => {
-          lastRatio = entry.intersectionRatio;
-          evaluate();
-        },
-        { threshold: [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1], rootMargin: `${-top - 1}px 0px 0px 0px` },
-      );
-      io.observe(el);
-    };
-    // Stuck needs the element to be clipped at the edge AND the page to have scrolled:
-    // an element whose natural position equals its sticky offset is not stuck at scroll 0.
-    let lastRatio = 1;
-    let current = false;
-    const evaluate = () => {
-      const scrolled = (window.scrollY || document.documentElement.scrollTop || 0) > 0;
-      const next = scrolled && lastRatio < 1 && el.getBoundingClientRect().top < builtTop + 1;
-      if (next === current) return;
-      current = next;
-      setStuck(next);
-      if (next) el.setAttribute('data-stuck', '');
-      else el.removeAttribute('data-stuck');
-    };
-    window.addEventListener('scroll', evaluate, { passive: true });
-    build();
-    let ro: ResizeObserver | undefined;
-    if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(build);
-      ro.observe(el);
-    }
-    let mo: MutationObserver | undefined;
-    if (typeof MutationObserver !== 'undefined') {
-      mo = new MutationObserver(build);
-      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
-    }
+    if (!enabled || !el) return;
+    const stop = mountStuck(el, setStuck);
     return () => {
-      window.removeEventListener('scroll', evaluate);
-      io?.disconnect();
-      ro?.disconnect();
-      mo?.disconnect();
-      el.removeAttribute('data-stuck');
+      stop();
       setStuck(false);
     };
   }, [ref, enabled]);

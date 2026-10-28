@@ -94,6 +94,43 @@ function CountBadge({ value }: { value: number | boolean | undefined }) {
   );
 }
 
+const layerOf = (): string | undefined => (history.state as { nishLayer?: string } | null)?.nishLayer;
+
+/** Closes a closeOnBack sheet after a renderLink row was clicked. Closing drops the sheet's
+ *  history entry with history.back(); a router that navigates asynchronously (React Router's
+ *  data routers) would then write its entry before that back lands, and the back would undo
+ *  the navigation. So when the router took the click (default prevented), wait until it has
+ *  replaced the sheet's entry, after which closing issues no back. A click the browser
+ *  handles itself (a plain anchor, a new-tab click) closes at once, as before. */
+function closeAfterRouterLink(onAfter: () => void): void {
+  const layer = layerOf();
+  if (typeof window === 'undefined' || !layer) {
+    onAfter();
+    return;
+  }
+  let decided = false;
+  const decide = (routerTookIt: boolean) => {
+    if (decided) return;
+    decided = true;
+    window.removeEventListener('click', onWindowClick);
+    if (!routerTookIt) {
+      onAfter();
+      return;
+    }
+    const t0 = Date.now();
+    const wait = () => {
+      if (layerOf() !== layer || Date.now() - t0 > 3000) onAfter();
+      else window.setTimeout(wait, 16);
+    };
+    wait();
+  };
+  // Runs for this same click once it bubbles past the router's handler (React's root).
+  const onWindowClick = (e: Event) => decide(e.defaultPrevented);
+  window.addEventListener('click', onWindowClick);
+  // Propagation stopped before window: assume a router.
+  window.setTimeout(() => decide(true), 0);
+}
+
 /** An item as a link or a button, with the caller's look. */
 function renderItem(item: NavItem, className: string, children: ReactNode, renderLink: RenderLink | undefined, onAfter?: () => void): ReactNode {
   const current = item.active ? ('page' as const) : undefined;
@@ -106,7 +143,7 @@ function renderItem(item: NavItem, className: string, children: ReactNode, rende
         ...(onAfter ? { replace: true } : {}),
         onClick: () => {
           item.onSelect?.();
-          onAfter?.();
+          if (onAfter) closeAfterRouterLink(onAfter);
         },
       });
     }
@@ -565,7 +602,8 @@ export function SectionNav({ items, sticky = true, onSelect, updateHash = true, 
   const ref = useRef<HTMLElement>(null);
   const spy = useScrollSpy(items.map((i) => i.id));
   // After a chip tap the tapped chip stays lit, even after the scroll ends (the spy's middle
-  // band may hold another section at rest). It is released by the next user-initiated scroll.
+  // band may hold another section at rest). It is released by the next user-initiated scroll,
+  // or by any scroll once the chip's own scroll has settled (scrollbar drag, a "top" button).
   const [locked, setLocked] = useState<string | null>(null);
   const active = locked ?? spy;
   useEffect(() => {
@@ -574,13 +612,35 @@ export function SectionNav({ items, sticky = true, onSelect, updateHash = true, 
     const onKey = (e: KeyboardEvent) => {
       if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) release();
     };
+    let settled = false;
+    const settle = () => {
+      settled = true;
+    };
+    let t = setTimeout(settle, 400);
+    const onScroll = () => {
+      if (settled) {
+        release();
+        return;
+      }
+      clearTimeout(t);
+      t = setTimeout(settle, 200);
+    };
+    const onScrollEnd = () => {
+      clearTimeout(t);
+      t = setTimeout(settle, 50);
+    };
     window.addEventListener('wheel', release, { passive: true });
     window.addEventListener('touchstart', release, { passive: true });
     window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scrollend', onScrollEnd);
     return () => {
+      clearTimeout(t);
       window.removeEventListener('wheel', release);
       window.removeEventListener('touchstart', release);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scrollend', onScrollEnd);
     };
   }, [locked]);
   useHeightVar(ref, '--nish-sticky-extra', sticky);
