@@ -1,5 +1,7 @@
-import { useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { cn } from '../cn';
+import { useScrollEdges } from './layout-vars';
+import { revealInRow } from './nav';
 import { FloatingTip, keyboardFocused, touchTracker } from './overlay';
 
 export type SegmentedTone = 'accent' | 'warn' | 'loss';
@@ -49,6 +51,12 @@ export interface SegmentedProps<T extends string> {
   size?: 'xs' | 'sm' | 'md';
   /** Fill the container's width, with equal-width options. */
   block?: boolean;
+  /** Too many options for the width: scroll (default) keeps one row that scrolls sideways
+   *  with edge fades and keeps the selected option in view; wrap lets the control grow
+   *  past its container as before. */
+  overflow?: 'wrap' | 'scroll';
+  /** @deprecated Alias of `block`; use `block`. Kept because the spec names it. */
+  fullWidth?: boolean;
   className?: string;
 }
 
@@ -56,7 +64,11 @@ export interface SegmentedProps<T extends string> {
  *  radio group. The selected option gets the accent tint and ring, so it reads at a
  *  glance in light themes too. Arrow keys, Home and End move the choice and the focus,
  *  like a native radio group. For multi-select toggles use ChipGroup and Chip. */
-export function Segmented<T extends string>({ label, options, value, onChange, size = 'sm', block = false, className }: SegmentedProps<T>) {
+export function Segmented<T extends string>({ label, options, value, onChange, size = 'sm', block = false, overflow = 'scroll', fullWidth = false, className }: SegmentedProps<T>) {
+  const fill = block || fullWidth;
+  const scroll = overflow === 'scroll';
+  const groupRef = useRef<HTMLDivElement>(null);
+  useScrollEdges(groupRef);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const tipAnchor = useRef<HTMLButtonElement | null>(null);
   const [tipAt, setTipAt] = useState<number | null>(null);
@@ -70,6 +82,11 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
   const hideTip = (i: number) => setTipAt((cur) => (cur === i ? null : cur));
   const enabled = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
   const selected = options.findIndex((o) => o.value === value);
+
+  useEffect(() => {
+    const el = selected >= 0 ? refs.current[selected] : null;
+    if (scroll && el && groupRef.current) revealInRow(groupRef.current, el);
+  }, [selected, scroll, options.length]);
 
   const pick = (i: number) => {
     const o = options[i];
@@ -89,9 +106,15 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
 
   return (
     <div
+      ref={groupRef}
       role="radiogroup"
       aria-label={label}
-      className={cn('rounded-lg border border-th-line bg-th-elevated p-0.5', block ? 'flex w-full' : 'inline-flex', className)}
+      className={cn(
+        'rounded-lg border border-th-line bg-th-elevated p-0.5',
+        fill ? 'flex w-full' : 'inline-flex',
+        scroll && 'max-w-full overflow-x-auto nish-no-scrollbar nish-scroll-fade',
+        className,
+      )}
       onKeyDown={(e) => {
         const from = refs.current.findIndex((el) => el === document.activeElement);
         const at = from >= 0 ? from : selected;
@@ -134,7 +157,8 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
             className={cn(
               'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium tabular-nums transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11',
               'disabled:cursor-not-allowed disabled:text-th-ghost',
-              block && 'min-w-0 flex-1',
+              fill && (scroll ? 'flex-1 shrink-0' : 'min-w-0 flex-1'),
+              scroll && !fill && 'shrink-0',
               SIZE[size],
               on ? SELECTED[o.tone ?? 'accent'] : 'text-th-hi2 hover:text-th-hi disabled:hover:text-th-ghost',
             )}

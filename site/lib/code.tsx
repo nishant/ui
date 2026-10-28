@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { cn } from '../../src';
-import { CheckIcon, CopyIcon } from './icons';
+import { Button, CopyButton, cn } from '../../src';
 
 // A deliberately small highlighter: comments, strings, keywords and tags are enough to
 // make snippets scannable. Colors are roles that clear 4.5:1 on --nish-bg.
@@ -25,61 +24,49 @@ function highlight(code: string): ReactNode[] {
   return out;
 }
 
-async function copyText(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-  }
-}
-
-export function CopyButton({ text, className }: { text: string; className?: string }) {
-  const [done, setDone] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        await copyText(text);
-        setDone(true);
-        setTimeout(() => setDone(false), 1500);
-      }}
-      className={cn(
-        'inline-flex h-7 items-center gap-1.5 rounded-md border border-th-line bg-th-surface px-2 text-xs font-medium text-th-hi2 transition-colors hover:bg-th-elevated hover:text-th-hi pointer-coarse:min-h-11 pointer-coarse:px-3',
-        className,
-      )}
-      aria-label={done ? 'Copied' : 'Copy code'}
-    >
-      {done ? <CheckIcon size={13} className="text-th-ok" /> : <CopyIcon size={13} />}
-      {done ? 'Copied' : 'Copy'}
-    </button>
-  );
-}
+/** pre: text-[13px] with leading-relaxed (1.625), so one line is 21.125px. */
+const LINE_PX = 13 * 1.625;
 
 export function CodeBlock({
   code,
   title,
   className,
+  collapseAt,
 }: {
   code: string;
   /** File name or a short caption above the code. */
   title?: string;
   className?: string;
+  /** Show only this many lines until "Expand" is pressed (Copy always copies it all). */
+  collapseAt?: number;
 }) {
   const text = code.replace(/^\n+|\s+$/g, '');
+  const total = text.split('\n').length;
+  const collapsible = collapseAt != null && total > collapseAt + 1;
+  const [open, setOpen] = useState(false);
+  const clipped = collapsible && !open;
   return (
     <div className={cn('min-w-0 overflow-hidden rounded-xl border border-th-line bg-th-bg', className)}>
-      <div className="flex items-center justify-between gap-3 border-b border-th-line bg-th-surface px-3 py-1.5">
+      <div className="flex items-center justify-between gap-3 border-b border-th-line bg-th-surface py-1.5 pl-3 pr-1.5">
         <span className="min-w-0 truncate font-mono text-xs text-th-hi3">{title ?? ''}</span>
         <CopyButton text={text} />
       </div>
-      <pre className="overflow-x-auto p-4 text-[13px] leading-relaxed">
-        <code className="font-mono text-th-hi">{highlight(text)}</code>
-      </pre>
+      <div className="relative">
+        <pre
+          className={cn('overflow-x-auto p-4 text-[13px] leading-relaxed', clipped && 'overflow-y-hidden')}
+          style={clipped ? { maxHeight: Math.round(collapseAt * LINE_PX + 32) } : undefined}
+        >
+          <code className="font-mono text-th-hi">{highlight(text)}</code>
+        </pre>
+        {clipped ? <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-th-bg to-transparent" /> : null}
+      </div>
+      {collapsible ? (
+        <div className="border-t border-th-line bg-th-surface px-2 py-1">
+          <Button variant="ghost" size="sm" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+            {open ? 'Collapse' : `Expand (${total - collapseAt} more lines)`}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

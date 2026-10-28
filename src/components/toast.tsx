@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
+import { useRef, useSyncExternalStore, type CSSProperties, type FocusEvent, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../cn';
 import { AlertTriangleIcon, CheckCircleIcon, InfoIcon, XIcon } from './icons';
@@ -172,34 +172,39 @@ export interface ToasterProps {
   className?: string;
   /** Distance from the bottom of the screen on phones (under 640px, or up to
    *  offsetUntil), e.g. 'calc(4.5rem + env(safe-area-inset-bottom))' to clear a bottom
-   *  tab bar. Default: 12px or the safe area, whichever is larger. */
+   *  tab bar. Default: 8px above --nish-bottom-inset (published by BottomNav and
+   *  StickyActionBar), or 12px above the safe area, whichever is larger. */
   offset?: string;
-  /** The breakpoint where offset stops applying: sm 640px (default), md 768px or lg
+  /** The breakpoint where offset stops applying: sm 640px, md 768px (default, matching BottomNav's hideFrom) or lg
    *  1024px. Match it to where the app's bottom tab bar hides, so a toast never covers
    *  the bar. From sm the stack still moves to the bottom right; between sm and this
    *  breakpoint it keeps the offset. */
   offsetUntil?: 'sm' | 'md' | 'lg';
 }
 
-// Full literal class names, so Tailwind's scanner finds every one.
+// Full literal class names, so Tailwind's scanner finds every one. From sm the stack sits
+// 1.25rem above --nish-bottom-inset; while a StickyActionBar is open (it floats 1.5rem above
+// the nav from sm) the min() term adds 1rem more, so the stack clears the pill by 0.75rem.
 const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
-  sm: 'sm:bottom-5 sm:pb-0',
-  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] md:bottom-5 md:pb-0',
-  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] lg:bottom-5 lg:pb-0',
+  sm: 'sm:bottom-0 sm:pb-[calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem))]',
+  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem)))] md:pb-[calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem))]',
+  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem)))] lg:pb-[calc(var(--nish-bottom-inset,0px)+1.25rem+min(var(--nish-bottom-bar-h,0px),1rem))]',
 };
 
-/** The toast stack: bottom-center full width on phones, bottom-right on wider screens. */
-export function Toaster({ className, offset, offsetUntil = 'sm' }: ToasterProps) {
+/** The toast stack: bottom-center full width on phones, bottom-right on wider screens.
+ *  It sits above any bottom bar through --nish-bottom-inset, and moves to the top of
+ *  the screen on phones while a sheet or dialog is open (html[data-nish-layer-open]). */
+export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps) {
   const list = useToasts();
   if (typeof document === 'undefined') return null;
   const style = offset ? ({ '--nish-toast-offset': offset } as CSSProperties) : undefined;
   return createPortal(
     <div
-      aria-live="polite"
       style={style}
       className={cn(
         'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-3',
-        'pb-[var(--nish-toast-offset,max(12px,env(safe-area-inset-bottom)))]',
+        'pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+8px),calc(12px+env(safe-area-inset-bottom))))]',
+        'max-sm:[html[data-nish-layer-open]_&]:bottom-auto max-sm:[html[data-nish-layer-open]_&]:top-[max(12px,env(safe-area-inset-top))] max-sm:[html[data-nish-layer-open]_&]:pb-0',
         'sm:inset-x-auto sm:right-5 sm:w-96 sm:items-stretch sm:px-0',
         DESKTOP_BOTTOM[offsetUntil],
         className,
@@ -213,7 +218,78 @@ export function Toaster({ className, offset, offsetUntil = 'sm' }: ToasterProps)
   );
 }
 
+const SWIPE_DISMISS_FRACTION = 0.35;
+const SWIPE_DISMISS_VELOCITY = 0.5; // px per ms
+const SWIPE_SLOP = 8; // px before a touch counts as a swipe rather than a tap
+
+interface Drag {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  lastX: number;
+  lastT: number;
+  velocity: number;
+  active: boolean;
+}
+
 function ToastCard({ t }: { t: ToastItem }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef<Drag | null>(null);
+
+  const setOffset = (dx: number, width: number) => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.transform = dx === 0 ? '' : `translateX(${dx}px)`;
+    el.style.opacity = dx === 0 ? '' : String(Math.max(0, 1 - Math.abs(dx) / width));
+  };
+  const onDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse') return;
+    drag.current = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastT: e.timeStamp, velocity: 0, active: false };
+  };
+  const onMove = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const el = ref.current;
+    if (!d || !el || d.pointerId !== e.pointerId) return;
+    const dx = e.clientX - d.startX;
+    if (!d.active) {
+      if (Math.abs(dx) < SWIPE_SLOP || Math.abs(dx) < Math.abs(e.clientY - d.startY)) return;
+      d.active = true;
+      el.setPointerCapture(e.pointerId);
+      pauseTimer(t.id);
+    }
+    const dt = e.timeStamp - d.lastT;
+    if (dt > 0) d.velocity = (e.clientX - d.lastX) / dt;
+    d.lastX = e.clientX;
+    d.lastT = e.timeStamp;
+    setOffset(dx, el.offsetWidth);
+  };
+  const onUp = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const el = ref.current;
+    drag.current = null;
+    if (!d || !el || d.pointerId !== e.pointerId || !d.active) return;
+    const dx = e.clientX - d.startX;
+    const width = el.offsetWidth;
+    const flung = Math.abs(d.velocity) > SWIPE_DISMISS_VELOCITY && Math.sign(d.velocity) === Math.sign(dx);
+    if (Math.abs(dx) > width * SWIPE_DISMISS_FRACTION || flung) {
+      dismissToast(t.id);
+      return;
+    }
+    el.style.transition = 'transform 160ms var(--nish-ease-out), opacity 160ms var(--nish-ease-out)';
+    setOffset(0, width);
+    window.setTimeout(() => {
+      if (ref.current) ref.current.style.transition = '';
+    }, 180);
+    resumeTimer(t.id);
+  };
+  const onCancel = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.active || d.pointerId !== e.pointerId) return;
+    setOffset(0, ref.current?.offsetWidth || 1);
+    resumeTimer(t.id);
+  };
+
   const leave = (e: FocusEvent<HTMLDivElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) resumeTimer(t.id);
   };
@@ -222,7 +298,12 @@ function ToastCard({ t }: { t: ToastItem }) {
   };
   return (
     <div
+      ref={ref}
       role={t.tone === 'error' ? 'alert' : 'status'}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onCancel}
       // Mouse only: a tap fires enter with no leave, which would pin the toast forever.
       onPointerEnter={(e) => e.pointerType === 'mouse' && pauseTimer(t.id)}
       onPointerLeave={(e) => e.pointerType === 'mouse' && resumeTimer(t.id)}
@@ -230,7 +311,8 @@ function ToastCard({ t }: { t: ToastItem }) {
       onBlur={leave}
       className={cn(
         'pointer-events-auto flex w-full max-w-md items-start gap-2.5 rounded-xl border bg-th-elevated px-3.5 py-3 shadow-pop',
-        'animate-[nish-rise-in_160ms_var(--nish-ease-out)]',
+        'touch-pan-y animate-[nish-rise-in_160ms_var(--nish-ease-out)]',
+        'max-sm:[html[data-nish-layer-open]_&]:animate-[nish-toast-in-top_200ms_var(--nish-ease-out)]',
         TONE[t.tone].className,
       )}
     >

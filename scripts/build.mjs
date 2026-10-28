@@ -47,7 +47,11 @@ parts.push(
   ':root,',
   '[data-theme] {',
   ...Object.entries(SHADOWS).map(([k, v]) => `  --nish-shadow-${k}: ${v};`),
-  ...SOFT_ROLES.map((r) => `  --nish-${r}-soft: color-mix(in srgb, var(--nish-${r}) 14%, transparent);`),
+  ...SOFT_ROLES.flatMap((r) => [
+    `  --nish-${r}-soft: color-mix(in srgb, var(--nish-${r}) 14%, transparent);`,
+    // Opaque twin of -soft (14% over the page bg) for sticky and fixed bars.
+    `  --nish-${r}-soft-solid: color-mix(in srgb, var(--nish-${r}) 14%, var(--nish-bg));`,
+  ]),
   '  --nish-focus: var(--nish-accent);',
   '}',
   '',
@@ -95,7 +99,7 @@ const componentsCss = buildComponentsCss(src, dist);
 const twColors = [
   ...COLOR_ROLES.filter((r) => !r.startsWith('chart-')).map((r) => [r, r]),
   ...COLOR_ROLES.filter((r) => r.startsWith('chart-')).map((r) => [r, r]),
-  ...SOFT_ROLES.map((r) => [`${r}-soft`, `${r}-soft`]),
+  ...SOFT_ROLES.flatMap((r) => [[`${r}-soft`, `${r}-soft`], [`${r}-soft-solid`, `${r}-soft-solid`]]),
   // Aliases for the names trading and nishboard already use.
   ['gain', 'ok'],
   ['danger', 'loss'],

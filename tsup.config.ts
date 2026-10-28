@@ -4,7 +4,7 @@ import { defineConfig } from 'tsup';
 // @nish/ui/chart (src/chart.ts): chart colors and tooltip styles with no chart library
 // and no React. Built whenever the source exists. (The React-free @nish/ui/tokens entry
 // is src/tokens.mjs copied as is by scripts/build.mjs.)
-const entry: Record<string, string> = { index: 'src/index.ts', theme: 'src/theme.ts' };
+const entry: Record<string, string> = { index: 'src/index.ts', theme: 'src/theme.ts', format: 'src/format.ts' };
 if (existsSync('src/chart.ts')) entry.chart = 'src/chart.ts';
 
 export default defineConfig([

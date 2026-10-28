@@ -40,6 +40,7 @@ function ModalPreview({
       size={size}
       placement={placement}
       hideClose={hideClose}
+      closeOnBack={false}
       onClose={() => undefined}
       footer={
         footer ? (
@@ -81,6 +82,7 @@ function PalettePreview() {
       aria-label="Command palette"
       placement="top"
       size="lg"
+      closeOnBack={false}
       onClose={() => undefined}
       header={
         <div className="flex items-center gap-2 border-b border-th-line px-4 py-3">
@@ -118,7 +120,7 @@ function ComparePreview({ size = '2xl' }: { size?: Size }) {
     ['Walmart', '$449.00', 'Pickup today'],
   ];
   return (
-    <Modal title="Compare prices" size={size} onClose={() => undefined} footer={<Button variant="primary">Track all</Button>}>
+    <Modal title="Compare prices" size={size} closeOnBack={false} onClose={() => undefined} footer={<Button variant="primary">Track all</Button>}>
       <div className="grid gap-3 sm:grid-cols-3">
         {stores.map(([name, price, note]) => (
           <Card key={name}>

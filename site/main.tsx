@@ -1,11 +1,12 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import docgen from 'virtual:nish-docgen';
-import { cn, IconButton, initTheme, ThemeToggle, Toaster } from '../src';
+import { AppHeader, cn, CommandPalette, Drawer, IconButton, initTheme, Kbd, ThemeToggle, Toaster, type CommandItem } from '../src';
 import { COMPONENT_DOCS } from './components';
-import { CloseIcon, GithubIcon, MenuIcon } from './lib/icons';
+import { GithubIcon, MenuIcon, SearchIcon } from './lib/icons';
 import { href, useRoute, type Route } from './lib/router';
+import { baseItems, cssItems } from './lib/search';
 import { ChangelogPage } from './pages/changelog';
 import { ColorPage } from './pages/color';
 import { ComponentPage } from './pages/component';
@@ -107,66 +108,118 @@ function page(route: Route): { title: string; node: ReactNode; wide?: boolean } 
   };
 }
 
-function NavList({ current, onNavigate }: { current: string; onNavigate?: () => void }) {
+function Chevron({ open }: { open: boolean }) {
   return (
-    <nav aria-label="Docs" className="space-y-6">
-      {NAV.map((g) => (
-        <div key={g.title} className="space-y-1">
-          <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-th-hi3">{g.title}</p>
-          <ul className="space-y-px">
-            {g.items.map((it) => {
-              const on = isOn(it, current);
-              return (
-                <li key={it.path}>
-                  <a
-                    href={href(it.path)}
-                    onClick={onNavigate}
-                    aria-current={on ? 'page' : undefined}
-                    className={cn(
-                      'flex items-center rounded-lg px-3 py-1.5 text-sm transition-colors pointer-coarse:min-h-11',
-                      on ? 'bg-th-accent-soft font-medium text-th-accent' : 'text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
-                    )}
-                  >
-                    {it.label}
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={cn('shrink-0 transition-transform', open && 'rotate-180')}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+/** The docs nav. With `collapsible` (the phone drawer) each group folds, the current group starts
+ *  open and the current item is scrolled into view. */
+function NavList({ current, onNavigate, collapsible = false }: { current: string; onNavigate?: () => void; collapsible?: boolean }) {
+  const root = useRef<HTMLElement>(null);
+  const currentGroup = NAV.find((g) => g.items.some((it) => isOn(it, current)))?.title;
+  const [open, setOpen] = useState<Set<string>>(() => new Set(currentGroup ? [currentGroup] : []));
+
+  useEffect(() => {
+    if (!collapsible) return;
+    root.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'center' });
+  }, [collapsible]);
+
+  return (
+    <nav ref={root} aria-label="Docs" className="space-y-4 lg:space-y-6">
+      {NAV.map((g, gi) => {
+        const expanded = !collapsible || open.has(g.title);
+        const listId = `nav-group-${gi}`;
+        return (
+          <div key={g.title} className="space-y-1">
+            {collapsible ? (
+              <button
+                type="button"
+                aria-expanded={expanded}
+                aria-controls={listId}
+                onClick={() =>
+                  setOpen((prev) => {
+                    const next = new Set(prev);
+                    if (!next.delete(g.title)) next.add(g.title);
+                    return next;
+                  })
+                }
+                className="flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-th-hi3 hover:bg-th-elevated hover:text-th-hi"
+              >
+                {g.title}
+                <Chevron open={expanded} />
+              </button>
+            ) : (
+              <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-th-hi3">{g.title}</p>
+            )}
+            <ul id={listId} hidden={!expanded} className="space-y-px">
+              {g.items.map((it) => {
+                const on = isOn(it, current);
+                return (
+                  <li key={it.path}>
+                    <a
+                      href={href(it.path)}
+                      onClick={onNavigate}
+                      aria-current={on ? 'page' : undefined}
+                      className={cn(
+                        'flex items-center rounded-lg px-3 py-1.5 text-sm transition-colors pointer-coarse:min-h-11',
+                        on ? 'bg-th-accent-soft font-medium text-th-accent' : 'text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
+                      )}
+                    >
+                      {it.label}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
     </nav>
   );
 }
 
-function Logo() {
-  return (
-    <a href={href('/overview')} aria-label={`${docgen.name} overview`} className="hidden min-w-0 shrink-0 items-center gap-2.5 rounded-lg min-[360px]:flex">
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-th-accent text-th-on-accent" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 18V6l12 12V6" />
-        </svg>
-      </span>
-      {/* phones: the back link takes the room, so the name and version show from sm up (the mark from 360px) */}
-      <span className="hidden min-w-0 sm:block">
-        <span className="block truncate text-[15px] font-semibold leading-tight text-th-hi">{docgen.name}</span>
-        <span className="block truncate text-xs leading-tight text-th-hi3">
-          <span className="font-mono">v{docgen.version}</span> · design system
-        </span>
-      </span>
-    </a>
-  );
-}
+const MARK = (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 18V6l12 12V6" />
+  </svg>
+);
+
+const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform);
 
 const GITHUB = 'https://github.com/nishant/ui';
 
 function Shell() {
   const route = useRoute();
   const [drawer, setDrawer] = useState(false);
+  const [search, setSearch] = useState(false);
+  const [extra, setExtra] = useState<CommandItem[] | null>(null);
   const { title, node, wide } = page(route);
   const index = ALL.findIndex((it) => isOn(it, route.path));
   const prev = index > 0 ? ALL[index - 1] : null;
   const next = index >= 0 && index < ALL.length - 1 ? ALL[index + 1] : null;
+
+  const base = useMemo(() => baseItems(ALL), []);
+  const items = useMemo(() => (extra ? [...base, ...extra] : base), [base, extra]);
+  // Token and class names come from the built CSS, loaded the first time search opens.
+  useEffect(() => {
+    if (!search || extra) return;
+    cssItems().then(setExtra, () => setExtra([]));
+  }, [search, extra]);
 
   useEffect(() => {
     document.title = `${title} · @nish/ui`;
@@ -174,17 +227,7 @@ function Shell() {
     setDrawer(false);
   }, [route.path, title]);
 
-  useEffect(() => {
-    if (!drawer) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawer(false);
-    document.addEventListener('keydown', onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = overflow;
-    };
-  }, [drawer]);
+  const openSearch = () => setSearch(true);
 
   return (
     <div className="min-h-dvh">
@@ -198,16 +241,33 @@ function Shell() {
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-20 border-b border-th-line bg-th-bg/85 backdrop-blur-md">
-        <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-5">
-          <IconButton label="Open navigation" className="lg:hidden" onClick={() => setDrawer(true)}>
-            <MenuIcon size={18} />
-          </IconButton>
-          <a className="nish-pill-link" href="https://nish.software" title="Back to nish.software">
-            ← nish.software
-          </a>
-          <Logo />
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+      <AppHeader
+        name={
+          <>
+            {docgen.name}
+            <span className="hidden font-mono text-xs font-normal text-th-hi3 md:inline">v{docgen.version}</span>
+          </>
+        }
+        icon={MARK}
+        homeHref={href('/overview')}
+        hideNameBelow="sm"
+        themeToggle={false}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={openSearch}
+              aria-label="Search docs"
+              aria-keyshortcuts="Control+K Meta+K"
+              className="hidden h-9 w-56 items-center gap-2 rounded-lg border border-th-line bg-th-surface px-3 text-sm text-th-hi3 transition-colors hover:border-th-line-strong hover:text-th-hi2 md:inline-flex lg:w-64 pointer-coarse:h-11"
+            >
+              <SearchIcon size={15} />
+              <span className="flex-1 text-left">Search docs…</span>
+              <Kbd>{MAC ? '⌘ K' : 'Ctrl K'}</Kbd>
+            </button>
+            <IconButton label="Search docs" className="md:hidden" onClick={openSearch}>
+              <SearchIcon size={18} />
+            </IconButton>
             <ThemeToggle presets />
             <a
               href={GITHUB}
@@ -215,16 +275,19 @@ function Shell() {
               rel="noreferrer"
               aria-label="Source on GitHub"
               title="Source on GitHub"
-              className="hidden size-9 items-center justify-center rounded-lg text-th-hi3 transition-colors hover:bg-th-elevated hover:text-th-hi sm:inline-flex"
+              className="hidden size-9 items-center justify-center rounded-lg text-th-hi3 transition-colors hover:bg-th-elevated hover:text-th-hi sm:inline-flex pointer-coarse:size-11"
             >
               <GithubIcon size={18} />
             </a>
-          </div>
-        </div>
-      </header>
+            <IconButton label="Open navigation" className="lg:hidden" onClick={() => setDrawer(true)}>
+              <MenuIcon size={18} />
+            </IconButton>
+          </>
+        }
+      />
 
       <div className="flex">
-        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-64 shrink-0 overflow-y-auto border-r border-th-line px-3 py-6 lg:block">
+        <aside className="sticky top-[var(--nish-header-h,3.5rem)] hidden h-[calc(100dvh-var(--nish-header-h,3.5rem))] w-64 shrink-0 overflow-y-auto border-r border-th-line px-3 py-6 lg:block">
           <NavList current={route.path} />
         </aside>
 
@@ -262,36 +325,31 @@ function Shell() {
       </div>
 
       {drawer ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-th-scrim/60 animate-fade-in" onClick={() => setDrawer(false)} aria-hidden="true" />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation"
-            className="absolute inset-y-0 left-0 flex w-[min(20rem,86vw)] flex-col border-r border-th-line bg-th-surface shadow-modal animate-[nish-rise-in_160ms_var(--nish-ease-out)]"
-          >
-            <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-th-line px-3">
-              <Logo />
-              <IconButton label="Close navigation" onClick={() => setDrawer(false)} autoFocus>
-                <CloseIcon size={18} />
-              </IconButton>
-            </div>
-            <div className="space-y-3 border-b border-th-line px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-th-hi3">Theme</p>
-              <ThemeToggle presets />
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="font-mono text-xs text-th-hi2">v{docgen.version}</span>
-                <a href={GITHUB} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1.5 font-medium text-th-hi2 hover:text-th-hi">
+        <Drawer
+          side="left"
+          size="sm"
+          title="Navigation"
+          subtitle={<span className="font-mono">v{docgen.version}</span>}
+          onClose={() => setDrawer(false)}
+          // The docs use hash routes: a pushed history entry would leave a dead Back step after a link is followed.
+          closeOnBack={false}
+          footer={
+            <div className="w-full space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-th-hi3">Theme</p>
+                <a href={GITHUB} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-th-hi2 hover:text-th-hi">
                   <GithubIcon size={16} /> GitHub
                 </a>
               </div>
+              <ThemeToggle presets block collapse="never" />
             </div>
-            <div className="flex-1 overflow-y-auto px-2 py-4">
-              <NavList current={route.path} onNavigate={() => setDrawer(false)} />
-            </div>
-          </div>
-        </div>
+          }
+        >
+          <NavList collapsible current={route.path} onNavigate={() => setDrawer(false)} />
+        </Drawer>
       ) : null}
+
+      <CommandPalette open={search} onOpenChange={setSearch} items={items} placeholder="Search docs…" emptyText="Nothing matches" />
       <Toaster />
     </div>
   );

@@ -200,6 +200,63 @@ Aliases kept for older apps: `th-gain` (ok), `th-danger` (loss), `th-2` (hi2), `
 
 Every value per theme, live, is on the [Color page](https://design.nish.software/#/color).
 
+## Layout contract
+
+Bars publish their height to CSS variables on `<html>` (a ResizeObserver; the variable is removed when the bar unmounts or is hidden). Everything else reads the variables, so no React context is needed, and static pages use the same contract through `mountHeightVar`.
+
+| Variable | Written by | Value | Read by |
+|---|---|---|---|
+| `--nish-header-h` | AppHeader when `sticky` (default) | measured height in px | PageHeader sticky top, StickyBar default top, SectionNav top, `.nish-scroll-target` scroll margin |
+| `--nish-bottom-nav-h` | BottomNav while visible (below `hideFrom`) | measured height, safe area included | `--nish-bottom-inset`, StickyActionBar, MoreSheet |
+| `--nish-bottom-bar-h` | StickyActionBar while open | measured height | `--nish-bottom-inset` |
+| `--nish-bottom-inset` | base.css only | `calc(var(--nish-bottom-nav-h, 0px) + var(--nish-bottom-bar-h, 0px))` | Toaster, PageContainer bottom padding, `.nish-pad-bottom-inset` |
+| `--nish-sticky-extra` | SectionNav and StickyBar when sticky | measured height | `.nish-scroll-target` scroll margin |
+| `--nish-page-gutter` | base.css (1rem, 1.5rem from 640px) | side padding | AppHeader, PageHeader, PageContainer |
+
+`html[data-nish-layer-open]` is set while any Modal, Drawer or ConfirmDialog is open; Toaster uses it to move to the top on phones. A custom bar publishes its height with `useHeightVar(ref, '--nish-bottom-bar-h')`; a sticky element can use `useStuck(ref)` for a stuck shadow, and a scroller `useScrollEdges(ref)` with `.nish-scroll-fade` for edge fades.
+
+## Phone chrome
+
+A header on top, a tab bar at the bottom on phones, a rail on wide screens and a "More" sheet for the rest. Toaster needs no `offset`: it sits above the tab bar through `--nish-bottom-inset`.
+
+```tsx
+import { AppHeader, BottomNav, MoreSheet, NavRail, PageContainer, Toaster } from '@nish/ui';
+
+const [more, setMore] = useState(false);
+
+<AppHeader name="Trackers" hubHref="https://nish.software" actions={<Search />} />
+<NavRail items={primary} />                       {/* md and up */}
+<PageContainer>{children}</PageContainer>         {/* pads for the bottom inset */}
+<BottomNav                                        {/* below md */}
+  items={primary}
+  more={{ active: false, expanded: more, onToggle: () => setMore((v) => !v) }}
+/>
+<MoreSheet open={more} onClose={() => setMore(false)} items={secondary} />
+<Toaster />                                       {/* no offset */}
+```
+
+`items` are `NavItem`s (`key`, `label`, `icon`, `href` or `onSelect`, `active`, `badge`). Pass `renderLink` to use your router's Link.
+
+Use this viewport meta in `<head>`:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+```
+
+Do not ship a static `<meta name="theme-color">`: `theme-init.js` creates and updates its own from the active theme, and removes any static one at load.
+
+## Formatting: `@nish/ui/format`
+
+A React-free entry for money, percentages, numbers, bytes, durations and dates: `money`, `signedMoney`, `pct`, `num`, `signed`, `bytes`, `duration`, `ago`, `date`, `time`, `dateTime`, `dateRange`. Each returns an en dash for null, undefined, NaN and invalid dates, and works in static pages and on servers. It is not re-exported from `@nish/ui`.
+
+```ts
+import { money, pct, ago } from '@nish/ui/format';
+
+money(1234.5);                    // "$1,234.50"
+pct(0.0312, { fromRatio: true }); // "3.1%"
+ago(Date.now() - 3 * 60_000);     // "3m"
+```
+
 ## Components
 
 | Component | What it is | Docs |

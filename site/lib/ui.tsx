@@ -1,21 +1,20 @@
 import type { ReactNode } from 'react';
 import type { ComponentDocgen, PropDoc } from 'virtual:nish-docgen';
-import { Badge, cn, PRESETS, type ThemeName } from '../../src';
+import { Badge, cn, PageHeader as DsPageHeader, PRESETS, useMediaQuery, type ThemeName } from '../../src';
 
+/** A docs page's title block: the DS PageHeader, plus a slot under it for the import line, links and view tabs. */
 export function PageHeader({ eyebrow, title, lead, children }: { eyebrow: string; title: string; lead?: ReactNode; children?: ReactNode }) {
   return (
-    <header className="space-y-3 border-b border-th-line pb-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-th-accent">{eyebrow}</p>
-      <h1 className="text-3xl font-semibold tracking-tight text-th-hi sm:text-4xl">{title}</h1>
-      {lead ? <div className="max-w-2xl text-base leading-relaxed text-th-hi2">{lead}</div> : null}
+    <div className="space-y-3 border-b border-th-line pb-6">
+      <DsPageHeader eyebrow={<span className="font-semibold tracking-[0.08em] text-th-accent">{eyebrow}</span>} title={title} description={lead} className="[&_h1]:text-3xl sm:[&_h1]:text-4xl [&_p:not(:first-child)]:max-w-2xl [&_p:not(:first-child)]:text-base [&_p:not(:first-child)]:leading-relaxed" />
       {children}
-    </header>
+    </div>
   );
 }
 
 export function Section({ id, title, note, children, className }: { id?: string; title: string; note?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section id={id} className={cn('scroll-mt-20 space-y-4', className)}>
+    <section id={id} className={cn('nish-scroll-target space-y-4', className)}>
       <div className="space-y-1">
         <h2 className="text-xl font-semibold tracking-tight text-th-hi">{title}</h2>
         {note ? <div className="max-w-2xl text-sm leading-relaxed text-th-hi2">{note}</div> : null}
@@ -64,9 +63,28 @@ const propDescription = (p: PropDoc) =>
 
 export function PropsTable({ doc, rows }: { doc?: ComponentDocgen; rows?: PropDoc[] }) {
   const props = rows ?? doc?.props ?? [];
+  const wide = useMediaQuery('(min-width: 640px)');
   return (
     <div className="space-y-3">
-      {props.length ? (
+      {props.length && !wide ? (
+        <ul className="divide-y divide-th-line overflow-hidden rounded-xl border border-th-line bg-th-surface">
+          {props.map((p) => (
+            <li key={p.name} className="space-y-1.5 px-3.5 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <code className="font-mono text-[13px] font-semibold text-th-hi [overflow-wrap:anywhere]">{p.name}</code>
+                {p.required ? <Badge tone="warn">required</Badge> : null}
+              </div>
+              <code className="block w-fit max-w-full whitespace-pre-wrap break-words rounded-md bg-th-elevated px-2 py-1 font-mono text-xs text-th-info">{p.type}</code>
+              {p.default ? (
+                <p className="text-xs text-th-hi3">
+                  Default: <code className="font-mono">{p.default}</code>
+                </p>
+              ) : null}
+              {propDescription(p) ? <p className="text-sm text-th-hi2">{propDescription(p)}</p> : null}
+            </li>
+          ))}
+        </ul>
+      ) : props.length ? (
         <div className="overflow-x-auto rounded-xl border border-th-line bg-th-surface">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead>

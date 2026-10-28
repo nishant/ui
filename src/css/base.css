@@ -10,6 +10,55 @@ html {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Layout contract. Bars publish their height on <html> (--nish-header-h,
+   --nish-bottom-nav-h, --nish-bottom-bar-h); everything that must clear them reads
+   --nish-bottom-inset or --nish-header-h. */
+:root {
+  --nish-page-gutter: 1rem;
+  --nish-header-h: 0px;
+  --nish-bottom-inset: calc(var(--nish-bottom-nav-h, 0px) + var(--nish-bottom-bar-h, 0px));
+}
+@media (min-width: 640px) {
+  :root {
+    --nish-page-gutter: 1.5rem;
+  }
+}
+/* Desktop scrollbars: reserve the gutter so the page does not shift when a dialog
+   hides the page scroll. */
+@media (hover: hover) and (pointer: fine) {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
+/* Anchor targets stop below the sticky header (and a sticky sub-bar). */
+.nish-scroll-target {
+  scroll-margin-top: calc(var(--nish-header-h, 0px) + var(--nish-sticky-extra, 0px) + 0.5rem);
+}
+/* Horizontal overflow fade, driven by data-at-start / data-at-end on the scroller. */
+.nish-scroll-fade {
+  --nish-fade-start: #000;
+  --nish-fade-end: #000;
+  mask-image: linear-gradient(to right, var(--nish-fade-start), #000 24px, #000 calc(100% - 24px), var(--nish-fade-end));
+  -webkit-mask-image: linear-gradient(to right, var(--nish-fade-start), #000 24px, #000 calc(100% - 24px), var(--nish-fade-end));
+}
+.nish-scroll-fade[data-at-start='false'] {
+  --nish-fade-start: transparent;
+}
+.nish-scroll-fade[data-at-end='false'] {
+  --nish-fade-end: transparent;
+}
+.nish-no-scrollbar {
+  scrollbar-width: none;
+}
+.nish-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Bottom padding that clears bottom bars (the nav already includes the safe area). */
+.nish-pad-bottom-inset {
+  padding-bottom: max(calc(var(--nish-bottom-inset) + 1rem), calc(1rem + env(safe-area-inset-bottom)));
 }
 
 /* A theme scoped to part of a page (<div data-theme="light" data-scheme="light">):
@@ -220,6 +269,54 @@ kbd {
     transform: translateX(100%);
   }
 }
+@keyframes nish-sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes nish-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes nish-toast-in-top {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes nish-bar-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+/* Indeterminate progress: a 40% wide stripe sweeping across (the stripe is the element). */
+@keyframes nish-loading-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@keyframes nish-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
 @keyframes nish-fade-in {
   from {
     opacity: 0;
@@ -405,5 +502,15 @@ kbd {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Spinners still signal "working" under reduced motion: they pulse instead of turning. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin,
+  .nish-spinner {
+    animation: nish-pulse 1.6s ease-in-out infinite !important;
+    animation-iteration-count: infinite !important;
+    animation-duration: 1.6s !important;
   }
 }

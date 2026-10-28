@@ -1,5 +1,7 @@
-import { createContext, useContext, useId, useRef, useSyncExternalStore, type HTMLAttributes, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useSyncExternalStore, type HTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../cn';
+import { useScrollEdges } from './layout-vars';
+import { revealInRow } from './nav';
 import { Badge } from './primitives';
 
 type TabsVariant = 'underline' | 'pill';
@@ -25,6 +27,23 @@ function useBreakpoint(bp: TabsBreakpoint | undefined): boolean {
     },
     () => (query && typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(query).matches : false),
     () => false,
+  );
+}
+
+// The tab strip: scrolls sideways when the tabs do not fit, fades the edges with more
+// content, and keeps the selected tab in view. A component of its own so the effects
+// start whenever the strip mounts (it is absent while a hideFrom breakpoint matches).
+function ScrollingList({ selected, children, ...rest }: { selected: number } & HTMLAttributes<HTMLDivElement>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useScrollEdges(ref);
+  useEffect(() => {
+    const el = selected >= 0 ? ref.current?.children[selected] : null;
+    if (el && ref.current) revealInRow(ref.current, el as HTMLElement);
+  }, [selected]);
+  return (
+    <div ref={ref} {...rest}>
+      {children}
+    </div>
   );
 }
 
@@ -152,11 +171,12 @@ export function Tabs({
   };
 
   const list = (
-    <div
+    <ScrollingList
+      selected={selected}
       role="tablist"
       aria-label={label}
       className={cn(
-        'flex max-w-full items-end overflow-x-auto scrollbar-none',
+        'flex max-w-full items-end overflow-x-auto nish-no-scrollbar nish-scroll-fade',
         block && 'w-full',
         variant === 'underline' ? cn(block ? 'gap-1' : 'gap-5', 'shadow-[inset_0_-1px_0_var(--nish-line)]') : 'gap-1',
         className,
@@ -198,7 +218,7 @@ export function Tabs({
           </button>
         );
       })}
-    </div>
+    </ScrollingList>
   );
 
   if (children == null) return wide ? null : list;

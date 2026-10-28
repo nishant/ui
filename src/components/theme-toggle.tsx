@@ -67,6 +67,10 @@ export interface ThemeToggleProps {
    *  button, so a phone header keeps to one row. segmented: the radio group at every
    *  width. A block toggle is always segmented. */
   phone?: 'compact' | 'segmented';
+  /** sm (default): the segmented toggle collapses to the cycling button below 640px (see
+   *  `phone`). never: it keeps the segmented control and the presets select at every
+   *  width, for a drawer or settings page that has the room. */
+  collapse?: 'sm' | 'never';
   className?: string;
 }
 
@@ -80,6 +84,7 @@ export function ThemeToggle({
   compact = false,
   variant = 'segmented',
   phone = 'compact',
+  collapse = 'sm',
   className,
 }: ThemeToggleProps) {
   const { choice, theme, scheme, setChoice } = useTheme();
@@ -133,7 +138,7 @@ export function ThemeToggle({
     title: labels ? undefined : label,
   }));
 
-  const twin = phone === 'compact' && !block;
+  const twin = collapse === 'sm' && phone === 'compact' && !block;
   const group = (
     <div className={cn('items-center gap-2', block ? 'flex w-full' : 'inline-flex', className, twin && 'max-sm:hidden')}>
       <Segmented

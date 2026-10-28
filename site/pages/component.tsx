@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import docgen from 'virtual:nish-docgen';
-import { Card, cn, Input, PRESETS, Select, tabClass, useTheme, type ThemeName } from '../../src';
+import { Card, cn, CopyButton, Input, PRESETS, Select, SectionNav, Switch, tabClass, useTheme, type ThemeName } from '../../src';
 import { COMPONENT_DOCS, RealModalButton, type ComponentDoc, type Control, type Story } from '../components';
-import { CodeBlock, CopyButton } from '../lib/code';
+import { CodeBlock } from '../lib/code';
 import { ExternalIcon } from '../lib/icons';
 import type { Args } from '../lib/jsx';
 import { href } from '../lib/router';
@@ -24,34 +24,8 @@ function Frame({ src, height, title, frameRef }: { src: string; height: number; 
 }
 
 function ControlInput({ c, value, onChange }: { c: Control; value: Args[string]; onChange: (v: Args[string]) => void }) {
-  const id = `ctl-${c.key}`;
   if (c.type === 'boolean') {
-    const on = !!value;
-    return (
-      <div className="flex items-center justify-between gap-3">
-        <span id={id} className="text-sm text-th-hi2">
-          {c.label}
-        </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-labelledby={id}
-          onClick={() => onChange(!on)}
-          className={cn(
-            'relative inline-flex h-6 w-10 shrink-0 items-center rounded-full border transition-colors pointer-coarse:h-7 pointer-coarse:w-12',
-            on ? 'border-th-accent bg-th-accent' : 'border-th-line-strong bg-th-elevated',
-          )}
-        >
-          <span
-            className={cn(
-              'inline-block size-4 rounded-full shadow-card transition-transform pointer-coarse:size-5',
-              on ? 'translate-x-[19px] bg-th-on-accent pointer-coarse:translate-x-[23px]' : 'translate-x-[3px] bg-th-hi3',
-            )}
-          />
-        </button>
-      </div>
-    );
+    return <Switch checked={!!value} onChange={onChange} label={c.label} size="sm" className="w-full justify-between" />;
   }
   return (
     <label className="grid gap-1.5">
@@ -163,13 +137,22 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
     { id: 'themes', label: 'All themes', to: `/components/${doc.id}/themes` },
   ];
 
+  const hasProps = doc.exports.length > 0 || !!doc.api;
+  const jumps = [
+    { id: 'usage', label: 'Usage' },
+    { id: 'preview', label: 'Preview' },
+    { id: 'stories', label: 'Stories' },
+    ...(hasProps ? [{ id: 'props', label: 'Props' }] : []),
+    { id: 'guidelines', label: 'Guidelines' },
+  ];
+
   return (
     <div className="space-y-10">
       <PageHeader eyebrow="Component" title={doc.name} lead={doc.summary}>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <div className="flex min-w-0 max-w-full items-center gap-2 rounded-lg border border-th-line bg-th-surface py-1 pl-3 pr-1">
             <code className="min-w-0 truncate font-mono text-[13px] text-th-hi">{doc.importLine}</code>
-            <CopyButton text={doc.importLine} />
+            <CopyButton text={doc.importLine} iconOnly label="Copy import line" />
           </div>
           <a
             href={`${REPO}/blob/master/${file}`}
@@ -199,18 +182,22 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
         <AllThemes doc={doc} />
       ) : (
         <>
-          <Section title="Canvas" note="Change the controls to re-render it. The snippet below follows along.">
+          <Section id="usage" title="Usage">
+            <CodeBlock code={doc.usage} title={`${doc.name.toLowerCase()}-example.tsx`} collapseAt={12} />
+          </Section>
+          <SectionNav items={jumps} updateHash={false} label={`${doc.name} sections`} />
+          <Section id="preview" title="Preview" note="Change the controls to re-render it. The snippet below follows along.">
             <Canvas doc={doc} />
           </Section>
-          <Section title="Stories" note={`Every state worth knowing, in the current theme (${PRESETS.find((p) => p.id === theme)?.label}). See them in every theme under All themes.`}>
+          <Section id="stories" title="Stories" note={`Every state worth knowing, in the current theme (${PRESETS.find((p) => p.id === theme)?.label}). See them in every theme under All themes.`}>
             <div className="grid gap-4 sm:grid-cols-2">
               {doc.stories.map((s) => (
                 <StoryCard key={s.id} doc={doc} story={s} theme={theme} />
               ))}
             </div>
           </Section>
-          {doc.exports.length || doc.api ? (
-            <Section title="Props" note="Generated from the TypeScript source at build time.">
+          {hasProps ? (
+            <Section id="props" title="Props" note="Generated from the TypeScript source at build time.">
               <div className="space-y-6">
                 {doc.exports.map((name) => (
                   <div key={name} className="space-y-2">
@@ -225,10 +212,7 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
             </div>
           </Section>
           ) : null}
-          <Section title="Usage">
-            <CodeBlock code={doc.usage} title={`${doc.name.toLowerCase()}-example.tsx`} />
-          </Section>
-          <Section title="Guidelines">
+          <Section id="guidelines" title="Guidelines">
             <ul className="max-w-2xl list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-th-hi2 marker:text-th-ghost">
               {doc.guidelines.map((g) => (
                 <li key={g}>{g}</li>
