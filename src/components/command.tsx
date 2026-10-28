@@ -102,6 +102,26 @@ function matchText(text: string, q: string): { tier: number; idx: number[] } | n
   return { tier: 3, idx };
 }
 
+/** Navigates after the layer that is closing has dropped its own history entry. Running
+ *  `history.back()` (the layer's cleanup) right after `location.assign` would cancel the
+ *  navigation, so wait for that pop to finish. Call it before closing the layer. */
+export function navigateFromLayer(href: string): void {
+  const inLayer = !!(history.state as { nishLayer?: string } | null)?.nishLayer;
+  if (!inLayer) {
+    window.location.assign(href);
+    return;
+  }
+  let done = false;
+  const go = () => {
+    if (done) return;
+    done = true;
+    window.removeEventListener('popstate', go);
+    window.location.assign(href);
+  };
+  window.addEventListener('popstate', go);
+  window.setTimeout(go, 400);
+}
+
 function rankItems(items: CommandItem[], query: string): Ranked[] {
   const q = query.trim().toLowerCase();
   if (!q) return items.slice(0, MAX_RESULTS).map((item) => ({ item, marks: [] }));
@@ -115,7 +135,9 @@ function rankItems(items: CommandItem[], query: string): Ranked[] {
     let best: number | null = null;
     for (const kw of item.keywords ?? []) {
       const m = matchText(kw.toLowerCase(), q);
-      if (m && (best === null || m.tier < best)) best = m.tier;
+      // Keywords match by prefix, word start or substring only; a loose subsequence
+      // over long keywords (summaries) would match almost any short query.
+      if (m && m.tier < 3 && (best === null || m.tier < best)) best = m.tier;
     }
     if (best !== null) scored.push({ r: { item, marks: [] }, score: 4 + best, order });
   });
@@ -330,7 +352,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
     onClose();
     if (item.href) {
       if (item.external) window.open(item.href, '_blank', 'noopener,noreferrer');
-      else window.location.assign(item.href);
+      else navigateFromLayer(item.href);
     } else {
       item.onSelect?.();
     }

@@ -175,7 +175,7 @@ export interface ToasterProps {
    *  tab bar. Default: 8px above --nish-bottom-inset (published by BottomNav and
    *  StickyActionBar), or 12px above the safe area, whichever is larger. */
   offset?: string;
-  /** The breakpoint where offset stops applying: sm 640px (default), md 768px or lg
+  /** The breakpoint where offset stops applying: sm 640px, md 768px (default, matching BottomNav's hideFrom) or lg
    *  1024px. Match it to where the app's bottom tab bar hides, so a toast never covers
    *  the bar. From sm the stack still moves to the bottom right; between sm and this
    *  breakpoint it keeps the offset. */
@@ -184,15 +184,15 @@ export interface ToasterProps {
 
 // Full literal class names, so Tailwind's scanner finds every one.
 const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
-  sm: 'sm:bottom-5 sm:pb-0',
-  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] md:bottom-5 md:pb-0',
-  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] lg:bottom-5 lg:pb-0',
+  sm: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem))]',
+  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] md:pb-[max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem)]',
+  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] lg:pb-[max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem)]',
 };
 
 /** The toast stack: bottom-center full width on phones, bottom-right on wider screens.
  *  It sits above any bottom bar through --nish-bottom-inset, and moves to the top of
  *  the screen on phones while a sheet or dialog is open (html[data-nish-layer-open]). */
-export function Toaster({ className, offset, offsetUntil = 'sm' }: ToasterProps) {
+export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps) {
   const list = useToasts();
   if (typeof document === 'undefined') return null;
   const style = offset ? ({ '--nish-toast-offset': offset } as CSSProperties) : undefined;

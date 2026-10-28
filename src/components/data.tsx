@@ -1,5 +1,7 @@
 import {
   useEffect,
+  useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -10,6 +12,7 @@ import {
   type SVGProps,
 } from 'react';
 import { cn } from '../cn';
+import { useMediaQuery } from './hooks';
 import { StatusDot, type StatusTone } from './display';
 import { CardListSkeleton, EmptyState, ErrorState, SkeletonRows } from './feedback';
 import { Table, TableWrap, Td, Th, Tr } from './table';
@@ -99,6 +102,7 @@ export type Sort = { key: string; dir: 'asc' | 'desc' } | null;
 type CardsBelow = 'sm' | 'md' | 'lg';
 
 const TABLE_SHOW: Record<CardsBelow, string> = { sm: 'hidden sm:block', md: 'hidden md:block', lg: 'hidden lg:block' };
+const BP_PX: Record<CardsBelow, number> = { sm: 640, md: 768, lg: 1024 };
 const CARDS_SHOW: Record<CardsBelow, string> = { sm: 'sm:hidden', md: 'md:hidden', lg: 'lg:hidden' };
 const HIDE_BELOW: Record<NonNullable<Column<unknown>['hideBelow']>, string> = {
   sm: 'hidden sm:table-cell',
@@ -124,6 +128,10 @@ export interface ResponsiveTableProps<T> {
   onRowClick?: (row: T) => void;
   /** Makes each row a link to this URL (cards become real anchors). */
   rowHref?: (row: T) => string;
+  /** Called with the URL when a row is activated by click or key, so a router can navigate
+   *  without a page reload. Without it the table assigns `location`. Card links stay real
+   *  anchors. */
+  onNavigate?: (href: string) => void;
   /** A 3px left edge on a row: ok, warn or loss. Say the status in a cell too. */
   rowTone?: (row: T) => 'ok' | 'warn' | 'loss' | undefined;
   /** The current sort, when you control it. */
@@ -172,6 +180,7 @@ export function ResponsiveTable<T>({
   cardsBelow = 'md',
   onRowClick,
   rowHref,
+  onNavigate,
   rowTone,
   sort,
   onSortChange,
@@ -187,6 +196,8 @@ export function ResponsiveTable<T>({
   className,
 }: ResponsiveTableProps<T>) {
   const [innerSort, setInnerSort] = useState<Sort>(null);
+  const sortId = useId();
+  const wide = useMediaQuery(`(min-width: ${BP_PX[cardsBelow]}px)`);
   const external = sort !== undefined || onSortChange !== undefined;
   const current: Sort = sort !== undefined ? sort : innerSort;
 
@@ -221,6 +232,7 @@ export function ResponsiveTable<T>({
     if (!rowHref) return activate(row);
     const href = rowHref(row);
     if (e.metaKey || e.ctrlKey || e.shiftKey || ('button' in e && e.button === 1)) window.open(href, '_blank', 'noopener');
+    else if (onNavigate) onNavigate(href);
     else window.location.assign(href);
   };
 
@@ -331,11 +343,11 @@ export function ResponsiveTable<T>({
     <>
       {sortable.length > 0 ? (
         <div className="mb-2 flex items-center gap-2">
-          <label className="shrink-0 text-xs text-th-hi3" htmlFor={`${label}-sort`}>
+          <label className="shrink-0 text-xs text-th-hi3" htmlFor={sortId}>
             Sort by
           </label>
           <Select
-            id={`${label}-sort`}
+            id={sortId}
             size="sm"
             className="min-w-0 flex-1"
             value={current?.key ?? ''}
@@ -380,8 +392,9 @@ export function ResponsiveTable<T>({
 
   return (
     <div className={className}>
-      <div className={TABLE_SHOW[cardsBelow]}>{table}</div>
-      <div className={CARDS_SHOW[cardsBelow]}>{cards}</div>
+      {/* Only the active layout is rendered. Before the media query is known (server render,
+          first paint) the CSS classes keep the wrong one hidden. */}
+      {wide ? <div className={TABLE_SHOW[cardsBelow]}>{table}</div> : <div className={CARDS_SHOW[cardsBelow]}>{cards}</div>}
     </div>
   );
 }
@@ -597,6 +610,36 @@ export interface LinkCardProps {
 
 const AUTO_BREAK = 600;
 
+type WidthWatch = { ro: ResizeObserver; subs: Set<(w: number) => void> };
+const widthWatches = new WeakMap<Element, WidthWatch>();
+
+/** Calls `fn` with the element's width now and on every resize. Cards in one grid share
+ *  a single ResizeObserver. Returns the unsubscribe function. */
+function watchWidth(el: HTMLElement, fn: (w: number) => void): () => void {
+  fn(el.clientWidth);
+  if (typeof ResizeObserver === 'undefined') return () => {};
+  let w = widthWatches.get(el);
+  if (!w) {
+    const subs = new Set<(width: number) => void>();
+    const ro = new ResizeObserver(() => {
+      const width = el.clientWidth;
+      subs.forEach((f) => f(width));
+    });
+    ro.observe(el);
+    w = { ro, subs };
+    widthWatches.set(el, w);
+  }
+  w.subs.add(fn);
+  const watch = w;
+  return () => {
+    watch.subs.delete(fn);
+    if (!watch.subs.size) {
+      watch.ro.disconnect();
+      widthWatches.delete(el);
+    }
+  };
+}
+
 /** A big link to another page or app: icon tile, title and blurb. The whole card is the anchor. */
 export function LinkCard({
   href,
@@ -614,15 +657,12 @@ export function LinkCard({
 }: LinkCardProps) {
   const ref = useRef<HTMLElement>(null);
   const [wide, setWide] = useState(false);
-  useEffect(() => {
+  // Layout effect: the first paint already has the right layout. One observer per parent.
+  useLayoutEffect(() => {
     if (layout !== 'auto') return;
     const parent = ref.current?.parentElement;
-    if (!parent || typeof ResizeObserver === 'undefined') return;
-    const measure = () => setWide(parent.clientWidth >= AUTO_BREAK);
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(parent);
-    return () => ro.disconnect();
+    if (!parent) return;
+    return watchWidth(parent, (w) => setWide(w >= AUTO_BREAK));
   }, [layout]);
 
   const isCard = layout === 'card' || (layout === 'auto' && wide);

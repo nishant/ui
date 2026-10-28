@@ -121,6 +121,7 @@ export function useLocalStorage<T>(
   );
   const valueRef = useRef(value);
   valueRef.current = value;
+  const instanceRef = useRef<object>({});
 
   useEffect(() => {
     const sync = () => setValueState(readStored(key, initialRef.current, raw));
@@ -129,7 +130,8 @@ export function useLocalStorage<T>(
       if (e.key === null || e.key === key) sync();
     };
     const onLocal = (e: Event) => {
-      if ((e as CustomEvent<string>).detail === key) sync();
+      const d = (e as CustomEvent<{ key: string; source: object }>).detail;
+      if (d && d.key === key && d.source !== instanceRef.current) sync();
     };
     window.addEventListener('storage', onStorage);
     window.addEventListener(LOCAL_EVENT, onLocal);
@@ -150,7 +152,7 @@ export function useLocalStorage<T>(
         // Storage unavailable: the value still lives in memory.
       }
       try {
-        window.dispatchEvent(new CustomEvent(LOCAL_EVENT, { detail: key }));
+        window.dispatchEvent(new CustomEvent(LOCAL_EVENT, { detail: { key, source: instanceRef.current } }));
       } catch {
         // No window events.
       }

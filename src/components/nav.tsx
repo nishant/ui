@@ -38,10 +38,11 @@ export interface NavItem {
 }
 
 /** Renders a router link for an item (React Router's `<Link>` and so on). Spread the given
- *  props onto it: `className` carries the look, `children` the icon and label. */
+ *  props onto it: `className` carries the look, `children` the icon and label, and
+ *  `onClick` runs the item's `onSelect` and closes a sheet. */
 export type RenderLink = (
   item: NavItem,
-  props: { className: string; children: ReactNode; 'aria-current'?: 'page' },
+  props: { className: string; children: ReactNode; 'aria-current'?: 'page'; onClick?: () => void },
 ) => ReactElement;
 
 type NavBreakpoint = 'md' | 'lg';
@@ -89,7 +90,15 @@ function renderItem(item: NavItem, className: string, children: ReactNode, rende
   const current = item.active ? ('page' as const) : undefined;
   if (item.href != null) {
     if (renderLink) {
-      return renderLink(item, { className, children, 'aria-current': current });
+      return renderLink(item, {
+        className,
+        children,
+        'aria-current': current,
+        onClick: () => {
+          item.onSelect?.();
+          onAfter?.();
+        },
+      });
     }
     return (
       <a
@@ -469,9 +478,28 @@ export function useScrollSpy(ids: string[], { rootMargin = '-45% 0px -50% 0px' }
       },
       { rootMargin },
     );
-    for (const id of list) {
-      const el = document.getElementById(id);
-      if (el) io.observe(el);
+    // Sections can mount after the hook does (data loaded behind a skeleton): keep looking
+    // for the missing ones until all are observed.
+    const seen = new Set<string>();
+    let mo: MutationObserver | null = null;
+    const attach = () => {
+      for (const id of list) {
+        if (seen.has(id)) continue;
+        const el = document.getElementById(id);
+        if (el) {
+          seen.add(id);
+          io.observe(el);
+        }
+      }
+      if (seen.size === list.length && mo) {
+        mo.disconnect();
+        mo = null;
+      }
+    };
+    attach();
+    if (seen.size < list.length && typeof MutationObserver !== 'undefined') {
+      mo = new MutationObserver(attach);
+      mo.observe(document.body, { childList: true, subtree: true });
     }
     const onScroll = () => {
       if (window.scrollY < 8) setActive(list[0]);
@@ -479,6 +507,7 @@ export function useScrollSpy(ids: string[], { rootMargin = '-45% 0px -50% 0px' }
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       io.disconnect();
+      mo?.disconnect();
       window.removeEventListener('scroll', onScroll);
     };
   }, [key, rootMargin]);
@@ -515,13 +544,34 @@ export interface SectionNavProps {
  *  its own height as `--nish-sticky-extra`. */
 export function SectionNav({ items, sticky = true, onSelect, updateHash = true, label = 'Sections', className }: SectionNavProps) {
   const ref = useRef<HTMLElement>(null);
-  const active = useScrollSpy(items.map((i) => i.id));
+  const spy = useScrollSpy(items.map((i) => i.id));
+  // After a chip tap the smooth scroll passes other sections; keep the tapped chip lit until it ends.
+  const [locked, setLocked] = useState<string | null>(null);
+  const active = locked ?? spy;
+  useEffect(() => {
+    if (locked == null) return;
+    let t: ReturnType<typeof setTimeout>;
+    const release = () => setLocked(null);
+    const bump = () => {
+      clearTimeout(t);
+      t = setTimeout(release, 800);
+    };
+    bump();
+    window.addEventListener('scroll', bump, { passive: true });
+    window.addEventListener('scrollend', release);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('scroll', bump);
+      window.removeEventListener('scrollend', release);
+    };
+  }, [locked]);
   useHeightVar(ref, '--nish-sticky-extra', sticky);
 
   const go = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
     const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setLocked(id);
     el.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
     if (updateHash) {
       try {

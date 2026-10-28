@@ -199,7 +199,8 @@ export function Callout({
     <div
       role={live ? (tone === 'loss' ? 'alert' : 'status') : undefined}
       className={cn(
-        'flex items-start border',
+        'flex border',
+        variant === 'bar' && action ? 'items-center' : 'items-start',
         compact ? 'gap-2 px-3 py-2 text-xs' : 'gap-3 px-4 py-3 text-sm',
         variant === 'bar' ? 'w-full rounded-none border-x-0' : 'rounded-xl',
         variant === 'bar' ? t.bar : t.box,
@@ -987,6 +988,15 @@ export function AppHeader({
   const ref = useRef<HTMLElement>(null);
   useHeightVar(ref, '--nish-header-h', sticky);
   const stuck = useStuck(ref) && sticky;
+  // From sm the overflow actions sit in the header row, outside any menu: MenuItem renders
+  // as a menu row (role=menuitem, tabIndex -1), so make them ordinary tabbable buttons.
+  const inlineActionsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    inlineActionsRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]').forEach((el) => {
+      el.removeAttribute('role');
+      el.tabIndex = el.getAttribute('aria-disabled') === 'true' ? -1 : 0;
+    });
+  });
   const toggle = themeToggle === false ? null : (themeToggle ?? <ThemeToggle />);
   const hideName = hideNameBelow === 'sm' && icon != null;
   const mark = (
@@ -1037,7 +1047,9 @@ export function AppHeader({
           {actions}
           {overflowActions ? (
             <>
-              <div className="hidden items-center gap-2 sm:flex">{overflowActions}</div>
+              <div ref={inlineActionsRef} className="hidden items-center gap-2 sm:flex [&>button]:w-auto">
+                {overflowActions}
+              </div>
               <div className="sm:hidden">
                 <DropdownMenu
                   align="end"

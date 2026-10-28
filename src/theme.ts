@@ -755,6 +755,10 @@ export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}):
       const t = target(a);
       if (t && t.getBoundingClientRect().top <= line + 1) found = a;
     }
+    const de = document.documentElement;
+    if (window.innerHeight + window.scrollY >= de.scrollHeight - 2) {
+      for (const a of links) if (target(a)) found = a;
+    }
     activate(found);
   };
   let frame = 0;
@@ -805,7 +809,7 @@ export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}):
  *  removes the listener. */
 export function mountChecklist(list: HTMLElement): () => void {
   if (typeof document === 'undefined') return () => undefined;
-  const key = list.dataset.store ? `nish-checklist:${list.dataset.store}` : null;
+  const key = list.dataset.store || null;
   const boxes = () => Array.from(list.querySelectorAll<HTMLInputElement>('li[data-id] input[type="checkbox"]'));
   const idOf = (b: HTMLInputElement) => b.closest<HTMLElement>('li[data-id]')?.dataset.id ?? '';
   let progress: Element | null = null;

@@ -98,9 +98,40 @@ function layerHost(anchor: HTMLElement | null | undefined): HTMLElement {
   return anchor?.closest<HTMLElement>('[data-nish-layer]') ?? document.body;
 }
 
+// history.back() is asynchronous. A layer that closes while another opens in the same
+// tick must not push its entry before that traversal lands, or the pending back would pop
+// the new entry and close the new layer at once. So: count the backs this module issued,
+// swallow their popstate events (the first listener on window), and hold pushes until the
+// count is back to zero.
+let pendingBacks = 0;
+const queuedPushes: Array<() => void> = [];
+
+function queueHistoryPush(push: () => void) {
+  if (pendingBacks > 0) queuedPushes.push(push);
+  else push();
+}
+
+function cancelHistoryPush(push: () => void) {
+  const i = queuedPushes.indexOf(push);
+  if (i >= 0) queuedPushes.splice(i, 1);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', (e) => {
+    if (pendingBacks <= 0) return;
+    pendingBacks--;
+    e.stopImmediatePropagation();
+    if (pendingBacks === 0) {
+      for (const push of queuedPushes.splice(0)) push();
+    }
+  });
+}
+
 /** The internals every modal surface shares (Modal, Drawer, ConfirmDialog): stack
  *  membership, focus in, Tab trap, Escape, focus return and the html + body lock. */
-function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void, closeOnBack = false) {
+function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void, closeOnBackProp = false) {
+  // Inside an iframe (the docs previews) pushState would add to the top-level history.
+  const closeOnBack = closeOnBackProp && (typeof window === 'undefined' || window.self === window.top);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
@@ -117,18 +148,32 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
     // push and pop an entry.
     const layerId = `nish-layer-${++layerSeq}`;
     let pushed = false;
-    const pushTimer = closeOnBack
-      ? window.setTimeout(() => {
-          const prev = history.state && typeof history.state === 'object' ? (history.state as object) : {};
-          history.pushState({ ...prev, nishLayer: layerId }, '');
-          pushed = true;
-        }, 0)
-      : 0;
+    let rePushTimer = 0;
+    const pushEntry = () => {
+      const prev = history.state && typeof history.state === 'object' ? (history.state as object) : {};
+      history.pushState({ ...prev, nishLayer: layerId }, '');
+      pushed = true;
+    };
+    // pushState waits until every history.back() this module issued has landed.
+    const queuedPush = () => queueHistoryPush(pushEntry);
+    const pushTimer = closeOnBack ? window.setTimeout(queuedPush, 0) : 0;
     function onPop() {
-      if (!pushed || !isTop(self)) return;
+      if (!pushed) return;
       if ((history.state as { nishLayer?: string } | null)?.nishLayer === layerId) return;
       pushed = false;
+      if (!isTop(self)) {
+        // A popover or menu is on top of this dialog: back only used up its entry, so
+        // push it again and leave the dialog open.
+        pushEntry();
+        return;
+      }
       onCloseRef.current();
+      // The close may be vetoed (ConfirmDialog while pending) or the parent may keep the
+      // layer mounted: once the exit animation would have finished, take an entry again.
+      window.clearTimeout(rePushTimer);
+      rePushTimer = window.setTimeout(() => {
+        if (!pushed) queuedPush();
+      }, SHEET_EXIT_MS + 60);
     }
     if (closeOnBack) window.addEventListener('popstate', onPop);
     // React's autoFocus focuses the element itself and writes no attribute, so let it
@@ -172,6 +217,8 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
     return () => {
       window.clearTimeout(focusTimer);
       window.clearTimeout(pushTimer);
+      window.clearTimeout(rePushTimer);
+      cancelHistoryPush(pushEntry);
       window.removeEventListener('popstate', onPop);
       layerStack.splice(layerStack.indexOf(self), 1);
       dialogCount--;
@@ -180,7 +227,10 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
       unlock();
       opener?.focus?.();
       // Closed by anything but back: drop the entry this layer pushed.
-      if (pushed && (history.state as { nishLayer?: string } | null)?.nishLayer === layerId) history.back();
+      if (pushed && (history.state as { nishLayer?: string } | null)?.nishLayer === layerId) {
+        pendingBacks++;
+        history.back();
+      }
     };
   }, [panelRef, closeOnBack]);
 }
@@ -331,7 +381,7 @@ function SheetHandle({ onClose, swipe, className }: { onClose: () => void; swipe
         }
       }}
       className={cn(
-        'flex h-5 w-full shrink-0 cursor-grab touch-none items-center justify-center rounded-t-2xl outline-none focus-visible:bg-th-overlay',
+        'flex h-5 min-h-11 w-full shrink-0 cursor-grab touch-none items-center justify-center rounded-t-2xl outline-none focus-visible:bg-th-overlay',
         className,
       )}
     >

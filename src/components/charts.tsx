@@ -30,19 +30,21 @@ function toneColor(tone: ChartTone | undefined, index: number): string {
 }
 
 /** The element's content width, kept current with a ResizeObserver (0 until measured). */
-function useWidth<T extends HTMLElement>(): [React.RefObject<T | null>, number] {
-  const ref = useRef<T | null>(null);
+function useWidth<T extends HTMLElement>(): [(el: T | null) => void, number, T | null] {
+  const [el, setEl] = useState<T | null>(null);
   const [width, setWidth] = useState(0);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    if (!el) {
+      setWidth(0);
+      return;
+    }
     setWidth(el.clientWidth);
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => setWidth(el.clientWidth));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
-  return [ref, width];
+  }, [el]);
+  return [setEl, width, el];
 }
 
 /** True on coarse (touch) pointers; false on the server and before mount. */
@@ -120,7 +122,7 @@ export function LineChart({
   empty,
   className,
 }: LineChartProps) {
-  const [wrapRef, width] = useWidth<HTMLDivElement>();
+  const [wrapRef, width, wrapEl] = useWidth<HTMLDivElement>();
   const gradId = `nish-area-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const [active, setActive] = useState<number | null>(null);
   const fromKey = useRef(false);
@@ -169,11 +171,11 @@ export function LineChart({
   useEffect(() => {
     if (active == null) return;
     const onDown = (e: globalThis.PointerEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setActive(null);
+      if (wrapEl && !wrapEl.contains(e.target as Node)) setActive(null);
     };
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
-  }, [active, wrapRef]);
+  }, [active, wrapEl]);
 
   if (loading) return <Skeleton className={cn('w-full rounded-xl', className)} style={{ height }} />;
 
@@ -206,7 +208,7 @@ export function LineChart({
     return segs;
   });
 
-  const xLabels = ticksBetween(scale.xMin, scale.xMax, xTicks);
+  const xLabels = ticksBetween(scale.xMin, scale.xMax, Math.min(xTicks, Math.max(2, Math.floor(plotW / 72))));
 
   const moveTo = (clientX: number, el: Element) => {
     const rect = el.getBoundingClientRect();

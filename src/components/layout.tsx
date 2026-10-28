@@ -253,6 +253,7 @@ export function ConnectionBanner({
 
     const schedule = () => {
       clearTimeout(timer);
+      if (document.visibilityState === 'hidden') return;
       const delay = Math.min(intervalMs * 2 ** failures, intervalMs * 4);
       timer = setTimeout(() => void run(), delay);
     };

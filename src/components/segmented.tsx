@@ -55,7 +55,7 @@ export interface SegmentedProps<T extends string> {
    *  with edge fades and keeps the selected option in view; wrap lets the control grow
    *  past its container as before. */
   overflow?: 'wrap' | 'scroll';
-  /** Fill the container's width and give every option an equal share (like block). */
+  /** @deprecated Alias of `block`; use `block`. Kept because the spec names it. */
   fullWidth?: boolean;
   className?: string;
 }

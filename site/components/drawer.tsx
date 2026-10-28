@@ -62,6 +62,7 @@ function DrawerPreview({
       subtitle="4 unread"
       side={side}
       size={size}
+      closeOnBack={false}
       onClose={() => undefined}
       actions={
         actions ? (
@@ -86,7 +87,7 @@ function DrawerPreview({
 
 function MoreSheet() {
   return (
-    <Drawer title="More" side="bottom" size="sm" bottomOffset="4rem" onClose={() => undefined}>
+    <Drawer title="More" side="bottom" size="sm" bottomOffset="4rem" closeOnBack={false} onClose={() => undefined}>
       <nav aria-label="More pages" className="-mx-2 grid gap-0.5">
         {['Scanner', 'Journal', 'Settings', 'Help'].map((p) => (
           <a key={p} href="#/components/drawer" className="rounded-lg px-3 py-2 text-sm text-th-hi2 hover:bg-th-elevated hover:text-th-hi pointer-coarse:min-h-11">
