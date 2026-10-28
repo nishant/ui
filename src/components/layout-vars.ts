@@ -80,15 +80,27 @@ export function useStuck(ref: RefObject<HTMLElement | null>, enabled = true): bo
       io?.disconnect();
       io = new IntersectionObserver(
         ([entry]) => {
-          const next = entry.intersectionRatio < 1 && entry.boundingClientRect.top < top + 1;
-          setStuck(next);
-          if (next) el.setAttribute('data-stuck', '');
-          else el.removeAttribute('data-stuck');
+          lastRatio = entry.intersectionRatio;
+          evaluate();
         },
         { threshold: [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1], rootMargin: `${-top - 1}px 0px 0px 0px` },
       );
       io.observe(el);
     };
+    // Stuck needs the element to be clipped at the edge AND the page to have scrolled:
+    // an element whose natural position equals its sticky offset is not stuck at scroll 0.
+    let lastRatio = 1;
+    let current = false;
+    const evaluate = () => {
+      const scrolled = (window.scrollY || document.documentElement.scrollTop || 0) > 0;
+      const next = scrolled && lastRatio < 1 && el.getBoundingClientRect().top < builtTop + 1;
+      if (next === current) return;
+      current = next;
+      setStuck(next);
+      if (next) el.setAttribute('data-stuck', '');
+      else el.removeAttribute('data-stuck');
+    };
+    window.addEventListener('scroll', evaluate, { passive: true });
     build();
     let ro: ResizeObserver | undefined;
     if (typeof ResizeObserver !== 'undefined') {
@@ -101,6 +113,7 @@ export function useStuck(ref: RefObject<HTMLElement | null>, enabled = true): bo
       mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
     }
     return () => {
+      window.removeEventListener('scroll', evaluate);
       io?.disconnect();
       ro?.disconnect();
       mo?.disconnect();

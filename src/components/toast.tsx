@@ -184,9 +184,9 @@ export interface ToasterProps {
 
 // Full literal class names, so Tailwind's scanner finds every one.
 const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
-  sm: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem))]',
-  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] md:pb-[max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem)]',
-  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,1.25rem)] lg:pb-[max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem)]',
+  sm: 'sm:bottom-0 sm:pb-[max(calc(var(--nish-bottom-inset,0px)+2.25rem),1.25rem)]',
+  md: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem))] md:pb-[max(calc(var(--nish-bottom-inset,0px)+2.25rem),1.25rem)]',
+  lg: 'sm:bottom-0 sm:pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+1.25rem),1.25rem))] lg:pb-[max(calc(var(--nish-bottom-inset,0px)+2.25rem),1.25rem)]',
 };
 
 /** The toast stack: bottom-center full width on phones, bottom-right on wider screens.

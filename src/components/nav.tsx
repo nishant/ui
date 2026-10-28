@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { cn } from '../cn';
+import { navigateFromLayer } from './command';
 import { chipClass } from './forms';
 import { useHeightVar, useScrollEdges } from './layout-vars';
 import { Drawer, Tooltip } from './overlay';
@@ -42,7 +43,15 @@ export interface NavItem {
  *  `onClick` runs the item's `onSelect` and closes a sheet. */
 export type RenderLink = (
   item: NavItem,
-  props: { className: string; children: ReactNode; 'aria-current'?: 'page'; onClick?: () => void },
+  props: {
+    className: string;
+    children: ReactNode;
+    'aria-current'?: 'page';
+    onClick?: () => void;
+    /** true when rendered inside a sheet: pass it to the router's `<Link replace>` so the
+     *  navigation replaces the sheet's own history entry instead of stacking on it. */
+    replace?: boolean;
+  },
 ) => ReactElement;
 
 type NavBreakpoint = 'md' | 'lg';
@@ -94,6 +103,7 @@ function renderItem(item: NavItem, className: string, children: ReactNode, rende
         className,
         children,
         'aria-current': current,
+        ...(onAfter ? { replace: true } : {}),
         onClick: () => {
           item.onSelect?.();
           onAfter?.();
@@ -105,8 +115,17 @@ function renderItem(item: NavItem, className: string, children: ReactNode, rende
         href={item.href}
         className={className}
         aria-current={current}
-        onClick={() => {
+        onClick={(e) => {
           item.onSelect?.();
+          const inLayer = !!(history.state as { nishLayer?: string } | null)?.nishLayer;
+          const plain = e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.defaultPrevented;
+          if (onAfter && inLayer && plain) {
+            // Closing the sheet runs history.back(), which would race the default navigation.
+            e.preventDefault();
+            onAfter();
+            navigateFromLayer(item.href as string);
+            return;
+          }
           onAfter?.();
         }}
       >
@@ -545,24 +564,23 @@ export interface SectionNavProps {
 export function SectionNav({ items, sticky = true, onSelect, updateHash = true, label = 'Sections', className }: SectionNavProps) {
   const ref = useRef<HTMLElement>(null);
   const spy = useScrollSpy(items.map((i) => i.id));
-  // After a chip tap the smooth scroll passes other sections; keep the tapped chip lit until it ends.
+  // After a chip tap the tapped chip stays lit, even after the scroll ends (the spy's middle
+  // band may hold another section at rest). It is released by the next user-initiated scroll.
   const [locked, setLocked] = useState<string | null>(null);
   const active = locked ?? spy;
   useEffect(() => {
     if (locked == null) return;
-    let t: ReturnType<typeof setTimeout>;
     const release = () => setLocked(null);
-    const bump = () => {
-      clearTimeout(t);
-      t = setTimeout(release, 800);
+    const onKey = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) release();
     };
-    bump();
-    window.addEventListener('scroll', bump, { passive: true });
-    window.addEventListener('scrollend', release);
+    window.addEventListener('wheel', release, { passive: true });
+    window.addEventListener('touchstart', release, { passive: true });
+    window.addEventListener('keydown', onKey);
     return () => {
-      clearTimeout(t);
-      window.removeEventListener('scroll', bump);
-      window.removeEventListener('scrollend', release);
+      window.removeEventListener('wheel', release);
+      window.removeEventListener('touchstart', release);
+      window.removeEventListener('keydown', onKey);
     };
   }, [locked]);
   useHeightVar(ref, '--nish-sticky-extra', sticky);

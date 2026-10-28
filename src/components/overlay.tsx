@@ -111,6 +111,12 @@ function queueHistoryPush(push: () => void) {
   else push();
 }
 
+/** Runs `cb` once every history.back() this module issued has landed: immediately when none
+ *  is pending, otherwise after the last one (queued with the held pushes). */
+export function whenHistorySettled(cb: () => void): void {
+  queueHistoryPush(cb);
+}
+
 function cancelHistoryPush(push: () => void) {
   const i = queuedPushes.indexOf(push);
   if (i >= 0) queuedPushes.splice(i, 1);

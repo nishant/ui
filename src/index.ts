@@ -159,7 +159,7 @@ export type {
   BarChartProps,
   RangeBarProps,
 } from './components/charts';
-export { CommandPalette, useCommandHotkey } from './components/command';
+export { CommandPalette, useCommandHotkey, navigateFromLayer } from './components/command';
 export type { CommandItem, CommandPaletteProps } from './components/command';
 export { RelativeTime, useMediaQuery, useBreakpoint, useDocumentTitle, useNow, useLocalStorage } from './components/hooks';
 export type { Breakpoint, RelativeTimeProps } from './components/hooks';

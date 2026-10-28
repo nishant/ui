@@ -675,29 +675,46 @@ export function mountHeightVar(el: HTMLElement, name: string): () => void {
   };
 }
 
-/** Toggle `data-stuck` on a position:sticky element while it is stuck to its `top` (a
- *  1px sentinel is inserted before it). Style `.nish-sticky[data-stuck]` or your own.
- *  Returns a function that stops watching and removes the sentinel. */
+/** Toggle `data-stuck` on a position:sticky element while it is stuck to its `top`. Observes
+ *  the element itself with a root margin that cuts 1px off the top of the scroll root below
+ *  the sticky `top`; nothing is inserted into the DOM, so flex and grid parents are
+ *  unaffected. The sticky `top` is re-read on resize and `<html>` style changes, and the
+ *  observer is rebuilt when it differs. Style `.nish-sticky[data-stuck]` or your own.
+ *  Returns a function that stops watching. */
 export function mountStuck(el: HTMLElement): () => void {
-  const parent = el.parentNode;
-  if (typeof document === 'undefined' || !parent || typeof IntersectionObserver === 'undefined') return () => undefined;
-  const sentinel = document.createElement('div');
-  sentinel.setAttribute('aria-hidden', 'true');
-  sentinel.style.cssText = 'height:1px;margin-bottom:-1px;pointer-events:none;visibility:hidden';
-  parent.insertBefore(sentinel, el);
-  const top = Math.round(parseFloat(getComputedStyle(el).top) || 0);
-  const io = new IntersectionObserver(
-    ([entry]) => {
-      const stuck = !entry.isIntersecting && entry.boundingClientRect.top < top;
-      if (stuck) el.setAttribute('data-stuck', '');
-      else el.removeAttribute('data-stuck');
-    },
-    { threshold: [0, 1], rootMargin: `${-top - 1}px 0px 0px 0px` },
-  );
-  io.observe(sentinel);
+  if (typeof document === 'undefined' || typeof IntersectionObserver === 'undefined') return () => undefined;
+  let io: IntersectionObserver | undefined;
+  let builtTop = Number.NaN;
+  const build = () => {
+    const top = Math.round(parseFloat(getComputedStyle(el).top) || 0);
+    if (top === builtTop) return;
+    builtTop = top;
+    io?.disconnect();
+    io = new IntersectionObserver(
+      ([entry]) => {
+        const stuck = entry.intersectionRatio < 1 && entry.boundingClientRect.top < top + 1;
+        if (stuck) el.setAttribute('data-stuck', '');
+        else el.removeAttribute('data-stuck');
+      },
+      { threshold: [0, 0.25, 0.5, 0.75, 0.9, 0.99, 1], rootMargin: `${-top - 1}px 0px 0px 0px` },
+    );
+    io.observe(el);
+  };
+  build();
+  let ro: ResizeObserver | undefined;
+  if (typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(build);
+    ro.observe(el);
+  }
+  let mo: MutationObserver | undefined;
+  if (typeof MutationObserver !== 'undefined') {
+    mo = new MutationObserver(build);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+  }
   return () => {
-    io.disconnect();
-    sentinel.remove();
+    io?.disconnect();
+    ro?.disconnect();
+    mo?.disconnect();
     el.removeAttribute('data-stuck');
   };
 }

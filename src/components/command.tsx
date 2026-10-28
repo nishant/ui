@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { cn } from '../cn';
 import { XIcon } from './icons';
-import { Modal } from './overlay';
+import { Modal, whenHistorySettled } from './overlay';
 
 // ---------------------------------------------------------------------------------
 // CommandPalette: a search-and-jump dialog (Ctrl/Cmd+K) over a list of items.
@@ -115,10 +115,12 @@ export function navigateFromLayer(href: string): void {
   const go = () => {
     if (done) return;
     done = true;
-    window.removeEventListener('popstate', go);
     window.location.assign(href);
   };
-  window.addEventListener('popstate', go);
+  // The layer's cleanup issues history.back() after this call (on close), so the back is
+  // not pending yet: defer one tick, then wait for the module's pending backs to settle.
+  window.setTimeout(() => whenHistorySettled(go), 0);
+  // Safety net only.
   window.setTimeout(go, 400);
 }
 
