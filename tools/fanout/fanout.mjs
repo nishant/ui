@@ -22,7 +22,7 @@ import { sections } from './changelog.mjs';
 import { parseFleet } from './fleet.mjs';
 import { CmdError, api, apiJson, gh, git, isForbidden, redact, sh, sleep } from './gh.mjs';
 import { compare, pinFile, pinOf, rewritePin } from './pin.mjs';
-import { computeChecks, cut, decide, limitFor, updateLabel } from './policy.mjs';
+import { computeChecks, cut, decide, isAdoptedHead, limitFor, updateLabel } from './policy.mjs';
 
 const UI_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const STATUS = 'fan-out';
@@ -212,7 +212,11 @@ export class Run {
 
     const notes = sections(git(['show', `${tag}:CHANGELOG.md`], { cwd: this.ui, allowFail: true }).stdout, pin, tag);
 
-    if (!pr) {
+    let adopted = false;
+    if (pr) {
+      const c = apiJson(`repos/${R}/commits/${pr.headRefOid}`)?.commit;
+      adopted = isAdoptedHead(c ? { author: c.author?.name, message: c.message } : null);
+    } else {
       if (this.dry) {
         this.would(`open PR ui/${tag} in ${R}: Move @nish/ui to ${tag} (from ${pin})`);
         return { repo: R, result: 'dry-run', detail: `would open PR ui/${tag}` };
@@ -221,7 +225,7 @@ export class Run {
       if (opened.error) return { repo: R, result: 'error', detail: opened.error };
       pr = opened.pr;
     }
-    return this.settle(entry, pr, { kind: 'ui', from: pin, to: tag, behaviorChanges: notes.behaviorChanges });
+    return this.settle(entry, pr, { kind: 'ui', from: pin, to: tag, behaviorChanges: notes.behaviorChanges, adopted });
   }
 
   openBumpPr(entry, tag, pin, notes) {

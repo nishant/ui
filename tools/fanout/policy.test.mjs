@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { computeChecks, cut, decide, limitFor } from './policy.mjs';
+import { computeChecks, cut, decide, isAdoptedHead, limitFor } from './policy.mjs';
 
 const okFold = { newProblems: 0, baseOk: true, maxDiffPct: 0 };
 const ui = (over) => ({ kind: 'ui', from: 'v0.7.0', to: 'v0.7.1', behaviorChanges: false, checks: 'success', fold: okFold, ...over });
@@ -113,4 +113,15 @@ test('computeChecks fallback (check runs 403): workflow runs stand in', () => {
   assert.equal(computeChecks({ checkRuns: null, workflowRuns: [], young: false }), 'missing');
   // statuses combine with workflow runs
   assert.equal(computeChecks({ checkRuns: null, workflowRuns: [run()], statuses: [{ state: 'failure' }] }), 'failure');
+});
+
+test('isAdoptedHead tells fan-out commits from session commits', () => {
+  assert.equal(isAdoptedHead({ author: 'ui fan-out', message: 'Move @nish/ui to v0.8.0' }), false);
+  assert.equal(isAdoptedHead({ author: 'Nishant Arora', message: 'Adopt v0.8.0' }), true);
+  assert.equal(isAdoptedHead(null), false);
+});
+test('adopted behavior-changes PR merges; unadopted holds', () => {
+  const base = { kind: 'ui', behaviorChanges: true, checks: 'success', fold: null };
+  assert.equal(decide({ ...base, adopted: true }).action, 'merge');
+  assert.equal(decide({ ...base, adopted: false }).action, 'hold');
 });
