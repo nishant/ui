@@ -151,7 +151,7 @@ function Row({ item, view, label, wide, selected, expanded, domId, onToggle, onH
           <>
             <p className={cn('m-0 mt-0.5 whitespace-pre-line break-words text-sm text-th-hi2', !expanded && 'line-clamp-3')}>{item.body}</p>
             {long ? (
-              <Button variant="link" size="sm" aria-expanded={expanded} onClick={() => onToggle(item.id)}>
+              <Button variant="link" size="sm" className="pointer-coarse:-mx-2 pointer-coarse:min-h-11 pointer-coarse:px-2" aria-expanded={expanded} onClick={() => onToggle(item.id)}>
                 {expanded ? 'Less' : 'More'}
               </Button>
             ) : null}
