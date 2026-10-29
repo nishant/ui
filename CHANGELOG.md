@@ -3,12 +3,6 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
-## [Unreleased]
-
-### Changed
-
-- Docs site and examples: the Minecraft site is minecraft.nish.software (was mc.nish.software).
-
 ## [0.7.1] - 2026-10-28
 
 Docs site only; no change to the package.
@@ -16,6 +10,10 @@ Docs site only; no change to the package.
 ### Fixed
 
 - Docs site header: a gap between the package name and its version.
+
+### Changed
+
+- Docs site and examples: the Minecraft site is minecraft.nish.software (was mc.nish.software).
 
 ## [0.7.0] - 2026-10-28
 
