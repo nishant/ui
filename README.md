@@ -285,6 +285,14 @@ ago(Date.now() - 3 * 60_000);     // "3m"
 | `StatusDot` | Round status mark on the `-fill` roles, optional pulse and halo | [StatusDot](https://design.nish.software/#/components/status-dot) |
 | `Stat`, `StatGrid`, `signTone()` | Labelled numbers in a `<dl>` grid; tone from a signed number | [Stat](https://design.nish.software/#/components/stat) |
 | `Meter`, `toneFor()` | Thin meter or progress bar with threshold tones, or a neutral fill | [Meter](https://design.nish.software/#/components/meter) |
+| `FlowSteps` | Animated plan: numbered steps joined by connectors that fill, a rippling active step, check draw, vertical or horizontal | [FlowSteps](https://design.nish.software/#/components/flow-steps) |
+| `StepBar` | Compact segmented progress bar with a pulsing current segment | [StepBar](https://design.nish.software/#/components/step-bar) |
+| `AgentNode` | Card for one agent or task: state icon, model badge, live activity line, running comet border | [AgentNode](https://design.nish.software/#/components/agent-node) |
+| `WorkflowBoard` | Phases as columns (stacked when narrow) holding AgentNodes, with glow, progress and flowing connectors | [WorkflowBoard](https://design.nish.software/#/components/workflow-board) |
+| `ActivityFeed` | Timeline of short updates, newest first; new rows open, fade in and flash | [ActivityFeed](https://design.nish.software/#/components/activity-feed) |
+| `TickerText` | One line of text that slides when it changes | [TickerText](https://design.nish.software/#/components/ticker-text) |
+| `AnimatedList`, `usePrefersReducedMotion()` | List with enter, exit and FLIP move animations; hook for the reduced-motion preference | [AnimatedList](https://design.nish.software/#/components/animated-list) |
+| `SystemCanvas`, `layoutSystem()`, `routeEdges()` | Pannable, zoomable graph-paper canvas of grouped nodes and right-angled edges; active nodes pulse in their group's hue and edges into them flow | [SystemCanvas](https://design.nish.software/#/components/system-canvas) |
 | `Sparkline` | Dependency-free SVG trend line | [Sparkline](https://design.nish.software/#/components/sparkline) |
 | `Disclosure` | `<details>` show-more, plain or card | [Disclosure](https://design.nish.software/#/components/disclosure) |
 | `Kbd` | Keyboard key | [Kbd](https://design.nish.software/#/components/kbd) |

@@ -83,6 +83,14 @@ export const COMPONENTS = [
   'RangeBar',
   'CommandPalette',
   'RelativeTime',
+  'FlowSteps',
+  'StepBar',
+  'AgentNode',
+  'WorkflowBoard',
+  'ActivityFeed',
+  'TickerText',
+  'AnimatedList',
+  'SystemCanvas',
   'Inbox',
 ];
 const FUNCTIONS = [
@@ -90,7 +98,7 @@ const FUNCTIONS = [
   'buttonClass', 'iconButtonClass', 'cardClass', 'badgeClass', 'fieldClass', 'tabClass', 'chipClass', 'menuItemClass', 'showToast', 'confirmDialog', 'mountTooltips',
   'signTone', 'toneFor', 'copyText', 'seriesColor', 'chartTheme', 'useChartTheme',
   'revealClass', 'linkClass', 'useHeightVar', 'useStuck', 'useScrollEdges', 'useScrollSpy', 'useOnline', 'useCommandHotkey',
-  'useMediaQuery', 'useBreakpoint', 'useDocumentTitle', 'useNow', 'useLocalStorage',
+  'usePrefersReducedMotion', 'useMediaQuery', 'useBreakpoint', 'useDocumentTitle', 'useNow', 'useLocalStorage',
   'money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago', 'date', 'time', 'dateTime', 'dateRange',
   'openSheet', 'mountHeightVar', 'mountStuck', 'mountScrollspy', 'mountChecklist',
 ];

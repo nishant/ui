@@ -163,6 +163,42 @@ export { CommandPalette, useCommandHotkey, navigateFromLayer } from './component
 export type { CommandItem, CommandPaletteProps } from './components/command';
 export { RelativeTime, useMediaQuery, useBreakpoint, useDocumentTitle, useNow, useLocalStorage } from './components/hooks';
 export type { Breakpoint, RelativeTimeProps } from './components/hooks';
+export {
+  FlowSteps,
+  StepBar,
+  AgentNode,
+  WorkflowBoard,
+  ActivityFeed,
+  TickerText,
+  AnimatedList,
+  usePrefersReducedMotion,
+} from './components/flow';
+export type {
+  FlowStepsProps,
+  FlowStepItem,
+  FlowStepStatus,
+  StepBarProps,
+  AgentNodeProps,
+  AgentNodeState,
+  WorkflowBoardProps,
+  WorkflowBoardPhase,
+  WorkflowBoardAgent,
+  ActivityFeedProps,
+  ActivityItem,
+  TickerTextProps,
+  AnimatedListProps,
+} from './components/flow';
+export { SystemCanvas, layoutSystem, routeEdges } from './components/canvas';
+export type {
+  SystemCanvasProps,
+  CanvasGroup,
+  CanvasNode,
+  CanvasEdge,
+  CanvasHue,
+  CanvasNodeKind,
+  CanvasLayout,
+  RoutedEdge,
+} from './components/canvas';
 export { Inbox } from './components/inbox';
 export type { InboxProps } from './components/inbox';
 export { INBOX_SOURCE_LABELS, INBOX_DEFAULT_SETTINGS } from './inbox-types';

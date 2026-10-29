@@ -199,7 +199,7 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
           {hasProps ? (
             <Section id="props" title="Props" note="Generated from the TypeScript source at build time.">
               <div className="space-y-6">
-                {doc.exports.map((name) => (
+                {doc.exports.filter((name) => docgen.components[name]).map((name) => (
                   <div key={name} className="space-y-2">
                     {doc.exports.length > 1 || doc.api ? <h3 className="font-mono text-sm font-semibold text-th-hi">{name}</h3> : null}
                     {docgen.components[name].description && doc.exports.length > 1 ? (

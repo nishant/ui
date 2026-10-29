@@ -72,6 +72,14 @@ import { skeletonPresets } from './skeleton-presets';
 import { lineChart } from './line-chart';
 import { barChart } from './bar-chart';
 import { rangeBar } from './range-bar';
+import { flowSteps } from './flow-steps';
+import { stepBar } from './step-bar';
+import { agentNode } from './agent-node';
+import { workflowBoard } from './workflow-board';
+import { activityFeed } from './activity-feed';
+import { tickerText } from './ticker-text';
+import { animatedList } from './animated-list';
+import { systemCanvas } from './system-canvas';
 import { commandPalette } from './command-palette';
 import { relativeTime } from './relative-time';
 import { format } from './format';
@@ -155,6 +163,14 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   lineChart,
   barChart,
   rangeBar,
+  flowSteps,
+  stepBar,
+  agentNode,
+  workflowBoard,
+  activityFeed,
+  tickerText,
+  animatedList,
+  systemCanvas,
   commandPalette,
   relativeTime,
   format,
