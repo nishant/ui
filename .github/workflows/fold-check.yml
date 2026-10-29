@@ -1,0 +1,183 @@
+# The Fold check, as a reusable workflow. A consumer's PR workflow calls it (see
+# docs/fold-check.md): it builds the PR and its base branch, screenshots both at 360, 840 and
+# 1440 wide in light and dark, runs the Fold rules, and posts a pixel-diff report on the PR.
+name: fold-check
+on:
+  workflow_call:
+    inputs:
+      config:
+        description: visual-check config, path from working-directory
+        type: string
+        default: fold.visual.json
+      install:
+        description: install command
+        type: string
+        default: npm ci
+      serve:
+        description: command that starts the app on $FOLD_PORT and keeps running
+        type: string
+        default: npm run fold:serve
+      ready-path:
+        description: path polled until the app answers
+        type: string
+        default: /
+      node-version:
+        type: string
+        default: '22'
+      postgres:
+        description: start Postgres 16 and set DATABASE_URL
+        type: boolean
+        default: false
+      working-directory:
+        type: string
+        default: .
+
+jobs:
+  fold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      WD: ${{ inputs.working-directory }}
+      CONFIG: ${{ inputs.config }}
+      INSTALL: ${{ inputs.install }}
+      SERVE: ${{ inputs.serve }}
+      READY_PATH: ${{ inputs.ready-path }}
+    steps:
+      - name: Check out the PR
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          path: head
+
+      - name: Check out the base branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Check out the Fold tools
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          repository: nishant/ui
+          ref: master
+          path: .fold-ui
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: |
+            .fold-ui/package-lock.json
+            head/${{ inputs.working-directory }}/package-lock.json
+
+      - run: corepack enable
+
+      - name: Start Postgres
+        if: inputs.postgres
+        run: |
+          docker run -d --name fold-pg -p 5432:5432 -e POSTGRES_PASSWORD=fold -e POSTGRES_DB=fold postgres:16
+          for i in $(seq 1 30); do
+            docker exec fold-pg pg_isready -U postgres && break
+            sleep 1
+          done
+          echo "DATABASE_URL=postgres://postgres:fold@127.0.0.1:5432/fold" >> "$GITHUB_ENV"
+
+      - name: Install the Fold tools
+        working-directory: .fold-ui
+        run: npm ci --ignore-scripts
+
+      - name: Find the Playwright version
+        id: pw
+        working-directory: .fold-ui
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Chromium
+        id: chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium.outputs.cache-hit != 'true'
+        working-directory: .fold-ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Chromium system dependencies
+        if: steps.chromium.outputs.cache-hit == 'true'
+        working-directory: .fold-ui
+        run: npx playwright install-deps chromium
+
+      - name: Build and start the base branch
+        id: buildbase
+        continue-on-error: true
+        working-directory: base/${{ inputs.working-directory }}
+        run: |
+          bash -c "$INSTALL"
+          FOLD_PORT=5301 FOLD_SIDE=base nohup bash -c "$SERVE" > "$RUNNER_TEMP/fold-base.log" 2>&1 &
+
+      - name: Build and start the PR
+        working-directory: head/${{ inputs.working-directory }}
+        run: |
+          bash -c "$INSTALL"
+          FOLD_PORT=5302 FOLD_SIDE=head nohup bash -c "$SERVE" > "$RUNNER_TEMP/fold-head.log" 2>&1 &
+
+      - name: Wait for the PR to answer
+        run: npx -y wait-on@8 -t 300000 "http://127.0.0.1:5302${READY_PATH}"
+
+      - name: Wait for the base branch to answer
+        id: waitbase
+        if: steps.buildbase.outcome == 'success'
+        continue-on-error: true
+        run: npx -y wait-on@8 -t 300000 "http://127.0.0.1:5301${READY_PATH}"
+
+      # The head's config is used for both sides so the pages match.
+      - name: Screenshot the base branch
+        if: steps.waitbase.outcome == 'success'
+        continue-on-error: true
+        run: node .fold-ui/tools/visual-check.mjs "head/$WD/$CONFIG" --port 5301 --png --no-fail --out fold/base
+
+      - name: Screenshot the PR
+        run: node .fold-ui/tools/visual-check.mjs "head/$WD/$CONFIG" --port 5302 --png --no-fail --out fold/head
+
+      - name: Diff base and PR
+        id: diff
+        run: node .fold-ui/tools/fold-diff.mjs fold/base fold/head --out fold-report --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Collect server logs
+        if: always()
+        run: |
+          mkdir -p fold-report/logs
+          cp "$RUNNER_TEMP/fold-base.log" "$RUNNER_TEMP/fold-head.log" fold-report/logs/ || true
+
+      - name: Upload the report
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fold-report
+          path: fold-report
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload the summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fold-summary
+          path: fold-report/summary.json
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Comment on the PR
+        if: always() && github.actor != 'dependabot[bot]'
+        run: node .fold-ui/tools/fold-comment.mjs fold-report/summary.json
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
