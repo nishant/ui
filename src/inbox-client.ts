@@ -49,7 +49,8 @@ export function parseInboxEvent(input: unknown): { ok: true; value: InboxEvent }
       return fail(bad);
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return fail(bad);
-    url = input.url;
+    url = parsed.href;
+    if (url.length > 2000) return fail(bad);
   }
 
   let severity: InboxSeverity = 'normal';
@@ -228,13 +229,14 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
       timer = null;
     }
     while (queue.length > 0) {
-      const result = await attempt(queue[0]);
+      const head = queue[0];
+      const result = await attempt(head);
       if (result.kind === 'failed') {
         retryStep++;
         schedule();
         return;
       }
-      queue.shift();
+      if (queue[0] === head) queue.shift();
       if (result.kind === 'ok') sentSinceDown++;
     }
     retryStep = 0;
@@ -267,9 +269,13 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
         return { ok: false, error: parsed.error, queued: false };
       }
       if (disabled) return { ok: false, error: 'disabled', queued: false };
+      if (queue.length > 0 || flushing) {
+        enqueue(parsed.value);
+        void flush();
+        return { ok: false, error: 'queued behind earlier events', queued: true };
+      }
       const result = await attempt(parsed.value);
       if (result.kind === 'ok') {
-        if (queue.length > 0 && !flushing) void flush();
         return { ok: true, id: result.id, action: result.action };
       }
       if (result.kind === 'rejected') return { ok: false, error: result.error, queued: false };

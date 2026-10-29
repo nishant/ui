@@ -12,6 +12,13 @@
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "inbox-client": [
+        "./dist/inbox-client.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -35,7 +42,8 @@
     },
     "./inbox-client": {
       "types": "./dist/inbox-client.d.ts",
-      "import": "./dist/inbox-client.js"
+      "import": "./dist/inbox-client.js",
+      "default": "./dist/inbox-client.js"
     },
     "./theme-init.js":"./dist/theme-init.js",
     "./theme.global.js": "./dist/theme.global.js",

@@ -85,7 +85,17 @@ const SNOOZE_OPTIONS: SnoozeOption[] = [
 
 /** Whether a body is long enough that three lines will probably clamp it. */
 function looksClamped(body: string): boolean {
-  return body.length > 180 || body.split('\n').length > 3;
+  return body.length > 100 || body.split('\n').length > 3;
+}
+
+/** The url when it is http or https, otherwise null, so a stored `javascript:` url never becomes a link. */
+function safeHref(url: string): string | null {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null;
+  } catch {
+    return null;
+  }
 }
 
 const FALLBACK_COUNT = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -108,8 +118,9 @@ interface RowProps {
 function Row({ item, view, label, wide, selected, expanded, domId, onToggle, onHandle, onUnhandle, onSnooze, onUnsnooze }: RowProps) {
   const dot = DOT[item.severity] ?? DOT.normal;
   const long = item.body != null && looksClamped(item.body);
+  const href = item.url ? safeHref(item.url) : null;
   const snoozeItems = SNOOZE_OPTIONS.map((o) => (
-    <MenuItem key={o.label} onSelect={() => onSnooze(item.id, o.until(new Date()))}>
+    <MenuItem key={o.label} icon={wide ? undefined : <ClockIcon size={14} />} onSelect={() => onSnooze(item.id, o.until(new Date()))}>
       {o.label}
     </MenuItem>
   ));
@@ -128,8 +139,8 @@ function Row({ item, view, label, wide, selected, expanded, domId, onToggle, onH
           ) : null}
         </div>
         <p className="m-0 line-clamp-2 break-words text-sm font-medium text-th-hi">
-          {item.url ? (
-            <a href={item.url} target="_blank" rel="noopener noreferrer" className="break-words hover:underline">
+          {href ? (
+            <a href={href}target="_blank" rel="noopener noreferrer" className="break-words hover:underline">
               {item.title}
             </a>
           ) : (
@@ -250,7 +261,7 @@ export function Inbox({
   ];
 
   const handleAllCount = source ? (sources.find((s) => s.id === source)?.open ?? items.length) : counts.open;
-  const showHandleAll = view === 'open' && !!onHandleAll && items.length > 0;
+  const showHandleAll = view === 'open' && !!onHandleAll && items.length > 0 && !loading && !error;
 
   let body;
   if (loading) {

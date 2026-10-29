@@ -156,10 +156,20 @@ const okResponse = (status = 200, body = { results: [{ id: 7, action: 'created' 
   assert.equal(c.pending, 2);
   assert.deepEqual(logs, ['inbox unreachable, 1 queued']);
   working = true;
+  await c.flush(); // joins the retry that the second send started, which saw the outage
   await c.flush();
   assert.equal(c.pending, 0);
   assert.deepEqual(received, ['one', 'two']);
-  assert.deepEqual(logs, ['inbox unreachable, 1 queued', 'inbox back, sent 2 queued']);
+  // A new event sent while older ones are queued goes behind them, never ahead.
+  working = false;
+  await c.send({ kind: 'k', title: 'three' });
+  working = true;
+  const r4 = await c.send({ kind: 'k', title: 'four' });
+  assert.equal(r4.queued, true);
+  await c.flush();
+  await c.flush();
+  assert.deepEqual(received, ['one', 'two', 'three', 'four']);
+  assert.deepEqual(logs.slice(0, 2), ['inbox unreachable, 1 queued', 'inbox back, sent 2 queued']);
 }
 
 {
