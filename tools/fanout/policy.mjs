@@ -29,19 +29,40 @@ export function updateLabel(kind, from, to) {
  * @param {boolean} [p.young]  the PR is younger than 10 minutes
  * @returns {'pending'|'missing'|'failure'|'success'}
  */
+/** The newest item per key, preferring any run that was not skipped over a skipped one. */
+function newestBy(list, keyOf, orderOf) {
+  const rank = (x) => [x.conclusion === 'skipped' ? 0 : 1, orderOf(x) ?? ''];
+  const newer = (a, b) => {
+    const [ra, oa] = rank(a);
+    const [rb, ob] = rank(b);
+    if (ra !== rb) return ra > rb;
+    return typeof oa === 'number' && typeof ob === 'number' ? oa > ob : String(oa) > String(ob);
+  };
+  const best = new Map();
+  list.forEach((x, i) => {
+    const k = keyOf(x, i);
+    const prev = best.get(k);
+    if (!prev || newer(x, prev)) best.set(k, x);
+  });
+  return [...best.values()];
+}
+
 export function computeChecks({ checkRuns, statuses = [], workflowRuns = null, young = false }) {
   let items = [];
   if (checkRuns) {
-    items = checkRuns.map((c) => ({ done: c.status === 'completed', bad: FAILED.has(c.conclusion ?? '') }));
+    // Only the newest run of each check counts: a run cancelled because a newer one replaced it
+    // (concurrency) must not fail the PR. A skipped run (a label other than `fold`) never hides
+    // the result of a real one.
+    items = newestBy(checkRuns, (c, i) => (c.name == null ? `#${i}` : `${c.app?.id ?? ''}|${c.name}`), (c) => c.id ?? c.started_at).map((c) => ({
+      done: c.status === 'completed',
+      bad: FAILED.has(c.conclusion ?? ''),
+    }));
   } else if (workflowRuns) {
     // Only the newest run of each workflow and event counts (reruns replace earlier runs).
-    const newest = new Map();
-    for (const r of workflowRuns) {
-      const key = `${r.workflow_id ?? r.name}|${r.event ?? ''}`;
-      const prev = newest.get(key);
-      if (!prev || String(r.created_at ?? '') > String(prev.created_at ?? '')) newest.set(key, r);
-    }
-    items = [...newest.values()].map((r) => ({ done: r.status === 'completed', bad: FAILED.has(r.conclusion ?? '') }));
+    items = newestBy(workflowRuns, (r) => `${r.workflow_id ?? r.name}|${r.event ?? ''}`, (r) => r.created_at).map((r) => ({
+      done: r.status === 'completed',
+      bad: FAILED.has(r.conclusion ?? ''),
+    }));
   }
   for (const s of statuses) {
     items.push({ done: s.state !== 'pending', bad: s.state === 'failure' || s.state === 'error' });
