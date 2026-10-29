@@ -304,6 +304,7 @@ ago(Date.now() - 3 * 60_000);     // "3m"
 | `Segmented` | Two to five mutually exclusive choices side by side (xs to md, block, disabled options, per-option tip and tone) | [Segmented](https://design.nish.software/#/components/segmented) |
 | `Chip`, `ChipGroup`, `chipClass()` | Multi-select filter chips, suggestions and removable tags; `chipClass()` for links | [Chip](https://design.nish.software/#/components/chip) |
 | `Tabs`, `TabPanel`, `tabClass()` | ARIA tabs (underline or pill, xs to md, block, responsive panes); `tabClass()` for router links | [Tabs](https://design.nish.software/#/components/tabs) |
+| `Inbox` | One list for events from every app: Open, Snoozed and Handled views, source filter, handle and snooze actions; see [Inbox](#inbox) | [Inbox](https://design.nish.software/#/components/inbox) |
 | `ThemeToggle`, `useTheme()` | System / Light / Dark control with labels, compact mode, a pill variant and an optional preset picker | [ThemeToggle](https://design.nish.software/#/components/theme-toggle) |
 | `mountThemeToggle()` | `@nish/ui/theme` and `window.nishTheme`: the one-button theme toggle for static pages, optionally with the word | [mountThemeToggle](https://design.nish.software/#/components/mount-theme-toggle) |
 | `showToast()` | `@nish/ui/theme` and `window.nishTheme`: one toast for static pages, with the React toast's timer policy | [showToast](https://design.nish.software/#/components/show-toast) |
@@ -315,6 +316,28 @@ ago(Date.now() - 3 * 60_000);     // "3m"
 
 Also exported: `cn()` (clsx plus a tailwind-merge that knows the `th-*` colors), the theme
 functions, and `THEMES`, `SCALE`, `COLOR_ROLES`, `SOFT_ROLES`, `HUE_ROLES`, `SHADOWS`, `PRESETS`.
+
+## Inbox
+
+`Inbox` renders the list; the page owns the data. Props: `items`, `view` and `onViewChange`
+(open, snoozed, handled), `counts`, `sources`, `source` and `onSourceChange`, the actions
+`onHandle`, `onUnhandle`, `onSnooze(id, until)`, `onUnsnooze` and optional `onHandleAll`, plus
+`loading`, `error`, `onRetry`, `hasMore`, `onLoadMore`, `loadingMore`, `selectedId` and `sourceLabels`.
+The event types and `INBOX_SOURCE_LABELS` are exported from `@nish/ui` as well.
+
+Apps send events with the React-free client:
+
+```ts
+import { createInboxClient } from '@nish/ui/inbox-client';
+
+const inbox = createInboxClient({ source: 'trackers' });
+await inbox.send({ kind: 'price-drop', title: 'Headphones dropped to $298', url, dedupeKey: sku });
+await inbox.resolve(sku); // marks the open item handled
+```
+
+The client never throws and queues up to 200 events while the service is down. It posts to
+`INBOX_URL` (default `http://127.0.0.1:8805`); `INBOX_URL=off` turns it into a no-op for tests and CI.
+Producers import it at runtime, so list `@nish/ui` under `dependencies`.
 
 ## An app's own themes: registerThemes
 

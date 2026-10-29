@@ -3,6 +3,12 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## Unreleased
+
+### Added
+
+- Inbox component, five icons, and `@nish/ui/inbox-client` with the shared event types.
+
 ## [0.7.1] - 2026-10-28
 
 Docs site only; no change to the package.
