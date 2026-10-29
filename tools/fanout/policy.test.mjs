@@ -125,3 +125,29 @@ test('adopted behavior-changes PR merges; unadopted holds', () => {
   assert.equal(decide({ ...base, adopted: true }).action, 'merge');
   assert.equal(decide({ ...base, adopted: false }).action, 'hold');
 });
+
+test('computeChecks: a cancelled run replaced by a newer passing run of the same check does not fail', () => {
+  const checkRuns = [
+    { id: 1, name: 'fold / fold', status: 'completed', conclusion: 'cancelled' },
+    { id: 2, name: 'check', status: 'completed', conclusion: 'success' },
+    { id: 3, name: 'fold / fold', status: 'completed', conclusion: 'success' },
+    { id: 4, name: 'check', status: 'completed', conclusion: 'success' },
+  ];
+  assert.equal(computeChecks({ checkRuns }), 'success');
+});
+
+test('computeChecks: a newer failing run of the same check still fails', () => {
+  const checkRuns = [
+    { id: 1, name: 'check', status: 'completed', conclusion: 'success' },
+    { id: 2, name: 'check', status: 'completed', conclusion: 'failure' },
+  ];
+  assert.equal(computeChecks({ checkRuns }), 'failure');
+});
+
+test('computeChecks: a skipped run never hides an earlier real result', () => {
+  const checkRuns = [
+    { id: 1, name: 'fold / fold', status: 'completed', conclusion: 'failure' },
+    { id: 2, name: 'fold / fold', status: 'completed', conclusion: 'skipped' },
+  ];
+  assert.equal(computeChecks({ checkRuns }), 'failure');
+});
