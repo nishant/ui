@@ -23,15 +23,16 @@ function Live() {
 
   // Follow one agent; once it ends keep it on screen for a moment, then move to the next running one.
   useEffect(() => {
-    if (!current) {
-      const next = demo.agents.find((x) => x.state === 'running');
-      if (next) setPinned(next.id);
-      return;
-    }
-    if (!ended) return;
+    if (!pinned || !ended) return;
     const t = setTimeout(() => setPinned(null), 1500);
     return () => clearTimeout(t);
-  }, [current, ended, demo.agents]);
+  }, [pinned, ended]);
+
+  useEffect(() => {
+    if (current) return;
+    const next = demo.agents.find((x) => x.state === 'running');
+    if (next) setPinned(next.id);
+  }, [current, demo.agents]);
 
   const a = current ?? demo.agents.find((x) => x.state === 'running') ?? demo.agents[demo.agents.length - 1];
   if (!a) return <AgentNode label="Starting" state="queued" className="w-full max-w-sm" />;
