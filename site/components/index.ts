@@ -45,6 +45,7 @@ import { dropdownMenu } from './dropdown-menu';
 import { segmented } from './segmented';
 import { chip } from './chip';
 import { tabs } from './tabs';
+import { inbox } from './inbox';
 import { themeToggle } from './theme-toggle';
 import { mountThemeToggleDoc } from './mount-theme-toggle';
 import { showToastDoc } from './show-toast';
@@ -127,6 +128,7 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   segmented,
   chip,
   tabs,
+  inbox,
   themeToggle,
   mountThemeToggleDoc,
   showToastDoc,

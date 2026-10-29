@@ -83,6 +83,7 @@ export const COMPONENTS = [
   'RangeBar',
   'CommandPalette',
   'RelativeTime',
+  'Inbox',
 ];
 const FUNCTIONS = [
   'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
