@@ -3,6 +3,12 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.9.1] - 2026-10-29
+
+### Fixed
+
+- FlowSteps: a text step label that is cut to two lines shows its full text in a Tooltip (hover on desktop, tap on a phone, keyboard focus).
+
 ## [0.9.0] - 2026-10-29
 
 ### Added

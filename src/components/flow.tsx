@@ -5,12 +5,14 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactElement,
   type ReactNode,
   type RefObject,
 } from 'react';
 import { cn } from '../cn';
 import { ago } from '../format';
 import { useMediaQuery, useNow } from './hooks';
+import { Tooltip } from './overlay';
 import { Badge, type BadgeHue } from './primitives';
 
 // Animated components for live views of multi-step work: FlowSteps, StepBar, AgentNode,
@@ -163,6 +165,17 @@ function pickStepFx(from: FlowStepStatus, to: FlowStepStatus): string | null {
   return from === to ? null : null;
 }
 
+/** Horizontal labels clamp to two lines; a text label gets its full text as a tooltip
+ *  (hover on desktop, tap on a phone, focus from the keyboard). */
+function withFullText(text: ReactNode, label: ReactElement) {
+  if (typeof text !== 'string') return label;
+  return (
+    <Tooltip tip={text} className="nish-flow-label-tip max-w-full min-w-0">
+      {label}
+    </Tooltip>
+  );
+}
+
 function StepRow({
   step,
   index,
@@ -209,15 +222,18 @@ function StepRow({
         ) : null}
       </span>
       <span className="nish-flow-text">
-        <span
-          className={cn(
-            'nish-flow-label text-sm',
-            status === 'active' ? 'font-medium text-th-hi' : status === 'failed' ? 'text-th-loss' : 'text-th-hi2',
-          )}
-        >
-          {step.label}
-          {STEP_SR[status] ? <span className="sr-only">{STEP_SR[status]}</span> : null}
-        </span>
+        {withFullText(
+          step.label,
+          <span
+            className={cn(
+              'nish-flow-label text-sm',
+              status === 'active' ? 'font-medium text-th-hi' : status === 'failed' ? 'text-th-loss' : 'text-th-hi2',
+            )}
+          >
+            {step.label}
+            {STEP_SR[status] ? <span className="sr-only">{STEP_SR[status]}</span> : null}
+          </span>,
+        )}
         {step.meta != null ? <span className="nish-flow-meta text-xs text-th-hi3">{step.meta}</span> : null}
       </span>
       {last ? null : (
