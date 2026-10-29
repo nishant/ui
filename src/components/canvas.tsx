@@ -95,11 +95,14 @@ const NODE_GAP = 12;
 const GROUP_PAD = 16;
 const GROUP_HEAD = 52;
 const MIN_COLUMN_STEP = 420;
+const CHANNEL_EDGE = 60; // width of the routing channel left of the first and right of the last sub-column
 
 /** Where every group and node sits, in world units (px at zoom 1). Columns are the distinct
  *  `column` values in ascending order, groups stack in the order given, nodes sit in a
  *  2-column grid inside their group (1 column for a group of one), and each column is
- *  centered against the tallest. Pure and deterministic. */
+ *  centered against the tallest. The first sub-column starts 60 px in and `width` includes
+ *  60 px after the last, which is room for the edge lanes outside the cards. Pure and
+ *  deterministic. */
 export function layoutSystem(groups: CanvasGroup[], o: { columnGap?: number; rowGap?: number } = {}): CanvasLayout {
   const columnGap = o.columnGap ?? 120;
   const rowGap = o.rowGap ?? 40;
@@ -143,7 +146,7 @@ export function layoutSystem(groups: CanvasGroup[], o: { columnGap?: number; row
   const tallest = heights.reduce((m, h) => Math.max(m, h), 0);
 
   const out: CanvasLayout = { width: 0, height: tallest, groups: {}, nodes: {} };
-  let x = 0;
+  let x = members.length > 0 ? CHANNEL_EDGE : 0;
   members.forEach((list, ci) => {
     const widest = list.reduce((m, g) => Math.max(m, sized.get(g.id)!.w), 0);
     let y = (tallest - heights[ci]!) / 2;
@@ -163,6 +166,7 @@ export function layoutSystem(groups: CanvasGroup[], o: { columnGap?: number; row
     out.width = Math.max(out.width, x + widest);
     x += Math.max(MIN_COLUMN_STEP, widest + columnGap);
   });
+  if (members.length > 0) out.width += CHANNEL_EDGE;
   return out;
 }
 
@@ -415,39 +419,289 @@ interface Box {
   h: number;
 }
 
-interface EdgePath {
+export interface RoutedEdge {
+  id: string;
+  /** The corners of the line, source port first. Every segment is horizontal or vertical. */
+  points: [number, number][];
+  /** The same line as an SVG path with rounded corners; also valid for CSS `offset-path`. */
   d: string;
-  mx: number;
-  my: number;
 }
 
-/** Right middle of `a` to left middle of `b`; when `b` is not to the right, bottom to top
- *  (or top to bottom when `b` is above) with vertical control points. */
-function edgePath(a: Box, b: Box): EdgePath {
-  if (b.x >= a.x + a.w) {
-    const x1 = a.x + a.w;
-    const y1 = a.y + a.h / 2;
-    const x2 = b.x;
-    const y2 = b.y + b.h / 2;
-    const dx = Math.max(40, (x2 - x1) / 2);
-    return {
-      d: `M${x1} ${y1}C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}`,
-      mx: (x1 + x2) / 2,
-      my: (y1 + y2) / 2,
-    };
+const LANE_MARGIN = 16; // a lane keeps this far from the cards on both sides of its channel
+const TRACK_GAP = 8; // distance between corridor tracks
+const CLEARANCE = 8; // distance a corridor track keeps from group boxes
+const OUTSIDE_GAP = 24; // first track above the top group or below the bottom group
+const CORNER_R = 6;
+
+interface Port {
+  key: string;
+  x: number;
+  y: number;
+  col: number;
+}
+
+interface Wire {
+  edge: CanvasEdge;
+  src: Port;
+  dst: Port;
+  mode: 'next' | 'far' | 'back';
+  exit: string;
+  entry: string;
+}
+
+interface Lane {
+  key: string;
+  ys: number;
+  n: number;
+  x: number;
+}
+
+/** A horizontal stretch some edge already occupies; `track` marks corridor tracks. */
+interface HSeg {
+  y: number;
+  xa: number;
+  xb: number;
+  src: string;
+  dst: string;
+  track: boolean;
+}
+
+/** `pts` as an SVG path whose corners are quarter arcs of radius 6 (less on short segments). */
+function roundedPath(pts: [number, number][]): string {
+  const f = (v: number) => String(Math.round(v * 100) / 100);
+  let d = `M${f(pts[0]![0])} ${f(pts[0]![1])}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i - 1]!;
+    const [bx, by] = pts[i]!;
+    const [cx, cy] = pts[i + 1]!;
+    const r = Math.min(CORNER_R, (Math.abs(bx - ax) + Math.abs(by - ay)) / 2, (Math.abs(cx - bx) + Math.abs(cy - by)) / 2);
+    const ux = Math.sign(bx - ax);
+    const uy = Math.sign(by - ay);
+    const vx = Math.sign(cx - bx);
+    const vy = Math.sign(cy - by);
+    d += `L${f(bx - ux * r)} ${f(by - uy * r)}A${f(r)} ${f(r)} 0 0 ${ux * vy - uy * vx > 0 ? 1 : 0} ${f(bx + vx * r)} ${f(by + vy * r)}`;
   }
-  const down = b.y + b.h / 2 >= a.y + a.h / 2;
-  const x1 = a.x + a.w / 2;
-  const y1 = down ? a.y + a.h : a.y;
-  const x2 = b.x + b.w / 2;
-  const y2 = down ? b.y : b.y + b.h;
-  const dy = Math.max(30, Math.abs(y2 - y1) / 2);
-  const s = down ? 1 : -1;
-  return {
-    d: `M${x1} ${y1}C${x1} ${y1 + s * dy} ${x2} ${y2 - s * dy} ${x2} ${y2}`,
-    mx: (x1 + x2) / 2,
-    my: (y1 + y2) / 2,
+  const last = pts[pts.length - 1]!;
+  return `${d}L${f(last[0])} ${f(last[1])}`;
+}
+
+/** Drops repeated points and the middle point of three in a row, so only corners stay. */
+function corners(pts: [number, number][]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const p of pts) {
+    const prev = out[out.length - 1];
+    if (prev && prev[0] === p[0] && prev[1] === p[1]) continue;
+    const before = out[out.length - 2];
+    if (prev && before && ((before[0] === prev[0] && prev[0] === p[0]) || (before[1] === prev[1] && prev[1] === p[1]))) out.pop();
+    out.push(p);
+  }
+  return out;
+}
+
+/** Where an edge label sits: the middle of the longest segment. */
+function labelPoint(pts: [number, number][]): { x: number; y: number } {
+  let best = { x: pts[0]![0], y: pts[0]![1] };
+  let len = -1;
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay] = pts[i - 1]!;
+    const [bx, by] = pts[i]!;
+    const l = Math.abs(bx - ax) + Math.abs(by - ay);
+    if (l > len) {
+      len = l;
+      best = { x: (ax + bx) / 2, y: (ay + by) / 2 };
+    }
+  }
+  return best;
+}
+
+/** Routes every edge as an orthogonal line (horizontal and vertical segments, rounded corners)
+ *  from the right border of its source card to the left border of its target card. A node
+ *  attaches at its own center height, a group at its card's middle. Group boxes are clustered
+ *  into sub-columns by x; the gaps between them (and 60 px outside the first and last) are
+ *  channels, where vertical lanes run: one lane per source port (edges from a port share a
+ *  trunk) and one per target port (edges into a port merge). An edge to a sub-column further
+ *  right than the next travels along a horizontal corridor free of cards; backward edges and
+ *  edges inside one sub-column do the same, mirrored. Two edges share a line only at a shared
+ *  source or target port. Pure and deterministic; the result is keyed by edge id and skips
+ *  edges with an unknown end. */
+export function routeEdges(layout: CanvasLayout, groups: CanvasGroup[], edges: CanvasEdge[]): Record<string, RoutedEdge> {
+  const result: Record<string, RoutedEdge> = {};
+  const cards: { id: string; box: Box }[] = [];
+  for (const g of groups) {
+    const box = layout.groups[g.id];
+    if (box) cards.push({ id: g.id, box });
+  }
+  if (cards.length === 0) return result;
+
+  // --- sub-columns and channels ----------------------------------------------------
+  const colX = [...new Set(cards.map((c) => c.box.x))].sort((a, b) => a - b);
+  const cols = colX.map((x) => ({ x, right: x, boxes: [] as Box[] }));
+  const colOf = new Map<string, number>();
+  for (const { id, box } of cards) {
+    const ci = colX.indexOf(box.x);
+    colOf.set(id, ci);
+    cols[ci]!.right = Math.max(cols[ci]!.right, box.x + box.w);
+    cols[ci]!.boxes.push(box);
+  }
+  /** Channel j is left of sub-column j; channel 0 and channel `cols.length` are the outer ones. */
+  const channelOf = (j: number): [number, number] => {
+    if (j <= 0) return [cols[0]!.x - CHANNEL_EDGE, cols[0]!.x];
+    if (j >= cols.length) return [cols[cols.length - 1]!.right, cols[cols.length - 1]!.right + CHANNEL_EDGE];
+    return [cols[j - 1]!.right, cols[j]!.x];
   };
+  const minY = cards.reduce((m, c) => Math.min(m, c.box.y), Infinity);
+  const maxY = cards.reduce((m, c) => Math.max(m, c.box.y + c.box.h), -Infinity);
+
+  // --- ports and wires ---------------------------------------------------------------
+  const groupOfNode = new Map<string, string>();
+  for (const g of groups) for (const n of g.nodes) groupOfNode.set(n.id, g.id);
+  const portOf = (id: string, side: 'o' | 'i'): Port | undefined => {
+    const nb = layout.nodes[id];
+    const gid = nb ? groupOfNode.get(id) : id;
+    const gb = gid ? layout.groups[gid] : undefined;
+    if (!gid || !gb || !colOf.has(gid)) return undefined;
+    const y = nb ? nb.y + nb.h / 2 : gb.y + gb.h / 2;
+    return { key: `${side}|${gid}|${y}`, x: side === 'o' ? gb.x + gb.w : gb.x, y, col: colOf.get(gid)! };
+  };
+  const fanOut = new Map<string, number>();
+  const wires: Wire[] = [];
+  for (const edge of edges) {
+    const src = portOf(edge.from, 'o');
+    const dst = portOf(edge.to, 'i');
+    if (!src || !dst) continue;
+    fanOut.set(src.key, (fanOut.get(src.key) ?? 0) + 1);
+    wires.push({ edge, src, dst, mode: dst.col === src.col + 1 ? 'next' : dst.col > src.col ? 'far' : 'back', exit: '', entry: '' });
+  }
+
+  // --- lanes -------------------------------------------------------------------------
+  const lanes = new Map<string, Lane>();
+  const inChannel = new Map<number, Lane[]>();
+  const lane = (channel: number, key: string, w: Wire): string => {
+    const id = `${channel}|${key}`;
+    let l = lanes.get(id);
+    if (!l) {
+      l = { key: id, ys: 0, n: 0, x: 0 };
+      lanes.set(id, l);
+      const list = inChannel.get(channel);
+      if (list) list.push(l);
+      else inChannel.set(channel, [l]);
+    }
+    l.ys += (w.src.y + w.dst.y) / 2;
+    l.n++;
+    return id;
+  };
+  for (const w of wires) {
+    if (w.mode === 'next') {
+      // One vertical in the channel between the two sub-columns: the source trunk when the
+      // source fans out, else the target's merge lane.
+      w.exit = w.entry = lane(w.dst.col, fanOut.get(w.src.key)! > 1 ? w.src.key : w.dst.key, w);
+    } else {
+      w.exit = lane(w.src.col + 1, w.src.key, w);
+      w.entry = lane(w.dst.col, w.dst.key, w);
+    }
+  }
+  // Lanes spread evenly over the channel minus the margins, ordered by the average height of
+  // their edges (6 px apart or more while they fit; more lanes than that share the width evenly).
+  for (const [channel, list] of inChannel) {
+    const [l, r] = channelOf(channel);
+    const lo = l + LANE_MARGIN;
+    const hi = r - LANE_MARGIN;
+    list.sort((a, b) => a.ys / a.n - b.ys / b.n || (a.key < b.key ? -1 : 1));
+    list.forEach((ln, i) => {
+      ln.x = list.length === 1 || hi <= lo ? (l + r) / 2 : lo + ((hi - lo) * i) / (list.length - 1);
+    });
+  }
+
+  // --- horizontal stretches already taken, then corridor tracks -------------------------
+  const taken: HSeg[] = [];
+  for (const w of wires) {
+    taken.push({ y: w.src.y, xa: w.src.x, xb: lanes.get(w.exit)!.x, src: w.src.key, dst: w.dst.key, track: false });
+    taken.push({ y: w.dst.y, xa: lanes.get(w.entry)!.x, xb: w.dst.x, src: w.src.key, dst: w.dst.key, track: false });
+  }
+  const sameLine = (h: HSeg, w: Wire) => h.src === w.src.key || h.dst === w.dst.key;
+  const trackFree = (y: number, xa: number, xb: number, w: Wire) => {
+    for (const h of taken) {
+      if (Math.min(xb, h.xb) - Math.max(xa, h.xa) <= 0.5) continue;
+      const dy = Math.abs(h.y - y);
+      if (dy < 0.5 ? !sameLine(h, w) : h.track && dy < TRACK_GAP - 0.5) return false;
+    }
+    return true;
+  };
+  const spanOf = (w: Wire): [number, number] => (w.mode === 'far' ? [w.src.col + 1, w.dst.col - 1] : [w.dst.col, w.src.col]);
+  const cardFree = (y: number, c0: number, c1: number) => {
+    for (let c = c0; c <= c1; c++) for (const b of cols[c]!.boxes) if (y > b.y - CLEARANCE + 1e-6 && y < b.y + b.h + CLEARANCE - 1e-6) return false;
+    return true;
+  };
+  const bandCache = new Map<string, [number, number][]>();
+  /** The free horizontal bands between group boxes across sub-columns c0..c1, top to bottom. */
+  const bandsOf = (c0: number, c1: number): [number, number][] => {
+    const id = `${c0}-${c1}`;
+    let bands = bandCache.get(id);
+    if (bands) return bands;
+    const spans: [number, number][] = [];
+    for (let c = c0; c <= c1; c++) for (const b of cols[c]!.boxes) spans.push([b.y - CLEARANCE, b.y + b.h + CLEARANCE]);
+    spans.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    bands = [];
+    let end = spans[0]![1];
+    for (const [a, b] of spans) {
+      if (a >= end) bands.push([end, a]);
+      end = Math.max(end, b);
+    }
+    bandCache.set(id, bands);
+    return bands;
+  };
+  const gap = (avg: number, [lo, hi]: [number, number]) => (avg < lo ? lo - avg : avg > hi ? avg - hi : 0);
+  // How many corridor edges prefer each band, so its tracks can be centered on the band.
+  const wanted = new Map<string, number>();
+  for (const w of wires) {
+    if (w.mode === 'next') continue;
+    const avg = (w.src.y + w.dst.y) / 2;
+    let best: [number, number] | undefined;
+    for (const b of bandsOf(...spanOf(w))) if (!best || gap(avg, b) < gap(avg, best)) best = b;
+    if (best) wanted.set(`${best[0]}|${best[1]}`, (wanted.get(`${best[0]}|${best[1]}`) ?? 0) + 1);
+  }
+  const trackYs = new Map<string, number>();
+  for (const w of wires) {
+    if (w.mode === 'next') continue;
+    const [c0, c1] = spanOf(w);
+    const avg = (w.src.y + w.dst.y) / 2;
+    const near = (a: number, b: number) => Math.abs(a - avg) - Math.abs(b - avg) || a - b;
+    // Candidates, best first: a track an edge of the same source or target already uses, then
+    // the free bands nearest the ports, then lines above the top group or below the bottom one.
+    const candidates: number[] = [];
+    for (const h of taken) if (h.track && sameLine(h, w) && !candidates.includes(h.y)) candidates.push(h.y);
+    for (const b of [...bandsOf(c0, c1)].sort((p, q) => gap(avg, p) - gap(avg, q) || p[0] - q[0])) {
+      const n = Math.min(Math.floor((b[1] - b[0]) / TRACK_GAP) + 1, wanted.get(`${b[0]}|${b[1]}`) ?? 1);
+      const slots: number[] = [];
+      for (let i = 0; i < n; i++) slots.push((b[0] + b[1]) / 2 + TRACK_GAP * (i - (n - 1) / 2));
+      candidates.push(...slots.sort(near));
+    }
+    const outer: number[] = [];
+    for (let k = 0; k <= wires.length; k++) outer.push(minY - OUTSIDE_GAP - TRACK_GAP * k, maxY + OUTSIDE_GAP + TRACK_GAP * k);
+    candidates.push(...outer.sort(near));
+    const xo = lanes.get(w.exit)!.x;
+    const xe = lanes.get(w.entry)!.x;
+    const xa = Math.min(xo, xe);
+    const xb = Math.max(xo, xe);
+    const y = candidates.find((c) => cardFree(c, c0, c1) && trackFree(c, xa, xb, w)) ?? candidates[candidates.length - 1]!;
+    trackYs.set(w.edge.id, y);
+    taken.push({ y, xa, xb, src: w.src.key, dst: w.dst.key, track: true });
+  }
+
+  // --- paths ---------------------------------------------------------------------------
+  for (const w of wires) {
+    const { src, dst } = w;
+    const xo = lanes.get(w.exit)!.x;
+    const xe = lanes.get(w.entry)!.x;
+    const ty = trackYs.get(w.edge.id)!;
+    const raw: [number, number][] =
+      w.mode === 'next'
+        ? [[src.x, src.y], [xo, src.y], [xo, dst.y], [dst.x, dst.y]]
+        : [[src.x, src.y], [xo, src.y], [xo, ty], [xe, ty], [xe, dst.y], [dst.x, dst.y]];
+    const points = corners(raw);
+    result[w.edge.id] = { id: w.edge.id, points, d: roundedPath(points) };
+  }
+  return result;
 }
 
 // =====================================================================================
@@ -862,8 +1116,12 @@ export function SystemCanvas({
       .map(([c, p]) => ({ c, x: p.x, y: p.y - TITLE_ROOM, text: columns[c]! }));
   }, [columns, groups, layout]);
 
-  const edgeViews = useMemo(() => {
-    const boxOf = (id: string): Box | undefined => layout.nodes[id] ?? layout.groups[id];
+  // Routing depends only on the layout and the edge ends, so a pan, a zoom or an activity
+  // update never recomputes it.
+  const edgeSig = edges.map((e) => `${e.id}:${e.from}:${e.to}`).join('|');
+  const routes = useMemo(() => routeEdges(layout, groups, edges), [layout, edgeSig]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { edgeViews, ports } = useMemo(() => {
     const hueOf = (id: string): { hue: CanvasHue | undefined; active: boolean } | undefined => {
       const n = lookup.nodes.get(id);
       if (n) return { hue: n.group.hue, active: !!n.node.active };
@@ -871,14 +1129,24 @@ export function SystemCanvas({
       if (g) return { hue: g.hue, active: g.nodes.some((x) => x.active) };
       return undefined;
     };
-    return edges.flatMap((edge) => {
-      const a = boxOf(edge.from);
-      const b = boxOf(edge.to);
+    const views = edges.flatMap((edge) => {
+      const route = routes[edge.id];
       const to = hueOf(edge.to);
-      if (!a || !b || !to) return [];
-      return [{ edge, path: edgePath(a, b), hue: to.hue, active: to.active }];
+      if (!route || !to) return [];
+      return [{ edge, route, mid: labelPoint(route.points), hue: to.hue, active: to.active }];
     });
-  }, [edges, layout, lookup]);
+    // Quiet edges first so an active edge that shares a trunk with one draws on top.
+    views.sort((a, b) => Number(a.active) - Number(b.active));
+    const dots = new Map<string, { x: number; y: number; hue: CanvasHue | undefined; active: boolean }>();
+    for (const v of views) {
+      for (const p of [v.route.points[0]!, v.route.points[v.route.points.length - 1]!]) {
+        const key = `${p[0]}|${p[1]}`;
+        const old = dots.get(key);
+        if (!old || (v.active && !old.active)) dots.set(key, { x: p[0], y: p[1], hue: v.hue, active: v.active });
+      }
+    }
+    return { edgeViews: views, ports: [...dots.entries()] };
+  }, [edges, routes, lookup]);
 
   return (
     <div
@@ -907,16 +1175,22 @@ export function SystemCanvas({
         ))}
 
         <svg className="nish-canvas-edges" width={layout.width} height={layout.height} aria-hidden="true" focusable="false">
-          {edgeViews.map(({ edge, path, hue, active }) => (
+          {edgeViews.map(({ edge, route, mid, hue, active }) => (
             <g key={edge.id} style={hueStyle(hue)} className="nish-canvas-edge" data-active={active || undefined} data-dashed={edge.dashed || undefined}>
-              <path className="nish-canvas-edge-line" d={path.d} fill="none" />
-              {active ? <circle className="nish-canvas-dot" r="3.5" style={{ offsetPath: `path("${path.d}")` }} /> : null}
+              <path className="nish-canvas-edge-line" d={route.d} fill="none" />
+              {active ? <circle className="nish-canvas-dot" r="3.5" style={{ offsetPath: `path("${route.d}")` }} /> : null}
               {edge.label && labelsOn ? (
-                <text className="nish-canvas-edge-label" x={path.mx} y={path.my - 6} textAnchor="middle">
+                <text className="nish-canvas-edge-label" x={mid.x} y={mid.y - 6} textAnchor="middle">
                   {edge.label}
                 </text>
               ) : null}
             </g>
+          ))}
+        </svg>
+
+        <svg className="nish-canvas-ports" width={layout.width} height={layout.height} aria-hidden="true" focusable="false">
+          {ports.map(([key, p]) => (
+            <circle key={key} className="nish-canvas-port" cx={p.x} cy={p.y} r={3} style={hueStyle(p.hue)} data-active={p.active || undefined} />
           ))}
         </svg>
 

@@ -142,7 +142,7 @@ const PLAIN = groups();
 export const systemCanvas: ComponentDoc = {
   id: 'system-canvas',
   name: 'SystemCanvas',
-  exports: ['SystemCanvas', 'layoutSystem'],
+  exports: ['SystemCanvas', 'layoutSystem', 'routeEdges'],
   summary:
     'A pannable, zoomable graph-paper canvas of colored groups holding nodes, joined by edges. Nodes that are being worked on pulse in their group color, edges into them flow, and a fading glow marks where work just happened.',
   importLine: "import { SystemCanvas } from '@nish/ui';",
@@ -207,6 +207,7 @@ export const systemCanvas: ComponentDoc = {
     'Drag or scroll to pan. Ctrl+scroll or pinch to zoom. With the canvas focused: arrow keys pan, + and - zoom, 0 fits everything.',
     'Give the canvas a height (it fills its parent by default) and keep it the only thing that scrolls: the canvas stops wheel and touch gestures from moving the page.',
     'Keep node ids stable. Active and heat changes animate in place; a poll with the same data restarts nothing.',
+    'Edges are drawn as right-angled lines from the right border of the source group to the left border of the target group, never across a card. Edges from one node share a trunk and edges into one node merge. routeEdges(layout, groups, edges) returns the same lines as points and path data.',
     'Edge ends can be node ids or group ids. An edge into an active node (or a group with one) takes that group color and flows.',
     'Respects prefers-reduced-motion: no pulse, ping or flow, active edges stay solid in the group color, and view changes are instant.',
   ],

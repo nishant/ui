@@ -1158,18 +1158,18 @@ kbd {
   cursor: grab;
   background-color: var(--nish-bg);
   background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--nish-line-strong) 70%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line-strong) 70%, transparent) 1px, transparent 1px),
-    linear-gradient(to right, color-mix(in srgb, var(--nish-line) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line) 55%, transparent) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in srgb, var(--nish-line-strong) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line-strong) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to right, color-mix(in srgb, var(--nish-line) 28%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line) 28%, transparent) 1px, transparent 1px);
   /* Position and size are written directly by the component on every pan and zoom frame. */
   background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
   background-position: 0 0;
 }
 .nish-canvas[data-grid='major'] {
   background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--nish-line-strong) 70%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line-strong) 70%, transparent) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in srgb, var(--nish-line-strong) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line-strong) 38%, transparent) 1px, transparent 1px);
 }
 .nish-canvas[data-dragging='true'] {
   cursor: grabbing;
@@ -1361,9 +1361,10 @@ kbd {
 }
 
 /* Edges */
-.nish-canvas-edges {
+.nish-canvas-edges,
+.nish-canvas-ports {
   position: absolute;
-  z-index: 1;
+  z-index: 0;
   left: 0;
   top: 0;
   overflow: visible;
@@ -1381,6 +1382,17 @@ kbd {
   stroke: var(--c);
   stroke-width: 2;
   stroke-dasharray: none;
+}
+.nish-canvas-ports {
+  /* Above the group borders, so each port dot sits on its card's edge. */
+  z-index: 4;
+}
+.nish-canvas-port {
+  fill: var(--nish-line-strong);
+  transition: fill 400ms;
+}
+.nish-canvas-port[data-active] {
+  fill: var(--c);
 }
 .nish-canvas-dot {
   display: none;

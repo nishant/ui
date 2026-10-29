@@ -188,7 +188,7 @@ export type {
   TickerTextProps,
   AnimatedListProps,
 } from './components/flow';
-export { SystemCanvas, layoutSystem } from './components/canvas';
+export { SystemCanvas, layoutSystem, routeEdges } from './components/canvas';
 export type {
   SystemCanvasProps,
   CanvasGroup,
@@ -197,6 +197,7 @@ export type {
   CanvasHue,
   CanvasNodeKind,
   CanvasLayout,
+  RoutedEdge,
 } from './components/canvas';
 export { Inbox } from './components/inbox';
 export type { InboxProps } from './components/inbox';
