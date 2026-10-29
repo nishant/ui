@@ -188,3 +188,8 @@ export type {
   TickerTextProps,
   AnimatedListProps,
 } from './components/flow';
+export { Inbox } from './components/inbox';
+export type { InboxProps } from './components/inbox';
+export { INBOX_SOURCE_LABELS, INBOX_DEFAULT_SETTINGS } from './inbox-types';
+export type { InboxItem, InboxView, InboxSeverity, InboxSettings, InboxListResponse } from './inbox-types';
+export { CheckIcon, ClockIcon, MoreIcon, BellIcon, SettingsIcon } from './components/icons';

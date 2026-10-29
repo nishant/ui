@@ -3,11 +3,20 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
-## [0.8.0] - 2026-10-28
+## [0.9.0] - 2026-10-29
 
 ### Added
 
 - Flow components: FlowSteps, StepBar, AgentNode, WorkflowBoard, ActivityFeed, TickerText, AnimatedList and usePrefersReducedMotion, for live views of multi-step work (workflows.nish.software). Motion is CSS-only and plays only when the viewer has not asked for reduced motion.
+
+## [0.8.0] - 2026-10-28
+
+### Added
+
+- Inbox component, five icons (`CheckIcon`, `ClockIcon`, `MoreIcon`, `BellIcon`, `SettingsIcon`),
+  and `@nish/ui/inbox-client` with the shared event types: apps send events to the local inbox
+  service instead of their own webhooks. Apps that import the client on the server list
+  `@nish/ui` under `dependencies`.
 
 ## [0.7.1] - 2026-10-28
 

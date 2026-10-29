@@ -15,6 +15,7 @@ jobs:
       - run: npm ci
       # typecheck, WCAG contrast for every theme, build
       - run: npm run check
+      - run: npm run test:tools
       - run: npx playwright install --with-deps chromium
       - name: Visual check of the demo gallery
         run: |

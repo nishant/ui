@@ -90,6 +90,7 @@ export const COMPONENTS = [
   'ActivityFeed',
   'TickerText',
   'AnimatedList',
+  'Inbox',
 ];
 const FUNCTIONS = [
   'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
