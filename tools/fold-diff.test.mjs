@@ -97,7 +97,7 @@ test('formatComment when nothing changed', () => {
   const md = formatComment(summaryOf({ shots: [{ page: 'home', viewport: 'fold', theme: 'light', diffPct: 0, newProblems: [], fixedProblems: [] }] }));
   assert.equal(
     md,
-    '<!-- fold-check -->\n### Fold check\n\n**0 new problem(s)** · 0 of 1 shots changed · largest change 0%\n\nNo new problems. No page changed.\n',
+    '<!-- fold-check -->\n### Fold check\n\nNo new problems. No page changed.\n',
   );
 });
 
@@ -117,7 +117,7 @@ test('formatComment table, sizes, cut and artifact link', () => {
   );
   assert.match(md, /\*\*1 new problem\(s\)\*\* · 1 of 2 shots changed · largest change 3\.2%/);
   assert.match(md, /\| Page \| Size \| Theme \| Changed \| New problems \|/);
-  assert.match(md, /\| home \| 360 \| dark \| 3\.2% \| x{119}… \|/);
+  assert.match(md, /\| home \| 360 \| dark \| 3\.2% \| `x{119}…` \|/);
   assert.doesNotMatch(md, /quiet/);
   assert.match(md, /\[Report with before, after and diff images\]\(https:\/\/example\.test\/report\)/);
 });
@@ -125,7 +125,7 @@ test('formatComment table, sizes, cut and artifact link', () => {
 test('formatComment explains a base that did not render', () => {
   const md = formatComment(summaryOf({ baseOk: false, newProblems: 1, shots: [{ page: 'a', viewport: 'fold', theme: 'light', diffPct: null, newProblems: ['p'], fixedProblems: [] }] }));
   assert.match(md, /The base branch did not render, so every problem counts as new and nothing is compared\./);
-  assert.match(md, /\| a \| 840 \| light \| — \| p \|/);
+  assert.match(md, /\| a \| 840 \| light \| — \| `p` \|/);
 });
 
 test('formatComment caps the table at 20 rows, largest change first', () => {
@@ -135,4 +135,24 @@ test('formatComment caps the table at 20 rows, largest change first', () => {
   assert.equal(rows.length, 20);
   assert.match(rows[0], /^\| p24 /);
   assert.doesNotMatch(md, /\| p0 /);
+});
+
+test('a base report whose shots all failed to load is not ok', () => {
+  const dead = report(shot(['load: page.goto: net::ERR_CONNECTION_REFUSED']));
+  const s = diffReports(dead, report(shot()), () => 0);
+  assert.equal(s.baseOk, false);
+  assert.equal(s.maxDiffPct, null);
+  assert.equal(diffReports(report(shot([], { error: 'x' })), report(shot())).baseOk, false);
+  assert.equal(diffReports(report(), report(shot())).baseOk, false);
+  const md = formatComment(s);
+  assert.match(md, /The base branch did not render/);
+  assert.doesNotMatch(md, /No page changed/);
+  assert.match(md, /largest change —/);
+});
+
+test('formatComment keeps a multi-line problem in one table row', () => {
+  const md = formatComment(summaryOf({ newProblems: 1, shots: [{ page: 'a|b', viewport: 'fold', theme: 'light', diffPct: 0, newProblems: ['console: <div> boom\n    at x (y.js:1:2)'], fixedProblems: [] }] }));
+  const row = md.split('\n').find((l) => l.startsWith('| a'));
+  assert.ok(row.includes('`console: <div> boom at x (y.js:1:2)`'));
+  assert.ok(row.startsWith('| a\\|b |'));
 });

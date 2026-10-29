@@ -82,16 +82,35 @@ function listPrs(repo, extra = []) {
   return JSON.parse(
     gh([
       'pr', 'list', '-R', repo, '--limit', '100',
-      '--json', 'number,title,headRefName,headRefOid,mergeable,author,createdAt,url',
+      '--json', 'number,title,headRefName,headRefOid,mergeable,author,createdAt,url,isCrossRepository,headRepositoryOwner',
       ...extra,
     ]).stdout || '[]',
   );
 }
 
-function viewPr(repo, number) {
-  return JSON.parse(
-    gh(['pr', 'view', String(number), '-R', repo, '--json', 'number,title,headRefName,headRefOid,mergeable,author,createdAt,url,state,mergeCommit,files,comments']).stdout,
+/** True for a PR whose head branch lives in the repo itself (never a fork's). */
+export function isSameRepoPr(repo, p) {
+  return p.isCrossRepository === false && p.headRepositoryOwner?.login === repo.split('/')[0];
+}
+
+/** A bump PR: from this repo's own ui/v* branch. */
+const isBumpPr = (repo, p) => isSameRepoPr(repo, p) && /^ui\/v\d+\.\d+\.\d+$/.test(p.headRefName);
+
+/** A Dependabot PR: the Dependabot app, on its own dependabot/ branch in this repo. */
+export function isDependabotPr(repo, p) {
+  return (
+    isSameRepoPr(repo, p) &&
+    p.author?.login === 'app/dependabot' &&
+    p.headRefName.startsWith('dependabot/')
   );
+}
+
+const VIEW_FIELDS =
+  'number,title,headRefName,headRefOid,mergeable,author,createdAt,url,isCrossRepository,headRepositoryOwner,state,mergeCommit';
+
+/** A light PR view; ask for the heavy fields (`files`, `comments`) only where they are used. */
+function viewPr(repo, number, extra = []) {
+  return JSON.parse(gh(['pr', 'view', String(number), '-R', repo, '--json', [VIEW_FIELDS, ...extra].join(',')]).stdout);
 }
 
 const tmpDir = (name) => mkdtempSync(join(tmpdir(), `fanout-${name}-`));
@@ -103,20 +122,33 @@ const cleanup = (dir) => {
   }
 };
 
-function cloneUrl(repo) {
-  return `https://x-access-token:${process.env.GH_TOKEN}@github.com/${repo}.git`;
+// The token is never written to disk or passed in an argument: git gets it per command through
+// GIT_CONFIG_* env vars, so the clone's .git/config holds a token-free URL.
+function gitAuthEnv() {
+  const basic = Buffer.from(`x-access-token:${process.env.GH_TOKEN}`).toString('base64');
+  return {
+    GIT_CONFIG_COUNT: '1',
+    GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
+    GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${basic}`,
+  };
 }
+
+const authGit = (args, opts = {}) => git(args, { ...opts, env: { ...opts.env, ...gitAuthEnv() } });
+
+// Repo-controlled commands (fleet.yaml bump, pnpm hooks) run without any token in their env.
+const NO_TOKEN_ENV = { GH_TOKEN: undefined, GITHUB_TOKEN: undefined, GH_ENTERPRISE_TOKEN: undefined, GITHUB_ENTERPRISE_TOKEN: undefined };
 
 function cloneBase(repo, base, dir, depth = 1) {
-  git(['clone', '-c', 'core.autocrlf=false', '--depth', String(depth), '--branch', base, cloneUrl(repo), dir]);
+  authGit(['clone', '-c', 'core.autocrlf=false', '--depth', String(depth), '--branch', base, `https://github.com/${repo}.git`, dir]);
 }
 
-class Run {
+export class Run {
   constructor(args) {
     this.dry = args.dry;
     this.waitMin = args.wait;
     this.lines = [];
     this.failed = false;
+    this.checkRunsForbidden = false;
     this.ui = args.uiRoot ?? UI_ROOT;
   }
 
@@ -148,7 +180,9 @@ class Run {
     if (!pin) return { repo: R, result: 'error', detail: 'Could not read the pin' };
 
     if (compare(pin, tag) >= 0) {
-      const open = listPrs(R, ['--state', 'open']).filter((p) => p.headRefName.startsWith('ui/v'));
+      const open = listPrs(R, ['--state', 'open']).filter(
+        (p) => isBumpPr(R, p) && compare(p.headRefName.slice(3), pin) <= 0,
+      );
       for (const p of open) {
         if (this.dry) this.would(`close #${p.number} (Already on ${pin}.)`);
         else gh(['pr', 'close', String(p.number), '-R', R, '--delete-branch', '--comment', `Already on ${pin}.`]);
@@ -161,7 +195,7 @@ class Run {
       return { repo: R, result: 'held', detail: 'Reverted after a failed deploy; a session has to look' };
     }
 
-    let open = listPrs(R, ['--state', 'open']).filter((p) => p.headRefName.startsWith('ui/v'));
+    let open = listPrs(R, ['--state', 'open']).filter((p) => isBumpPr(R, p));
     const newer = open.find((p) => compare(p.headRefName.slice(3), tag) > 0);
     if (newer) return { repo: R, result: 'skipped', detail: `Newer bump PR #${newer.number} is open` };
     for (const p of open.filter((p) => compare(p.headRefName.slice(3), tag) < 0)) {
@@ -201,14 +235,14 @@ class Run {
       writeFileSync(file, rewritePin(entry.ui, readFileSync(file, 'utf8'), tag, pinFile(entry.ui, entry.uiDir)));
       if (entry.ui === 'npm') {
         step = 'npx -y npm@10 install --package-lock-only --ignore-scripts';
-        sh(step, { cwd: dir });
+        sh(step, { cwd: dir, env: NO_TOKEN_ENV });
       } else if (entry.ui === 'pnpm') {
         step = 'corepack pnpm install --lockfile-only';
-        sh(step, { cwd: dir });
+        sh(step, { cwd: dir, env: NO_TOKEN_ENV });
       }
       if (entry.bump) {
         step = entry.bump;
-        sh(entry.bump, { cwd: dir });
+        sh(entry.bump, { cwd: dir, env: NO_TOKEN_ENV });
       }
       step = 'git add';
       git(['add', '-A'], { cwd: dir });
@@ -218,7 +252,7 @@ class Run {
       step = 'git commit';
       git([...COMMIT_ID, 'commit', '-q', '-m', `Move @nish/ui to ${tag}`], { cwd: dir });
       step = 'git push';
-      git(['push', '--force', 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
+      authGit(['push', '--force', 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
       step = 'gh pr create';
       gh(['pr', 'create', '-R', R, '--base', entry.base, '--head', `ui/${tag}`, '--title', `Move @nish/ui to ${tag}`, '--body', prBody({ pin, tag, ...notes })]);
       const pr = listPrs(R, ['--state', 'open', '--head', `ui/${tag}`])[0];
@@ -237,10 +271,10 @@ class Run {
   async settleDeps(entry) {
     const R = entry.repo;
     const results = [];
-    const prs = listPrs(R, ['--state', 'open']).filter((p) => /dependabot/i.test(p.author?.login ?? ''));
+    const prs = listPrs(R, ['--state', 'open']).filter((p) => isDependabotPr(R, p));
     for (const p of prs) {
       if (p.mergeable === 'CONFLICTING') {
-        const full = viewPr(R, p.number);
+        const full = viewPr(R, p.number, ['comments']);
         if (!(full.comments ?? []).some((c) => c.body.includes('@dependabot rebase'))) {
           if (this.dry) this.would(`comment @dependabot rebase on #${p.number}`);
           else gh(['pr', 'comment', String(p.number), '-R', R, '--body', '@dependabot rebase']);
@@ -250,7 +284,7 @@ class Run {
         results.push({ repo: R, result: 'skipped', detail: 'Conflicting; waiting for Dependabot to rebase', pr: p.number });
         continue;
       }
-      const files = (viewPr(R, p.number).files ?? []).map((f) => f.path);
+      const files = (viewPr(R, p.number, ['files']).files ?? []).map((f) => f.path);
       if (files.some((f) => f.startsWith('.github/workflows/'))) {
         results.push(await this.hold(entry, p, 'Touches .github/workflows: a person has to merge it'));
         continue;
@@ -266,11 +300,19 @@ class Run {
     const d = cut(description);
     if (current && current.state === state && current.description === d) return;
     if (this.dry) return this.would(`set ${STATUS} status ${state}: ${d}`);
-    api(`repos/${R}/statuses/${sha}`, { method: 'POST', fields: { state, context: STATUS, description: d } });
+    this.post(R, sha, state, d);
+  }
+
+  post(R, sha, state, description) {
+    api(`repos/${R}/statuses/${sha}`, { method: 'POST', fields: { state, context: STATUS, description } });
+  }
+
+  view(R, number) {
+    return viewPr(R, number);
   }
 
   async hold(entry, pr, reason) {
-    const sha = viewPr(entry.repo, pr.number).headRefOid;
+    const sha = this.view(entry.repo, pr.number).headRefOid;
     this.setStatus(entry.repo, sha, 'failure', reason);
     return { repo: entry.repo, result: 'held', detail: reason, pr: pr.number };
   }
@@ -279,10 +321,13 @@ class Run {
   readChecks(R, pr) {
     const sha = pr.headRefOid;
     let checkRuns = null;
-    try {
-      checkRuns = apiJson(`repos/${R}/commits/${sha}/check-runs?per_page=100`).check_runs ?? [];
-    } catch (e) {
-      if (!isForbidden(e)) throw e;
+    if (!this.checkRunsForbidden) {
+      try {
+        checkRuns = apiJson(`repos/${R}/commits/${sha}/check-runs?per_page=100`).check_runs ?? [];
+      } catch (e) {
+        if (!isForbidden(e)) throw e;
+        this.checkRunsForbidden = true;
+      }
     }
     const combined = apiJson(`repos/${R}/commits/${sha}/status?per_page=100`);
     const all = combined?.statuses ?? [];
@@ -300,10 +345,13 @@ class Run {
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     for (const run of runs) {
       const artifacts = apiJson(`repos/${R}/actions/runs/${run.id}/artifacts`).artifacts ?? [];
-      if (!artifacts.some((a) => a.name === 'fold-report' && !a.expired)) continue;
+      const live = (n) => artifacts.some((a) => a.name === n && !a.expired);
+      // The small fold-summary artifact; older runs only have the full fold-report.
+      const name = live('fold-summary') ? 'fold-summary' : live('fold-report') ? 'fold-report' : null;
+      if (!name) continue;
       const dir = tmpDir('fold');
       try {
-        gh(['run', 'download', String(run.id), '-R', R, '-n', 'fold-report', '-D', dir]);
+        gh(['run', 'download', String(run.id), '-R', R, '-n', name, '-D', dir]);
         const found = findFile(dir, 'summary.json');
         if (found) return JSON.parse(readFileSync(found, 'utf8'));
       } catch {
@@ -322,12 +370,13 @@ class Run {
     let pr = pr0;
     let decision;
     for (;;) {
-      pr = viewPr(R, pr0.number);
+      pr = this.view(R, pr0.number);
       const { checks, current } = this.readChecks(R, pr);
-      if (!this.dry) this.setStatus(R, pr.headRefOid, 'pending', 'Waiting for checks', current);
       let fold = null;
       if (entry.fold && checks !== 'pending') fold = this.readFold(R, pr.headRefOid);
       decision = decide({ ...ctx, checks, fold });
+      // Pending only while waiting, so a held or merging PR never flashes pending.
+      if (decision.action === 'wait' && !this.dry) this.setStatus(R, pr.headRefOid, 'pending', 'Waiting for checks', current);
       if (decision.action !== 'wait' || Date.now() >= deadline || this.dry) {
         if (decision.action === 'hold') this.setStatus(R, pr.headRefOid, 'failure', decision.reason, current);
         break;
@@ -342,8 +391,13 @@ class Run {
       this.would(`merge #${pr.number} in ${R} (${decision.reason})`);
       return { repo: R, result: 'dry-run', detail: `would merge #${pr.number}`, pr: pr.number };
     }
+    const own = ctx.kind === 'ui' ? isBumpPr(R, pr) : isDependabotPr(R, pr);
+    if (!own) return { repo: R, result: 'held', detail: 'Not a same-repo bump or Dependabot PR', pr: pr.number };
     this.setStatus(R, pr.headRefOid, 'success', 'Merging');
-    const merged = gh(['pr', 'merge', String(pr.number), '-R', R, '--merge', '--delete-branch'], { allowFail: true });
+    const merged = gh(
+      ['pr', 'merge', String(pr.number), '-R', R, '--merge', '--delete-branch', '--match-head-commit', pr.headRefOid],
+      { allowFail: true },
+    );
     if (merged.code !== 0) {
       const reason = `Merge failed: ${firstLine(redact(merged.stderr || merged.stdout))}`;
       this.setStatus(R, pr.headRefOid, 'failure', reason);
@@ -357,7 +411,7 @@ class Run {
 
   async watchDeploy(entry, pr) {
     const R = entry.repo;
-    const mergeSha = viewPr(R, pr.number).mergeCommit?.oid;
+    const mergeSha = this.view(R, pr.number).mergeCommit?.oid;
     if (!mergeSha) return { repo: R, result: 'merged', detail: 'merge commit not found', pr: pr.number };
     const start = Date.now();
     const end = start + 20 * 60_000;
@@ -389,7 +443,7 @@ class Run {
     try {
       cloneBase(R, entry.base, dir, 50);
       git([...COMMIT_ID, 'revert', '-m', '1', '--no-edit', mergeSha], { cwd: dir });
-      git(['push', '--force', 'origin', `HEAD:refs/heads/revert/${pr.number}`], { cwd: dir });
+      authGit(['push', '--force', 'origin', `HEAD:refs/heads/revert/${pr.number}`], { cwd: dir });
       gh([
         'pr', 'create', '-R', R, '--base', entry.base, '--head', `revert/${pr.number}`,
         '--title', `Revert "${pr.title}"`,
@@ -399,14 +453,15 @@ class Run {
       if (!rpr) return fail('the revert PR was not found after creating it');
       const end = Date.now() + 20 * 60_000;
       let checks;
+      let cur;
       for (;;) {
-        const cur = viewPr(R, rpr.number);
+        cur = viewPr(R, rpr.number);
         checks = this.readChecks(R, cur).checks;
         if (checks !== 'pending' || Date.now() >= end) break;
         await sleep(POLL_MS);
       }
       if (checks === 'failure' || checks === 'pending') return fail(`revert PR #${rpr.number} checks: ${checks}`);
-      gh(['pr', 'merge', String(rpr.number), '-R', R, '--merge', '--delete-branch']);
+      gh(['pr', 'merge', String(rpr.number), '-R', R, '--merge', '--delete-branch', '--match-head-commit', cur.headRefOid]);
       return { repo: R, result: 'reverted', detail: `revert #${rpr.number} merged`, pr: pr.number };
     } catch (e) {
       return fail(firstLine(redact(e.message)));

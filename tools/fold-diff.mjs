@@ -25,6 +25,9 @@ const widthOf = (viewport) => VIEWPORT_WIDTHS[viewport] ?? viewport;
 /** Problem text with every number replaced by `#`, so "12px" and "13px" are the same problem. */
 export const problemKey = (s) => String(s).replace(/\d+(\.\d+)?/g, '#');
 
+/** A shot that never rendered: an explicit error, or a load failure with no screenshot file. */
+const shotFailed = (s) => Boolean(s.error) || (!s.file && (s.problems ?? []).some((p) => String(p).startsWith('load:')));
+
 const shotKey = (s) => `${s.page}|${s.viewport}|${s.theme}`;
 
 /**
@@ -33,7 +36,7 @@ const shotKey = (s) => `${s.page}|${s.viewport}|${s.theme}`;
  * `base` may be null (base did not render).
  */
 export function diffReports(base, head, pixel) {
-  const baseOk = Boolean(base && Array.isArray(base.shots));
+  const baseOk = Boolean(base && Array.isArray(base.shots) && base.shots.length > 0 && !base.shots.every(shotFailed));
   const baseShots = new Map(baseOk ? base.shots.map((s) => [shotKey(s), s]) : []);
   const shots = [];
   let newProblems = 0;
@@ -74,9 +77,12 @@ export function formatComment(summary, artifactUrl) {
     '<!-- fold-check -->',
     '### Fold check',
     '',
-    `**${summary.newProblems} new problem(s)** · ${summary.changedShots} of ${summary.shots.length} shots changed · largest change ${summary.maxDiffPct ?? 0}%`,
-    '',
   ];
+  const nothing = summary.baseOk && summary.newProblems === 0 && summary.changedShots === 0;
+  if (!nothing) {
+    const largest = summary.maxDiffPct === null ? '—' : `${summary.maxDiffPct}%`;
+    lines.push(`**${summary.newProblems} new problem(s)** · ${summary.changedShots} of ${summary.shots.length} shots changed · largest change ${largest}`, '');
+  }
   if (!summary.baseOk) {
     lines.push('The base branch did not render, so every problem counts as new and nothing is compared.', '');
   }
@@ -85,13 +91,13 @@ export function formatComment(summary, artifactUrl) {
     .sort(byDiffDesc)
     .slice(0, MAX_ROWS);
   if (rows.length === 0) {
-    if (summary.newProblems === 0 && summary.changedShots === 0) lines.push('No new problems. No page changed.', '');
+    if (nothing) lines.push('No new problems. No page changed.', '');
   } else {
     lines.push('| Page | Size | Theme | Changed | New problems |', '|---|---|---|---|---|');
     for (const s of rows) {
       const changed = s.diffPct !== null && s.diffPct > 0 ? `${s.diffPct}%` : '—';
-      const probs = s.newProblems.length ? s.newProblems.map((p) => cut(p, 120).replace(/\|/g, '\\|')).join('<br>') : '—';
-      lines.push(`| ${s.page} | ${widthOf(s.viewport)} | ${s.theme} | ${changed} | ${probs} |`);
+      const probs = s.newProblems.length ? s.newProblems.map((p) => '`' + cut(p.replace(/\s*\n\s*/g, ' ').replace(/`/g, "'"), 120).replace(/\|/g, '\\|') + '`').join('<br>') : '—';
+      lines.push(`| ${String(s.page).replace(/\|/g, '\\|')} | ${widthOf(s.viewport)} | ${s.theme} | ${changed} | ${probs} |`);
     }
     lines.push('');
   }
@@ -141,12 +147,12 @@ function renderIndex(summary, images) {
   const cards = rows
     .map((s) => {
       const im = images.get(shotKey(s)) ?? {};
-      const img = (label, src) =>
+      const img = (label, src, none = 'none') =>
         src
           ? `<figure><figcaption>${label}</figcaption><img src="${esc(src)}" loading="lazy"></figure>`
-          : `<figure><figcaption>${label}</figcaption><p>none</p></figure>`;
+          : `<figure><figcaption>${label}</figcaption><p>${none}</p></figure>`;
       const probs = s.newProblems.length ? `<ul>${s.newProblems.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : '';
-      return `<section><h2>${esc(s.page)} · ${esc(widthOf(s.viewport))} · ${esc(s.theme)} · ${s.diffPct === null ? 'not compared' : s.diffPct + '% changed'}</h2>${probs}<div class="grid">${img('Base', im.base)}${img('PR', im.head)}${img('Diff', im.diff)}</div></section>`;
+      return `<section><h2>${esc(s.page)} · ${esc(widthOf(s.viewport))} · ${esc(s.theme)} · ${s.diffPct === null ? 'not compared' : s.diffPct + '% changed'}</h2>${probs}<div class="grid">${img('Base', im.base)}${img('PR', im.head)}${img('Diff', im.diff, s.diffPct === 0 ? 'No change' : s.diffPct === null ? 'not compared' : 'none')}</div></section>`;
     })
     .join('\n');
   return `<!doctype html>

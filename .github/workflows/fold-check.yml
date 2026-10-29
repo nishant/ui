@@ -49,17 +49,20 @@ jobs:
       - name: Check out the PR
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           path: head
 
       - name: Check out the base branch
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
       - name: Check out the Fold tools
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           repository: nishant/ui
           ref: master
           path: .fold-ui
@@ -67,6 +70,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: |
+            .fold-ui/package-lock.json
+            head/${{ inputs.working-directory }}/package-lock.json
 
       - run: corepack enable
 
@@ -80,13 +87,34 @@ jobs:
           done
           echo "DATABASE_URL=postgres://postgres:fold@127.0.0.1:5432/fold" >> "$GITHUB_ENV"
 
-      - name: Install the Fold tools and Chromium
+      - name: Install the Fold tools
         working-directory: .fold-ui
-        run: |
-          npm ci --ignore-scripts
-          npx playwright install --with-deps chromium
+        run: npm ci --ignore-scripts
+
+      - name: Find the Playwright version
+        id: pw
+        working-directory: .fold-ui
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Chromium
+        id: chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Chromium
+        if: steps.chromium.outputs.cache-hit != 'true'
+        working-directory: .fold-ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Chromium system dependencies
+        if: steps.chromium.outputs.cache-hit == 'true'
+        working-directory: .fold-ui
+        run: npx playwright install-deps chromium
 
       - name: Build and start the base branch
+        id: buildbase
         continue-on-error: true
         working-directory: base/${{ inputs.working-directory }}
         run: |
@@ -103,11 +131,14 @@ jobs:
         run: npx -y wait-on@8 -t 300000 "http://127.0.0.1:5302${READY_PATH}"
 
       - name: Wait for the base branch to answer
+        id: waitbase
+        if: steps.buildbase.outcome == 'success'
         continue-on-error: true
         run: npx -y wait-on@8 -t 300000 "http://127.0.0.1:5301${READY_PATH}"
 
       # The head's config is used for both sides so the pages match.
       - name: Screenshot the base branch
+        if: steps.waitbase.outcome == 'success'
         continue-on-error: true
         run: node .fold-ui/tools/visual-check.mjs "head/$WD/$CONFIG" --port 5301 --png --no-fail --out fold/base
 
@@ -131,6 +162,15 @@ jobs:
         with:
           name: fold-report
           path: fold-report
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload the summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fold-summary
+          path: fold-report/summary.json
           retention-days: 14
           if-no-files-found: ignore
 

@@ -53,15 +53,28 @@ export function computeChecks({ checkRuns, statuses = [], workflowRuns = null, y
 }
 
 /**
- * @param {{kind:'ui'|'deps',from?:string|null,to?:string|null,behaviorChanges?:boolean,checks:string,fold?:null|'missing'|{newProblems:number,baseOk:boolean,maxDiffPct:number|null}}} p
+ * True when the PR head commit was made by a session rather than the fan-out, i.e. the held
+ * bump PR has been adopted. The fan-out's own commit is `Move @nish/ui to <tag>` by `ui fan-out`.
+ * @param {{author?:string|null,message?:string|null}|null|undefined} head
+ */
+export function isAdoptedHead(head) {
+  if (!head) return false;
+  const byFanout = (head.author ?? '') === 'ui fan-out' && /^Move @nish\/ui to /.test(head.message ?? '');
+  return !byFanout;
+}
+
+/**
+ * @param {{kind:'ui'|'deps',from?:string|null,to?:string|null,behaviorChanges?:boolean,adopted?:boolean,checks:string,fold?:null|'missing'|{newProblems:number,baseOk:boolean,maxDiffPct:number|null}}} p
  * @returns {{action:'wait'|'hold'|'merge',reason:string}}
  */
-export function decide({ kind, from = null, to = null, behaviorChanges = false, checks, fold = null }) {
+export function decide({ kind, from = null, to = null, behaviorChanges = false, adopted = false, checks, fold = null }) {
   const out = (action, reason) => ({ action, reason: cut(reason) });
   if (checks === 'pending') return out('wait', 'Waiting for checks');
   if (checks === 'missing') return out('hold', 'No checks ran on this PR');
   if (checks === 'failure') return out('hold', 'Checks failed');
-  if (kind === 'ui') {
+  // An adopted PR (a session pushed its own commits on the branch) no longer needs a session,
+  // so rules 4 and 5 are skipped; checks and the Fold check still apply.
+  if (kind === 'ui' && !adopted) {
     const mt = major(to);
     const mf = major(from);
     if (mt !== null && mf !== null && mt > mf && mt >= 1) {
