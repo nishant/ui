@@ -163,3 +163,28 @@ export { CommandPalette, useCommandHotkey, navigateFromLayer } from './component
 export type { CommandItem, CommandPaletteProps } from './components/command';
 export { RelativeTime, useMediaQuery, useBreakpoint, useDocumentTitle, useNow, useLocalStorage } from './components/hooks';
 export type { Breakpoint, RelativeTimeProps } from './components/hooks';
+export {
+  FlowSteps,
+  StepBar,
+  AgentNode,
+  WorkflowBoard,
+  ActivityFeed,
+  TickerText,
+  AnimatedList,
+  usePrefersReducedMotion,
+} from './components/flow';
+export type {
+  FlowStepsProps,
+  FlowStepItem,
+  FlowStepStatus,
+  StepBarProps,
+  AgentNodeProps,
+  AgentNodeState,
+  WorkflowBoardProps,
+  WorkflowBoardPhase,
+  WorkflowBoardAgent,
+  ActivityFeedProps,
+  ActivityItem,
+  TickerTextProps,
+  AnimatedListProps,
+} from './components/flow';

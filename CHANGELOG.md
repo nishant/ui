@@ -3,6 +3,12 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.8.0] - 2026-10-28
+
+### Added
+
+- Flow components: FlowSteps, StepBar, AgentNode, WorkflowBoard, ActivityFeed, TickerText, AnimatedList and usePrefersReducedMotion, for live views of multi-step work (workflows.nish.software). Motion is CSS-only and plays only when the viewer has not asked for reduced motion.
+
 ## [0.7.1] - 2026-10-28
 
 Docs site only; no change to the package.
