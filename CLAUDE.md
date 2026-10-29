@@ -25,3 +25,10 @@ screen (about 360–390 CSS px) and a near-square ~840px unfolded. Components, a
 that uses them, must look right with no horizontal page scroll at 360px, ~840px and desktop
 width, in light and dark, with 44px touch targets. `tools/visual-check.mjs` checks those
 sizes by default.
+
+## Workflows
+
+Validate every workflow file before pushing: `npx -y @action-validator/cli@0.6.0 .github/workflows/<file>.yml`. A YAML
+error (a plain `run:` value containing `: `) makes GitHub reject the whole file, so none of its triggers fire.
+An empty `FLEET_TOKEN` (a `gh secret set` prompt that got no paste) also fails quietly: the fan-out's plan job
+summary says "FLEET_TOKEN is not set". Re-set it and dispatch `fanout.yml` to check.
