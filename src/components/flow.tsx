@@ -28,11 +28,19 @@ export function usePrefersReducedMotion(): boolean {
   return useMediaQuery('(prefers-reduced-motion: reduce)');
 }
 
+const warned = new Set<string>();
+
+/** Dev-only console warning, once per message. Bundlers replace `process.env.NODE_ENV`;
+ *  where nothing does, the ReferenceError is caught and nothing is printed. */
 function warnDev(message: string): void {
+  if (warned.has(message)) return;
   try {
-    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV !== 'production') console.warn(message);
+    if (process.env.NODE_ENV !== 'production') {
+      warned.add(message);
+      console.warn(message);
+    }
   } catch {
-    // No console.
+    // No process or no console.
   }
 }
 
@@ -51,13 +59,17 @@ function useTransitionFx<S extends string>(
     prev.current = value;
     if (from === value) return;
     const el = ref.current;
-    const fx = pick(from, value);
-    if (!el || !fx) return;
+    if (!el) return;
     el.removeAttribute('data-fx');
+    const fx = pick(from, value);
+    if (!fx) return;
     void el.offsetWidth;
     el.setAttribute('data-fx', fx);
     const timer = setTimeout(() => el.removeAttribute('data-fx'), 700);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      el.removeAttribute('data-fx');
+    };
   }, [value, ref, pick]);
 }
 
@@ -348,7 +360,7 @@ export function TickerText({ text, as = 'span', className }: TickerTextProps) {
 
   const Tag = as;
   return (
-    <Tag className={cn('nish-flow-ticker', className)} title={cur.text}>
+    <Tag className={cn('nish-flow-ticker grid min-w-0 overflow-hidden', className)} title={cur.text}>
       {cur.prev !== null ? (
         <span key={`prev:${cur.prev}`} className="nish-flow-ticker-out" aria-hidden="true">
           {cur.prev}
@@ -475,7 +487,7 @@ export function AgentNode({ label, state, model, activity, meta, onClick, classN
         {model ? <ModelBadge model={model} /> : null}
         {meta != null ? <span className="shrink-0 text-xs tabular-nums text-th-hi3">{meta}</span> : null}
       </span>
-      {activity ? <TickerText as="span" text={activity} className="mt-1 block text-xs text-th-hi3" /> : null}
+      {activity ? <TickerText as="span" text={activity} className="mt-1 text-xs text-th-hi3" /> : null}
     </>
   );
   if (onClick) {
@@ -768,9 +780,16 @@ function reconcile<T>(prev: ListEntry<T>[], items: T[], getKey: (item: T) => str
     next.push({ key, item, phase: animate ? phase : 'idle' });
   }
   if (animate) {
+    // Each exiting entry goes right after the key that preceded it in `prev`.
     prev.forEach((e, i) => {
       if (seen.has(e.key)) return;
-      next.splice(Math.min(i, next.length), 0, e.phase === 'exit' ? e : { ...e, phase: 'exit' });
+      let at = 0;
+      if (i > 0) {
+        const before = prev[i - 1]!.key;
+        const idx = next.findIndex((x) => x.key === before);
+        at = idx === -1 ? Math.min(i, next.length) : idx + 1;
+      }
+      next.splice(at, 0, e.phase === 'exit' ? e : { ...e, phase: 'exit' });
     });
   }
   return next;
@@ -804,6 +823,8 @@ export function AnimatedList<T>({
   const els = useRef(new Map<string, HTMLElement>());
   const rects = useRef(new Map<string, { x: number; y: number }>());
   const anims = useRef(new Map<string, Animation>());
+  const refCbs = useRef(new Map<string, (el: HTMLElement | null) => void>());
+  const lastKeys = useRef<string | null>(null);
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   // Enter and exit timers: one per entry in that phase.
@@ -856,17 +877,51 @@ export function AnimatedList<T>({
   useLayoutEffect(() => {
     const next = new Map<string, { x: number; y: number }>();
     els.current.forEach((el, k) => next.set(k, { x: el.offsetLeft, y: el.offsetTop }));
-    if (!reduced) {
+    const keyList = entries.map((e) => e.key).join('\n');
+    const reordered = lastKeys.current !== null && lastKeys.current !== keyList;
+    lastKeys.current = keyList;
+    const live = new Set(entries.map((e) => e.key));
+    anims.current.forEach((anim, k) => {
+      if (!live.has(k)) {
+        anim.cancel();
+        anims.current.delete(k);
+      }
+    });
+    refCbs.current.forEach((_, k) => {
+      if (!live.has(k)) refCbs.current.delete(k);
+    });
+    // Focus inside an exiting item moves to a staying neighbour.
+    const active = typeof document !== 'undefined' ? document.activeElement : null;
+    if (active) {
+      const ei = entries.findIndex((e) => e.phase === 'exit' && els.current.get(e.key)?.contains(active));
+      if (ei !== -1) {
+        const target = [...entries.slice(ei + 1), ...entries.slice(0, ei).reverse()].find((e) => e.phase !== 'exit');
+        const focusable = target
+          ? els.current.get(target.key)?.querySelector<HTMLElement>('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')
+          : null;
+        if (focusable) focusable.focus({ preventScroll: true });
+      }
+    }
+    if (!reduced && reordered) {
       for (const e of entries) {
         if (e.phase === 'exit') continue;
         const a = rects.current.get(e.key);
         const b = next.get(e.key);
         const el = els.current.get(e.key);
         if (!a || !b || !el || typeof el.animate !== 'function') continue;
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
+        let dx = a.x - b.x;
+        let dy = a.y - b.y;
+        const running = anims.current.get(e.key);
+        if (running) {
+          // Start from where the item is drawn now, not from its layout position.
+          const r1 = el.getBoundingClientRect();
+          running.cancel();
+          anims.current.delete(e.key);
+          const r2 = el.getBoundingClientRect();
+          dx += r1.left - r2.left;
+          dy += r1.top - r2.top;
+        }
         if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-        anims.current.get(e.key)?.cancel();
         const anim = el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], {
           duration: MOVE_MS,
           easing: EASE,
@@ -880,6 +935,17 @@ export function AnimatedList<T>({
     rects.current = next;
   }, [entries, reduced]);
 
+  const refFor = (key: string) => {
+    let cb = refCbs.current.get(key);
+    if (!cb) {
+      cb = (el: HTMLElement | null) => {
+        if (el) els.current.set(key, el);
+        else els.current.delete(key);
+      };
+      refCbs.current.set(key, cb);
+    }
+    return cb;
+  };
   const Root = as;
   const Item = as === 'div' ? 'div' : 'li';
   return (
@@ -887,16 +953,11 @@ export function AnimatedList<T>({
       {entries.map((e) => (
         <Item
           key={e.key}
-          ref={(el: HTMLElement | null) => {
-            if (el) els.current.set(e.key, el);
-            else {
-              els.current.delete(e.key);
-              anims.current.delete(e.key);
-            }
-          }}
+          ref={refFor(e.key)}
           className={cn('nish-flow-item', itemClassName)}
           data-phase={e.phase}
           aria-hidden={e.phase === 'exit' || undefined}
+          inert={e.phase === 'exit' || undefined}
           style={e.phase === 'exit' ? ({ '--nish-flow-exit-ms': `${exitMs}ms` } as CSSProperties) : undefined}
         >
           <div className="nish-flow-item-inner">{children(e.item, e.phase)}</div>

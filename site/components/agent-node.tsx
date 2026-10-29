@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { AgentNode, type AgentNodeState } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -16,7 +17,23 @@ const ACTIVITY: Record<AgentNodeState, string> = {
 
 function Live() {
   const demo = useFlowDemo();
-  const a = demo.agents.find((x) => x.state === 'running') ?? demo.agents[demo.agents.length - 1];
+  const [pinned, setPinned] = useState<string | null>(null);
+  const current = pinned ? demo.agents.find((x) => x.id === pinned) : undefined;
+  const ended = current ? current.state === 'done' || current.state === 'failed' : false;
+
+  // Follow one agent; once it ends keep it on screen for a moment, then move to the next running one.
+  useEffect(() => {
+    if (!current) {
+      const next = demo.agents.find((x) => x.state === 'running');
+      if (next) setPinned(next.id);
+      return;
+    }
+    if (!ended) return;
+    const t = setTimeout(() => setPinned(null), 1500);
+    return () => clearTimeout(t);
+  }, [current, ended, demo.agents]);
+
+  const a = current ?? demo.agents.find((x) => x.state === 'running') ?? demo.agents[demo.agents.length - 1];
   if (!a) return <AgentNode label="Starting" state="queued" className="w-full max-w-sm" />;
   const { id: _id, phase: _phase, ...props } = a;
   return <AgentNode {...props} className="w-full max-w-sm" />;
