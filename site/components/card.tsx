@@ -9,7 +9,7 @@ import type { ComponentDoc } from './types';
 const ROWS = [
   ['jobs.nish.software', 'Job search', 'ok', '41 ms'],
   ['trading.nish.software', 'Options ideas', 'ok', '88 ms'],
-  ['mc.nish.software', 'Minecraft guides', 'warn', '612 ms'],
+  ['minecraft.nish.software', 'Minecraft guides', 'warn', '612 ms'],
   ['trackers.nish.software', 'Price trackers', 'loss', 'timeout'],
 ] as const;
 

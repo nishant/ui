@@ -39,7 +39,7 @@ export const linkCard: ComponentDoc = {
   render: (a) => (
     <div className="w-full max-w-xs">
       <LinkCard
-        href="https://mc.nish.software"
+        href="https://minecraft.nish.software"
         title="Minecraft"
         blurb={a.blurb ? 'Server status, players and controls for the family world.' : undefined}
         icon={<LayersIcon size={20} />}
@@ -54,7 +54,7 @@ export const linkCard: ComponentDoc = {
   ),
   code: (a) =>
     jsx('LinkCard', {
-      href: 'https://mc.nish.software',
+      href: 'https://minecraft.nish.software',
       title: 'Minecraft',
       blurb: a.blurb ? 'Server status, players and controls.' : undefined,
       icon: '{<CubeIcon />}',

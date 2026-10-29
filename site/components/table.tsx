@@ -142,7 +142,7 @@ export const table: ComponentDoc = {
               <Tr tone="warn" interactive>
                 <Td>
                   <a href="#" className="font-medium text-th-hi hover:underline">
-                    mc.nish.software
+                    minecraft.nish.software
                   </a>
                 </Td>
                 <Td>

@@ -14,7 +14,7 @@ export function StaticSitesPage() {
       <PageHeader
         eyebrow="Start"
         title="Static sites"
-        lead="Sites with no build step (mc.nish.software, the trip pages) get the same theme by vendoring a handful of dist files from a release tag."
+        lead="Sites with no build step (minecraft.nish.software, the trip pages) get the same theme by vendoring a handful of dist files from a release tag."
       />
 
       <Section title="How hosting vendors them" note="nishant/hosting pins one tag and copies the files into each static site.">
