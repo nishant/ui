@@ -65,7 +65,7 @@
     "preview:site": "vite preview --config site/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "contrast": "node tools/contrast.mjs",
-    "check": "npm run typecheck && npm run contrast && npm run build && node tools/format-check.mjs && node tools/inbox-client-check.mjs",
+    "check": "npm run typecheck && npm run contrast && npm run build && node tools/format-check.mjs && node tools/inbox-client-check.mjs && node tools/canvas-layout-check.mjs",
     "visual": "node tools/visual-check.mjs",
     "release": "node scripts/release.mjs",
     "test:tools": "node --test tools/*.test.mjs tools/fanout/*.test.mjs"

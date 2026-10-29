@@ -1140,20 +1140,17 @@ kbd {
 }
 
 /* SystemCanvas (src/components/canvas.tsx). The viewport is the graph paper: its
-   background position and size follow the pan and zoom through --cx, --cy, --cmin and
-   --cmaj, which the component writes directly. Every rule that moves, loops or fades is
+   background position and size follow the pan and zoom (the component writes them directly, no inherited
+   variables). Every rule that moves, loops or fades is
    inside prefers-reduced-motion: no-preference; under reduced motion the active look is
    static (hue border, solid edges). */
 .nish-canvas {
-  --cx: 0px;
-  --cy: 0px;
-  --cmin: 24px;
-  --cmaj: 120px;
   --c: var(--nish-accent);
   --c-soft: var(--nish-accent-soft);
   position: relative;
   width: 100%;
   overflow: hidden;
+  overflow: clip;
   touch-action: none;
   overscroll-behavior: contain;
   user-select: none;
@@ -1165,8 +1162,9 @@ kbd {
     linear-gradient(to bottom, color-mix(in srgb, var(--nish-line-strong) 70%, transparent) 1px, transparent 1px),
     linear-gradient(to right, color-mix(in srgb, var(--nish-line) 55%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--nish-line) 55%, transparent) 1px, transparent 1px);
-  background-size: var(--cmaj) var(--cmaj), var(--cmaj) var(--cmaj), var(--cmin) var(--cmin), var(--cmin) var(--cmin);
-  background-position: var(--cx) var(--cy);
+  /* Position and size are written directly by the component on every pan and zoom frame. */
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  background-position: 0 0;
 }
 .nish-canvas[data-grid='major'] {
   background-image:
@@ -1194,13 +1192,13 @@ kbd {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--nish-hi3);
-  opacity: 0.7;
   white-space: nowrap;
 }
 
 /* Groups */
 .nish-canvas-group {
   position: absolute;
+  z-index: 0;
   overflow: hidden;
   border-radius: 16px;
   border: 1px solid var(--nish-line);
@@ -1268,9 +1266,10 @@ kbd {
 /* Nodes */
 .nish-canvas-slot {
   position: absolute;
+  z-index: 2;
 }
 .nish-canvas-slot[data-active] {
-  z-index: 2;
+  z-index: 3;
 }
 .nish-canvas-node {
   position: relative;
@@ -1351,23 +1350,32 @@ kbd {
   box-shadow: 0 0 0 2px var(--nish-bg);
 }
 .nish-canvas-note {
+  /* Drawn inside the node box, in place of the detail line, so it never covers a neighbor. */
   position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
+  left: 10px;
+  right: 30px;
+  bottom: 9px;
   display: block;
-  max-width: 220px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
-  background: color-mix(in srgb, var(--c) 16%, var(--nish-surface));
-  color: var(--nish-hi);
-  line-height: 1.4;
+  overflow: hidden;
+  padding: 0;
+  color: var(--c);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   pointer-events: none;
+}
+.nish-canvas-slot:has(.nish-canvas-icon) .nish-canvas-note {
+  left: 46px;
+}
+.nish-canvas-slot:has(.nish-canvas-note) .nish-canvas-detail {
+  visibility: hidden;
 }
 
 /* Edges */
 .nish-canvas-edges {
   position: absolute;
+  z-index: 1;
   left: 0;
   top: 0;
   overflow: visible;
@@ -1457,15 +1465,10 @@ kbd {
 @keyframes nish-canvas-glow {
   0%,
   100% {
-    box-shadow: 0 0 6px color-mix(in srgb, var(--c) 14%, transparent);
+    opacity: 0.3;
   }
   50% {
-    box-shadow: 0 0 26px color-mix(in srgb, var(--c) 45%, transparent);
-  }
-}
-@keyframes nish-canvas-flow {
-  to {
-    stroke-dashoffset: -14;
+    opacity: 1;
   }
 }
 @keyframes nish-canvas-travel {
@@ -1492,11 +1495,15 @@ kbd {
     animation: nish-canvas-rise 420ms var(--nish-ease-out) both;
     animation-delay: var(--nish-canvas-delay, 0ms);
   }
-  .nish-canvas-group[data-live] {
-    animation:
-      nish-canvas-rise 420ms var(--nish-ease-out) both,
-      nish-canvas-glow 2.4s ease-in-out infinite;
-    animation-delay: var(--nish-canvas-delay, 0ms), 0ms;
+  .nish-canvas-group[data-live]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 26px color-mix(in srgb, var(--c) 45%, transparent);
+    pointer-events: none;
+    opacity: 0.3;
+    animation: nish-canvas-glow 2.4s ease-in-out infinite;
   }
   .nish-canvas-node[data-active]::after {
     content: '';
@@ -1514,8 +1521,6 @@ kbd {
     animation: nish-canvas-live 1.2s ease-in-out infinite;
   }
   .nish-canvas-edge[data-active] .nish-canvas-edge-line {
-    stroke-dasharray: 6 8;
-    animation: nish-canvas-flow 0.8s linear infinite;
   }
   .nish-canvas-edge[data-active] .nish-canvas-dot {
     display: block;
