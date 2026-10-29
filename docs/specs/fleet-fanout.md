@@ -66,7 +66,7 @@ Outcomes:
   entry per host). nishboard has no host and hosting serves three, so the two lists cannot be
   one file. Flat `key: value` entries so the existing minimal parsers handle it.
 - **The diff baseline is the PR's base branch built and rendered the same way, not the live
-  URL.** (default; the idea said "against the live site") Live pages have changing data,
+  URL.** (confirmed by Nish 2026-10-28; the idea first said "against the live site") Live pages have changing data,
   logins (trackers, jobs, trading) and trading is tailnet-only, unreachable from GitHub's
   runners. The base branch is what is deployed (every merge deploys; the board flags when it
   is not), and rendering both on the same fixture data makes the diff show only what the
