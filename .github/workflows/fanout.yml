@@ -61,7 +61,8 @@ jobs:
           node-version: 24
       - run: corepack enable
       - name: Fetch the fleet list
-        run: gh api repos/nishant/hosting/contents/fleet.yaml -H "Accept: application/vnd.github.raw" > fleet.yaml
+        run: |
+          gh api repos/nishant/hosting/contents/fleet.yaml -H "Accept: application/vnd.github.raw" > fleet.yaml
       - name: Git identity
         run: |
           git config --global user.name "ui fan-out"
