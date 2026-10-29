@@ -481,13 +481,17 @@ export function AgentNode({ label, state, model, activity, meta, onClick, classN
   );
   const body = (
     <>
-      <span className="flex min-w-0 items-center gap-2">
+      <span className="flex min-w-0 items-start gap-2">
         <AgentIcon state={state} />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-th-hi">{label}</span>
-        {model ? <ModelBadge model={model} /> : null}
-        {meta != null ? <span className="shrink-0 text-xs tabular-nums text-th-hi3">{meta}</span> : null}
+        <span className="line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-5 text-th-hi [overflow-wrap:anywhere]">{label}</span>
+        {meta != null ? <span className="shrink-0 text-xs leading-5 tabular-nums text-th-hi3">{meta}</span> : null}
       </span>
-      {activity ? <TickerText as="span" text={activity} className="mt-1 text-xs text-th-hi3" /> : null}
+      {model || activity ? (
+        <span className="mt-1.5 flex min-w-0 items-center gap-2">
+          {model ? <ModelBadge model={model} /> : null}
+          {activity ? <TickerText as="span" text={activity} className="min-w-0 flex-1 text-xs text-th-hi3" /> : null}
+        </span>
+      ) : null}
     </>
   );
   if (onClick) {
