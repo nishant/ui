@@ -163,3 +163,8 @@ export { CommandPalette, useCommandHotkey, navigateFromLayer } from './component
 export type { CommandItem, CommandPaletteProps } from './components/command';
 export { RelativeTime, useMediaQuery, useBreakpoint, useDocumentTitle, useNow, useLocalStorage } from './components/hooks';
 export type { Breakpoint, RelativeTimeProps } from './components/hooks';
+export { Inbox } from './components/inbox';
+export type { InboxProps } from './components/inbox';
+export { INBOX_SOURCE_LABELS, INBOX_DEFAULT_SETTINGS } from './inbox-types';
+export type { InboxItem, InboxView, InboxSeverity, InboxSettings, InboxListResponse } from './inbox-types';
+export { CheckIcon, ClockIcon, MoreIcon, BellIcon, SettingsIcon } from './components/icons';

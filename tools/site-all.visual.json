@@ -672,6 +672,27 @@
       "settle": 1200
     },
     {
+      "name": "inbox",
+      "url": "http://localhost:5191/#/components/inbox",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "phone-small",
+        "fold",
+        "desktop"
+      ]
+    },
+    {
+      "name": "inbox-themes",
+      "url": "http://localhost:5191/#/components/inbox/themes",
+      "waitFor": "[data-page]",
+      "viewports": [
+        "phone-small",
+        "fold",
+        "desktop"
+      ],
+      "settle": 1200
+    },
+    {
       "name": "theme-toggle-themes",
       "url": "http://localhost:5191/#/components/theme-toggle/themes",
       "waitFor": "[data-page]",
