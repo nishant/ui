@@ -173,6 +173,18 @@ const okResponse = (status = 200, body = { results: [{ id: 7, action: 'created' 
 }
 
 {
+  // A flush() on an empty queue must not make a following send look like an outage.
+  const logs = [];
+  const c = createInboxClient({ source: 'a', url: 'http://x', fetch: async () => okResponse(), log: (m) => logs.push(m) });
+  void c.flush();
+  const r = await c.send({ kind: 'k', title: 't' });
+  assert.equal(r.ok, true);
+  assert.equal(c.pending, 0);
+  assert.deepEqual(logs, []);
+  await c.flush();
+}
+
+{
   // 5xx queues, 4xx does not.
   const c5 = createInboxClient({ source: 'a', url: 'http://x', fetch: async () => okResponse(503, {}), log: noLog });
   const r5 = await c5.send({ kind: 'k', title: 't' });

@@ -269,7 +269,7 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
         return { ok: false, error: parsed.error, queued: false };
       }
       if (disabled) return { ok: false, error: 'disabled', queued: false };
-      if (queue.length > 0 || flushing) {
+      if (queue.length > 0) {
         enqueue(parsed.value);
         void flush();
         return { ok: false, error: 'queued behind earlier events', queued: true };
