@@ -73,7 +73,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             .fold-ui/package-lock.json
-            head/${{ inputs.working-directory }}/package-lock.json
+            head/**/package-lock.json
 
       - run: corepack enable
 
