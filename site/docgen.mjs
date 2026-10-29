@@ -90,6 +90,7 @@ export const COMPONENTS = [
   'ActivityFeed',
   'TickerText',
   'AnimatedList',
+  'SystemCanvas',
   'Inbox',
 ];
 const FUNCTIONS = [

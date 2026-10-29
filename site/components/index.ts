@@ -79,6 +79,7 @@ import { workflowBoard } from './workflow-board';
 import { activityFeed } from './activity-feed';
 import { tickerText } from './ticker-text';
 import { animatedList } from './animated-list';
+import { systemCanvas } from './system-canvas';
 import { commandPalette } from './command-palette';
 import { relativeTime } from './relative-time';
 import { format } from './format';
@@ -169,6 +170,7 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   activityFeed,
   tickerText,
   animatedList,
+  systemCanvas,
   commandPalette,
   relativeTime,
   format,

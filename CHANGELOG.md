@@ -8,6 +8,7 @@ bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 ### Added
 
 - Flow components: FlowSteps, StepBar, AgentNode, WorkflowBoard, ActivityFeed, TickerText, AnimatedList and usePrefersReducedMotion, for live views of multi-step work (workflows.nish.software). Motion is CSS-only and plays only when the viewer has not asked for reduced motion.
+- SystemCanvas: a pannable, zoomable graph-paper canvas of grouped nodes and edges that light up where work is happening.
 
 ## [0.8.0] - 2026-10-28
 
