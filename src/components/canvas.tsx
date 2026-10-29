@@ -13,23 +13,21 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type SVGProps,
-} from "react";
-import { cn } from "../cn";
-import { TickerText, usePrefersReducedMotion } from "./flow";
-import { IconButton } from "./primitives";
+} from 'react';
+import { cn } from '../cn';
+import { TickerText, usePrefersReducedMotion } from './flow';
+import { IconButton } from './primitives';
 
 // SystemCanvas: a pannable, zoomable graph-paper canvas of grouped nodes and edges that
 // light up where work is happening. The layout is computed (layoutSystem), never stored.
 //
 // Pan and zoom never go through React state: the view lives in a ref and is written
-// straight to the world layer (`transform`) and the viewport's graph-paper variables, so a
-// drag or a wheel tick re-renders nothing. Motion lives in CSS (src/css/base.css,
-// `nish-canvas-*`), inside `prefers-reduced-motion: no-preference`.
+// straight to the world layer (`transform`) and the viewport's background-position and
+// background-size, so a drag or a wheel tick re-renders nothing. Motion lives in CSS
+// (src/css/base.css, `nish-canvas-*`), inside `prefers-reduced-motion: no-preference`.
 
-export type CanvasHue =
-  "indigo" | "emerald" | "amber" | "lime" | "rose" | "sky" | "violet" | "teal";
-export type CanvasNodeKind =
-  "ui" | "service" | "worker" | "library" | "infra" | "data" | "tool" | "docs";
+export type CanvasHue = 'indigo' | 'emerald' | 'amber' | 'lime' | 'rose' | 'sky' | 'violet' | 'teal';
+export type CanvasNodeKind = 'ui' | 'service' | 'worker' | 'library' | 'infra' | 'data' | 'tool' | 'docs';
 
 export interface CanvasNode {
   id: string;
@@ -72,7 +70,7 @@ export interface SystemCanvasProps {
   /** Faint titles above each column ("Edge", "Infra", "Apps", ...), by column index. */
   columns?: string[];
   selected?: string | null;
-  onSelect?: (id: string, type: "node" | "group") => void;
+  onSelect?: (id: string, type: 'node' | 'group') => void;
   /** CSS height of the viewport. Default "100%". */
   height?: string;
   /** aria-label. Default "System map". */
@@ -102,42 +100,28 @@ const MIN_COLUMN_STEP = 420;
  *  `column` values in ascending order, groups stack in the order given, nodes sit in a
  *  2-column grid inside their group (1 column for a group of one), and each column is
  *  centered against the tallest. Pure and deterministic. */
-export function layoutSystem(
-  groups: CanvasGroup[],
-  o: { columnGap?: number; rowGap?: number } = {},
-): CanvasLayout {
+export function layoutSystem(groups: CanvasGroup[], o: { columnGap?: number; rowGap?: number } = {}): CanvasLayout {
   const columnGap = o.columnGap ?? 120;
   const rowGap = o.rowGap ?? 40;
-  const columns = [...new Set(groups.map((g) => g.column))].sort(
-    (a, b) => a - b,
-  );
+  const columns = [...new Set(groups.map((g) => g.column))].sort((a, b) => a - b);
   const sized = new Map<string, { w: number; h: number; cols: number }>();
   for (const g of groups) {
     const cols = g.nodes.length > 1 ? 2 : 1;
     const rows = Math.ceil(g.nodes.length / cols);
     const w = GROUP_PAD * 2 + cols * NODE_W + (cols - 1) * NODE_GAP;
-    const h =
-      GROUP_HEAD +
-      GROUP_PAD +
-      (rows > 0 ? rows * NODE_H + (rows - 1) * NODE_GAP : 0);
+    const h = GROUP_HEAD + GROUP_PAD + (rows > 0 ? rows * NODE_H + (rows - 1) * NODE_GAP : 0);
     sized.set(g.id, { w, h, cols });
   }
-  const stackHeight = (list: CanvasGroup[]) =>
-    list.reduce((sum, g) => sum + sized.get(g.id)!.h, 0) +
-    Math.max(0, list.length - 1) * rowGap;
+  const stackHeight = (list: CanvasGroup[]) => list.reduce((sum, g) => sum + sized.get(g.id)!.h, 0) + Math.max(0, list.length - 1) * rowGap;
   const whole = columns.map((c) => groups.filter((g) => g.column === c));
   const sorted = whole.map(stackHeight).sort((a, b) => a - b);
-  const median =
-    sorted.length === 0 ? 0 : sorted[Math.floor(sorted.length / 2)]!;
+  const median = sorted.length === 0 ? 0 : sorted[Math.floor(sorted.length / 2)]!;
   // A column taller than 1.5x the median wraps into 2 or 3 sub-columns (order kept) so the whole
   // map stays close to the viewport's aspect ratio.
   const members: CanvasGroup[][] = [];
   for (const list of whole) {
     const h = stackHeight(list);
-    const parts =
-      median > 0 && list.length > 1
-        ? Math.min(3, list.length, Math.ceil(h / (median * 1.5)))
-        : 1;
+    const parts = median > 0 && list.length > 1 ? Math.min(3, list.length, Math.ceil(h / (median * 1.5))) : 1;
     if (parts <= 1) {
       members.push(list);
       continue;
@@ -146,11 +130,7 @@ export function layoutSystem(
     let cur: CanvasGroup[] = [];
     let cuts = 0;
     for (const g of list) {
-      if (
-        cur.length > 0 &&
-        cuts < parts - 1 &&
-        stackHeight(cur) + rowGap + sized.get(g.id)!.h / 2 > goal
-      ) {
+      if (cur.length > 0 && cuts < parts - 1 && stackHeight(cur) + rowGap + sized.get(g.id)!.h / 2 > goal) {
         members.push(cur);
         cur = [];
         cuts++;
@@ -162,12 +142,7 @@ export function layoutSystem(
   const heights = members.map(stackHeight);
   const tallest = heights.reduce((m, h) => Math.max(m, h), 0);
 
-  const out: CanvasLayout = {
-    width: 0,
-    height: tallest,
-    groups: {},
-    nodes: {},
-  };
+  const out: CanvasLayout = { width: 0, height: tallest, groups: {}, nodes: {} };
   let x = 0;
   members.forEach((list, ci) => {
     const widest = list.reduce((m, g) => Math.max(m, sized.get(g.id)!.w), 0);
@@ -214,8 +189,7 @@ const KEY_PAN = 48;
 const ZOOM_STEP = 1.25;
 
 const clampK = (k: number) => Math.min(MAX_K, Math.max(MIN_K, k));
-const ease = (t: number) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 /** The view after zooming to `k` while keeping the world point under (px, py) fixed. */
 function zoomAround(v: View, k: number, px: number, py: number): View {
@@ -224,17 +198,8 @@ function zoomAround(v: View, k: number, px: number, py: number): View {
   return { k: nk, x: px - (px - v.x) * r, y: py - (py - v.y) * r };
 }
 
-function centerOn(
-  w: number,
-  h: number,
-  k: number,
-  box: { x: number; y: number; w: number; h: number },
-): View {
-  return {
-    k,
-    x: w / 2 - (box.x + box.w / 2) * k,
-    y: h / 2 - (box.y + box.h / 2) * k,
-  };
+function centerOn(w: number, h: number, k: number, box: { x: number; y: number; w: number; h: number }): View {
+  return { k, x: w / 2 - (box.x + box.w / 2) * k, y: h / 2 - (box.y + box.h / 2) * k };
 }
 
 // =====================================================================================
@@ -295,9 +260,7 @@ const KIND_ICON: Record<CanvasNodeKind, ReactNode> = {
       <path d="M3 12a9 3 0 0 0 18 0" />
     </>
   ),
-  tool: (
-    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-  ),
+  tool: <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />,
   docs: (
     <>
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -329,8 +292,8 @@ const FitIcon = () => (
 
 function hueStyle(hue: CanvasHue | undefined): CSSProperties {
   return {
-    "--c": hue ? `var(--nish-${hue})` : "var(--nish-accent)",
-    "--c-soft": hue ? `var(--nish-${hue}-soft)` : "var(--nish-accent-soft)",
+    '--c': hue ? `var(--nish-${hue})` : 'var(--nish-accent)',
+    '--c-soft': hue ? `var(--nish-${hue}-soft)` : 'var(--nish-accent-soft)',
   } as CSSProperties;
 }
 
@@ -345,11 +308,10 @@ interface NodeViewProps {
   box: { x: number; y: number; w: number; h: number };
   selected: boolean;
   delay: number;
-  onSelect: ((id: string, type: "node" | "group") => void) | undefined;
+  onSelect: ((id: string, type: 'node' | 'group') => void) | undefined;
 }
 
-const clamp01 = (n: number | undefined) =>
-  n == null || !Number.isFinite(n) ? 0 : Math.min(1, Math.max(0, n));
+const clamp01 = (n: number | undefined) => (n == null || !Number.isFinite(n) ? 0 : Math.min(1, Math.max(0, n)));
 
 /** Plays a one-time "ping" when `active` turns on after mount. Sets data-fx on the DOM so a
  *  re-render with the same data cannot cut it short. */
@@ -361,25 +323,17 @@ function usePing(active: boolean) {
     prev.current = active;
     const el = ref.current;
     if (!el || was || !active) return;
-    el.removeAttribute("data-fx");
+    el.removeAttribute('data-fx');
     void el.offsetWidth;
-    el.setAttribute("data-fx", "ping");
-    const timer = setTimeout(() => el.removeAttribute("data-fx"), 450);
+    el.setAttribute('data-fx', 'ping');
+    const timer = setTimeout(() => el.removeAttribute('data-fx'), 450);
     return () => clearTimeout(timer);
   }, [active]);
   return ref;
 }
 
 const NodeView = memo(
-  function NodeView({
-    node,
-    groupTitle,
-    hue,
-    box,
-    selected,
-    delay,
-    onSelect,
-  }: NodeViewProps) {
+  function NodeView({ node, groupTitle, hue, box, selected, delay, onSelect }: NodeViewProps) {
     const active = !!node.active;
     const heat = clamp01(node.heat);
     const ref = usePing(active);
@@ -390,19 +344,15 @@ const NodeView = memo(
       top: box.y,
       width: box.w,
       height: box.h,
-      "--nish-canvas-delay": `${delay}ms`,
+      '--nish-canvas-delay': `${delay}ms`,
     } as CSSProperties;
     if (!active && heat > 0) {
       style.borderColor = `color-mix(in srgb, var(--c) ${Math.round(heat * 70)}%, var(--nish-line))`;
       style.boxShadow = `0 0 ${Math.round(6 + heat * 16)}px color-mix(in srgb, var(--c) ${Math.round(heat * 60)}%, transparent)`;
     }
-    const aria = `${node.label}, ${groupTitle}${active ? (node.note ? `, active: ${node.note}` : ", active") : ""}`;
+    const aria = `${node.label}, ${groupTitle}${active ? (node.note ? `, active: ${node.note}` : ', active') : ''}`;
     return (
-      <div
-        className="nish-canvas-slot"
-        style={style}
-        data-active={active || undefined}
-      >
+      <div className="nish-canvas-slot" style={style} data-active={active || undefined}>
         <button
           ref={ref}
           type="button"
@@ -413,7 +363,7 @@ const NodeView = memo(
           data-heat={heat > 0 || undefined}
           aria-label={aria}
           aria-pressed={selected}
-          onClick={() => onSelect?.(node.id, "node")}
+          onClick={() => onSelect?.(node.id, 'node')}
         >
           {node.kind ? (
             <span className="nish-canvas-icon" aria-hidden="true">
@@ -422,22 +372,17 @@ const NodeView = memo(
           ) : null}
           <span className="nish-canvas-text">
             <span className="nish-canvas-label">{node.label}</span>
-            {node.detail ? (
+            {active && node.note ? (
+              <span className="nish-canvas-note" aria-hidden="true">
+                <TickerText text={node.note} as="span" />
+              </span>
+            ) : node.detail ? (
               <span className="nish-canvas-detail">{node.detail}</span>
             ) : null}
           </span>
-          {count > 1 ? (
-            <span className="nish-canvas-count">{count}</span>
-          ) : null}
-          {active ? (
-            <span className="nish-canvas-live" aria-hidden="true" />
-          ) : null}
+          {count > 1 ? <span className="nish-canvas-count">{count}</span> : null}
+          {active ? <span className="nish-canvas-live" aria-hidden="true" /> : null}
         </button>
-        {active && node.note ? (
-          <span className="nish-canvas-note" aria-hidden="true">
-            <TickerText text={node.note} as="span" className="text-xs" />
-          </span>
-        ) : null}
       </div>
     );
   },
@@ -456,8 +401,7 @@ const NodeView = memo(
     a.node.active === b.node.active &&
     a.node.note === b.node.note &&
     a.node.count === b.node.count &&
-    Math.round(clamp01(a.node.heat) * 100) ===
-      Math.round(clamp01(b.node.heat) * 100),
+    Math.round(clamp01(a.node.heat) * 100) === Math.round(clamp01(b.node.heat) * 100),
 );
 
 // =====================================================================================
@@ -520,8 +464,8 @@ export function SystemCanvas({
   columns,
   selected = null,
   onSelect,
-  height = "100%",
-  label = "System map",
+  height = '100%',
+  label = 'System map',
   className,
 }: SystemCanvasProps) {
   const reduced = usePrefersReducedMotion();
@@ -535,9 +479,7 @@ export function SystemCanvas({
   const zoomLabelRef = useRef<HTMLSpanElement>(null);
   const [labelsOn, setLabelsOn] = useState(true);
 
-  const sig = groups
-    .map((g) => `${g.id}:${g.column}:${g.nodes.map((n) => n.id).join(",")}`)
-    .join("|");
+  const sig = groups.map((g) => `${g.id}:${g.column}:${g.nodes.map((n) => n.id).join(',')}`).join('|');
   const layout = useMemo(() => layoutSystem(groups), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const latest = useRef({ groups, layout });
   latest.current = { groups, layout };
@@ -547,15 +489,14 @@ export function SystemCanvas({
     view.current = v;
     const world = worldRef.current;
     const vp = viewportRef.current;
-    if (world)
-      world.style.transform = `translate3d(${v.x}px,${v.y}px,0) scale(${v.k})`;
+    if (world) world.style.transform = `translate3d(${v.x}px,${v.y}px,0) scale(${v.k})`;
     if (vp) {
       // Written straight onto the viewport: inherited custom properties would restyle every descendant.
       const maj = `${120 * v.k}px ${120 * v.k}px`;
       const min = `${24 * v.k}px ${24 * v.k}px`;
       vp.style.backgroundPosition = `${v.x}px ${v.y}px`;
       vp.style.backgroundSize = `${maj}, ${maj}, ${min}, ${min}`;
-      vp.dataset.grid = v.k < 0.6 ? "major" : "both";
+      vp.dataset.grid = v.k < 0.6 ? 'major' : 'both';
     }
     const zl = zoomLabelRef.current;
     if (zl) {
@@ -589,11 +530,7 @@ export function SystemCanvas({
         const e = ease(t);
         // Interpolate zoom in log space so the motion feels even.
         const k = from.k * Math.pow(v.k / from.k, e);
-        apply({
-          k,
-          x: from.x + (v.x - from.x) * e,
-          y: from.y + (v.y - from.y) * e,
-        });
+        apply({ k, x: from.x + (v.x - from.x) * e, y: from.y + (v.y - from.y) * e });
         if (t < 1) raf.current = requestAnimationFrame(step);
         else {
           raf.current = 0;
@@ -614,13 +551,9 @@ export function SystemCanvas({
     const cw = Math.max(1, lay.width);
     const ch = Math.max(1, lay.height + TITLE_ROOM);
     const fit = Math.min((w - FIT_PAD * 2) / cw, (h - FIT_PAD * 2) / ch, 1);
-    if (fit >= PHONE_K || gs.length === 0 || w >= PHONE_MAX_W) {
+    if (fit >= PHONE_K || (w >= PHONE_MAX_W && fit >= MIN_K) || gs.length === 0) {
       const k = clampK(Number.isFinite(fit) && fit > 0 ? fit : 1);
-      return {
-        k,
-        x: (w - lay.width * k) / 2,
-        y: (h - ch * k) / 2 + TITLE_ROOM * k,
-      };
+      return { k, x: (w - lay.width * k) / 2, y: (h - ch * k) / 2 + TITLE_ROOM * k };
     }
     let box: Box | undefined;
     for (const g of gs) {
@@ -631,9 +564,7 @@ export function SystemCanvas({
       }
     }
     box ??= lay.groups[gs[0]!.id];
-    return box
-      ? centerOn(w, h, PHONE_K, box)
-      : { k: PHONE_K, x: FIT_PAD, y: FIT_PAD + TITLE_ROOM * PHONE_K };
+    return box ? centerOn(w, h, PHONE_K, box) : { k: PHONE_K, x: FIT_PAD, y: FIT_PAD + TITLE_ROOM * PHONE_K };
   }, []);
 
   const doFit = useCallback(
@@ -682,35 +613,27 @@ export function SystemCanvas({
     const vp = viewportRef.current;
     if (!vp) return;
     const onWheel = (e: WheelEvent) => {
-      if ((e.target as Element | null)?.closest("[data-canvas-ui]")) return;
+      if ((e.target as Element | null)?.closest('[data-canvas-ui]')) return;
       e.preventDefault();
       stop();
       touched.current = true;
-      const unit =
-        e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? size.current.h : 1;
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? size.current.h : 1;
       const v = view.current;
       if (e.ctrlKey) {
         const r = vp.getBoundingClientRect();
-        apply(
-          zoomAround(
-            v,
-            v.k * Math.exp(-e.deltaY * unit * 0.0015),
-            e.clientX - r.left,
-            e.clientY - r.top,
-          ),
-        );
+        apply(zoomAround(v, v.k * Math.exp(-e.deltaY * unit * 0.0015), e.clientX - r.left, e.clientY - r.top));
       } else {
         apply({ ...v, x: v.x - e.deltaX * unit, y: v.y - e.deltaY * unit });
       }
     };
-    vp.addEventListener("wheel", onWheel, { passive: false });
-    return () => vp.removeEventListener("wheel", onWheel);
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    return () => vp.removeEventListener('wheel', onWheel);
   }, [apply, stop]);
 
   // --- pointers: drag, click vs drag, pinch ------------------------------------
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<{
-    mode: "none" | "pending" | "pan" | "pinch";
+    mode: 'none' | 'pending' | 'pan' | 'pinch';
     startX: number;
     startY: number;
     lastX: number;
@@ -718,16 +641,7 @@ export function SystemCanvas({
     pinchDist: number;
     pinchMid: { x: number; y: number };
     pinchView: View;
-  }>({
-    mode: "none",
-    startX: 0,
-    startY: 0,
-    lastX: 0,
-    lastY: 0,
-    pinchDist: 1,
-    pinchMid: { x: 0, y: 0 },
-    pinchView: { x: 0, y: 0, k: 1 },
-  });
+  }>({ mode: 'none', startX: 0, startY: 0, lastX: 0, lastY: 0, pinchDist: 1, pinchMid: { x: 0, y: 0 }, pinchView: { x: 0, y: 0, k: 1 } });
   const dragged = useRef(false);
 
   const local = (e: ReactPointerEvent) => {
@@ -739,7 +653,7 @@ export function SystemCanvas({
     const pts = [...pointers.current.values()];
     const [a, b] = pts as [{ x: number; y: number }, { x: number; y: number }];
     const g = gesture.current;
-    g.mode = "pinch";
+    g.mode = 'pinch';
     g.pinchDist = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
     g.pinchMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     g.pinchView = { ...view.current };
@@ -747,8 +661,8 @@ export function SystemCanvas({
   };
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    if ((e.target as Element).closest("[data-canvas-ui]")) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if ((e.target as Element).closest('[data-canvas-ui]')) return;
     stop();
     const p = local(e);
     pointers.current.set(e.pointerId, p);
@@ -756,7 +670,7 @@ export function SystemCanvas({
     const g = gesture.current;
     if (pointers.current.size === 1) {
       dragged.current = false;
-      g.mode = "pending";
+      g.mode = 'pending';
       g.startX = g.lastX = p.x;
       g.startY = g.lastY = p.y;
     } else if (pointers.current.size === 2) {
@@ -777,11 +691,8 @@ export function SystemCanvas({
     const p = local(e);
     pointers.current.set(e.pointerId, p);
     const g = gesture.current;
-    if (g.mode === "pinch" && pointers.current.size >= 2) {
-      const [a, b] = [...pointers.current.values()] as [
-        { x: number; y: number },
-        { x: number; y: number },
-      ];
+    if (g.mode === 'pinch' && pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()] as [{ x: number; y: number }, { x: number; y: number }];
       const dist = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
       const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       const s = g.pinchView;
@@ -792,9 +703,10 @@ export function SystemCanvas({
       apply({ k, x: mid.x - wx * k, y: mid.y - wy * k });
       return;
     }
-    if (g.mode === "pending") {
+    if (g.mode === 'pending') {
       if (Math.hypot(p.x - g.startX, p.y - g.startY) < DRAG_PX) return;
-      g.mode = "pan";
+      stop();
+      g.mode = 'pan';
       dragged.current = true;
       touched.current = true;
       try {
@@ -802,9 +714,9 @@ export function SystemCanvas({
       } catch {
         // The pointer already ended.
       }
-      viewportRef.current!.dataset.dragging = "true";
+      viewportRef.current!.dataset.dragging = 'true';
     }
-    if (g.mode === "pan") {
+    if (g.mode === 'pan') {
       const v = view.current;
       apply({ ...v, x: v.x + (p.x - g.lastX), y: v.y + (p.y - g.lastY) });
       g.lastX = p.x;
@@ -821,16 +733,14 @@ export function SystemCanvas({
       // Not captured.
     }
     const g = gesture.current;
-    if (pointers.current.size === 1 && g.mode === "pinch") {
+    if (pointers.current.size === 1 && g.mode === 'pinch') {
       // One finger stays down: carry on as a pan from where it is.
-      const [rest] = [...pointers.current.values()] as [
-        { x: number; y: number },
-      ];
-      g.mode = "pan";
+      const [rest] = [...pointers.current.values()] as [{ x: number; y: number }];
+      g.mode = 'pan';
       g.lastX = rest.x;
       g.lastY = rest.y;
     } else if (pointers.current.size === 0) {
-      g.mode = "none";
+      g.mode = 'none';
       delete vp.dataset.dragging;
       // The click that follows this pointerup is swallowed when the pointer dragged.
       setTimeout(() => {
@@ -839,10 +749,7 @@ export function SystemCanvas({
     }
   };
 
-  const onClickCapture = (e: {
-    stopPropagation: () => void;
-    preventDefault: () => void;
-  }) => {
+  const onClickCapture = (e: { stopPropagation: () => void; preventDefault: () => void }) => {
     if (dragged.current) {
       e.stopPropagation();
       e.preventDefault();
@@ -863,61 +770,54 @@ export function SystemCanvas({
     const vp = viewportRef.current;
     const el = e.target as HTMLElement;
     if (!vp || el === vp) return;
-    const id = (el.closest("[data-canvas-id]") as HTMLElement | null)?.dataset
-      .canvasId;
+    if (pointers.current.size > 0 || !el.matches(':focus-visible')) return;
+    const id = (el.closest('[data-canvas-id]') as HTMLElement | null)?.dataset.canvasId;
     if (!id) return;
-    const box =
-      latest.current.layout.nodes[id] ?? latest.current.layout.groups[id];
+    const box = latest.current.layout.nodes[id] ?? latest.current.layout.groups[id];
     if (!box) return;
     const v = view.current;
     const { w, h } = size.current;
     const left = box.x * v.k + v.x;
     const top = box.y * v.k + v.y;
-    if (
-      left >= 0 &&
-      top >= 0 &&
-      left + box.w * v.k <= w &&
-      top + box.h * v.k <= h
-    )
-      return;
+    if (left >= 0 && top >= 0 && left + box.w * v.k <= w && top + box.h * v.k <= h) return;
     touched.current = true;
     go(centerOn(w, h, v.k, box), true);
   };
 
   const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.altKey || e.metaKey) return;
-    if ((e.target as Element).closest("[data-canvas-ui]")) return;
+    if ((e.target as Element).closest('[data-canvas-ui]')) return;
     const v = view.current;
     switch (e.key) {
-      case "ArrowLeft":
+      case 'ArrowLeft':
         stop();
         touched.current = true;
         apply({ ...v, x: v.x + KEY_PAN });
         break;
-      case "ArrowRight":
+      case 'ArrowRight':
         stop();
         touched.current = true;
         apply({ ...v, x: v.x - KEY_PAN });
         break;
-      case "ArrowUp":
+      case 'ArrowUp':
         stop();
         touched.current = true;
         apply({ ...v, y: v.y + KEY_PAN });
         break;
-      case "ArrowDown":
+      case 'ArrowDown':
         stop();
         touched.current = true;
         apply({ ...v, y: v.y - KEY_PAN });
         break;
-      case "+":
-      case "=":
+      case '+':
+      case '=':
         zoomBy(ZOOM_STEP, true);
         break;
-      case "-":
-      case "_":
+      case '-':
+      case '_':
         zoomBy(1 / ZOOM_STEP, true);
         break;
-      case "0":
+      case '0':
         touched.current = false;
         doFit(true);
         break;
@@ -929,9 +829,7 @@ export function SystemCanvas({
 
   // --- content (re-rendered only when data changes, never on pan or zoom) ------
   const columnIndex = useMemo(() => {
-    const order = [...new Set(groups.map((g) => g.column))].sort(
-      (a, b) => a - b,
-    );
+    const order = [...new Set(groups.map((g) => g.column))].sort((a, b) => a - b);
     return new Map(order.map((c, i) => [c, i]));
   }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -965,11 +863,8 @@ export function SystemCanvas({
   }, [columns, groups, layout]);
 
   const edgeViews = useMemo(() => {
-    const boxOf = (id: string): Box | undefined =>
-      layout.nodes[id] ?? layout.groups[id];
-    const hueOf = (
-      id: string,
-    ): { hue: CanvasHue | undefined; active: boolean } | undefined => {
+    const boxOf = (id: string): Box | undefined => layout.nodes[id] ?? layout.groups[id];
+    const hueOf = (id: string): { hue: CanvasHue | undefined; active: boolean } | undefined => {
       const n = lookup.nodes.get(id);
       if (n) return { hue: n.group.hue, active: !!n.node.active };
       const g = lookup.grps.get(id);
@@ -992,7 +887,7 @@ export function SystemCanvas({
       aria-label={label}
       aria-roledescription="canvas"
       tabIndex={0}
-      className={cn("nish-canvas", className)}
+      className={cn('nish-canvas', className)}
       style={{ height }}
       data-grid="both"
       onPointerDown={onPointerDown}
@@ -1004,51 +899,20 @@ export function SystemCanvas({
       onScroll={onScroll}
       onFocusCapture={onFocusCapture}
     >
-      <div
-        ref={worldRef}
-        className="nish-canvas-world"
-        style={{ width: layout.width, height: layout.height }}
-      >
+      <div ref={worldRef} className="nish-canvas-world" style={{ width: layout.width, height: layout.height }}>
         {columnTitles.map((t) => (
-          <div
-            key={t.c}
-            className="nish-canvas-coltitle"
-            style={{ left: t.x, top: t.y }}
-          >
+          <div key={t.c} className="nish-canvas-coltitle" style={{ left: t.x, top: t.y }}>
             {t.text}
           </div>
         ))}
 
-        <svg
-          className="nish-canvas-edges"
-          width={layout.width}
-          height={layout.height}
-          aria-hidden="true"
-          focusable="false"
-        >
+        <svg className="nish-canvas-edges" width={layout.width} height={layout.height} aria-hidden="true" focusable="false">
           {edgeViews.map(({ edge, path, hue, active }) => (
-            <g
-              key={edge.id}
-              style={hueStyle(hue)}
-              className="nish-canvas-edge"
-              data-active={active || undefined}
-              data-dashed={edge.dashed || undefined}
-            >
+            <g key={edge.id} style={hueStyle(hue)} className="nish-canvas-edge" data-active={active || undefined} data-dashed={edge.dashed || undefined}>
               <path className="nish-canvas-edge-line" d={path.d} fill="none" />
-              {active ? (
-                <circle
-                  className="nish-canvas-dot"
-                  r="3.5"
-                  style={{ offsetPath: `path("${path.d}")` }}
-                />
-              ) : null}
+              {active ? <circle className="nish-canvas-dot" r="3.5" style={{ offsetPath: `path("${path.d}")` }} /> : null}
               {edge.label && labelsOn ? (
-                <text
-                  className="nish-canvas-edge-label"
-                  x={path.mx}
-                  y={path.my - 6}
-                  textAnchor="middle"
-                >
+                <text className="nish-canvas-edge-label" x={path.mx} y={path.my - 6} textAnchor="middle">
                   {edge.label}
                 </text>
               ) : null}
@@ -1072,7 +936,7 @@ export function SystemCanvas({
                     top: box.y,
                     width: box.w,
                     height: box.h,
-                    "--nish-canvas-delay": `${delay}ms`,
+                    '--nish-canvas-delay': `${delay}ms`,
                   } as CSSProperties
                 }
                 data-live={live || undefined}
@@ -1084,17 +948,13 @@ export function SystemCanvas({
                   className="nish-canvas-head"
                   data-canvas-id={g.id}
                   aria-pressed={selected === g.id}
-                  onClick={() => onSelect?.(g.id, "group")}
+                  onClick={() => onSelect?.(g.id, 'group')}
                 >
                   <span className="nish-canvas-headtext">
                     <span className="nish-canvas-title">{g.title}</span>
-                    {g.subtitle ? (
-                      <span className="nish-canvas-subtitle">{g.subtitle}</span>
-                    ) : null}
+                    {g.subtitle ? <span className="nish-canvas-subtitle">{g.subtitle}</span> : null}
                   </span>
-                  {g.badge ? (
-                    <span className="nish-canvas-badge">{g.badge}</span>
-                  ) : null}
+                  {g.badge ? <span className="nish-canvas-badge">{g.badge}</span> : null}
                 </button>
               </div>
               {g.nodes.map((n) => {
@@ -1119,27 +979,13 @@ export function SystemCanvas({
       </div>
 
       <div data-canvas-ui className="nish-canvas-controls">
-        <span
-          ref={zoomLabelRef}
-          className="nish-canvas-zoom"
-          aria-hidden="true"
-        >
+        <span ref={zoomLabelRef} className="nish-canvas-zoom" aria-hidden="true">
           100%
         </span>
-        <IconButton
-          label="Zoom out"
-          variant="ghost"
-          className="size-11"
-          onClick={() => zoomBy(1 / ZOOM_STEP, true)}
-        >
+        <IconButton label="Zoom out" variant="ghost" className="size-11" onClick={() => zoomBy(1 / ZOOM_STEP, true)}>
           <MinusIcon />
         </IconButton>
-        <IconButton
-          label="Zoom in"
-          variant="ghost"
-          className="size-11"
-          onClick={() => zoomBy(ZOOM_STEP, true)}
-        >
+        <IconButton label="Zoom in" variant="ghost" className="size-11" onClick={() => zoomBy(ZOOM_STEP, true)}>
           <PlusIcon />
         </IconButton>
         <IconButton
