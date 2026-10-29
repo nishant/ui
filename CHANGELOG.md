@@ -3,6 +3,12 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.9.2] - 2026-10-29
+
+### Fixed
+
+- Docs site (design.nish.software): a web app manifest and icons, so installing it on a phone gives a full-screen app instead of a shortcut inside the browser frame. The package itself is unchanged.
+
 ## [0.9.1] - 2026-10-29
 
 ### Fixed
