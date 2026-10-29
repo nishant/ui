@@ -4,7 +4,7 @@
 // console errors, axe contrast and tap-target violations, clipped text and missing
 // focus rings.
 //
-//   node tools/visual-check.mjs <config.json> [--out dir] [--no-fail] [--only page,page]
+//   node tools/visual-check.mjs <config.json> [--out dir] [--no-fail] [--only page,page] [--port N] [--png]
 //
 // config.json:
 // {
@@ -16,10 +16,24 @@
 //   "setTheme": "localStorage.setItem('nish-theme','{theme}')",     // optional; runs before page scripts
 //   "fullPage": true,
 //   "maxHeight": 16000,                                            // optional; full-page shots stop here
-//   "ignoreConsole": ["regex", ...]                                 // optional; also per page
+//   "ignoreConsole": ["regex", ...],                                // optional; also per page
+//   "login": { "url": "http://localhost:{port}/login", "body": {} } // optional; POSTed in each browser
+//                                                                  // context before the page loads (the
+//                                                                  // cookie jar is shared); a non-2xx answer
+//                                                                  // fails the shot as "login failed: <status>"
 // }
+// A page can set "login": false to skip the login, and "mask": ["css selector", ...] to paint
+// those elements magenta (#ff00ff) in its screenshots, for live data that differs between two runs
+// (times, reachability dots). A selector that matches nothing masks nothing.
 //
-// Writes <out>/<page>/<viewport>-<theme>.jpg and <out>/report.json. Exit 1 when any
+// Four additions for comparing two builds of the same app (the Fold check, see docs/fold-check.md):
+//   --port N   every {port} in a page url and in login.url becomes N. A config that uses {port}
+//              without --port exits 2.
+//   --png      write PNG (<viewport>-<theme>.png) instead of JPEG, so shots can be pixel-diffed.
+//   login      see above.
+//   mask       see above.
+//
+// Writes <out>/<page>/<viewport>-<theme>.jpg (.png with --png) and <out>/report.json. Exit 1 when any
 // page fails, unless --no-fail (used for "before" shots).
 //
 // JPEG tops out at 65,535px a side, and Chromium writes an empty file past that
@@ -49,12 +63,29 @@ const flag = (name) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : undefined;
 };
-const configPath = args.find((a) => !a.startsWith('--') && args[args.indexOf(a) - 1] !== '--out' && args[args.indexOf(a) - 1] !== '--only');
+const VALUE_FLAGS = ['--out', '--only', '--port'];
+const configPath = args.find((a, i) => !a.startsWith('--') && !VALUE_FLAGS.includes(args[i - 1]));
 if (!configPath) {
-  console.error('usage: visual-check.mjs <config.json> [--out dir] [--no-fail] [--only a,b]');
+  console.error('usage: visual-check.mjs <config.json> [--out dir] [--no-fail] [--only a,b] [--port N] [--png]');
   process.exit(2);
 }
-const config = JSON.parse(readFileSync(configPath, 'utf8'));
+let port;
+if (args.includes('--port')) {
+  port = flag('--port');
+  if (port === undefined || !/^[0-9]+$/.test(port)) {
+    console.error('--port needs a port number');
+    process.exit(2);
+  }
+}
+const configText = readFileSync(configPath, 'utf8');
+if (configText.includes('{port}') && port === undefined) {
+  console.error('config uses {port}; pass --port');
+  process.exit(2);
+}
+const withPort = (url) => (port === undefined ? url : url.replaceAll('{port}', port));
+const config = JSON.parse(configText);
+const png = args.includes('--png');
+const ext = png ? 'png' : 'jpg';
 const outDir = resolve(flag('--out') ?? join('visual-out', config.name ?? 'site'));
 const only = flag('--only')?.split(',');
 const noFail = args.includes('--no-fail');
@@ -184,6 +215,7 @@ for (const pg of config.pages) {
   for (const vpName of pg.viewports ?? viewports) {
     const vp = VIEWPORTS[vpName];
     for (const theme of pg.themes ?? themes) {
+      const pageUrl = withPort(pg.url);
       const ctx = await browser.newContext({
         viewport: { width: vp.width, height: vp.height },
         isMobile: vp.isMobile ?? false,
@@ -194,6 +226,16 @@ for (const pg of config.pages) {
       });
       await ctx.addInitScript({ content: setTheme.replaceAll('{theme}', theme) });
       if (config.cookies) await ctx.addCookies(config.cookies.map((c) => ({ ...c, value: c.value.replaceAll('{theme}', theme) })));
+      // The context shares its cookie jar with ctx.request, so a login here signs the page in.
+      let loginError;
+      if (config.login && pg.login !== false) {
+        try {
+          const res = await ctx.request.post(withPort(config.login.url), { data: config.login.body });
+          if (!res.ok()) loginError = `login failed: ${res.status()}`;
+        } catch (e) {
+          loginError = `login failed: ${String(e.message ?? e).slice(0, 200)}`;
+        }
+      }
       const page = await ctx.newPage();
       // Requests still in flight, tracked here as a cross-check for Playwright's networkidle.
       const inflight = new Set();
@@ -206,14 +248,15 @@ for (const pg of config.pages) {
       });
       page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${String(e.message).slice(0, 300)}`));
 
-      const shot = { page: pg.name, viewport: vpName, theme, url: pg.url };
+      const shot = { page: pg.name, viewport: vpName, theme, url: pageUrl };
       try {
+        if (loginError) throw new Error(loginError);
         // Load first, then wait for the network to go quiet. goto({ waitUntil: 'networkidle' })
         // sometimes never resolves on a page that adds dozens of same-origin iframes right
         // after load (the All themes view of a framed component), though nothing is pending.
         // When that happens, the page counts as settled if every frame has loaded and no
         // request has been in flight for a second, and the shot carries a note.
-        await page.goto(pg.url, { waitUntil: 'load', timeout: 45_000 });
+        await page.goto(pageUrl, { waitUntil: 'load', timeout: 45_000 });
         const idle = await page.waitForLoadState('networkidle', { timeout: 20_000 }).then(
           () => true,
           () => false,
@@ -246,9 +289,13 @@ for (const pg of config.pages) {
           count: v.nodes.length,
           examples: v.nodes.slice(0, 4).map((n) => `${n.target.join(' ')}${n.any?.[0]?.message ? ' — ' + n.any[0].message.slice(0, 160) : ''}`),
         }));
-        const file = join(pg.name, `${vpName}-${theme}.jpg`);
+        const file = join(pg.name, `${vpName}-${theme}.${ext}`);
         const fullPage = pg.fullPage ?? config.fullPage ?? true;
-        const opts = { path: join(outDir, file), fullPage, type: 'jpeg', quality: 72 };
+        const opts = { path: join(outDir, file), fullPage, ...(png ? { type: 'png' } : { type: 'jpeg', quality: 72 }) };
+        if (pg.mask?.length) {
+          opts.mask = pg.mask.map((s) => page.locator(s));
+          opts.maskColor = '#ff00ff';
+        }
         if (fullPage) {
           const height = await page.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0));
           if (height > MAX_HEIGHT) {

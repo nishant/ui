@@ -6,10 +6,14 @@ package is built, released and consumed: [README.md](README.md). Every release:
 
 ## Autonomy
 
-Claude sessions build, commit, push, open and merge PRs and cut releases (`npm run release`,
-which also bumps, merges and deploys every consumer through `scripts/bump-consumers.sh`;
-re-run that script for any consumer it reports as failed) on their own judgment, without
-asking Nish. Work is done only when it is merged, released, adopted by
+Claude sessions build, commit, push, open and merge PRs and cut releases on their own judgment,
+without asking Nish. A release is `npm run release` (Nish runs it on the PC if the auto-mode
+classifier blocks it). The tag push starts the fan-out (`.github/workflows/fanout.yml`), which moves
+every app and hosting: it opens a `ui/vX.Y.Z` PR in each repo and merges it when the checks and the
+Fold check pass. A held bump PR is adopted on its `ui/vX.Y.Z` branch (make the app's code changes
+there); the fan-out merges it on its next run. Check https://status.nish.software/fleet for what is
+behind. Only taarora/arora-home is moved by hand: `bash scripts/bump-consumers.sh vX.Y.Z`.
+Work is done only when it is merged, released, adopted by
 the apps that need it, and confirmed live. Pick sensible defaults instead of asking; stop for
 Nish only when it is critically necessary (credentials, account signups, anything
 destructive to production data).

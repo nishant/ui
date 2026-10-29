@@ -10,17 +10,17 @@ Used by:
 
 | App | How it installs | Stack |
 |---|---|---|
-| nish.software (the hub) | npm git tag | Vite + plain TypeScript and plain CSS (no React, no Tailwind): `nish.css`, `theme.js` |
-| jobs.nish.software | npm git tag | React + Tailwind 4 |
-| trading.nish.software | npm git tag | React + Tailwind 4, pnpm |
-| Nishboard (desktop) | npm git tag | Electron + React + Tailwind 4, pnpm |
+| nish.software (the hub) | codeload tarball | Vite + plain TypeScript and plain CSS (no React, no Tailwind): `nish.css`, `theme.js` |
+| jobs.nish.software | codeload tarball | React + Tailwind 4 |
+| trading.nish.software | codeload tarball | React + Tailwind 4, pnpm |
+| Nishboard (desktop) | codeload tarball | Electron + React + Tailwind 4, pnpm |
 | status.nish.software | codeload tarball | React + Tailwind 4 |
 | trackers.nish.software | codeload tarball | React + Tailwind 4 |
-| start.nish.software (repo nishant.github.io) | CSS consumer | Angular 16 + Angular Material, themed through the `--nish-*` roles |
-| minecraft.nish.software | vendored dist files | static HTML |
-| trips (hosting `static/trips`) | vendored dist files | static HTML |
+| start.nish.software (repo nishant.github.io) | codeload tarball | Angular 16 + Angular Material, themed through the `--nish-*` roles (CSS consumer) |
+| minecraft, trips and design (nishant/hosting) | vendored dist files | static HTML |
+| taarora/arora-home | vendored dist files with a palette pass | another account's repo, outside the fan-out |
 
-From v0.3.0 every app installs the codeload tarball (`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`), which needs only HTTPS; `scripts/bump-consumers.sh` writes that form.
+Every npm app pins the codeload tarball (`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`), which needs only HTTPS. The fan-out writes that form. The list of repos is `fleet.yaml` in nishant/hosting.
 
 ## Install
 
@@ -386,33 +386,72 @@ errors, missing focus rings and empty screenshots.
 ## Releasing
 
 ```bash
-npm run release patch      # or minor, major, 1.2.3; also moves every app to the new tag
-npm run release patch -- --no-bump   # release only
-scripts/bump-consumers.sh v0.1.3     # move the apps by hand (re-run after a failure)
+npm run release patch      # or minor, major, 1.2.3
 ```
 
-- `npm run release` runs `npm run check`, bumps the version on `master` and commits it, then
-  makes a detached commit on top that adds the built `dist/`, tags it `vX.Y.Z` and pushes
-  both. `master` never contains `dist/`; the tag does, so a git install needs no build step.
-- Then the release runs `scripts/bump-consumers.sh vX.Y.Z`. It clones each app repo, moves
-  its `@nish/ui` dependency to the tag, updates the lockfile (npm or pnpm) and opens a PR.
-  Repos with no PR checks build locally first (startpage also rebuilds its committed
-  `docs/`); repos with PR checks wait for them. Each green PR is merged and the deploy the
-  merge starts is watched to the end. A failed build, check or deploy leaves that PR open
-  and the script exits non-zero; the others still move. `--no-merge` only opens the PRs,
-  `--dry-run` only prints the changes.
-- `taarora/arora-home` vendors `dist/` with a colour-blind palette pass instead of installing
-  the package. Its PR comes from that repo's `scripts/sync-nish-ui.py vX.Y.Z` and merges
-  after its `pr_status.py` passes, per its CLAUDE.md. If the palette or contrast check fails
-  on a new release, no PR is opened and someone has to look.
-- Add a consumer by adding a line to the `consumers` list at the top of the script.
-- Static sites move in nishant/hosting: change `tag` in `ui.json`, run
-  `node scripts/sync-ui.mjs` (it copies the vendored files and updates their hashes), then
-  restamp the pages. `scripts/sync-ui.mjs --check --offline` fails CI if a vendored copy
-  was edited by hand. The next release renames the font files (content hashes), so
-  sync-ui.mjs must read the file list from `dist/files.json` before it moves to that
-  release.
-- Add an entry to `CHANGELOG.md` with every change; the docs site renders it.
+The flow is: release, tag, fan-out PRs, Fold check, merge policy, deploy watch and revert.
+
+1. **Release.** `npm run release` runs `npm run check`, bumps the version on `master` and commits it, then
+   makes a detached commit on top that adds the built `dist/` and `site-dist/`, tags it `vX.Y.Z` and
+   pushes both. `master` never contains `dist/`; the tag does, so an install needs no build step.
+   It then prints the link to the fan-out runs. Add an entry to `CHANGELOG.md` with every change;
+   the docs site renders it.
+2. **Fan-out PRs.** The tag push starts `.github/workflows/fanout.yml` ("fan-out"). For every repo in
+   `hosting/fleet.yaml` (hosting included) it opens or updates a `ui/vX.Y.Z` PR titled "Move @nish/ui to
+   vX.Y.Z" within 5 minutes: it rewrites the pin, regenerates the lockfile, runs the repo's `bump`
+   command, and puts the release notes in the PR body. An hourly run catches up on anything missed and
+   closes bump PRs that a newer tag replaced. To run it by hand:
+   `gh workflow run fanout.yml -R nishant/ui -f tag=vX.Y.Z -f repo=all` (`repo` can be one `owner/name`).
+3. **Fold check.** Each bump PR (and each Dependabot PR) runs the repo's checks plus the
+   [Fold check](docs/fold-check.md): the PR and its base branch are built, screenshot at 360, 840 and
+   1440 wide in light and dark, the Fold rules run on both, and a pixel diff per shot is posted as a PR
+   comment and a `fold-report` artifact.
+4. **Merge policy.** The fan-out merges a PR (`gh pr merge --merge --delete-branch`) when its checks
+   pass, the Fold check finds no new problems and the pages changed less than the limit:
+
+   | PR | Limit |
+   |---|---|
+   | ui patch (`0.7.0` to `0.7.1`) | 1% |
+   | ui minor (`0.7.x` to `0.8.0`) | 10% |
+   | Dependabot minor-and-patch group | 1% |
+
+   Otherwise it holds the PR and writes the reason into a `fan-out` commit status on the PR head. The
+   hold reasons are: no checks ran, checks failed, a major release (from 1.0), release notes with a
+   `### Behavior changes` section, the Fold report missing, new Fold problems, the base branch could
+   not be rendered, pages changed more than the limit, the PR changes `.github/workflows` (the token
+   cannot merge those), or the merge itself failed. A held bump PR is adopted on its `ui/vX.Y.Z`
+   branch (make the app's code changes there), and the fan-out merges it on its next run.
+5. **Deploy watch and revert.** After a merge the fan-out follows the repo's deploy workflow. If the
+   deploy fails it reverts the merge in a `revert/<n>` PR and merges that, and holds that tag for the
+   repo until a session looks.
+
+Check https://status.nish.software/fleet (behind the status login) for what is behind: per repo, the
+live and master `@nish/ui` version against the latest tag, CI state, and open bump and dependency PRs
+with their `fan-out` status.
+
+**`FLEET_TOKEN`.** The fan-out runs with one fine-grained personal access token stored as the Actions
+secret `FLEET_TOKEN` in nishant/ui (the default `GITHUB_TOKEN` cannot reach other repos, and what it
+opens does not trigger their checks or deploys). Owner nishant; repositories: every repo in
+`hosting/fleet.yaml` and nishant/hosting itself (the plan job reads `fleet.yaml` from it); permissions:
+Contents, Pull requests and Commit statuses read and write, Actions read (Metadata read is always
+included). Set it with `gh secret set FLEET_TOKEN --repo nishant/ui`. Without it the run only writes
+a job summary saying nothing was fanned out.
+
+**Adding a repo to the fan-out.** Add an entry to `hosting/fleet.yaml`, then give the repo
+the `PR` workflow (`.github/workflows/pr.yml`: its checks plus the Fold job), `fold.visual.json`,
+`scripts/fold-serve.mjs` and `.github/dependabot.yml`.
+
+**arora-home** (`taarora/arora-home`) vendors `dist/` with a colour-blind palette pass instead of
+installing the package, and another account owns it, so the fan-out token cannot write to it. After a
+release, run `bash scripts/bump-consumers.sh vX.Y.Z` yourself: it runs that repo's
+`scripts/sync-nish-ui.py vX.Y.Z`, opens the PR, merges it after its `pr_status.py` passes (per its
+CLAUDE.md) and watches the deploy. If the palette or contrast check fails on a new release, no PR is
+opened and someone has to look.
+
+**Static sites** (minecraft, trips, design) live in nishant/hosting, which is in the fan-out: its bump
+PR runs `scripts/sync-ui.mjs` (it copies the vendored files from `dist/files.json` and updates their
+hashes) and restamps the pages. `scripts/sync-ui.mjs --check --offline` fails CI if a vendored copy
+was edited by hand.
 
 ## The docs site
 
@@ -442,7 +481,10 @@ stories and controls live in `site/components/<id>.tsx`, one file per component;
 | `src/chart.ts` | `@nish/ui/chart`: chart colors and tooltip styles for any chart library. |
 | `src/css/` | `base.css` (page defaults, focus ring, scrollbars, reduced motion, prose, kbd, skip link), `components.css` (the static `nish-*` classes, built to `dist/nish-components.css`) and `fonts.css`. |
 | `scripts/build.mjs` | Builds `dist/`: tokens.css, tailwind.css, nish.css, hashed fonts, theme-init.js, the JS via tsup, and tests theme-init.js and theme.global.js. |
-| `scripts/release.mjs`, `scripts/bump-consumers.sh` | Releasing. |
+| `scripts/release.mjs` | `npm run release`: check, version, tag with `dist/`, push. |
+| `scripts/bump-consumers.sh` | Moves taarora/arora-home only; the fan-out moves every other repo. |
+| `.github/workflows/fanout.yml`, `tools/fanout/` | The fan-out: opens, settles and merges the bump PRs in every repo of `hosting/fleet.yaml`. |
+| `.github/workflows/fold-check.yml`, `tools/fold-diff.mjs`, `tools/fold-comment.mjs` | The Fold check every app's PRs run: [docs/fold-check.md](docs/fold-check.md). |
 | `site/` | The docs site. |
 | `demo/` | A single-page gallery for quick checks: `npm run dev`, http://localhost:5190. |
 | `tools/contrast.mjs`, `tools/contrast-rules.mjs` | The WCAG check and the pairs it enforces. |

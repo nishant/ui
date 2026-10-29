@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
-# Move every consumer to <tag>: open a PR in each, merge it once it is green, and watch the
-# deploy the merge starts. `npm run release` runs this by itself after pushing the tag.
-#   scripts/bump-consumers.sh v0.3.0             # bump, merge, confirm the deploys
-#   scripts/bump-consumers.sh v0.3.0 --no-merge  # open the PRs and stop
-#   scripts/bump-consumers.sh v0.3.0 --dry-run   # show each change, push nothing
-# Needs gh logged in as nishant (with write access to taarora/arora-home). Either dependency
-# form (github:nishant/ui#vX or https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX)
-# is rewritten to the codeload form, which installs on the hosting PC runner (GitHub
-# rejects its SSH key).
+# Move taarora/arora-home to <tag>: open a PR, merge it once it is green, and watch the
+# deploy the merge starts. The nishant apps and hosting are moved by
+# .github/workflows/fanout.yml, which starts from the tag `npm run release` pushes. This
+# script is only for arora-home: another account owns it, so the fan-out token cannot write to it.
+#   scripts/bump-consumers.sh v0.3.0             # bump, merge, confirm the deploy
+#   scripts/bump-consumers.sh v0.3.0 --no-merge  # open the PR and stop
+#   scripts/bump-consumers.sh v0.3.0 --dry-run   # show the change, push nothing
+# Needs gh logged in as nishant (with write access to taarora/arora-home).
 # taarora/arora-home vendors dist/ with its own palette pass instead of installing the
 # package: there the bump is its scripts/sync-nish-ui.py, and the merge follows its
 # CLAUDE.md rule 10 (pr_status.py, then a merge commit).
-# Static sites in hosting vendor the CSS too: there, move ui.json and run
-# scripts/sync-ui.mjs by hand.
 set -euo pipefail
 # arora-home's pr_status.py prints arrows; Windows Python defaults to cp1252 and crashes on them.
 export PYTHONIOENCODING=utf-8 PYTHONUTF8=1
@@ -29,14 +26,6 @@ trap 'rm -rf "$work"' EXIT
 #   gate   run from the repo root before pushing ("-" for none). Repos without PR checks
 #          build here instead, since their only check runs after the merge.
 consumers=(
-  "nishant/job-apps apps/web npm master no npm10 ci && npm run build"
-  "nishant/trading apps/web pnpm master yes -"
-  "nishant/nishboard apps/renderer pnpm master yes -"
-  "nishant/nish.software . npm master no npm10 ci && npm run build"
-  "nishant/status . npm master no npm10 ci && npm run build"
-  "nishant/trackers . npm master no npm10 ci && npm run build"
-  # GitHub Pages and start.nish.software serve the committed docs/ bundle, so rebuild it.
-  "nishant/nishant.github.io . npm master no npm10 ci && npm run deploy && git add -A docs"
   "taarora/arora-home packages/arora-ui arora main yes -"
 )
 

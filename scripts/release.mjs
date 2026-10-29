@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Cut a release: npm run release <patch|minor|major|x.y.z> [--no-bump]
+// Cut a release: npm run release <patch|minor|major|x.y.z>
 //
 // master never carries dist/. A release bumps the version on master, then makes a
 // tag commit on top of it that adds the built dist/, so `github:nishant/ui#vX.Y.Z`
 // installs ready to use with no build step, and site-dist/ (the docs site). Pushes master and the tag.
+// The tag push starts .github/workflows/fanout.yml, which opens the bump PR in every app.
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -45,16 +46,5 @@ sh('git checkout -q master');
 sh('git push -q origin master');
 sh(`git push -q origin ${tag}`);
 console.log(`\nReleased ${tag}.`);
-
-// Every app moves to the new tag now: bump, merge on green, watch the deploys.
-// --no-bump skips it (e.g. a release nothing should adopt yet).
-if (process.argv.includes('--no-bump')) {
-  console.log(`Skipped the consumers. Later: scripts/bump-consumers.sh ${tag}`);
-} else {
-  try {
-    sh(`bash scripts/bump-consumers.sh ${tag}`);
-  } catch {
-    console.error(`\nSome consumers did not move to ${tag} (above). Fix them, then: scripts/bump-consumers.sh ${tag}`);
-    process.exit(1);
-  }
-}
+console.log(`Pushed ${tag}. The fan-out opens the bump PRs: https://github.com/nishant/ui/actions/workflows/fanout.yml`);
+console.log(`arora-home is not in the fan-out: bash scripts/bump-consumers.sh ${tag}`);
