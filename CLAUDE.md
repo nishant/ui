@@ -26,6 +26,10 @@ that uses them, must look right with no horizontal page scroll at 360px, ~840px 
 width, in light and dark, with 44px touch targets. `tools/visual-check.mjs` checks those
 sizes by default.
 
+Every page must also be reachable on the phone through a visible UI element (BottomNav,
+MoreSheet, a menu, or a link on another page), never only by typing its URL: no desktop-only
+nav entries, and no page that tells a phone user to open it on a desktop.
+
 ## Workflows
 
 Validate every workflow file before pushing: `npx -y @action-validator/cli@0.6.0 .github/workflows/<file>.yml`. A YAML
