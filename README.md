@@ -438,7 +438,7 @@ included). Set it with `gh secret set FLEET_TOKEN --repo nishant/ui`. Without it
 a job summary saying nothing was fanned out.
 
 **Adding a repo to the fan-out.** Add an entry to `hosting/fleet.yaml`, then give the repo
-the `PR` workflow (`.github/workflows/pr.yml`: its checks plus the Fold job), `fold.visual.json`,
+the `PR` workflow (`.github/workflows/pr.yml`, its checks), the `Fold` workflow (`.github/workflows/fold.yml`, see [docs/fold-check.md](docs/fold-check.md)), `fold.visual.json`,
 `scripts/fold-serve.mjs` and `.github/dependabot.yml`.
 
 **arora-home** (`taarora/arora-home`) vendors `dist/` with a colour-blind palette pass instead of

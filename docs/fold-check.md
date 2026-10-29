@@ -55,22 +55,38 @@ Each repo needs:
 
 ## Calling it
 
-Copy this into `.github/workflows/pr.yml` of the consumer. Keep the `check` steps the same as
-the check job in its `deploy.yml`.
+Each consumer has two workflows. `.github/workflows/pr.yml` runs the repo's checks on every PR;
+keep its steps the same as the check job in `deploy.yml`:
 
 ```yaml
 name: PR
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
-permissions: { contents: read, pull-requests: write }
-concurrency: { group: pr-${{ github.event.pull_request.number }}, cancel-in-progress: true }
+permissions: { contents: read }
+concurrency: { group: "pr-${{ github.event.pull_request.number }}", cancel-in-progress: true }
 jobs:
   check:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps: []   # the same steps as the check job in deploy.yml; keep them in step
+```
+
+`.github/workflows/fold.yml` calls this workflow. It is separate so that adding a label never
+reruns the checks, and a label other than `fold` gets its own concurrency group so it never
+cancels a running Fold check:
+
+```yaml
+name: Fold
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+concurrency:
+  group: fold-${{ github.event.pull_request.number }}-${{ github.event.action == 'labeled' && github.event.label.name != 'fold' && github.run_id || 'run' }}
+  cancel-in-progress: true
+jobs:
   fold:
-    if: startsWith(github.head_ref, 'ui/') || github.actor == 'dependabot[bot]' || contains(github.event.pull_request.labels.*.name, 'fold')
+    permissions: { contents: read, pull-requests: write }
+    if: (github.event.action != 'labeled' || github.event.label.name == 'fold') && (startsWith(github.head_ref, 'ui/') || github.actor == 'dependabot[bot]' || contains(github.event.pull_request.labels.*.name, 'fold'))
     uses: nishant/ui/.github/workflows/fold-check.yml@master
     with: { node-version: '22' }
 ```
