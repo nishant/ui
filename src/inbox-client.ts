@@ -1,6 +1,6 @@
 // @nish/ui/inbox-client: the shared inbox event types, the validator the service uses, and a
 // dependency-free client that never throws and never blocks. No React; works in Node and browsers.
-import type { InboxData, InboxEvent, InboxEventInput, InboxIngestAction, InboxSeverity } from './inbox-types';
+import type { InboxAction, InboxData, InboxEvent, InboxEventInput, InboxIngestAction, InboxSeverity } from './inbox-types';
 
 export * from './inbox-types';
 
@@ -8,6 +8,8 @@ const SOURCE_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const KIND_RE = /^[a-z0-9][a-z0-9-]{0,47}$/;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 const SEVERITIES: readonly string[] = ['info', 'normal', 'urgent'];
+const ACTION_ID_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
+const ACTIONS_MAX = 3;
 
 /** Cuts text to `max` characters (code points, so never inside a surrogate pair), ending in an ellipsis. */
 function cut(text: string, max: number): string {
@@ -17,6 +19,46 @@ function cut(text: string, max: number): string {
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/** Whether `target` is an allowed action target: http://127.0.0.1 with an explicit port, no credentials,
+ *  no #hash, at most 2000 characters. The inbox service re-checks this before every call. */
+export function isInboxActionTarget(target: unknown): target is string {
+  if (typeof target !== 'string' || target.length > 2000) return false;
+  let u: URL;
+  try {
+    u = new URL(target);
+  } catch {
+    return false;
+  }
+  return (
+    u.protocol === 'http:' &&
+    u.hostname === '127.0.0.1' &&
+    u.port !== '' &&
+    u.username === '' &&
+    u.password === '' &&
+    u.hash === '' &&
+    !target.includes('#') &&
+    u.href.length <= 2000
+  );
+}
+
+function parseActions(input: unknown): { ok: true; value: InboxAction[] | null } | { ok: false; error: string } {
+  const fail = (error: string) => ({ ok: false as const, error });
+  if (input === undefined || input === null) return { ok: true, value: null };
+  if (!Array.isArray(input) || input.length > ACTIONS_MAX) return fail(`actions must be a list of at most ${ACTIONS_MAX}`);
+  const out: InboxAction[] = [];
+  for (const a of input) {
+    if (!isPlainObject(a)) return fail(`actions must be a list of at most ${ACTIONS_MAX}`);
+    if (typeof a.id !== 'string' || !ACTION_ID_RE.test(a.id)) return fail('action id must be lowercase letters, digits or dashes');
+    if (out.some((o) => o.id === a.id)) return fail('action ids must be unique');
+    const label = typeof a.label === 'string' ? a.label.trim() : '';
+    if (!label) return fail('action label is required');
+    if (a.method !== undefined && a.method !== 'POST') return fail("action method must be 'POST'");
+    if (!isInboxActionTarget(a.target)) return fail('action target must be http://127.0.0.1:<port>/…');
+    out.push({ id: a.id, label: cut(label, 40), method: 'POST', target: new URL(a.target).href });
+  }
+  return { ok: true, value: out.length ? out : null };
 }
 
 /** Validates a producer's event and applies defaults. Error strings are shown to producers as is. */
@@ -94,9 +136,15 @@ export function parseInboxEvent(input: unknown): { ok: true; value: InboxEvent }
     data = input.data as InboxData;
   }
 
+  const actions = parseActions(input.actions);
+  if (!actions.ok) return actions;
+
   return {
     ok: true,
-    value: { source, kind, title, body, url, severity, dedupeKey, resolve, occurredAt: new Date(occurredMs).toISOString(), data },
+    value: {
+      source, kind, title, body, url, severity, dedupeKey, resolve, occurredAt: new Date(occurredMs).toISOString(), data,
+      actions: actions.value,
+    },
   };
 }
 

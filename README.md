@@ -330,7 +330,8 @@ functions, and `THEMES`, `SCALE`, `COLOR_ROLES`, `SOFT_ROLES`, `HUE_ROLES`, `SHA
 `Inbox` renders the list; the page owns the data. Props: `items`, `view` and `onViewChange`
 (open, snoozed, handled), `counts`, `sources`, `source` and `onSourceChange`, the actions
 `onHandle`, `onUnhandle`, `onSnooze(id, until)`, `onUnsnooze` and optional `onHandleAll`, plus
-`loading`, `error`, `onRetry`, `hasMore`, `onLoadMore`, `loadingMore`, `selectedId` and `sourceLabels`.
+`loading`, `error`, `onRetry`, `hasMore`, `onLoadMore`, `loadingMore`, `selectedId`, `sourceLabels` and
+`onAction(itemId, actionId)` (returns a Promise; shows each item's `actions` as buttons).
 The event types and `INBOX_SOURCE_LABELS` are exported from `@nish/ui` as well.
 
 Apps send events with the React-free client:
@@ -346,6 +347,31 @@ await inbox.resolve(sku); // marks the open item handled
 The client never throws and queues up to 200 events while the service is down. It posts to
 `INBOX_URL` (default `http://127.0.0.1:8805`); `INBOX_URL=off` turns it into a no-op for tests and CI.
 Producers import it at runtime, so list `@nish/ui` under `dependencies`.
+
+### Item actions
+
+An event can carry up to 3 buttons. Tapping one makes the inbox service call the producer, server to
+server:
+
+```ts
+await inbox.send({
+  kind: 'run-failed', title: 'ui: check failed', dedupeKey: runId,
+  actions: [{ id: 'rerun', label: 'Re-run', target: 'http://127.0.0.1:8820/actions/rerun' }],
+});
+```
+
+| Field | Rule |
+|---|---|
+| `id` | `/^[a-z0-9][a-z0-9-]{0,31}$/`, unique in the event |
+| `label` | trimmed, 1-40 characters (longer is cut with an ellipsis) |
+| `method` | `'POST'`, may be left out |
+| `target` | `http://127.0.0.1:<port>/…` only: explicit port, no credentials, no `#hash`, ≤ 2000 characters (`isInboxActionTarget`) |
+
+The service POSTs an `InboxActionCall` JSON body, `{ itemId, actionId, source, kind, dedupeKey, data }`,
+with the header `X-Inbox-Action: 1` (`INBOX_ACTION_HEADER`), waits at most 8 s (`INBOX_ACTION_TIMEOUT_MS`)
+and follows no redirects. A 2xx answer marks the item handled. Anything else leaves it open. Either way the
+outcome is stored as `item.lastAction` (`InboxActionResult`). A repeat event with the same dedupeKey replaces
+the item's actions.
 
 ## An app's own themes: registerThemes
 

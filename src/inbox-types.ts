@@ -8,6 +8,55 @@ export type InboxView = 'open' | 'snoozed' | 'handled';
 /** Flat extra data attached to an event. */
 export type InboxData = Record<string, string | number | boolean | null>;
 
+/** A button on an inbox item. Tapping it makes the inbox service POST an {@link InboxActionCall} to `target`,
+ *  server to server, and records the outcome on the item. */
+export interface InboxAction {
+  /** Unique within the event, matching /^[a-z0-9][a-z0-9-]{0,31}$/, for example 'retry' or 'approve'. */
+  id: string;
+  /** Button text, trimmed, 1-40 characters. Longer text is cut to 39 plus an ellipsis. */
+  label: string;
+  /** Always 'POST'. May be left out when sending. */
+  method: 'POST';
+  /** Loopback only: `http://127.0.0.1:<port>/path`, with an explicit port, no credentials and no #hash. Up to 2000 characters. */
+  target: string;
+}
+
+/** The outcome of the last action run on an item. */
+export interface InboxActionResult {
+  /** Which action ran. */
+  actionId: string;
+  /** True when the target answered 2xx; the item is then handled by the user. */
+  ok: boolean;
+  /** The target's HTTP status, or null on a timeout or network error. */
+  status: number | null;
+  /** What went wrong, or null on success. */
+  error: string | null;
+  /** When it ran, ISO. */
+  at: string;
+}
+
+/** The JSON body the inbox service POSTs to an action's target, with the header `X-Inbox-Action: 1`.
+ *  Answer 2xx within {@link INBOX_ACTION_TIMEOUT_MS} for success; anything else is recorded as a failure. */
+export interface InboxActionCall {
+  /** The inbox item's id. */
+  itemId: number;
+  /** Which action was tapped. */
+  actionId: string;
+  /** The item's source. */
+  source: string;
+  /** The item's kind. */
+  kind: string;
+  /** The item's dedupeKey, or null. */
+  dedupeKey: string | null;
+  /** The item's extra data, or null. */
+  data: InboxData | null;
+}
+
+/** Header the inbox service sends on every action call, with the value '1'. */
+export const INBOX_ACTION_HEADER = 'X-Inbox-Action';
+/** How long the inbox service waits for an action's target before recording a timeout. */
+export const INBOX_ACTION_TIMEOUT_MS = 8000;
+
 /** What a producer sends. `source` is filled in by the client. */
 export interface InboxEventInput {
   /** Which app sent it, matching /^[a-z0-9][a-z0-9-]{0,31}$/. */
@@ -30,6 +79,8 @@ export interface InboxEventInput {
   occurredAt?: string;
   /** Flat extra data, JSON-encoded at most 4096 bytes. */
   data?: InboxData;
+  /** Up to 3 buttons shown on the item, ids unique. A repeat with the same dedupeKey replaces them. */
+  actions?: Array<Omit<InboxAction, 'method'> & { method?: 'POST' }>;
 }
 
 /** A validated event (defaults applied). */
@@ -44,6 +95,8 @@ export interface InboxEvent extends Required<Pick<InboxEventInput, 'source' | 'k
   resolve: boolean;
   /** Extra data, or null when none. */
   data: InboxData | null;
+  /** Buttons, or null when none. */
+  actions: InboxAction[] | null;
 }
 
 /** What the service did with an event. */
@@ -81,6 +134,10 @@ export interface InboxItem {
   snoozedUntil: string | null;
   /** Extra data, or null. */
   data: InboxData | null;
+  /** Buttons from the latest event. The service always sends this ([] when none); optional for older services. */
+  actions?: InboxAction[];
+  /** The last action run on this item, or null. */
+  lastAction?: InboxActionResult | null;
 }
 
 /** Inbox settings, editable on the page. */
