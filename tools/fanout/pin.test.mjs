@@ -98,7 +98,8 @@ test('lockDirs: per-folder lockfiles, root when none is found, none for vendored
     lockDirs('npm', ['web', 'worker'], has(['web/package-lock.json', 'worker/package-lock.json'])),
     ['web', 'worker'],
   );
-  assert.deepEqual(lockDirs('npm', ['apps/web'], has([])), ['.']);
-  assert.deepEqual(lockDirs('npm', ['apps/web'], has(['pnpm-lock.yaml'])), ['.']);
+  assert.deepEqual(lockDirs('npm', ['apps/web', 'x'], has([])), ['.']);
+  // A single folder always regenerates at the root, as before uiExtraDirs.
+  assert.deepEqual(lockDirs('npm', ['apps/web'], has(['apps/web/package-lock.json'])), ['.']);
   assert.deepEqual(lockDirs('vendored', ['.'], has(['package-lock.json'])), []);
 });

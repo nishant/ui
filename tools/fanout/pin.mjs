@@ -98,12 +98,14 @@ export function lowestPin(kind, dirs, read) {
 
 /**
  * The folders to regenerate the lockfile in: for each pin folder, the nearest folder at or above
- * it that has the package manager's lockfile (the repo root for a workspace). With none found,
- * the repo root, as before uiExtraDirs.
+ * it that has the package manager's lockfile (the repo root for a workspace). With one folder,
+ * or none found, the repo root, as before uiExtraDirs.
  */
 export function lockDirs(kind, dirs, exists) {
   const name = kind === 'pnpm' ? 'pnpm-lock.yaml' : kind === 'npm' ? 'package-lock.json' : null;
   if (!name) return [];
+  // One folder: the repo root, exactly as before uiExtraDirs existed.
+  if (dirs.length <= 1) return ['.'];
   const out = [];
   for (const start of dirs) {
     let d = clean(start);

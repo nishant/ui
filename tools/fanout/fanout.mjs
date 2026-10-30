@@ -247,20 +247,29 @@ export class Run {
 
     let adopted = false;
     let pushedAt = null;
+    // A PR opened before a folder was added to uiExtraDirs (or adopted without it) moves the
+    // folders it missed in a commit on top, so its head stays adopted or not as it was.
+    const dirs = pinDirs(entry);
+    let head = null;
     if (pr) {
       const c = apiJson(`repos/${R}/commits/${pr.headRefOid}`)?.commit;
       adopted = isAdoptedHead(c ? { author: c.author?.name, message: c.message } : null);
-      // A PR opened before a folder was added to uiExtraDirs (or adopted without it) moves the
-      // folders it missed in a commit on top, so its head stays adopted or not as it was.
-      const dirs = pinDirs(entry);
-      const head = dirs.length > 1 ? lowestPin(entry.ui, dirs, (path) => rawFile(R, path, pr.headRefOid)) : null;
+      head = dirs.length > 1 ? lowestPin(entry.ui, dirs, (path) => rawFile(R, path, pr.headRefOid)) : null;
+      if (head?.error && !adopted) {
+        // A folder the PR branch does not have yet (added on the base later): start over from the base.
+        if (this.dry) this.would(`close #${pr.number} (${head.error} on this branch; opening a fresh one.)`);
+        else gh(['pr', 'close', String(pr.number), '-R', R, '--delete-branch', '--comment', `${head.error} on this branch; opening a fresh one.`]);
+        pr = null;
+      }
+    }
+    if (pr) {
       const behind = head ? dirs.filter((d) => !head.pins[d] || compare(head.pins[d], tag) < 0) : [];
       if (behind.length) {
         if (this.dry) this.would(`move ${behind.join(', ')} to ${tag} on #${pr.number}`);
         else {
           const topped = this.topUpBumpPr(entry, pr, tag, pin, notes, adopted);
           if (topped.error) return { repo: R, result: 'error', detail: topped.error, pr: pr.number };
-          if (topped.moved.length) {
+          if (topped.sha) {
             pushedAt = Date.now();
             // Settle only once the PR reports the new head, so the merge never matches the old one.
             for (let i = 0; i < 12 && viewPr(R, pr.number).headRefOid !== topped.sha; i++) await sleep(5_000);
@@ -317,16 +326,20 @@ export class Run {
     let step;
     try {
       cloneBase(R, `ui/${tag}`, dir);
+      // Build only on the head whose adopted state was read; a push since then waits for the next run.
+      if (git(['rev-parse', 'HEAD'], { cwd: dir }).stdout.trim() !== pr.headRefOid) {
+        return { error: `ui/${tag} moved while the fan-out read it; the next run moves the missing folders` };
+      }
       const moved = bumpTree(entry, dir, tag, { at });
       step = 'git add';
       git(['add', '-A'], { cwd: dir });
-      if (git(['diff', '--cached', '--quiet'], { cwd: dir, allowFail: true }).code === 0) return { moved: [] };
+      if (git(['diff', '--cached', '--quiet'], { cwd: dir, allowFail: true }).code === 0) return { moved: [], sha: null };
       // isAdoptedHead keys on the message: keep a fan-out head a fan-out head, an adopted one adopted.
       const message = adopted ? `Pin @nish/ui ${tag} in ${moved.join(', ') || 'the lockfile'}` : `Move @nish/ui to ${tag}`;
       step = 'git commit';
       git([...COMMIT_ID, 'commit', '-q', '-m', message], { cwd: dir });
       step = 'git push';
-      authGit(['push', 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
+      authGit(['push', `--force-with-lease=refs/heads/ui/${tag}:${pr.headRefOid}`, 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
       step = 'gh pr edit';
       gh(['pr', 'edit', String(pr.number), '-R', R, '--body', prBody({ pin, tag, ...notes })]);
       this.say(`  moved ${moved.join(', ')} to ${tag} on #${pr.number}`);
