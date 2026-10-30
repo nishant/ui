@@ -3,6 +3,18 @@
 Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
 bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
 
+## [0.10.0] - 2026-10-30
+
+### Added
+
+- Inbox item actions. `InboxEventInput.actions` takes up to 3 `{ id, label, method: 'POST', target }` buttons. The target must be `http://127.0.0.1:<port>/…`. `parseInboxEvent` validates them (new error strings for each rule) and `inbox-client` sends them. New exports: `InboxAction`, `InboxActionResult`, `InboxActionCall`, `INBOX_ACTION_HEADER`, `INBOX_ACTION_TIMEOUT_MS` and `isInboxActionTarget` (from `@nish/ui/inbox-client`).
+- `InboxEvent.actions` (`InboxAction[] | null`), and the optional `InboxItem.actions` and `InboxItem.lastAction`.
+- `<Inbox onAction>`: each item's actions render as buttons in the open and snoozed views. A button spins while its promise is pending, and the item's other actions are disabled meanwhile. The last result shows in a muted line under them.
+
+### Changed
+
+- `parseInboxEvent` now returns `actions` on every event (null when none). Services on 0.9.x ignore the field, so producers can send actions before the inbox service is updated.
+
 ## [0.9.2] - 2026-10-29
 
 ### Fixed

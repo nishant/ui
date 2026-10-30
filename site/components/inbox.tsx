@@ -39,8 +39,21 @@ const OPEN: InboxItem[] = [
     body: 'The contrast step failed in the dark theme.\nSee the run for the failing roles.\nThe previous run passed.\nThis is a fourth line, so the body is clamped and shows More.',
     url: LONG_URL,
     updatedAt: iso(50 * MIN),
+    actions: [
+      { id: 'rerun', label: 'Re-run', method: 'POST', target: 'http://127.0.0.1:8820/actions/rerun' },
+      { id: 'open-logs', label: 'Save the logs', method: 'POST', target: 'http://127.0.0.1:8820/actions/logs' },
+    ],
+    lastAction: { actionId: 'rerun', ok: false, status: 500, error: null, at: iso(20 * MIN) },
   }),
-  item({ id: 4, source: 'job-apps', kind: 'new-jobs', severity: 'info', title: '12 new jobs from the latest search', updatedAt: iso(3 * 60 * MIN) }),
+  item({
+    id: 4,
+    source: 'job-apps',
+    kind: 'new-jobs',
+    severity: 'info',
+    title: '12 new jobs from the latest search',
+    updatedAt: iso(3 * 60 * MIN),
+    actions: [{ id: 'apply-all', label: 'Queue all 12', method: 'POST', target: 'http://127.0.0.1:8830/actions/queue' }],
+  }),
   item({ id: 5, source: 'trading', kind: 'exit-level', title: 'Supercalifragilisticexpialidocious'.repeat(9).slice(0, 300), updatedAt: iso(5 * 60 * MIN) }),
 ];
 const SNOOZED: InboxItem[] = [
@@ -48,7 +61,16 @@ const SNOOZED: InboxItem[] = [
 ];
 const HANDLED: InboxItem[] = [
   item({ id: 7, source: 'status', kind: 'site-down', title: 'start.nish.software is down', handledAt: iso(40 * MIN), handledBy: 'source' }),
-  item({ id: 8, source: 'ci', kind: 'run-failed', title: 'hosting: deploy failed', handledAt: iso(2 * 60 * MIN), handledBy: 'user' }),
+  item({
+    id: 8,
+    source: 'ci',
+    kind: 'run-failed',
+    title: 'hosting: deploy failed',
+    handledAt: iso(2 * 60 * MIN),
+    handledBy: 'user',
+    actions: [{ id: 'rerun', label: 'Re-run', method: 'POST', target: 'http://127.0.0.1:8820/actions/rerun' }],
+    lastAction: { actionId: 'rerun', ok: true, status: 200, error: null, at: iso(2 * 60 * MIN) },
+  }),
   item({ id: 9, source: 'job-apps', kind: 'source-health', title: 'Indeed needs sign-in', handledAt: iso(26 * 60 * MIN), handledBy: 'expired' }),
 ];
 const SOURCES = [
@@ -65,12 +87,14 @@ function Demo({
   one = false,
   mark = true,
   more = false,
+  actions = true,
 }: {
   view?: InboxView;
   state?: string;
   one?: boolean;
   mark?: boolean;
   more?: boolean;
+  actions?: boolean;
 }) {
   const [view, setView] = useState<InboxView>(first);
   const [source, setSource] = useState<string | null>(null);
@@ -97,6 +121,7 @@ function Demo({
         hasMore={more}
         onLoadMore={() => undefined}
         selectedId={state === 'selected' ? 2 : null}
+        onAction={actions ? () => new Promise<void>((done) => setTimeout(done, 1500)) : undefined}
       />
     </div>
   );
@@ -115,9 +140,12 @@ export const inbox: ComponentDoc = {
     { key: 'one', label: 'One source (no filter row)', type: 'boolean' },
     { key: 'mark', label: 'Mark all handled', type: 'boolean' },
     { key: 'more', label: 'Load more', type: 'boolean' },
+    { key: 'actions', label: 'Item actions (onAction)', type: 'boolean' },
   ],
-  initial: { view: 'open', state: 'ready', one: false, mark: true, more: false },
-  render: (a) => <Demo key={`${a.view}-${a.state}`} view={a.view as InboxView} state={String(a.state)} one={!!a.one} mark={!!a.mark} more={!!a.more} />,
+  initial: { view: 'open', state: 'ready', one: false, mark: true, more: false, actions: true },
+  render: (a) => (
+    <Demo key={`${a.view}-${a.state}`} view={a.view as InboxView} state={String(a.state)} one={!!a.one} mark={!!a.mark} more={!!a.more} actions={!!a.actions} />
+  ),
   code: (a) =>
     jsx('Inbox', {
       items: '{items}',
@@ -135,9 +163,11 @@ export const inbox: ComponentDoc = {
       loading: a.state === 'loading' ? true : undefined,
       error: a.state === 'error' ? 'Could not load' : undefined,
       hasMore: a.more ? true : undefined,
+      onAction: a.actions ? '{(id, actionId) => api.runAction(id, actionId)}' : undefined,
     }),
   stories: [
     { id: 'open', name: 'Open, every severity', wide: true, render: () => <Demo /> },
+    { id: 'no-actions', name: 'Without onAction', note: 'Item actions show only when onAction is given.', render: () => <Demo actions={false} /> },
     { id: 'snoozed', name: 'Snoozed', render: () => <Demo view="snoozed" /> },
     { id: 'handled', name: 'Handled', render: () => <Demo view="handled" /> },
     { id: 'selected', name: 'A linked item selected', note: 'selectedId highlights the row and scrolls it into view once.', render: () => <Demo state="selected" /> },
@@ -161,16 +191,26 @@ export const inbox: ComponentDoc = {
   onSnooze={(id, until) => api.snooze(id, until)}
   onUnsnooze={(id) => api.unsnooze(id)}
   onHandleAll={() => api.handleAll()}
+  // POST /api/items/:id/actions/:actionId; refresh the item, toast item.lastAction.
+  onAction={(id, actionId) => api.runAction(id, actionId)}
 />
 
 // Producers send events with the client (no React):
 import { createInboxClient } from '@nish/ui/inbox-client';
 const inbox = createInboxClient({ source: 'trackers' });
-await inbox.send({ kind: 'price-drop', title: 'Headphones dropped to $298', url, dedupeKey: sku });`,
+await inbox.send({ kind: 'price-drop', title: 'Headphones dropped to $298', url, dedupeKey: sku });
+
+// Buttons on the item: the inbox service POSTs an InboxActionCall to target (loopback only,
+// 8 s timeout, header X-Inbox-Action: 1). Answer 2xx and the item is marked handled.
+await inbox.send({
+  kind: 'run-failed', title: 'ui: check failed', dedupeKey: runId,
+  actions: [{ id: 'rerun', label: 'Re-run', target: 'http://127.0.0.1:8820/actions/rerun' }],
+});`,
   guidelines: [
     'The component never calls a server. Wire the callbacks to your API and update the items and counts it returns.',
     'Under 480px each open row has one "Actions" menu (44px) with Mark handled and the snooze times; from 480px the two buttons sit inline.',
     'The source chips scroll sideways inside their own row on phones. The page itself never scrolls sideways.',
+    'Item actions (up to 3, from the event) show as small buttons under the text in the open and snoozed views when onAction is given. While one runs it spins and the item\'s other actions are disabled; the last result shows in a muted line under them.',
     'Pass selectedId from a notification link (#/inbox?item=<id>) so the item is highlighted and scrolled into view.',
     'Colors come only from th-* roles, so every theme works in light and dark.',
   ],

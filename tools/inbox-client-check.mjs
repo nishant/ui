@@ -2,9 +2,12 @@
 // and checks validation, defaults, the client's send/queue/flush behavior and its request headers.
 // Exits non-zero on any failure.
 import assert from 'node:assert/strict';
-import { createInboxClient, parseInboxEvent, INBOX_DEFAULT_SETTINGS, INBOX_SOURCE_LABELS } from '../dist/inbox-client.js';
+import {
+  createInboxClient, parseInboxEvent, isInboxActionTarget, INBOX_DEFAULT_SETTINGS, INBOX_SOURCE_LABELS, INBOX_ACTION_HEADER, INBOX_ACTION_TIMEOUT_MS,
+} from '../dist/inbox-client.js';
 
 const good = { source: 'trackers', kind: 'price-drop', title: 'Hello' };
+const okResponseEarly = () => new Response(JSON.stringify({ results: [{ id: 1, action: 'created' }] }), { status: 200 });
 const bad = (patch, error) => {
   const r = parseInboxEvent({ ...good, ...patch });
   assert.equal(r.ok, false, `expected failure: ${error}`);
@@ -95,6 +98,66 @@ assert.equal(parseInboxEvent({ source: 'ok', kind: 'ok', title: '', url: 'x' }).
   // http and https both pass.
   assert.equal(parseInboxEvent({ ...good, url: 'http://127.0.0.1:1/x' }).ok, true);
   assert.equal(parseInboxEvent({ ...good, url: 'https://example.com/a?b=c' }).value.url, 'https://example.com/a?b=c');
+}
+
+// --- actions ---
+{
+  const act = { id: 'retry', label: 'Retry', target: 'http://127.0.0.1:8810/api/retry' };
+  const T = 'action target must be http://127.0.0.1:<port>/…';
+  bad({ actions: 'x' }, 'actions must be a list of at most 3');
+  bad({ actions: [act, { ...act, id: 'b' }, { ...act, id: 'c' }, { ...act, id: 'd' }] }, 'actions must be a list of at most 3');
+  bad({ actions: [null] }, 'actions must be a list of at most 3');
+  bad({ actions: [{ ...act, id: 'Retry' }] }, 'action id must be lowercase letters, digits or dashes');
+  bad({ actions: [{ ...act, id: 'a'.repeat(33) }] }, 'action id must be lowercase letters, digits or dashes');
+  bad({ actions: [act, act] }, 'action ids must be unique');
+  bad({ actions: [{ ...act, label: '  ' }] }, 'action label is required');
+  bad({ actions: [{ ...act, method: 'GET' }] }, "action method must be 'POST'");
+  for (const target of [
+    'https://127.0.0.1:8810/x', // not http
+    'http://127.0.0.1/x', // no port
+    'http://127.0.0.1:80/x', // default port is dropped, so no explicit port
+    'http://localhost:8810/x',
+    'http://127.0.0.2:8810/x',
+    'http://10.0.0.1:8810/x',
+    'http://example.com:8810/x',
+    'http://127.0.0.1.nip.io:8810/x',
+    'http://u:p@127.0.0.1:8810/x',
+    'http://u@127.0.0.1:8810/x',
+    'http://127.0.0.1:8810/x#y',
+    'http://127.0.0.1:8810/x#',
+    'http://[::1]:8810/x',
+    'file:///etc/passwd',
+    'not a url',
+    'http://127.0.0.1:8810/' + 'a'.repeat(2000),
+  ]) {
+    bad({ actions: [{ ...act, target }] }, T);
+    assert.equal(isInboxActionTarget(target), false, target);
+  }
+  bad({ actions: [{ ...act, target: 5 }] }, T);
+  // Check order: actions come after data.
+  assert.equal(parseInboxEvent({ ...good, data: [1], actions: 'x' }).error, 'data must be a flat object of strings, numbers, booleans or null');
+
+  const r = parseInboxEvent({ ...good, actions: [act, { id: 'skip-1', label: '  ' + 'L'.repeat(41) + ' ', method: 'POST', target: 'http://127.0.0.1:65535' }] });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.value.actions, [
+    { id: 'retry', label: 'Retry', method: 'POST', target: 'http://127.0.0.1:8810/api/retry' },
+    { id: 'skip-1', label: 'L'.repeat(39) + '…', method: 'POST', target: 'http://127.0.0.1:65535/' },
+  ]);
+  // Extra fields on an action are dropped.
+  assert.deepEqual(Object.keys(parseInboxEvent({ ...good, actions: [{ ...act, extra: 1 }] }).value.actions[0]), ['id', 'label', 'method', 'target']);
+  assert.equal(parseInboxEvent({ ...good, actions: [] }).value.actions, null);
+  assert.equal(parseInboxEvent({ ...good, actions: null }).value.actions, null);
+  assert.equal(parseInboxEvent(good).value.actions, null);
+  assert.equal(isInboxActionTarget('http://127.0.0.1:8810/a?b=c'), true);
+  assert.equal(INBOX_ACTION_HEADER, 'X-Inbox-Action');
+  assert.equal(INBOX_ACTION_TIMEOUT_MS, 8000);
+
+  // The client sends actions with the event.
+  let sent;
+  const c = createInboxClient({ source: 'trackers', url: 'http://x', fetch: async (_u, init) => { sent = JSON.parse(init.body); return okResponseEarly(); }, log: () => {} });
+  const res = await c.send({ kind: 'k', title: 't', actions: [act] });
+  assert.equal(res.ok, true);
+  assert.deepEqual(sent.actions, [{ ...act, method: 'POST' }]);
 }
 
 // --- constants ---

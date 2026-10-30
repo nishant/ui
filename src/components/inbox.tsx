@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { cn } from '../cn';
-import { ago, dateTime } from '../format';
-import { INBOX_SOURCE_LABELS, type InboxItem, type InboxSeverity, type InboxView } from '../inbox-types';
+import { ago, dateTime, time } from '../format';
+import { INBOX_SOURCE_LABELS, type InboxActionResult, type InboxItem, type InboxSeverity, type InboxView } from '../inbox-types';
 import { ChipGroup, Chip } from './forms';
 import { StatusDot, type StatusTone } from './display';
 import { EmptyState, ErrorState, SkeletonRows } from './feedback';
@@ -34,6 +34,10 @@ export interface InboxProps {
   onSnooze: (id: number, until: Date) => void;
   /** Brings a snoozed item back now. */
   onUnsnooze: (id: number) => void;
+  /** Runs one of an item's actions (the inbox service's POST /api/items/:id/actions/:actionId). When given,
+   *  each item's actions show as buttons in the open and snoozed views. While the promise is pending that
+   *  button shows a spinner and the item's other actions are disabled. A rejection is ignored here; toast it. */
+  onAction?: (itemId: number, actionId: string) => Promise<void>;
   /** Shows "Mark all handled" in the open view when given and there are items. A confirmation comes first. */
   onHandleAll?: () => void;
   /** First load: shows skeleton rows in place of the list. */
@@ -113,12 +117,27 @@ interface RowProps {
   onUnhandle: (id: number) => void;
   onSnooze: (id: number, until: Date) => void;
   onUnsnooze: (id: number) => void;
+  /** The running action's id on this item, or null. */
+  running: string | null;
+  onAction?: (itemId: number, actionId: string) => void;
 }
 
-function Row({ item, view, label, wide, selected, expanded, domId, onToggle, onHandle, onUnhandle, onSnooze, onUnsnooze }: RowProps) {
+/** "Retry ran 14:02" or "Retry failed 14:02 · HTTP 500". */
+function lastActionText(result: InboxActionResult, item: InboxItem): string {
+  const label = item.actions?.find((a) => a.id === result.actionId)?.label ?? result.actionId;
+  const ms = Date.parse(result.at);
+  const at = new Date(ms).toDateString() === new Date().toDateString() ? time(ms) : dateTime(ms);
+  if (result.ok) return `${label} ran ${at}`;
+  const why = result.error ?? (result.status != null ? `HTTP ${result.status}` : null);
+  return `${label} failed ${at}${why ? ` · ${why}` : ''}`;
+}
+
+function Row({ item, view, label, wide, selected, expanded, domId, onToggle, onHandle, onUnhandle, onSnooze, onUnsnooze, running, onAction }: RowProps) {
   const dot = DOT[item.severity] ?? DOT.normal;
   const long = item.body != null && looksClamped(item.body);
   const href = item.url ? safeHref(item.url) : null;
+  const actions = onAction && view !== 'handled' ? (item.actions ?? []) : [];
+  const last = item.lastAction ?? null;
   const snoozeItems = SNOOZE_OPTIONS.map((o) => (
     <MenuItem key={o.label} icon={wide ? undefined : <ClockIcon size={14} />} onSelect={() => onSnooze(item.id, o.until(new Date()))}>
       {o.label}
@@ -156,6 +175,25 @@ function Row({ item, view, label, wide, selected, expanded, domId, onToggle, onH
               </Button>
             ) : null}
           </>
+        ) : null}
+        {actions.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {actions.map((a) => (
+              <Button
+                key={a.id}
+                size="sm"
+                variant="secondary"
+                loading={running === a.id}
+                disabled={running !== null && running !== a.id}
+                onClick={() => onAction?.(item.id, a.id)}
+              >
+                {a.label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+        {last && (actions.length > 0 || view === 'handled') ? (
+          <p className={cn('m-0 mt-1 text-xs', last.ok ? 'text-th-hi3' : 'text-th-loss')}>{lastActionText(last, item)}</p>
         ) : null}
         {view === 'snoozed' && item.snoozedUntil ? <p className="m-0 mt-0.5 text-xs text-th-hi3">Until {dateTime(item.snoozedUntil)}</p> : null}
         {view === 'handled' && item.handledAt ? (
@@ -217,6 +255,7 @@ export function Inbox({
   onSnooze,
   onUnsnooze,
   onHandleAll,
+  onAction,
   loading = false,
   error = null,
   onRetry,
@@ -231,6 +270,8 @@ export function Inbox({
   const wide = useMediaQuery('(min-width: 480px)');
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(() => new Set());
   const [confirmAll, setConfirmAll] = useState(false);
+  // Running action per item id. Only one action per item runs at a time.
+  const [running, setRunning] = useState<ReadonlyMap<number, string>>(() => new Map());
   const scrolled = useRef<number | null>(null);
 
   const labelOf = (id: string) => sourceLabels[id] ?? id;
@@ -253,6 +294,21 @@ export function Inbox({
       else next.add(id);
       return next;
     });
+
+  const runAction = (itemId: number, actionId: string) => {
+    if (!onAction || running.has(itemId)) return;
+    setRunning((prev) => new Map(prev).set(itemId, actionId));
+    const done = () =>
+      setRunning((prev) => {
+        const next = new Map(prev);
+        next.delete(itemId);
+        return next;
+      });
+    Promise.resolve()
+      .then(() => onAction(itemId, actionId))
+      .catch(() => undefined)
+      .finally(done);
+  };
 
   const tabs: TabItem[] = [
     { value: 'open', label: 'Open', count: counts.open },
@@ -290,6 +346,8 @@ export function Inbox({
             onUnhandle={onUnhandle}
             onSnooze={onSnooze}
             onUnsnooze={onUnsnooze}
+            running={running.get(item.id) ?? null}
+            onAction={onAction ? runAction : undefined}
           />
         ))}
       </ul>
