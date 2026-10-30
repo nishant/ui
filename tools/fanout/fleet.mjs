@@ -11,11 +11,17 @@ function stripComment(line) {
   return m ? line.slice(0, m.index) : line;
 }
 
+const list = (v) =>
+  (v || '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+
 function unquote(v) {
   return v.length >= 2 && /^(["']).*\1$/.test(v) ? v.slice(1, -1) : v;
 }
 
-/** @returns {Array<{repo:string,name:string,base:string,ui:string,uiDir:string,bump:string|null,live:string|null,checkout:string,hosts:string[],deploy:string,fold:boolean}>} */
+/** @returns {Array<{repo:string,name:string,base:string,ui:string,uiDir:string,uiExtraDirs:string[],bump:string|null,live:string|null,checkout:string,hosts:string[],deploy:string,fold:boolean}>} */
 export function parseFleet(text) {
   const raw = [];
   let cur = null;
@@ -42,13 +48,12 @@ export function parseFleet(text) {
         base: e.base || 'master',
         ui,
         uiDir: e.uiDir || '.',
+        // More folders that pin @nish/ui the same way (a worker or server package in the same repo).
+        uiExtraDirs: list(e.uiExtraDirs),
         bump: e.bump || null,
         live,
         checkout: e.checkout || e.repo.split('/').pop(),
-        hosts: (e.hosts || '')
-          .split(',')
-          .map((h) => h.trim())
-          .filter(Boolean),
+        hosts: list(e.hosts),
         deploy: e.deploy || 'deploy.yml',
         fold: (e.fold || '').toLowerCase() === 'yes',
       };
