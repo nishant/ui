@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compare, isPatch, major, parse, pinFile, pinOf, rewritePin } from './pin.mjs';
+import { compare, isPatch, lockDirs, lowestPin, major, parse, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 
 const pkg = (spec, section = 'dependencies') =>
   `{\n  "name": "app",\n  "${section}": {\n    "@nish/ui": "${spec}",\n    "react": "^19.0.0"\n  }\n}\n`;
@@ -59,4 +59,46 @@ test('semver helpers', () => {
   assert.equal(isPatch('v0.6.1', 'v0.7.0'), false);
   assert.equal(isPatch(null, 'v0.7.0'), false);
   assert.equal(major('v2.0.0'), 2);
+});
+
+test('pinDirs: uiDir first, then uiExtraDirs, deduped and cleaned', () => {
+  assert.deepEqual(pinDirs({ uiDir: '.' }), ['.']);
+  assert.deepEqual(pinDirs({ uiDir: 'apps/web', uiExtraDirs: ['packages/worker/', './apps/web'] }), ['apps/web', 'packages/worker']);
+});
+
+test('lowestPin: the lowest pin across folders', () => {
+  const files = {
+    'apps/web/package.json': pkg('https://codeload.github.com/nishant/ui/tar.gz/refs/tags/v0.9.2'),
+    'packages/worker/package.json': pkg('https://codeload.github.com/nishant/ui/tar.gz/refs/tags/v0.8.0'),
+  };
+  const r = lowestPin('npm', ['apps/web', 'packages/worker'], (p) => files[p]);
+  assert.equal(r.pin, 'v0.8.0');
+  assert.deepEqual(r.pins, { 'apps/web': 'v0.9.2', 'packages/worker': 'v0.8.0' });
+  assert.equal(r.error, null);
+});
+
+test('lowestPin: a folder without a readable pin is an error', () => {
+  const r = lowestPin('npm', ['apps/web', 'packages/worker'], (p) => {
+    if (p === 'apps/web/package.json') return pkg('github:nishant/ui#v0.9.2');
+    throw new Error('404');
+  });
+  assert.equal(r.pin, null);
+  assert.equal(r.error, 'Could not read the pin in packages/worker/package.json');
+});
+
+test('lockDirs: one root lockfile for a workspace', () => {
+  const has = (set) => (p) => set.includes(p);
+  assert.deepEqual(lockDirs('npm', ['apps/web', 'packages/worker'], has(['package-lock.json'])), ['.']);
+  assert.deepEqual(lockDirs('pnpm', ['apps/web', 'packages/server'], has(['pnpm-lock.yaml'])), ['.']);
+});
+
+test('lockDirs: per-folder lockfiles, root when none is found, none for vendored', () => {
+  const has = (set) => (p) => set.includes(p);
+  assert.deepEqual(
+    lockDirs('npm', ['web', 'worker'], has(['web/package-lock.json', 'worker/package-lock.json'])),
+    ['web', 'worker'],
+  );
+  assert.deepEqual(lockDirs('npm', ['apps/web'], has([])), ['.']);
+  assert.deepEqual(lockDirs('npm', ['apps/web'], has(['pnpm-lock.yaml'])), ['.']);
+  assert.deepEqual(lockDirs('vendored', ['.'], has(['package-lock.json'])), []);
 });

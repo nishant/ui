@@ -8,6 +8,7 @@
 // Needs GH_TOKEN (the FLEET_TOKEN secret in Actions, or `gh auth token` locally).
 import {
   appendFileSync,
+  existsSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -21,7 +22,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sections } from './changelog.mjs';
 import { parseFleet } from './fleet.mjs';
 import { CmdError, api, apiJson, gh, git, isForbidden, redact, sh, sleep } from './gh.mjs';
-import { compare, pinFile, pinOf, rewritePin } from './pin.mjs';
+import { compare, lockDirs, lowestPin, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 import { computeChecks, cut, decide, isAdoptedHead, limitFor, updateLabel } from './policy.mjs';
 
 const UI_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -142,6 +143,42 @@ function cloneBase(repo, base, dir, depth = 1) {
   authGit(['clone', '-c', 'core.autocrlf=false', '--depth', String(depth), '--branch', base, `https://github.com/${repo}.git`, dir]);
 }
 
+const LOCK_CMD = {
+  npm: 'npx -y npm@10 install --package-lock-only --ignore-scripts',
+  pnpm: 'corepack pnpm install --lockfile-only',
+};
+
+/**
+ * Move every @nish/ui pin of `entry` (uiDir and uiExtraDirs) in the checkout at `dir` to `tag`,
+ * regenerate the lockfile(s) and run the entry's bump command. A folder already on `tag` or
+ * newer is left alone. `at.step` names the step that is running, for error messages.
+ * @returns {string[]} the folders whose pin moved
+ */
+export function bumpTree(entry, dir, tag, { run = sh, at = {} } = {}) {
+  const dirs = pinDirs(entry);
+  const moved = [];
+  for (const d of dirs) {
+    const rel = pinFile(entry.ui, d);
+    at.step = `pin rewrite (${rel})`;
+    const text = readFileSync(join(dir, rel), 'utf8');
+    if (compare(pinOf(entry.ui, text), tag) >= 0) continue;
+    writeFileSync(join(dir, rel), rewritePin(entry.ui, text, tag, rel));
+    moved.push(d);
+  }
+  const cmd = LOCK_CMD[entry.ui];
+  if (cmd) {
+    for (const d of lockDirs(entry.ui, dirs, (p) => existsSync(join(dir, p)))) {
+      at.step = d === '.' ? cmd : `${cmd} (in ${d})`;
+      run(cmd, { cwd: d === '.' ? dir : join(dir, d), env: NO_TOKEN_ENV });
+    }
+  }
+  if (entry.bump) {
+    at.step = entry.bump;
+    run(entry.bump, { cwd: dir, env: NO_TOKEN_ENV });
+  }
+  return moved;
+}
+
 export class Run {
   constructor(args) {
     this.dry = args.dry;
@@ -168,16 +205,12 @@ export class Run {
 
   async uiBump(entry, tag) {
     const R = entry.repo;
-    const file = pinFile(entry.ui, entry.uiDir);
     if (!this.tagExists(tag)) return { repo: R, result: 'error', detail: `No tag ${tag}` };
 
-    let pin;
-    try {
-      pin = pinOf(entry.ui, rawFile(R, file, entry.base));
-    } catch {
-      return { repo: R, result: 'error', detail: 'Could not read the pin' };
-    }
-    if (!pin) return { repo: R, result: 'error', detail: 'Could not read the pin' };
+    // The lowest pin across uiDir and uiExtraDirs: a repo is current only when every folder is.
+    const base = lowestPin(entry.ui, pinDirs(entry), (path) => rawFile(R, path, entry.base));
+    if (base.error) return { repo: R, result: 'error', detail: pinDirs(entry).length > 1 ? base.error : 'Could not read the pin' };
+    const pin = base.pin;
 
     if (compare(pin, tag) >= 0) {
       const open = listPrs(R, ['--state', 'open']).filter(
@@ -213,9 +246,27 @@ export class Run {
     const notes = sections(git(['show', `${tag}:CHANGELOG.md`], { cwd: this.ui, allowFail: true }).stdout, pin, tag);
 
     let adopted = false;
+    let pushedAt = null;
     if (pr) {
       const c = apiJson(`repos/${R}/commits/${pr.headRefOid}`)?.commit;
       adopted = isAdoptedHead(c ? { author: c.author?.name, message: c.message } : null);
+      // A PR opened before a folder was added to uiExtraDirs (or adopted without it) moves the
+      // folders it missed in a commit on top, so its head stays adopted or not as it was.
+      const dirs = pinDirs(entry);
+      const head = dirs.length > 1 ? lowestPin(entry.ui, dirs, (path) => rawFile(R, path, pr.headRefOid)) : null;
+      const behind = head ? dirs.filter((d) => !head.pins[d] || compare(head.pins[d], tag) < 0) : [];
+      if (behind.length) {
+        if (this.dry) this.would(`move ${behind.join(', ')} to ${tag} on #${pr.number}`);
+        else {
+          const topped = this.topUpBumpPr(entry, pr, tag, pin, notes, adopted);
+          if (topped.error) return { repo: R, result: 'error', detail: topped.error, pr: pr.number };
+          if (topped.moved.length) {
+            pushedAt = Date.now();
+            // Settle only once the PR reports the new head, so the merge never matches the old one.
+            for (let i = 0; i < 12 && viewPr(R, pr.number).headRefOid !== topped.sha; i++) await sleep(5_000);
+          }
+        }
+      }
     } else {
       if (this.dry) {
         this.would(`open PR ui/${tag} in ${R}: Move @nish/ui to ${tag} (from ${pin})`);
@@ -225,29 +276,17 @@ export class Run {
       if (opened.error) return { repo: R, result: 'error', detail: opened.error };
       pr = opened.pr;
     }
-    return this.settle(entry, pr, { kind: 'ui', from: pin, to: tag, behaviorChanges: notes.behaviorChanges, adopted });
+    return this.settle(entry, pr, { kind: 'ui', from: pin, to: tag, behaviorChanges: notes.behaviorChanges, adopted, pushedAt });
   }
 
   openBumpPr(entry, tag, pin, notes) {
     const R = entry.repo;
     const dir = tmpDir('bump');
-    let step = 'clone';
+    const at = { step: 'clone' };
+    let step;
     try {
       cloneBase(R, entry.base, dir);
-      const file = join(dir, pinFile(entry.ui, entry.uiDir));
-      step = 'pin rewrite';
-      writeFileSync(file, rewritePin(entry.ui, readFileSync(file, 'utf8'), tag, pinFile(entry.ui, entry.uiDir)));
-      if (entry.ui === 'npm') {
-        step = 'npx -y npm@10 install --package-lock-only --ignore-scripts';
-        sh(step, { cwd: dir, env: NO_TOKEN_ENV });
-      } else if (entry.ui === 'pnpm') {
-        step = 'corepack pnpm install --lockfile-only';
-        sh(step, { cwd: dir, env: NO_TOKEN_ENV });
-      }
-      if (entry.bump) {
-        step = entry.bump;
-        sh(entry.bump, { cwd: dir, env: NO_TOKEN_ENV });
-      }
+      bumpTree(entry, dir, tag, { at });
       step = 'git add';
       git(['add', '-A'], { cwd: dir });
       if (git(['diff', '--cached', '--quiet'], { cwd: dir, allowFail: true }).code === 0) {
@@ -263,7 +302,37 @@ export class Run {
       if (!pr) return { error: 'gh pr create finished but the PR was not found' };
       return { pr };
     } catch (e) {
-      const msg = e instanceof CmdError ? e.message : `${step}: ${redact(e.message)}`;
+      const msg = e instanceof CmdError ? e.message : `${step ?? at.step}: ${redact(e.message)}`;
+      return { error: msg };
+    } finally {
+      cleanup(dir);
+    }
+  }
+
+  /** Move the folders an open bump PR missed, in one commit on its branch, and refresh its body. */
+  topUpBumpPr(entry, pr, tag, pin, notes, adopted) {
+    const R = entry.repo;
+    const dir = tmpDir('topup');
+    const at = { step: 'clone' };
+    let step;
+    try {
+      cloneBase(R, `ui/${tag}`, dir);
+      const moved = bumpTree(entry, dir, tag, { at });
+      step = 'git add';
+      git(['add', '-A'], { cwd: dir });
+      if (git(['diff', '--cached', '--quiet'], { cwd: dir, allowFail: true }).code === 0) return { moved: [] };
+      // isAdoptedHead keys on the message: keep a fan-out head a fan-out head, an adopted one adopted.
+      const message = adopted ? `Pin @nish/ui ${tag} in ${moved.join(', ') || 'the lockfile'}` : `Move @nish/ui to ${tag}`;
+      step = 'git commit';
+      git([...COMMIT_ID, 'commit', '-q', '-m', message], { cwd: dir });
+      step = 'git push';
+      authGit(['push', 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
+      step = 'gh pr edit';
+      gh(['pr', 'edit', String(pr.number), '-R', R, '--body', prBody({ pin, tag, ...notes })]);
+      this.say(`  moved ${moved.join(', ')} to ${tag} on #${pr.number}`);
+      return { moved, sha: git(['rev-parse', 'HEAD'], { cwd: dir }).stdout.trim() };
+    } catch (e) {
+      const msg = e instanceof CmdError ? e.message : `${step ?? at.step}: ${redact(e.message)}`;
       return { error: msg };
     } finally {
       cleanup(dir);
@@ -322,7 +391,7 @@ export class Run {
   }
 
   /** Read checks (check runs, falling back to workflow runs on a 403) and commit statuses. */
-  readChecks(R, pr) {
+  readChecks(R, pr, pushedAt = null) {
     const sha = pr.headRefOid;
     let checkRuns = null;
     if (!this.checkRunsForbidden) {
@@ -339,7 +408,8 @@ export class Run {
     const current = all.find((s) => s.context === STATUS) ?? null;
     const workflowRuns =
       checkRuns === null ? apiJson(`repos/${R}/actions/runs?head_sha=${sha}&per_page=100`).workflow_runs ?? [] : null;
-    const young = Date.now() - Date.parse(pr.createdAt) < 10 * 60_000;
+    // A fresh PR, or one the fan-out just pushed to, may not have registered its checks yet.
+    const young = Date.now() - Math.max(Date.parse(pr.createdAt), pushedAt ?? 0) < 10 * 60_000;
     return { checks: computeChecks({ checkRuns, statuses, workflowRuns, young }), current };
   }
 
@@ -375,7 +445,7 @@ export class Run {
     let decision;
     for (;;) {
       pr = this.view(R, pr0.number);
-      const { checks, current } = this.readChecks(R, pr);
+      const { checks, current } = this.readChecks(R, pr, ctx.pushedAt);
       let fold = null;
       if (entry.fold && checks !== 'pending') fold = this.readFold(R, pr.headRefOid);
       decision = decide({ ...ctx, checks, fold });

@@ -14,6 +14,7 @@ test('defaults for a minimal entry', () => {
     base: 'master',
     ui: 'none',
     uiDir: '.',
+    uiExtraDirs: [],
     bump: null,
     live: null,
     checkout: 'status',
@@ -86,4 +87,19 @@ test('CLI --matrix prints the matrix and handles an unknown repo', () => {
   const none = spawnSync(process.execPath, [cli, file, '--matrix', '--repo', 'x/y'], { encoding: 'utf8' });
   assert.equal(none.stdout.trim(), 'matrix=[]');
   assert.match(none.stderr, /Unknown repo x\/y/);
+});
+
+test('uiExtraDirs: comma-separated list, default empty', () => {
+  const [j, t] = parseFleet(`- repo: nishant/job-apps
+  ui: npm
+  uiDir: apps/web
+  uiExtraDirs: packages/worker
+- repo: nishant/trading
+  ui: pnpm
+  uiDir: apps/web
+  uiExtraDirs: packages/server , packages/cli,
+`);
+  assert.deepEqual(j.uiExtraDirs, ['packages/worker']);
+  assert.deepEqual(t.uiExtraDirs, ['packages/server', 'packages/cli']);
+  assert.deepEqual(parseFleet('- repo: a/b\n  ui: npm\n')[0].uiExtraDirs, []);
 });

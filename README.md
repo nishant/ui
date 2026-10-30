@@ -430,7 +430,11 @@ The flow is: release, tag, fan-out PRs, Fold check, merge policy, deploy watch a
 2. **Fan-out PRs.** The tag push starts `.github/workflows/fanout.yml` ("fan-out"). For every repo in
    `hosting/fleet.yaml` (hosting included) it opens or updates a `ui/vX.Y.Z` PR titled "Move @nish/ui to
    vX.Y.Z" within 5 minutes: it rewrites the pin, regenerates the lockfile, runs the repo's `bump`
-   command, and puts the release notes in the PR body. An hourly run catches up on anything missed and
+   command, and puts the release notes in the PR body. A repo that pins @nish/ui in more than one package lists the
+   others in `uiExtraDirs` (comma-separated, next to `uiDir`; job-apps: `packages/worker`): every
+   folder's pin moves in the one PR, and the lockfile is regenerated once at the workspace root (or
+   in each folder that has its own lockfile). A repo counts as current only when every folder is on
+   the tag; an open bump PR that missed a folder gets a commit on its branch that moves it. An hourly run catches up on anything missed and
    closes bump PRs that a newer tag replaced. To run it by hand:
    `gh workflow run fanout.yml -R nishant/ui -f tag=vX.Y.Z -f repo=all` (`repo` can be one `owner/name`).
 3. **Fold check.** Each bump PR (and each Dependabot PR) runs the repo's checks plus the

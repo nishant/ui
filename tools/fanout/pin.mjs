@@ -66,3 +66,56 @@ export function rewritePin(kind, text, tag, path = kind === 'vendored' ? 'ui.jso
   const value = kind === 'vendored' ? tag : `https://codeload.github.com/nishant/ui/tar.gz/refs/tags/${tag}`;
   return text.replace(re, (_m, a, b) => `${a}${value}${b}`);
 }
+
+const clean = (d) => (d || '.').replace(/\/+$/, '').replace(/^(\.\/)+/, '') || '.';
+
+/** Every folder of a fleet entry that pins @nish/ui: `uiDir` first, then `uiExtraDirs`. */
+export function pinDirs(entry) {
+  return [...new Set([entry.uiDir, ...(entry.uiExtraDirs ?? [])].map(clean))];
+}
+
+/**
+ * The lowest pin across `dirs`, read with `read(path)`. A folder whose pin cannot be read
+ * fails the whole read, so a half-moved repo is never reported as current.
+ * @returns {{pin:string|null, pins:Record<string,string|null>, error:string|null}}
+ */
+export function lowestPin(kind, dirs, read) {
+  const pins = {};
+  for (const d of dirs) {
+    const path = pinFile(kind, d);
+    let pin = null;
+    try {
+      pin = pinOf(kind, read(path));
+    } catch {
+      // unreadable counts as no pin
+    }
+    pins[d] = pin;
+    if (!pin) return { pin: null, pins, error: `Could not read the pin in ${path}` };
+  }
+  const pin = Object.values(pins).sort(compare)[0] ?? null;
+  return { pin, pins, error: null };
+}
+
+/**
+ * The folders to regenerate the lockfile in: for each pin folder, the nearest folder at or above
+ * it that has the package manager's lockfile (the repo root for a workspace). With none found,
+ * the repo root, as before uiExtraDirs.
+ */
+export function lockDirs(kind, dirs, exists) {
+  const name = kind === 'pnpm' ? 'pnpm-lock.yaml' : kind === 'npm' ? 'package-lock.json' : null;
+  if (!name) return [];
+  const out = [];
+  for (const start of dirs) {
+    let d = clean(start);
+    for (;;) {
+      if (exists(d === '.' ? name : `${d}/${name}`)) {
+        if (!out.includes(d)) out.push(d);
+        break;
+      }
+      if (d === '.') break;
+      const i = d.lastIndexOf('/');
+      d = i < 0 ? '.' : d.slice(0, i);
+    }
+  }
+  return out.length ? out : ['.'];
+}
