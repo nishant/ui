@@ -113,6 +113,7 @@ const tailwindCss = [
   '@source not "./node";',
   '@source not "./*.map";',
   '@source not "./*.d.ts";',
+  '@source not "./*/**";',
   '',
   '/* dark: follows the active theme, not the OS. */',
   "@custom-variant dark (&:where([data-scheme='dark'], [data-scheme='dark'] *));",
@@ -178,13 +179,13 @@ writeFileSync(
 
 console.log('built dist/');
 
-/** dist/tailwind.css must scan only the shipped component JS, never all of dist (that pulled in
+/** dist/tailwind.css must scan only the shipped component JS in dist's top level, never all of dist (that pulled in
  *  .map files with sourcesContent and .d.ts files, which minted classes nothing uses). Checked by a
  *  real Tailwind compile in a temp git project that ignores node_modules, like a consumer's. */
 async function testSourceScan() {
   const css = readFileSync(join(dist, 'tailwind.css'), 'utf8');
   if (css.includes('@source "./";')) throw new Error('dist/tailwind.css must not scan all of dist (@source "./")');
-  for (const line of ['@source "./*.js";', '@source not "./node";', '@source not "./*.map";', '@source not "./*.d.ts";']) {
+  for (const line of ['@source "./*.js";', '@source not "./node";', '@source not "./*.map";', '@source not "./*.d.ts";', '@source not "./*/**";']) {
     if (!css.includes(line)) throw new Error(`dist/tailwind.css must contain ${line}`);
   }
 
@@ -209,10 +210,14 @@ async function testSourceScan() {
     const twIndex = join(root, 'node_modules/tailwindcss/index.css').replaceAll('\\', '/');
     const input = `@import "${twIndex}";\n@import "./node_modules/@nish/ui/dist/tailwind.css";\n`;
     const compiler = await compile(input, { base: tmp, onDependency() {} });
-    const scanner = new Scanner({ sources: compiler.sources.length ? compiler.sources : [{ base: tmp, pattern: '**/*', negated: false }] });
-    const out = compiler.build(scanner.scan());
+    // Like @tailwindcss/vite and postcss: the auto-detect root (the whole project, which is what
+    // reaches the gitignored dist folder) plus the @source entries the stylesheet declares.
+    const sources = [...(compiler.root === 'none' ? [] : [{ base: tmp, pattern: '**/*', negated: false }]), ...compiler.sources];
+    const scanner = new Scanner({ sources });
+    const candidates = scanner.scan();
+    const out = compiler.build(candidates);
     // Candidates are only minted into CSS when they are valid utilities; check the scanned strings instead.
-    const seen = new Set(scanner.scan());
+    const seen = new Set(candidates);
     const leaked = [...seen].filter((c) => c.startsWith('scan-leak-'));
     if (!seen.has('flex') && !out.includes('.flex')) throw new Error('dist/tailwind.css no longer scans dist/index.js');
     if (leaked.length) throw new Error(`dist/tailwind.css scans files it must not (${leaked.join(', ')})`);

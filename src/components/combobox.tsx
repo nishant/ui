@@ -99,6 +99,11 @@ export function Combobox({
     el?.scrollIntoView?.({ block: 'nearest' });
   }, [open, active]);
 
+  // Bring the whole list into view when it opens (e.g. inside a bottom-sheet Modal).
+  useEffect(() => {
+    if (open) listRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [open]);
+
   const reset = useCallback(() => {
     setDirty(false);
     setText('');
@@ -290,7 +295,7 @@ export function Combobox({
           role="listbox"
           aria-label={ariaLabel}
           aria-labelledby={ariaLabel ? undefined : inputId}
-          className="absolute left-0 right-0 top-full z-40 mt-1 max-h-64 overflow-auto rounded-xl border border-th-line bg-th-elevated shadow-pop"
+          className="absolute left-0 right-0 top-full z-40 mt-1 max-h-[min(16rem,40dvh)] overflow-auto rounded-xl border border-th-line bg-th-elevated shadow-pop"
         >
           {visible.map((o, i) => {
             const isSelected = selected?.value === o.value;

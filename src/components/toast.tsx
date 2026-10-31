@@ -199,8 +199,14 @@ export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps)
   const [polite, setPolite] = useState({ text: '', seq: 0 });
   const [assertive, setAssertive] = useState({ text: '', seq: 0 });
   const announced = useRef(new Set<number>());
-  const timers = useRef<{ pending: Set<ReturnType<typeof setTimeout>>; clear: { polite?: ReturnType<typeof setTimeout>; assertive?: ReturnType<typeof setTimeout> } }>({
-    pending: new Set(),
+  type Kind = 'polite' | 'assertive';
+  const timers = useRef<{
+    queue: Record<Kind, string[]>;
+    flush: { polite?: ReturnType<typeof setTimeout>; assertive?: ReturnType<typeof setTimeout> };
+    clear: { polite?: ReturnType<typeof setTimeout>; assertive?: ReturnType<typeof setTimeout> };
+  }>({
+    queue: { polite: [], assertive: [] },
+    flush: {},
     clear: {},
   });
 
@@ -208,26 +214,26 @@ export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps)
   // toast once (a region that mounts with its text is often skipped by screen readers).
   useEffect(() => {
     const t = timers.current;
-    const batch: Record<'polite' | 'assertive', string[]> = { polite: [], assertive: [] };
     for (const item of list) {
       if (announced.current.has(item.id)) continue;
       announced.current.add(item.id);
       const text = item.body ? `${item.title}. ${item.body}` : item.title;
-      batch[item.tone === 'error' ? 'assertive' : 'polite'].push(text);
+      t.queue[item.tone === 'error' ? 'assertive' : 'polite'].push(text);
     }
-    // Toasts added in the same batch are joined, and every write bumps seq so the keyed
-    // node is replaced and repeats of the same text are announced again.
+    // Toasts that arrive within the same 100ms window, in one commit or several, share one
+    // pending buffer per kind and are joined into a single write. Every write bumps seq so
+    // the keyed node is replaced and repeats of the same text are announced again.
     for (const kind of ['polite', 'assertive'] as const) {
-      if (batch[kind].length === 0) continue;
-      const text = batch[kind].join('. ');
+      if (t.queue[kind].length === 0 || t.flush[kind] !== undefined) continue;
       const write = kind === 'assertive' ? setAssertive : setPolite;
-      const handle = setTimeout(() => {
-        t.pending.delete(handle);
+      t.flush[kind] = setTimeout(() => {
+        t.flush[kind] = undefined;
+        const text = t.queue[kind].join('. ');
+        t.queue[kind] = [];
         write((p) => ({ text, seq: p.seq + 1 }));
         clearTimeout(t.clear[kind]);
         t.clear[kind] = setTimeout(() => write((p) => ({ text: '', seq: p.seq + 1 })), 5_000);
       }, 100);
-      t.pending.add(handle);
     }
     const live = new Set(list.map((i) => i.id));
     announced.current.forEach((id) => {
@@ -237,8 +243,10 @@ export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps)
   useEffect(() => {
     const t = timers.current;
     return () => {
-      t.pending.forEach(clearTimeout);
-      t.pending.clear();
+      clearTimeout(t.flush.polite);
+      clearTimeout(t.flush.assertive);
+      t.flush = {};
+      t.queue = { polite: [], assertive: [] };
       clearTimeout(t.clear.polite);
       clearTimeout(t.clear.assertive);
     };

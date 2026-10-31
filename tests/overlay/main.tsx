@@ -42,6 +42,16 @@ function Harness() {
           title="Nested question?"
           confirmLabel="Confirm nested"
           tone="primary"
+          body={
+            <Button
+              onClick={() => {
+                setNested(false);
+                setModal(false);
+              }}
+            >
+              Discard
+            </Button>
+          }
           onConfirm={() => setNested(false)}
           onCancel={() => setNested(false)}
         />

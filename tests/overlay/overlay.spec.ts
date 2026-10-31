@@ -31,6 +31,18 @@ test('Escape closes only the top layer', async ({ page }) => {
   await expect(modal(page)).toHaveCount(0);
 });
 
+test('closing the modal and its nested confirm in one update restores focus and clears inert', async ({ page }) => {
+  await open(page);
+  await openModal(page);
+  await expect.poll(() => page.evaluate(() => !!(history.state as any)?.nishLayer)).toBe(true);
+  await openNested(page);
+  await nested(page).getByRole('button', { name: 'Discard' }).click();
+  await expect(nested(page)).toHaveCount(0);
+  await expect(modal(page)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Open modal' })).toBeFocused();
+  await expect.poll(() => page.evaluate(() => document.querySelectorAll('body [inert]').length)).toBe(0);
+});
+
 test('Escape in an open DropdownMenu closes the menu only', async ({ page }) => {
   await open(page);
   await openModal(page);
