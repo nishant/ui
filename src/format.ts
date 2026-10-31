@@ -208,6 +208,7 @@ export function ago(t: DateInput | null | undefined, o: { now?: number; style?: 
 
 /** Newer ICU builds put a narrow no-break space before AM/PM; use a plain space. */
 function norm(s: string): string {
+  // eslint-disable-next-line no-irregular-whitespace -- the class holds literal U+202F and U+00A0 characters
   return s.replace(/[  ]/g, ' ');
 }
 

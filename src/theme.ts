@@ -540,6 +540,7 @@ export function openSheet(dialog: HTMLDialogElement): () => void {
   function closeNow(): void {
     if (closing || !dialog.open) return;
     closing = true;
+    // eslint-disable-next-line prefer-const -- assigned after `finish`, which the reduced-motion path calls first (a const would hit its TDZ)
     let timer: ReturnType<typeof setTimeout> | undefined;
     const finish = () => {
       dialog.removeEventListener('animationend', onEnd);

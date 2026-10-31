@@ -111,6 +111,7 @@ function useTokens(names: string[]): Record<string, string> {
   const { theme } = useTheme();
   const [values, setValues] = useState<Record<string, string>>({});
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
     setValues(Object.fromEntries(names.map((n) => [n, readToken(n)])));
   }, [theme]);
   return values;

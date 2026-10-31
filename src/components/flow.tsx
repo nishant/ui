@@ -264,6 +264,7 @@ export function FlowSteps({ steps, orientation = 'auto', label = 'Progress', cla
     const was = prevAll.current;
     prevAll.current = allDone;
     if (!allDone) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
       setSweeping(false);
       return;
     }

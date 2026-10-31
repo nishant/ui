@@ -87,7 +87,7 @@ function CountBadge({ value }: { value: number | boolean | undefined }) {
   return (
     <span
       aria-label={`${value} new`}
-      className="absolute -right-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-th-loss px-1 text-[10px] font-semibold leading-none tabular-nums text-th-on-loss ring-2 ring-th-surface"
+      className="absolute -right-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-th-loss px-1 text-3xs font-semibold leading-none tabular-nums text-th-on-loss ring-2 ring-th-surface"
     >
       {value > 99 ? '99+' : value}
     </span>
@@ -235,7 +235,7 @@ export function BottomNav({ items, more, trailing, hideFrom = 'md', label = 'Sec
 
   const pill = (active: boolean) =>
     cn(
-      'flex w-full flex-col items-center gap-0.5 rounded-xl py-1 text-[11px] leading-tight transition-colors',
+      'flex w-full flex-col items-center gap-0.5 rounded-xl py-1 text-2xs leading-tight transition-colors',
       active ? 'bg-th-accent-soft font-medium text-th-accent' : 'text-th-hi3',
     );
   const cell = cn('flex min-h-14 min-w-0 flex-1 items-center justify-center px-0.5 pointer-coarse:active:scale-[0.97] transition-transform', FOCUS);
@@ -389,7 +389,7 @@ export function NavRail({ items, tools, footer, showFrom = 'md', hideFrom = 'lg'
       {items.map((item) => {
         const node = renderItem(
           item,
-          cn('group flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-tight', FOCUS, item.active ? 'font-medium text-th-accent' : 'text-th-hi3 hover:text-th-hi'),
+          cn('group flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-2xs leading-tight', FOCUS, item.active ? 'font-medium text-th-accent' : 'text-th-hi3 hover:text-th-hi'),
           <>
             <span
               className={cn(
@@ -506,6 +506,7 @@ export function useScrollSpy(ids: string[], { rootMargin = '-45% 0px -50% 0px' }
 
   useEffect(() => {
     const list = key ? key.split('\u0000') : [];
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
     setActive((cur) => (cur != null && list.includes(cur) ? cur : (list[0] ?? null)));
     if (!list.length || typeof IntersectionObserver === 'undefined') return;
     const inBand = new Set<string>();

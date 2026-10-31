@@ -228,6 +228,7 @@ function Shell() {
   useEffect(() => {
     document.title = `${title} · @nish/ui`;
     window.scrollTo(0, 0);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
     setDrawer(false);
   }, [route.path, title]);
 

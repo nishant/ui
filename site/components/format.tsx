@@ -130,6 +130,7 @@ function Try({ fn, value }: { fn: string; value: string }) {
     signed: signed(n),
     bytes: bytes(n),
     duration: duration(n),
+    // eslint-disable-next-line react-hooks/purity -- docs demo shows the current time on purpose
     ago: ago(Date.now() - n * 1000),
   };
   return (
