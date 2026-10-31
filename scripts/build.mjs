@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execSync } from 'node:child_process';
 import vm from 'node:vm';
 import { COLOR_ROLES, DEFAULT_THEME, SCALE, SHADOWS, SOFT_ROLES, THEMES } from '../src/tokens.mjs';
+import { TH_COLORS } from '../src/th-colors.mjs';
 import { buildComponentsCss } from './build-components.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -96,18 +97,6 @@ const componentsCss = buildComponentsCss(src, dist);
 
 // --- tailwind.css ------------------------------------------------------------------
 // Consumers: @import "tailwindcss"; @import "@nish/ui/tailwind.css";
-const twColors = [
-  ...COLOR_ROLES.filter((r) => !r.startsWith('chart-')).map((r) => [r, r]),
-  ...COLOR_ROLES.filter((r) => r.startsWith('chart-')).map((r) => [r, r]),
-  ...SOFT_ROLES.flatMap((r) => [[`${r}-soft`, `${r}-soft`], [`${r}-soft-solid`, `${r}-soft-solid`]]),
-  // Aliases for the names trading and nishboard already use.
-  ['gain', 'ok'],
-  ['danger', 'loss'],
-  ['2', 'hi2'],
-  ['3', 'hi3'],
-  ['bar', 'surface'],
-  ['focus', 'focus'],
-];
 const tailwindCss = [
   HEADER,
   '@import "./tokens.css";',
@@ -115,14 +104,18 @@ const tailwindCss = [
   '@import "./base.css" layer(base);',
   '',
   '/* Class names used by the components in this package. */',
-  '@source "./";',
+  // Only the shipped component JS (dist/*.js, chunks included). Not .map, .d.ts, theme.global.js
+  // or dist/node (the Vite plugin, ESLint preset and CLI): `*.js` does not reach subfolders.
+  '@source "./*.js";',
+  '@source not "./theme.global.js";',
+  '@source not "./node";',
   '',
   '/* dark: follows the active theme, not the OS. */',
   "@custom-variant dark (&:where([data-scheme='dark'], [data-scheme='dark'] *));",
   "@custom-variant light (&:where([data-scheme='light'], [data-scheme='light'] *));",
   '',
   '@theme inline {',
-  ...twColors.map(([name, role]) => `  --color-th-${name}: var(--nish-${role});`),
+  ...TH_COLORS.map(([name, role]) => `  --color-th-${name}: var(--nish-${role});`),
   // Dense type below text-xs (Nishboard widgets, table meta). cn() knows both sizes.
   ...['2xs', '3xs'].flatMap((s) => [`  --text-${s}: var(--nish-text-${s});`, `  --text-${s}--line-height: var(--nish-text-${s}-lh);`]),
   '  --font-sans: var(--nish-font-sans);',
@@ -162,6 +155,8 @@ testInit(init);
 writeFileSync(join(dist, 'theme-init.js'), init);
 
 testGlobal(readFileSync(join(dist, 'theme.global.js'), 'utf8'));
+testSourceScan();
+await testVitePlugin();
 
 // --- tokens.js: @nish/ui/tokens, plain data for Node scripts (no React) ------------
 // src/tokens.mjs imports nothing, so it ships as is, with its hand-written types.
@@ -178,6 +173,24 @@ writeFileSync(
 );
 
 console.log('built dist/');
+
+/** dist/tailwind.css must scan only the shipped component JS, never all of dist (that pulled in
+ *  .map files with sourcesContent and .d.ts files, which minted classes nothing uses). */
+function testSourceScan() {
+  const css = readFileSync(join(dist, 'tailwind.css'), 'utf8');
+  if (css.includes('@source "./";')) throw new Error('dist/tailwind.css must not scan all of dist (@source "./")');
+  if (!css.includes('@source "./*.js";')) throw new Error('dist/tailwind.css must scan dist/*.js');
+}
+
+/** @nish/ui/vite must inject dist/theme-init.js as the first thing in <head>. */
+async function testVitePlugin() {
+  const { nishThemeInit } = await import(pathToFileURL(join(dist, 'node/vite.js')).href);
+  const tags = nishThemeInit().transformIndexHtml.handler('<html><head></head></html>');
+  const want = readFileSync(join(dist, 'theme-init.js'), 'utf8').trim();
+  if (!Array.isArray(tags) || tags.length !== 1 || tags[0].children !== want || tags[0].injectTo !== 'head-prepend') {
+    throw new Error('dist/node/vite.js: nishThemeInit() must inject dist/theme-init.js once, at head-prepend');
+  }
+}
 
 /** @nish/ui/tokens must load in plain Node with nothing else installed: it may not
  *  import anything, and it must carry the documented exports. */

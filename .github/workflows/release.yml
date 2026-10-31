@@ -1,0 +1,40 @@
+name: release
+# Cuts a release from master: gh workflow run release.yml -R nishant/ui -f bump=minor
+# The CHANGELOG entry for the new version must already be on master.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'patch, minor, major or x.y.z'
+        required: true
+        default: patch
+        type: string
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Git identity
+        run: |
+          git config user.name "ui release"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ inputs.bump }}
+        run: node scripts/release.mjs "$BUMP" --ci

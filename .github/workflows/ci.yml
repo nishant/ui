@@ -16,7 +16,10 @@ jobs:
       # typecheck, WCAG contrast for every theme, build
       - run: npm run check
       - run: npm run test:tools
+      - run: npm run test:unit
       - run: npx playwright install --with-deps chromium
+      - name: Overlay interaction specs
+        run: npx playwright test
       - name: Visual check of the demo gallery
         run: |
           npx vite --config demo/vite.config.ts --port 5190 &
@@ -32,4 +35,6 @@ jobs:
         if: always()
         with:
           name: visual-out
-          path: visual-out
+          path: |
+            visual-out
+            test-results

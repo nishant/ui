@@ -19,22 +19,35 @@ export function useMediaQuery(query: string): boolean {
 
 export type Breakpoint = 'base' | 'sm' | 'md' | 'lg' | 'xl';
 
-const BREAKPOINTS: [Exclude<Breakpoint, 'base'>, string][] = [
-  ['xl', '(min-width: 1280px)'],
-  ['lg', '(min-width: 1024px)'],
-  ['md', '(min-width: 768px)'],
-  ['sm', '(min-width: 640px)'],
-];
+/** Tailwind's breakpoints, in px. Phone = below sm; narrow = below md (cover screen and small tablets). */
+export const BREAKPOINTS = { sm: 640, md: 768, lg: 1024, xl: 1280 } as const;
+export const PHONE_QUERY = '(max-width: 639.98px)';
+export const NARROW_QUERY = '(max-width: 767.98px)';
+
+const BREAKPOINT_QUERIES: [Exclude<Breakpoint, 'base'>, string][] = (['xl', 'lg', 'md', 'sm'] as const).map((name) => [
+  name,
+  `(min-width: ${BREAKPOINTS[name]}px)`,
+]);
+
+/** True below 640px (the Fold's cover screen, any phone held upright). */
+export function usePhone(): boolean {
+  return useMediaQuery(PHONE_QUERY);
+}
+
+/** True below 768px: where BottomNav shows and NavRail hides. */
+export function useNarrow(): boolean {
+  return useMediaQuery(NARROW_QUERY);
+}
 
 function currentBreakpoint(): Breakpoint {
   if (typeof window === 'undefined' || !window.matchMedia) return 'base';
-  for (const [name, q] of BREAKPOINTS) if (window.matchMedia(q).matches) return name;
+  for (const [name, q] of BREAKPOINT_QUERIES) if (window.matchMedia(q).matches) return name;
   return 'base';
 }
 
 function subscribeBreakpoint(onChange: () => void): () => void {
   if (typeof window === 'undefined' || !window.matchMedia) return () => {};
-  const lists = BREAKPOINTS.map(([, q]) => window.matchMedia(q));
+  const lists = BREAKPOINT_QUERIES.map(([, q]) => window.matchMedia(q));
   lists.forEach((l) => l.addEventListener('change', onChange));
   return () => lists.forEach((l) => l.removeEventListener('change', onChange));
 }

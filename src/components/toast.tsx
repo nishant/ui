@@ -1,4 +1,4 @@
-import { useRef, useSyncExternalStore, type CSSProperties, type FocusEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type FocusEvent, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../cn';
 import { AlertTriangleIcon, CheckCircleIcon, InfoIcon, XIcon } from './icons';
@@ -196,11 +196,53 @@ const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
  *  the screen on phones while a sheet or dialog is open (html[data-nish-layer-open]). */
 export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps) {
   const list = useToasts();
+  const [polite, setPolite] = useState('');
+  const [assertive, setAssertive] = useState('');
+  const announced = useRef(new Set<number>());
+  const timers = useRef<{ pending: Set<ReturnType<typeof setTimeout>>; clear: { polite?: ReturnType<typeof setTimeout>; assertive?: ReturnType<typeof setTimeout> } }>({
+    pending: new Set(),
+    clear: {},
+  });
+
+  // Visible cards carry no live role; these two always-mounted regions announce each new
+  // toast once (a region that mounts with its text is often skipped by screen readers).
+  useEffect(() => {
+    const t = timers.current;
+    for (const item of list) {
+      if (announced.current.has(item.id)) continue;
+      announced.current.add(item.id);
+      const text = item.body ? `${item.title}. ${item.body}` : item.title;
+      const kind = item.tone === 'error' ? 'assertive' : 'polite';
+      const write = kind === 'assertive' ? setAssertive : setPolite;
+      const handle = setTimeout(() => {
+        t.pending.delete(handle);
+        write(text);
+        clearTimeout(t.clear[kind]);
+        t.clear[kind] = setTimeout(() => write(''), 5_000);
+      }, 100);
+      t.pending.add(handle);
+    }
+    const live = new Set(list.map((i) => i.id));
+    announced.current.forEach((id) => {
+      if (!live.has(id)) announced.current.delete(id);
+    });
+  }, [list]);
+  useEffect(() => {
+    const t = timers.current;
+    return () => {
+      t.pending.forEach(clearTimeout);
+      t.pending.clear();
+      clearTimeout(t.clear.polite);
+      clearTimeout(t.clear.assertive);
+    };
+  }, []);
+
   if (typeof document === 'undefined') return null;
   const style = offset ? ({ '--nish-toast-offset': offset } as CSSProperties) : undefined;
   return createPortal(
     <div
       style={style}
+      data-nish-keep-active=""
       className={cn(
         'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-3',
         'pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+8px),calc(12px+env(safe-area-inset-bottom))))]',
@@ -210,6 +252,12 @@ export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps)
         className,
       )}
     >
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {polite}
+      </div>
+      <div role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">
+        {assertive}
+      </div>
       {list.map((t) => (
         <ToastCard key={t.id} t={t} />
       ))}
@@ -299,7 +347,6 @@ function ToastCard({ t }: { t: ToastItem }) {
   return (
     <div
       ref={ref}
-      role={t.tone === 'error' ? 'alert' : 'status'}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}

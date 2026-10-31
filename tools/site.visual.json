@@ -54,6 +54,41 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "app-shell",
+      "url": "http://localhost:5191/#/components/app-shell",
+      "waitFor": "[data-page]",
+      "settle": 800
+    },
+    {
+      "name": "filter-bar",
+      "url": "http://localhost:5191/#/components/filter-bar",
+      "waitFor": "[data-page]",
+      "settle": 800
+    },
+    {
+      "name": "settings",
+      "url": "http://localhost:5191/#/components/settings",
+      "waitFor": "[data-page]",
+      "settle": 800
+    },
+    {
+      "name": "combobox",
+      "url": "http://localhost:5191/#/components/combobox",
+      "waitFor": "[data-page]",
+      "settle": 800
+    },
+    {
+      "name": "use-resource",
+      "url": "http://localhost:5191/#/components/use-resource",
+      "waitFor": "[data-page]",
+      "settle": 800
+    },
+    {
+      "name": "icons",
+      "url": "http://localhost:5191/#/icons",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "patterns",
       "url": "http://localhost:5191/#/patterns",
       "waitFor": "[data-page]"

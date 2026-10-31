@@ -11,8 +11,11 @@ import { textarea } from './textarea';
 import { checkbox } from './checkbox';
 import { field } from './field';
 import { fieldGroup } from './field-group';
+import { settingsDoc } from './settings';
 import { switchDoc } from './switch';
 import { searchInput } from './search-input';
+import { filterBar } from './filter-bar';
+import { combobox } from './combobox';
 import { select } from './select';
 import { label } from './label';
 import { skeleton } from './skeleton';
@@ -62,12 +65,15 @@ import { stickyBar } from './sticky-bar';
 import { stickyActionBar } from './sticky-action-bar';
 import { loadingBar } from './loading-bar';
 import { pageContainer } from './page-container';
+import { appShell } from './app-shell';
 import { connectionBanner } from './connection-banner';
 import { responsiveTable } from './responsive-table';
 import { listRow } from './list-row';
 import { linkCard } from './link-card';
 import { favicon } from './favicon';
 import { asyncPanel } from './async-panel';
+import { useResourceDoc } from './use-resource';
+import { appErrorBoundary } from './app-error-boundary';
 import { skeletonPresets } from './skeleton-presets';
 import { lineChart } from './line-chart';
 import { barChart } from './bar-chart';
@@ -86,6 +92,7 @@ import { format } from './format';
 import { hooks } from './hooks';
 import { layoutContract } from './layout-contract';
 import { staticParity } from './static-parity';
+import { vitePlugin } from './vite-plugin';
 import type { ComponentDoc } from './types';
 
 export type { Control, Story, ComponentDoc } from './types';
@@ -102,8 +109,11 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   checkbox,
   field,
   fieldGroup,
+  settingsDoc,
   switchDoc,
   searchInput,
+  filterBar,
+  combobox,
   select,
   label,
   skeleton,
@@ -153,12 +163,15 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   stickyActionBar,
   loadingBar,
   pageContainer,
+  appShell,
   connectionBanner,
   responsiveTable,
   listRow,
   linkCard,
   favicon,
   asyncPanel,
+  useResourceDoc,
+  appErrorBoundary,
   skeletonPresets,
   lineChart,
   barChart,
@@ -177,4 +190,5 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   hooks,
   layoutContract,
   staticParity,
+  vitePlugin,
 ];

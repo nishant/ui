@@ -5,3 +5,7 @@ visual-out/
 *.log
 .DS_Store
 site-dist/
+
+test-results/
+playwright-report/
+visual-out/
