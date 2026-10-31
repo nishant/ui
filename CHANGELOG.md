@@ -4,7 +4,13 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
-## [Unreleased]
+## [1.0.2] - 2026-10-31
+
+### Fixed
+
+- `@nish/ui/vite`: `nishThemeInit()` now defaults to `position: 'auto'`, which puts the script right after `<meta charset>` when the page has one. Before, the default prepended about 2.6 KB to `<head>` and pushed the charset past the first 1024 bytes, where HTML requires it. `head-prepend` and `after-charset` still do what they say.
+- `@nish/ui/vite`: whole-line `//` comments in theme-init.js are no longer inlined into every page's render-blocking script.
+- `@nish/ui/eslint`: `nish/no-legacy-th-alias` no longer flags `th-focus`, which is the focus ring role (`--nish-focus`), not a legacy alias.
 
 ### Changed
 
