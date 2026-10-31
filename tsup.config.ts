@@ -4,8 +4,10 @@ import { defineConfig, type Options } from 'tsup';
 // @nish/ui/chart (src/chart.ts): chart colors and tooltip styles with no chart library
 // and no React. Built whenever the source exists. (The React-free @nish/ui/tokens entry
 // is src/tokens.mjs copied as is by scripts/build.mjs.)
-const entry: Record<string, string> = { index: 'src/index.ts', format: 'src/format.ts', 'inbox-client': 'src/inbox-client.ts' };
-if (existsSync('src/chart.ts')) entry.chart = 'src/chart.ts';
+// format, chart and inbox-client stand alone (no chunk imports): hosting's static pages vendor
+// dist/format.js as one file, so a shared chunk would 404 there (v1.0.0 shipped that bug).
+const standalone: Record<string, string> = { format: 'src/format.ts', 'inbox-client': 'src/inbox-client.ts' };
+if (existsSync('src/chart.ts')) standalone.chart = 'src/chart.ts';
 
 // Node-only entries (Vite plugin, ESLint preset, th-check CLI) build to dist/node/.
 // They import nothing from React and Tailwind does not scan them. Each is built only when
@@ -26,9 +28,8 @@ if (existsSync('src/node/eslint.ts')) nodeEntry['node/eslint'] = 'src/node/eslin
 
 const configs: Options[] = [
   {
-    // React/browser ESM. Chunks are shared between entries (splitting) so code used by
-    // more than one entry is bundled once.
-    entry,
+    // The React entry on its own, with code splitting.
+    entry: { index: 'src/index.ts' },
     format: ['esm'],
     dts: true,
     sourcemap: true,
@@ -40,8 +41,8 @@ const configs: Options[] = [
     splitting: true,
   },
   {
-    // theme.js must stand alone: static sites vendor that one file with no chunks.
-    entry: { theme: 'src/theme.ts' },
+    // theme.js and the small entries must stand alone: static sites vendor them as single files.
+    entry: { theme: 'src/theme.ts', ...standalone },
     format: ['esm'],
     dts: true,
     sourcemap: true,

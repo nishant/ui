@@ -4,6 +4,13 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.0.1] - 2026-10-31
+
+### Fixed
+
+- `dist/format.js`, `dist/chart.js` and `dist/inbox-client.js` stand alone again. In 1.0.0 they imported a shared chunk, so a static site that vendors `format.js` as one file (hosting's trips, demos and minecraft pages) got a 404. Only the React entry (`index.js`) uses code splitting now, and the build fails if a vendorable file imports a chunk.
+- `@nish/ui/server`: the inbox action guard accepts `sec-fetch-mode: cors`, which Node's fetch always sends, so inbox item buttons work. It still refuses browser requests (`sec-fetch-site`, `sec-fetch-dest`, `sec-fetch-user`).
+
 ## [1.0.0] - 2026-10-31
 
 1.0: the API is stable. From here a major release means app code must change, a minor adds, and a patch fixes. This release is a major only by that policy: nothing was removed or renamed, so no app has to change code to move to it.
