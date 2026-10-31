@@ -12,7 +12,7 @@ export type HeaderBag = Headers | Record<string, string | string[] | undefined>;
 
 const LOOPBACK_PEERS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const FORBIDDEN_HEADERS = ['forwarded', 'via', 'x-real-ip', 'true-client-ip', 'cdn-loop', 'origin'];
-const FORBIDDEN_PREFIXES = ['x-forwarded-', 'sec-fetch-', 'cf-'];
+const FORBIDDEN_PREFIXES = ['x-forwarded-', 'cf-'];
 const ACTION_ID_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const HASH_RE = /^[0-9a-f]{64}$/;
 
@@ -38,7 +38,9 @@ function headerValue(headers: HeaderBag, name: string): string | undefined {
 /** True only when every rule holds:
  *  remoteAddress is 127.0.0.1, ::1 or ::ffff:127.0.0.1; header host === `127.0.0.1:${port}`;
  *  none of these headers is present: forwarded, via, x-real-ip, true-client-ip, cdn-loop, origin, and any name
- *  starting with x-forwarded-, sec-fetch- or cf-; header x-inbox-action === '1'.
+ *  starting with x-forwarded- or cf-; no sec-fetch-* header (site, dest, user: browsers only) except
+ *  sec-fetch-mode with the exact value 'cors', which Node's own fetch (undici) always sends;
+ *  header x-inbox-action === '1'.
  *  Header names compared lowercase; Headers and Node IncomingHttpHeaders both accepted. */
 export function isInboxCall(req: { headers: HeaderBag; remoteAddress: string | null | undefined; port: number }): boolean {
   if (!req.remoteAddress || !LOOPBACK_PEERS.has(req.remoteAddress)) return false;
@@ -46,6 +48,7 @@ export function isInboxCall(req: { headers: HeaderBag; remoteAddress: string | n
   for (const name of headerNames(req.headers)) {
     if (FORBIDDEN_HEADERS.includes(name)) return false;
     if (FORBIDDEN_PREFIXES.some((p) => name.startsWith(p))) return false;
+    if (name.startsWith('sec-fetch-') && !(name === 'sec-fetch-mode' && headerValue(req.headers, name) === 'cors')) return false;
   }
   return headerValue(req.headers, 'x-inbox-action') === '1';
 }

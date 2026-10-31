@@ -474,7 +474,7 @@ test('isInboxCall: plain object headers', () => {
   assert.equal(call({ ...goodHeaders, 'x-inbox-action': 'true' }), false);
   for (const name of [
     'forwarded', 'via', 'x-real-ip', 'true-client-ip', 'origin', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto',
-    'sec-fetch-site', 'sec-fetch-mode', 'cf-connecting-ip', 'cf-ray', 'CF-Visitor', 'X-Forwarded-For',
+    'sec-fetch-site', 'sec-fetch-dest', 'sec-fetch-user', 'sec-fetch-mode', 'cf-connecting-ip', 'cf-ray', 'CF-Visitor', 'X-Forwarded-For',
   ]) {
     assert.equal(call({ ...goodHeaders, [name]: 'x' }), false, name);
   }
@@ -484,12 +484,23 @@ test('isInboxCall: plain object headers', () => {
   assert.equal(call({ ...goodHeaders, 'x-inbox-action': ['1'] }), true);
 });
 
+test("isInboxCall: accepts the headers Node 24's fetch sends", () => {
+  const nodeFetch = { ...goodHeaders, accept: '*/*', 'accept-language': '*', 'sec-fetch-mode': 'cors', 'user-agent': 'node', 'accept-encoding': 'gzip, deflate' };
+  assert.equal(call(nodeFetch), true);
+  assert.equal(call(new Headers(nodeFetch)), true);
+  assert.equal(call({ ...nodeFetch, 'sec-fetch-mode': 'no-cors' }), false);
+  assert.equal(call({ ...nodeFetch, 'sec-fetch-site': 'same-origin' }), false);
+  assert.equal(call({ ...nodeFetch, 'sec-fetch-dest': 'empty' }), false);
+  assert.equal(call({ ...nodeFetch, 'sec-fetch-user': '?1' }), false);
+});
+
 test('isInboxCall: Headers object', () => {
   const mk = (extra = {}) => new Headers({ ...goodHeaders, ...extra });
   assert.equal(call(mk()), true);
   assert.equal(call(mk({ 'X-Forwarded-For': '1.2.3.4' })), false);
   assert.equal(call(mk({ Origin: 'https://evil.example' })), false);
-  assert.equal(call(mk({ 'Sec-Fetch-Mode': 'cors' })), false);
+  assert.equal(call(mk({ 'Sec-Fetch-Mode': 'navigate' })), false);
+  assert.equal(call(mk({ 'Sec-Fetch-Site': 'same-origin' })), false);
   assert.equal(call(mk({ 'CF-Connecting-IP': '1.2.3.4' })), false);
   assert.equal(call(mk({ Via: '1.1 proxy' })), false);
   assert.equal(call(mk({ host: '127.0.0.1:1' })), false);
