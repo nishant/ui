@@ -917,6 +917,7 @@ function useAnchoredPosition(
 
   useLayoutEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
       setPos(null);
       return;
     }
@@ -1350,6 +1351,7 @@ function usePhoneViewport(enabled: boolean): boolean {
   const [phone, setPhone] = useState(() => enabled && isPhoneViewport());
   useEffect(() => {
     if (!enabled || typeof window.matchMedia !== 'function') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
       setPhone(false);
       return;
     }

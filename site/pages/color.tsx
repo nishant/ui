@@ -42,6 +42,7 @@ const GROUPS: { title: string; note: string; roles: Role[] }[] = [
       { role: 'accent', purpose: 'Links, primary buttons, active nav, focus ring', cls: 'text-th-accent' },
       { role: 'accent-soft', purpose: 'Accent at 14%: selected rows, active nav, accent badges', cls: 'bg-th-accent-soft', soft: true },
       { role: 'accent2', purpose: 'A second accent for paired highlights', cls: 'text-th-accent2' },
+      // eslint-disable-next-line nish/no-legacy-th-alias -- `focus` is a real role (th-colors.mjs); the rule's legacy list also matches it
       { role: 'focus', purpose: 'Keyboard focus ring (follows accent)', cls: 'ring-th-focus' },
     ],
   },
@@ -111,6 +112,7 @@ function useTokens(names: string[]): Record<string, string> {
   const { theme } = useTheme();
   const [values, setValues] = useState<Record<string, string>>({});
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
     setValues(Object.fromEntries(names.map((n) => [n, readToken(n)])));
   }, [theme]);
   return values;

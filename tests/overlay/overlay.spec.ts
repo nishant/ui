@@ -34,6 +34,7 @@ test('Escape closes only the top layer', async ({ page }) => {
 test('closing the modal and its nested confirm in one update restores focus and clears inert', async ({ page }) => {
   await open(page);
   await openModal(page);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reads an untyped history.state inside the page
   await expect.poll(() => page.evaluate(() => !!(history.state as any)?.nishLayer)).toBe(true);
   await openNested(page);
   await nested(page).getByRole('button', { name: 'Discard' }).click();
@@ -116,6 +117,7 @@ test('Back closes the top layer and leaves history as it was', async ({ page }) 
   // With a nested confirm, Back closes only the confirm.
   await open(page);
   await openModal(page);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reads an untyped history.state inside the page
   await expect.poll(() => page.evaluate(() => !!(history.state as any)?.nishLayer)).toBe(true);
   const lengthModal = await page.evaluate(() => history.length);
   await openNested(page);

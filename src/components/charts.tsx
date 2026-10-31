@@ -35,6 +35,7 @@ function useWidth<T extends HTMLElement>(): [(el: T | null) => void, number, T |
   const [width, setWidth] = useState(0);
   useEffect(() => {
     if (!el) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
       setWidth(0);
       return;
     }

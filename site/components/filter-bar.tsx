@@ -42,6 +42,7 @@ function useMemoryAdapter(): UrlStateAdapter {
     return {
       get: () => new URLSearchParams(params),
       set(next) {
+        // eslint-disable-next-line react-hooks/immutability -- params is a local URLSearchParams variable reassigned inside a handler, not React state
         params = new URLSearchParams(next);
         listeners.forEach((l) => l());
       },

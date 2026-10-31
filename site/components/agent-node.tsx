@@ -31,6 +31,7 @@ function Live() {
   useEffect(() => {
     if (current) return;
     const next = demo.agents.find((x) => x.state === 'running');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
     if (next) setPinned(next.id);
   }, [current, demo.agents]);
 

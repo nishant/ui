@@ -343,6 +343,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
     inputRef.current?.focus();
   }, []);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
     setActive(0);
   }, [query, flat.length]);
   useEffect(() => {

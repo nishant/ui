@@ -131,6 +131,7 @@ export function LoadingBar({ active, delayMs = 200, top = 'var(--nish-header-h, 
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (!active) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
       setShown(false);
       return;
     }
@@ -242,6 +243,7 @@ export function ConnectionBanner({
   useEffect(() => {
     if (!healthUrl) {
       probeRef.current = null;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
       setReachable(true);
       return;
     }

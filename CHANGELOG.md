@@ -4,6 +4,13 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [Unreleased]
+
+### Changed
+
+- ESLint runs over ui itself with its own `@nish/ui/eslint` preset (`npm run lint`, part of `npm run check`).
+- `BottomNav` and `MoreSheet` use the `text-2xs` and `text-3xs` scale classes instead of `text-[11px]` and `text-[10px]` (same sizes).
+
 ## [1.0.1] - 2026-10-31
 
 ### Fixed

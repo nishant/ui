@@ -33,7 +33,7 @@ test('rewritePin keeps formatting and rewrites the whole spec to the codeload ta
     before.replace('github:nishant/ui#v0.7.0', 'https://codeload.github.com/nishant/ui/tar.gz/refs/tags/v0.7.1'),
   );
   const tabs = '{\n\t"dependencies": {\n\t\t"@nish/ui" :   "github:nishant/ui#v0.7.0"\n\t}\n}';
-  assert.match(rewritePin('npm', tabs, 'v0.7.1'), /"@nish\/ui" :   "https:\/\/codeload\.github\.com\/nishant\/ui\/tar\.gz\/refs\/tags\/v0\.7\.1"/);
+  assert.match(rewritePin('npm', tabs, 'v0.7.1'), /"@nish\/ui" : {3}"https:\/\/codeload\.github\.com\/nishant\/ui\/tar\.gz\/refs\/tags\/v0\.7\.1"/);
 });
 test('rewritePin: vendored and devDependencies', () => {
   assert.equal(rewritePin('vendored', '{\n  "tag": "v0.7.0",\n  "x": 1\n}', 'v0.7.1'), '{\n  "tag": "v0.7.1",\n  "x": 1\n}');

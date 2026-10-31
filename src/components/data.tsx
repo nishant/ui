@@ -536,6 +536,7 @@ export function Favicon({ url, size = 16, label, className }: FaviconProps) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
     setFailed(false);
     setLoaded(false);
   }, [host]);
