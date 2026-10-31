@@ -153,7 +153,9 @@ export function parseInboxEvent(input: unknown): { ok: true; value: InboxEvent }
 export interface InboxClientOptions {
   /** Which app is sending, for example 'trackers'. Same rules as `InboxEventInput.source`. */
   source: string;
-  /** Service address. Defaults to `process.env.INBOX_URL`, then 'http://127.0.0.1:8805'; 'off' disables the client. */
+  /** Service address. Defaults to `process.env.INBOX_URL`, then 'http://127.0.0.1:8805'; 'off' disables the client.
+   *  A dev checkout (started by an npm script, NODE_ENV not 'production', no url and no INBOX_URL) is off too,
+   *  so local runs and tests never post to the live inbox. */
   url?: string;
   /** Request timeout in milliseconds. Default 3000. */
   timeoutMs?: number;
@@ -187,17 +189,20 @@ const DEFAULT_URL = 'http://127.0.0.1:8805';
 type Attempt =
   | { kind: 'ok'; id: number | null; action: InboxIngestAction }
   | { kind: 'rejected'; error: string }
-  | { kind: 'failed'; error: string };
+  | { kind: 'failed'; error: string; retryAfterMs?: number };
 
 /** Creates a client that sends events to the inbox service without ever throwing or blocking the caller's work. */
 export function createInboxClient(options: InboxClientOptions): InboxClient {
   const sourceId = options.source;
-  const envUrl = typeof process !== 'undefined' ? process.env?.INBOX_URL : undefined;
+  const env = typeof process !== 'undefined' ? process.env : undefined;
+  const envUrl = env?.INBOX_URL;
+  const devOff = options.url === undefined && !envUrl && !!env?.npm_lifecycle_event && env?.NODE_ENV !== 'production';
   const baseUrl = (options.url ?? (envUrl || DEFAULT_URL)).trim();
-  const disabled = baseUrl === 'off';
+  const disabled = baseUrl === 'off' || devOff;
   const endpoint = `${baseUrl.replace(/\/+$/, '')}/ingest/events`;
   const timeoutMs = options.timeoutMs ?? 3000;
   const log = options.log ?? ((message: string) => console.warn(`[inbox] ${message}`));
+  if (devOff) log('off outside production; set INBOX_URL to send');
 
   const queue: InboxEvent[] = [];
   const loggedInvalid = new Set<string>();
@@ -207,6 +212,15 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
   let retryStep = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let flushing: Promise<void> | null = null;
+  let retryAfterMs = 0;
+  // Every send and every queue flush runs on this one chain, in call order, so two requests are
+  // never in flight and a later event can never reach the inbox before an earlier one.
+  let chain: Promise<unknown> = Promise.resolve();
+  function serial<T>(fn: () => Promise<T>): Promise<T> {
+    const run = chain.then(fn, fn);
+    chain = run.catch(() => undefined);
+    return run;
+  }
 
   async function attempt(event: InboxEvent): Promise<Attempt> {
     const doFetch = options.fetch ?? globalThis.fetch;
@@ -231,6 +245,11 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
         const action = isPlainObject(first) && typeof first.action === 'string' ? (first.action as InboxIngestAction) : 'ignored';
         return { kind: 'ok', id, action };
       }
+      if (res.status === 429) {
+        // Rate limited: retry later like a network failure, no sooner than Retry-After (seconds).
+        const ra = Number(res.headers?.get?.('retry-after'));
+        return { kind: 'failed', error: 'HTTP 429', retryAfterMs: Number.isFinite(ra) && ra > 0 ? Math.min(ra, 3600) * 1000 : undefined };
+      }
       if (res.status >= 400 && res.status < 500) {
         const message = isPlainObject(body) && typeof body.error === 'string' ? body.error : `HTTP ${res.status}`;
         return { kind: 'rejected', error: message };
@@ -246,7 +265,8 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
 
   function schedule(): void {
     if (timer !== null || queue.length === 0) return;
-    const delay = RETRY_DELAYS_MS[Math.min(retryStep, RETRY_DELAYS_MS.length - 1)];
+    const delay = Math.max(RETRY_DELAYS_MS[Math.min(retryStep, RETRY_DELAYS_MS.length - 1)], retryAfterMs);
+    retryAfterMs = 0;
     timer = setTimeout(() => {
       timer = null;
       void flush();
@@ -282,6 +302,7 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
       const result = await attempt(head);
       if (result.kind === 'failed') {
         retryStep++;
+        retryAfterMs = result.retryAfterMs ?? 0;
         schedule();
         return;
       }
@@ -298,7 +319,7 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
 
   function flush(): Promise<void> {
     if (!flushing) {
-      flushing = drain()
+      flushing = serial(drain)
         .catch(() => undefined)
         .finally(() => {
           flushing = null;
@@ -307,7 +328,7 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
     return flushing;
   }
 
-  async function send(event: Omit<InboxEventInput, 'source'>): Promise<InboxSendResult> {
+  async function sendNow(event: Omit<InboxEventInput, 'source'>): Promise<InboxSendResult> {
     try {
       const parsed = parseInboxEvent({ ...event, source: sourceId });
       if (!parsed.ok) {
@@ -328,12 +349,15 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
         return { ok: true, id: result.id, action: result.action };
       }
       if (result.kind === 'rejected') return { ok: false, error: result.error, queued: false };
+      retryAfterMs = result.retryAfterMs ?? 0;
       enqueue(parsed.value);
       return { ok: false, error: result.error, queued: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err), queued: false };
     }
   }
+
+  const send = (event: Omit<InboxEventInput, 'source'>): Promise<InboxSendResult> => serial(() => sendNow(event));
 
   return {
     send,

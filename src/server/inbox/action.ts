@@ -11,7 +11,7 @@ export const inboxActionTarget = (port: number, path?: string) => `http://127.0.
 export type HeaderBag = Headers | Record<string, string | string[] | undefined>;
 
 const LOOPBACK_PEERS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
-const FORBIDDEN_HEADERS = ['forwarded', 'via', 'x-real-ip', 'true-client-ip', 'origin'];
+const FORBIDDEN_HEADERS = ['forwarded', 'via', 'x-real-ip', 'true-client-ip', 'cdn-loop', 'origin'];
 const FORBIDDEN_PREFIXES = ['x-forwarded-', 'sec-fetch-', 'cf-'];
 const ACTION_ID_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const HASH_RE = /^[0-9a-f]{64}$/;
@@ -37,7 +37,7 @@ function headerValue(headers: HeaderBag, name: string): string | undefined {
 
 /** True only when every rule holds:
  *  remoteAddress is 127.0.0.1, ::1 or ::ffff:127.0.0.1; header host === `127.0.0.1:${port}`;
- *  none of these headers is present: forwarded, via, x-real-ip, true-client-ip, origin, and any name
+ *  none of these headers is present: forwarded, via, x-real-ip, true-client-ip, cdn-loop, origin, and any name
  *  starting with x-forwarded-, sec-fetch- or cf-; header x-inbox-action === '1'.
  *  Header names compared lowercase; Headers and Node IncomingHttpHeaders both accepted. */
 export function isInboxCall(req: { headers: HeaderBag; remoteAddress: string | null | undefined; port: number }): boolean {

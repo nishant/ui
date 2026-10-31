@@ -163,7 +163,7 @@ export const INBOX_DEFAULT_SETTINGS: InboxSettings = {
 
 /** Display names for known sources; unknown ids show as-is. */
 export const INBOX_SOURCE_LABELS: Record<string, string> = {
-  trading: 'Trading', trackers: 'Trackers', 'job-apps': 'Jobs', status: 'Status', ci: 'CI', 'mc-packs': 'Packs',
+  trading: 'Trading', trackers: 'Trackers', 'job-apps': 'Jobs', status: 'Status', ci: 'CI', 'mc-packs': 'Packs', workflows: 'Workflows',
 };
 
 /** One page of the item list plus counts for the tabs and source filter. */

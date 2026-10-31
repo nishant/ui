@@ -338,4 +338,64 @@ const okResponse = (status = 200, body = { results: [{ id: 7, action: 'created' 
   assert.equal(url, 'http://127.0.0.1:9999/ingest/events');
 }
 
+{
+  // Sends are serial and in call order: a slow first send finishes (and queues) before the second starts.
+  let inflight = 0;
+  let maxInflight = 0;
+  const order = [];
+  const slowThenFail = async (_u, init) => {
+    inflight++;
+    maxInflight = Math.max(maxInflight, inflight);
+    const title = JSON.parse(init.body).title;
+    order.push(title);
+    await new Promise((r) => setTimeout(r, 30));
+    inflight--;
+    if (title === 'down') throw new Error('offline');
+    return okResponse();
+  };
+  const c = createInboxClient({ source: 'a', url: 'http://x', fetch: slowThenFail, log: noLog });
+  const [a, b] = await Promise.all([c.send({ kind: 'k', title: 'down' }), c.send({ kind: 'k', title: 'up' })]);
+  await c.flush();
+  assert.equal(maxInflight, 1);
+  // The second send queued behind the first and its flush retried the head; 'up' never jumped ahead.
+  assert.deepEqual(order, ['down', 'down']);
+  assert.equal(a.queued, true);
+  assert.deepEqual(b, { ok: false, error: 'queued behind earlier events', queued: true });
+  assert.equal(c.pending, 2);
+}
+
+{
+  // HTTP 429 is retried later (queued), not rejected.
+  const c = createInboxClient({ source: 'a', url: 'http://x', fetch: async () => new Response('{}', { status: 429, headers: { 'Retry-After': '120' } }), log: noLog });
+  const r = await c.send({ kind: 'k', title: 't' });
+  assert.deepEqual(r, { ok: false, error: 'HTTP 429', queued: true });
+  assert.equal(c.pending, 1);
+}
+
+{
+  // A dev checkout (npm script, not production, no url, no INBOX_URL) never posts.
+  const saved = { url: process.env.INBOX_URL, life: process.env.npm_lifecycle_event, node: process.env.NODE_ENV };
+  delete process.env.INBOX_URL;
+  process.env.npm_lifecycle_event = 'dev';
+  delete process.env.NODE_ENV;
+  const logs = [];
+  let called = false;
+  try {
+    const c = createInboxClient({ source: 'a', fetch: async () => { called = true; return okResponse(); }, log: (m) => logs.push(m) });
+    assert.deepEqual(await c.send({ kind: 'k', title: 't' }), { ok: false, error: 'disabled', queued: false });
+    assert.deepEqual(logs, ['off outside production; set INBOX_URL to send']);
+    process.env.NODE_ENV = 'production';
+    const p = createInboxClient({ source: 'a', fetch: async () => { called = true; return okResponse(); }, log: noLog });
+    assert.equal((await p.send({ kind: 'k', title: 't' })).ok, true);
+    assert.equal(called, true);
+  } finally {
+    for (const [k, v] of [['INBOX_URL', saved.url], ['npm_lifecycle_event', saved.life], ['NODE_ENV', saved.node]]) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
+
+assert.equal(INBOX_SOURCE_LABELS.workflows, 'Workflows');
+
 console.log('inbox-client-check: all checks passed');
