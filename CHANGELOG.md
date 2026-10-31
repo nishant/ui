@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.0.1] - 2026-10-31
+
+### Fixed
+
+- `@nish/ui/server`: the inbox action guard accepts Node's `sec-fetch-mode: cors`, so inbox buttons work.
+
 ## [1.0.0] - 2026-10-31
 
 1.0: the API is stable. From here a major release means app code must change, a minor adds, and a patch fixes. This release is a major only by that policy: nothing was removed or renamed, so no app has to change code to move to it.
