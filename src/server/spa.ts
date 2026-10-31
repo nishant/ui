@@ -73,6 +73,8 @@ export function createSpaHandler(o: SpaOptions): (req: Request) => Promise<Respo
     if (pathname.includes('\0') || pathname.includes('\\')) return text('Not found.', 404);
     const segments = pathname.split('/');
     if (segments.some((s) => s.startsWith('.') && s !== '.well-known')) return text('Not found.', 404);
+    // NTFS aliases: 8.3 short names (ENV~1) and stream suffixes (name:$DATA) would bypass the dotfile rule.
+    if (segments.some((s) => /~[0-9]|:/.test(s))) return text('Not found.', 404);
 
     const target = resolve(dir, '.' + pathname);
     if (target !== dir && !target.startsWith(dir + sep)) return text('Not found.', 404);

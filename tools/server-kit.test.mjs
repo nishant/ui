@@ -39,6 +39,14 @@ test('tokens: round trip, format, expiry, tamper, wrong secret', () => {
   assert.equal(verifySessionToken(SECRET, ''), false);
 });
 
+test('tokens: a cookie built the way the live v1 apps build it verifies', () => {
+  const exp = Math.floor(NOW / 1000) + 1000;
+  const body = `v1.${exp}.${'0123456789abcdef01234567'}`;
+  const tok = `${body}.${createHmac('sha256', SECRET).update(body).digest('base64url')}`;
+  assert.equal(verifySessionToken(SECRET, tok, { now: NOW }), true);
+  assert.equal(createSessionAuth({ cookieName: 'status_session', secret: SECRET }).isAuthed(`status_session=${tok}`, NOW), true);
+});
+
 test('tokens: days option and empty secret', () => {
   const t = createSessionToken(SECRET, NOW, 1);
   assert.equal(t.split('.')[1], String(Math.floor(NOW / 1000) + 86400));
@@ -382,6 +390,8 @@ test('SPA handler', async () => {
     assert.equal((await get('/assets/missing.js')).status, 404);
 
     assert.equal((await get('/.env')).status, 404);
+    assert.equal((await get('/ENV~1')).status, 404);
+    assert.equal((await get('/index.html:$DATA')).status, 404);
     assert.equal((await get('/assets/../.env')).status, 404);
     assert.equal((await get('/%2e/.env')).status, 404);
     assert.equal((await get('/.git/config')).status, 404);
