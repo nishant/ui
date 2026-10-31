@@ -227,11 +227,12 @@ async function testSourceScan() {
   }
 }
 
-/** @nish/ui/vite must inject dist/theme-init.js as the first thing in <head>. */
+/** @nish/ui/vite must inject dist/theme-init.js (without its whole-line comments) as the first thing in a
+ *  <head> that has no <meta charset>. */
 async function testVitePlugin() {
   const { nishThemeInit } = await import(pathToFileURL(join(dist, 'node/vite.js')).href);
   const tags = nishThemeInit().transformIndexHtml.handler('<html><head></head></html>');
-  const want = readFileSync(join(dist, 'theme-init.js'), 'utf8').trim();
+  const want = readFileSync(join(dist, 'theme-init.js'), 'utf8').replace(/^[ \t]*\/\/.*(?:\r?\n|$)/gm, '').trim();
   if (!Array.isArray(tags) || tags.length !== 1 || tags[0].children !== want || tags[0].injectTo !== 'head-prepend') {
     throw new Error('dist/node/vite.js: nishThemeInit() must inject dist/theme-init.js once, at head-prepend');
   }
