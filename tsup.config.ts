@@ -32,4 +32,5 @@ export default defineConfig([
     outDir: 'dist',
     clean: false,
   },
+  { entry: { 'server/index': 'src/server/index.ts', 'server/hono': 'src/server/hono.ts' }, format: ['esm'], dts: true, sourcemap: true, target: 'node22', platform: 'node', outDir: 'dist', clean: false, splitting: false, external: ['hono', /^hono\//] },
 ]);
