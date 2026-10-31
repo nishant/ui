@@ -56,29 +56,24 @@ export function GettingStartedPage() {
 @import '@nish/ui/tailwind.css';`}
             />
           </Section>
-          <Section title="2. Apply the theme before first paint" note="Inline theme-init.js at the top of <head>, so the saved theme is on <html> before anything renders. No flash of the wrong theme.">
+          <Section title="2. Apply the theme before first paint" note="The nishThemeInit plugin inlines theme-init.js at the top of <head>, so the saved theme is on <html> before anything renders. No flash of the wrong theme.">
             <CodeBlock
               title="vite.config.ts"
-              code={`import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { defineConfig, type Plugin } from 'vite';
+              code={`import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-
-const require = createRequire(import.meta.url);
-
-function nishThemeInit(): Plugin {
-  const code = readFileSync(require.resolve('@nish/ui/theme-init.js'), 'utf8');
-  return {
-    name: 'nish-theme-init',
-    transformIndexHtml: () => [{ tag: 'script', children: code, injectTo: 'head-prepend' }],
-  };
-}
+import { nishThemeInit } from '@nish/ui/vite';
 
 export default defineConfig({
   plugins: [nishThemeInit(), react(), tailwindcss()],
 });`}
             />
+            <Prose>
+              <p>
+                Options for an old localStorage key, a prelude script or the charset position are on the{' '}
+                <a href={href('/components/vite-plugin')}>Vite plugin</a> page.
+              </p>
+            </Prose>
           </Section>
           <Section title="3. Start the theme and mount the toaster">
             <CodeBlock
@@ -120,6 +115,36 @@ createRoot(document.getElementById('root')!).render(<App />);`}
               <p>
                 Never use raw palette classes like <code>neutral-800</code>: they do not change with the theme. Every role is on the{' '}
                 <a href={href('/color')}>Color</a> page with its class.
+              </p>
+            </Prose>
+          </Section>
+          <Section
+            title="5. Lint the classes"
+            note="A made-up color name after bg-th- compiles to nothing, so the element silently loses its background. The ESLint preset and the checker catch it before it ships."
+          >
+            <CodeBlock
+              title="eslint.config.js"
+              code={`import tseslint from 'typescript-eslint';
+import nish from '@nish/ui/eslint';
+
+export default [
+  ...tseslint.configs.recommended,
+  ...nish.configs.react, // after the TypeScript config; it adds the nish/* rules and ships no parser
+];`}
+            />
+            <CodeBlock
+              title="package.json"
+              code={`{
+  "scripts": {
+    "th-check": "nish-th-check src"
+  }
+}`}
+            />
+            <Prose>
+              <p>
+                The rules reject unknown <code>th-*</code> classes, raw palette classes, <code>text-white</code> and <code>bg-black</code>, the legacy aliases and hand-mixed tints.{' '}
+                <code>nish-th-check</code> does the unknown-class check on its own for CSS, HTML and any file ESLint does not parse. Both are documented on the{' '}
+                <a href={href('/components/vite-plugin')}>Vite plugin and lint</a> page.
               </p>
             </Prose>
           </Section>

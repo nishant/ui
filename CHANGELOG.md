@@ -1,7 +1,46 @@
 # Changelog
 
-Every release of `@nish/ui`, newest first. Versions follow semver: before 1.0, a minor
-bump (0.x.0) may require apps to change code; a patch (0.1.x) never does.
+Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a minor
+bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
+a minor adds, and a patch fixes.
+
+## [1.0.0] - 2026-10-31
+
+1.0: the API is stable. From here a major release means app code must change, a minor adds, and a patch fixes. This release is a major only by that policy: nothing was removed or renamed, so no app has to change code to move to it.
+
+### Added
+
+- `AppShell`: the app frame from one `nav` list. AppHeader with desktop tabs and a More menu, NavRail on tablets, BottomNav with a MoreSheet on phones, PageContainer, Toaster, ConnectionBanner, LoadingBar and a skip link to `#nish-main`.
+- `apiFetch`, `ApiError`, `configureApi` and `useResource`. Network failures are status 0, the message comes from the body's `error`, a 401 calls the optional global `onUnauthorized`. `useResource` pauses while the tab is hidden, refetches on reconnect and when the tab becomes visible, can poll, and aborts on unmount.
+- `AppErrorBoundary`: a themed fallback with reset, and a "Reload page" action for a failed lazy chunk.
+- `@nish/ui/vite`: the `nishThemeInit()` Vite plugin that puts theme-init.js into index.html (head-prepend or after `<meta charset>`, an optional prelude and a legacy storage key migration). Node only.
+- `FilterBar`, `FilterSheet` and `useUrlState` (with `locationAdapter` and an adapter type for React Router). Filters collapse into a Filters button and a bottom sheet when narrow; arrays are written as repeated query keys.
+- `SettingsSection`, `SettingRow`, `NumberField` (saves on blur and Enter) and `useSaveStatus`.
+- `Combobox`: an ARIA 1.2 combobox with a listbox, local or async options and optional custom values.
+- `BREAKPOINTS`, `PHONE_QUERY`, `NARROW_QUERY`, `usePhone()` and `useNarrow()`, so apps stop writing their own media query strings.
+- `@nish/ui/eslint`: `nish.configs.react` (also `recommended`) and `nish.configs.node`, flat-config arrays to spread after `tseslint.configs.recommended`. `react` has the core rules (`no-var`, `prefer-const`, `eqeqeq` smart, `no-empty` with no empty `catch`) plus the plugin `nish` with six rules for unknown `th-*` classes, raw palette classes, `text-white` and `bg-black`, legacy aliases, hand-mixed tints and arbitrary font sizes. And the `nish-th-check` command, which fails on unknown `th-*` classes in any source file. ui's own `npm run check` runs it over `src site demo`.
+- `@nish/ui/tsconfig/base.json`, `react.json` (Vite + React) and `node.json` (NodeNext): shared compiler presets, used as `"extends": "@nish/ui/tsconfig/react.json"`.
+- `@nish/ui/server`: React-free server code for every app: v1 session tokens (the existing format, so logins survive), cookie helpers and `passwordMatches`, `clientIp` (cf-connecting-ip, then the rightmost non-loopback X-Forwarded-For), a size-capped limiter, `loadAppEnv` and `installProcessHandlers`, an SPA handler, the inbox action guard and action tokens, service tokens, and the inbox client and types (moved here). Node only.
+- `@nish/ui/server/hono`: Hono adapters: session routes, `requireSession`, `serveSpa`, `onErrorHandler` and `mountInboxAction`. `hono` is an optional peer.
+- Docs: pages for every block above, a Vite plugin and lint page, and a Foundations page (`#/icons`) that records the icon decision: apps use `lucide-react`, and ui keeps inlining the few icons it needs on lucide's grid.
+- Tests: vitest with happy-dom and Testing Library (`npm run test:unit`), and Playwright specs for overlays (Escape order, focus trap and return, Android and browser Back) that run in CI.
+
+### Changed
+
+- Toasts are announced through two persistent live regions (polite, and assertive for errors) instead of a role on each card, so screen readers announce them reliably.
+- While a Modal, Drawer or ConfirmDialog is open, everything behind it is `inert`. The Toaster stays active, and elements that were already inert are left as they were.
+- `tailwind.css` scans only the shipped component JavaScript (`@source`), not source maps or declaration files, and the React entry builds with code splitting.
+- Releases run from CI: `gh workflow run release.yml -R nishant/ui -f bump=<patch|minor|major>`. HEAD must equal origin/master, master is pushed before the tag, a GitHub Release is created from this file, and the fan-out is dispatched. `npm run release` follows the same order.
+- The README "Used by" table matches `hosting/fleet.yaml`: workflows and inbox are listed, and start.nish.software is React and Tailwind.
+
+### Deprecated
+
+- `@nish/ui/inbox-client` and the inbox types exported from `@nish/ui`: import them from `@nish/ui/server`. The old paths re-export the new ones and keep working.
+
+### Fixed
+
+- Inbox client: sends are serial, a 429 is retried after its Retry-After, it stays off in dev checkouts started from an npm script without `INBOX_URL`, and `workflows` has a source label.
+- `bg-th-hover`, which was never a defined class, in the MoreSheet rows and the BottomNav pill hover. Both now use `bg-th-elevated`.
 
 ## [0.10.0] - 2026-10-30
 

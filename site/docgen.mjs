@@ -92,6 +92,14 @@ export const COMPONENTS = [
   'AnimatedList',
   'SystemCanvas',
   'Inbox',
+  'AppShell',
+  'AppErrorBoundary',
+  'FilterBar',
+  'FilterSheet',
+  'SettingsSection',
+  'SettingRow',
+  'NumberField',
+  'Combobox',
 ];
 const FUNCTIONS = [
   'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
@@ -101,13 +109,16 @@ const FUNCTIONS = [
   'usePrefersReducedMotion', 'useMediaQuery', 'useBreakpoint', 'useDocumentTitle', 'useNow', 'useLocalStorage',
   'money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago', 'date', 'time', 'dateTime', 'dateRange',
   'openSheet', 'mountHeightVar', 'mountStuck', 'mountScrollspy', 'mountChecklist',
+  'apiFetch', 'configureApi', 'useResource', 'useUrlState', 'useSaveStatus', 'usePhone', 'useNarrow', 'nishThemeInit',
 ];
-const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem'];
+const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem',
+  'ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource', 'FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter', 'SaveStatus', 'NishThemeInitOptions',
+];
 
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');
 
 export function docgen(root) {
-  const entries = [join(root, 'src/index.ts'), join(root, 'src/chart.ts'), join(root, 'src/format.ts')];
+  const entries = [join(root, 'src/index.ts'), join(root, 'src/chart.ts'), join(root, 'src/format.ts'), join(root, 'src/node/vite.ts')];
   const program = ts.createProgram(entries, {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
@@ -173,7 +184,8 @@ export function docgen(root) {
     if (!sym) throw new Error(`docgen: ${name} is not exported from src/index.ts`);
     const decl = sym.valueDeclaration ?? sym.declarations[0];
     const fn = implementation(decl);
-    const sig = checker.getTypeOfSymbolAtLocation(sym, decl).getCallSignatures()[0];
+    const ctype = checker.getTypeOfSymbolAtLocation(sym, decl);
+    const sig = ctype.getCallSignatures()[0] ?? ctype.getConstructSignatures()[0];
     const param = sig?.parameters[0];
     const props = [];
     const inherits = new Set();
@@ -236,10 +248,19 @@ export function docgen(root) {
     const sym = exported.get(name);
     const decl = sym.declarations[0];
     const type = checker.getDeclaredTypeOfSymbol(sym);
+    if (ts.isTypeAliasDeclaration(decl)) {
+      // A type alias (a union of literals, say) is one row: its name and what it spells out.
+      interfaces[name] = {
+        name,
+        description: doc(sym),
+        props: [{ name, type: decl.type.getText().replace(/\s+/g, ' '), required: true, default: null, description: doc(sym) }],
+      };
+      continue;
+    }
     interfaces[name] = {
       name,
       description: doc(sym),
-      props: type.getProperties().map((p) => ({
+      props: type.getProperties().filter((p) => p.declarations?.[0] && fromPackage(p.declarations[0])).map((p) => ({
         name: p.name,
         type: typeText(p, decl),
         required: !(p.flags & ts.SymbolFlags.Optional),

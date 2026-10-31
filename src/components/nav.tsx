@@ -308,7 +308,7 @@ export function MoreSheet({ open, onClose, items, title = 'More', footer, render
   const row = (active: boolean) =>
     cn(
       'flex min-h-[52px] w-full items-center gap-3 rounded-lg px-3 text-left transition-colors',
-      active ? 'bg-th-accent-soft text-th-accent' : 'text-th-hi hover:bg-th-hover',
+      active ? 'bg-th-accent-soft text-th-accent' : 'text-th-hi hover:bg-th-elevated',
       FOCUS,
     );
   return (
@@ -394,7 +394,7 @@ export function NavRail({ items, tools, footer, showFrom = 'md', hideFrom = 'lg'
             <span
               className={cn(
                 'relative inline-flex h-8 w-14 items-center justify-center rounded-full transition-colors',
-                item.active ? 'bg-th-accent-soft' : 'group-hover:bg-th-hover',
+                item.active ? 'bg-th-accent-soft' : 'group-hover:bg-th-elevated',
               )}
             >
               {item.icon}

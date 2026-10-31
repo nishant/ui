@@ -10,13 +10,15 @@ Used by:
 
 | App | How it installs | Stack |
 |---|---|---|
-| nish.software (the hub) | codeload tarball | Vite + plain TypeScript and plain CSS (no React, no Tailwind): `nish.css`, `theme.js` |
-| jobs.nish.software | codeload tarball | React + Tailwind 4 |
-| trading.nish.software | codeload tarball | React + Tailwind 4, pnpm |
-| Nishboard (desktop) | codeload tarball | Electron + React + Tailwind 4, pnpm |
-| status.nish.software | codeload tarball | React + Tailwind 4 |
-| trackers.nish.software | codeload tarball | React + Tailwind 4 |
-| start.nish.software (repo nishant.github.io) | codeload tarball | Angular 16 + Angular Material, themed through the `--nish-*` roles (CSS consumer) |
+| nish.software (the hub) | codeload tarball | Vite + plain TypeScript and plain CSS (no React, no Tailwind): `nish.css`, `theme.js`; npm |
+| jobs.nish.software (repo job-apps) | codeload tarball | React 19 + Tailwind 4 + Vite in `apps/web`, npm workspaces (`packages/worker` and `packages/api` pin it too) |
+| trading.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite in `apps/web` (`packages/server` pins it too), pnpm |
+| Nishboard (desktop) | codeload tarball | Electron + React 19 + Tailwind 4 + Vite in `apps/renderer`, pnpm |
+| status.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
+| trackers.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
+| workflows.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
+| start.nish.software (repo nishant.github.io) | codeload tarball | React 19 + Tailwind 4 + Vite, npm |
+| inbox (nishant/inbox, no page of its own) | codeload tarball | Hono server, npm; no UI: it imports the inbox protocol from `@nish/ui/inbox-client` |
 | minecraft, trips and design (nishant/hosting) | vendored dist files | static HTML |
 | taarora/arora-home | vendored dist files with a palette pass | another account's repo, outside the fan-out |
 
@@ -51,24 +53,13 @@ only use the CSS and `@nish/ui/theme` do not get React installed.
 @import '@nish/ui/tailwind.css';
 ```
 
-Inline `theme-init.js` at the top of `<head>` so the saved theme is on `<html>` before the
-first paint:
+The `nishThemeInit()` plugin from `@nish/ui/vite` inlines `theme-init.js` at the top of `<head>`, so
+the saved theme is on `<html>` before the first paint. Options: `position: 'after-charset'`,
+`prelude`, `legacyKey` (see [Vite plugin and lint](https://design.nish.software/#/components/vite-plugin)).
 
 ```ts
 // vite.config.ts
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import type { Plugin } from 'vite';
-
-const require = createRequire(import.meta.url);
-
-function nishThemeInit(): Plugin {
-  const code = readFileSync(require.resolve('@nish/ui/theme-init.js'), 'utf8');
-  return {
-    name: 'nish-theme-init',
-    transformIndexHtml: () => [{ tag: 'script', children: code, injectTo: 'head-prepend' }],
-  };
-}
+import { nishThemeInit } from '@nish/ui/vite';
 // plugins: [nishThemeInit(), react(), tailwindcss()]
 ```
 
@@ -81,6 +72,45 @@ initTheme(); // once, before render
 <Toaster />               {/* once, at the root */}
 <Button variant="primary" onClick={() => toast.success('Saved')}>Save</Button>
 ```
+
+## Lint
+
+Two guards stop a made-up theme class (a `bg-th-` name that is not a role compiles to nothing, so the
+element silently loses its background) from shipping.
+
+```js
+// eslint.config.js: after tseslint.configs.recommended; it ships rules only, no parser
+import tseslint from 'typescript-eslint';
+import nish from '@nish/ui/eslint';
+
+export default [...tseslint.configs.recommended, ...nish.configs.react]; // servers: nish.configs.node
+```
+
+The preset is the plugin `nish` with six rules, all errors: `no-unknown-th-class`, `no-raw-palette`,
+`no-white-black`, `no-legacy-th-alias`, `no-hand-mixed-tint` and `no-arbitrary-text-size`. It has its
+own rules rather than `no-restricted-syntax`, so it never replaces an app's own options.
+
+`nish-th-check [dir|file ...]` (default `src`) does the unknown-class check alone, for CSS and HTML too,
+and exits 1 with file:line for each hit. Add `"th-check": "nish-th-check src"` to `package.json` and run it
+in `check`. This repo runs it over `src site demo` in `npm run check`.
+
+## TypeScript presets
+
+```json
+// tsconfig.json of a Vite + React app; servers and scripts extend node.json
+{ "extends": "@nish/ui/tsconfig/react.json", "include": ["src"] }
+```
+
+`base.json` is strict, ES2023, Bundler resolution, isolatedModules and noEmit. `react.json` adds the DOM libs,
+`react-jsx` and `vite/client` types. `node.json` switches to NodeNext with `node` types.
+
+## Icons
+
+Apps use `lucide-react` (^1): per-icon tree-shaking, a large maintained set, MIT, and trading, startpage
+and nishboard already use it. `@nish/ui` never depends on an icon package. Its components inline the few
+icons they need, drawn on lucide's 24px grid with a 2px stroke so they match, and it exports five of them
+(`CheckIcon`, `ClockIcon`, `MoreIcon`, `BellIcon`, `SettingsIcon`). Sizes: 16px inline with text, 20px in
+buttons and IconButtons, 20 to 24px in navigation (`NavItem.icon`). Details: [Icons](https://design.nish.software/#/icons).
 
 ## Quick start: static HTML
 
@@ -126,7 +156,7 @@ folder they live in can be served with a one-year immutable cache.
 
 The renderer is a React + Tailwind app: same install, same CSS import. Two differences:
 
-- Inline `theme-init.js` (the Vite plugin above). The packaged app loads from `file://`,
+- Inline `theme-init.js` (`nishThemeInit()` above). The packaged app loads from `file://`,
   where only an inline, render-blocking script is guaranteed to run before the first paint.
 - There is no shared domain, so the choice lives in `localStorage` only. Keep the native
   window chrome in step from the renderer:
@@ -313,6 +343,14 @@ ago(Date.now() - 3 * 60_000);     // "3m"
 | `Chip`, `ChipGroup`, `chipClass()` | Multi-select filter chips, suggestions and removable tags; `chipClass()` for links | [Chip](https://design.nish.software/#/components/chip) |
 | `Tabs`, `TabPanel`, `tabClass()` | ARIA tabs (underline or pill, xs to md, block, responsive panes); `tabClass()` for router links | [Tabs](https://design.nish.software/#/components/tabs) |
 | `Inbox` | One list for events from every app: Open, Snoozed and Handled views, source filter, handle and snooze actions; see [Inbox](#inbox) | [Inbox](https://design.nish.software/#/components/inbox) |
+| `AppShell` | The app frame from one `nav` list: AppHeader with desktop tabs and a More menu, NavRail on tablets, BottomNav and MoreSheet on phones, PageContainer, Toaster, ConnectionBanner, LoadingBar and a skip link | [AppShell](https://design.nish.software/#/components/app-shell) |
+| `apiFetch()`, `ApiError`, `configureApi()`, `useResource()` | JSON fetch with typed errors (status 0 for network failures, 401 hook), and a data hook that pauses while the tab is hidden, refetches on reconnect and when visible again, polls, and aborts on unmount | [useResource](https://design.nish.software/#/components/use-resource) |
+| `AppErrorBoundary` | Themed fallback for a render crash or a failed lazy chunk, with Try again and Reload | [AppErrorBoundary](https://design.nish.software/#/components/app-error-boundary) |
+| `FilterBar`, `FilterSheet`, `useUrlState()` | Filter row that becomes a Filters button and bottom sheet when narrow; filters that live in the URL (arrays as repeated keys) with an optional router adapter | [FilterBar](https://design.nish.software/#/components/filter-bar) |
+| `SettingsSection`, `SettingRow`, `NumberField`, `useSaveStatus()` | Settings page rows with a label, hint and live save status; a number field that saves on blur and Enter | [Settings](https://design.nish.software/#/components/settings) |
+| `Combobox` | ARIA 1.2 combobox with a listbox: filter, async search, custom values, keyboard and touch | [Combobox](https://design.nish.software/#/components/combobox) |
+| `BREAKPOINTS`, `PHONE_QUERY`, `NARROW_QUERY`, `usePhone()`, `useNarrow()` | The Tailwind breakpoints as data, and hooks for phone (under 640px) and narrow (under 768px) | [Hooks](https://design.nish.software/#/components/hooks) |
+| `@nish/ui/vite`, `@nish/ui/eslint`, `nish-th-check` | The theme-init Vite plugin, the lint preset and the class checker (Node only) | [Vite plugin and lint](https://design.nish.software/#/components/vite-plugin) |
 | `ThemeToggle`, `useTheme()` | System / Light / Dark control with labels, compact mode, a pill variant and an optional preset picker | [ThemeToggle](https://design.nish.software/#/components/theme-toggle) |
 | `mountThemeToggle()` | `@nish/ui/theme` and `window.nishTheme`: the one-button theme toggle for static pages, optionally with the word | [mountThemeToggle](https://design.nish.software/#/components/mount-theme-toggle) |
 | `showToast()` | `@nish/ui/theme` and `window.nishTheme`: one toast for static pages, with the React toast's timer policy | [showToast](https://design.nish.software/#/components/show-toast) |
@@ -442,13 +480,19 @@ errors, missing focus rings and empty screenshots.
 
 ## Releasing
 
+Releases run in CI. Merge the release's `## [x.y.z]` CHANGELOG entry to master, then:
+
 ```bash
-npm run release patch      # or minor, major, 1.2.3
+gh workflow run release.yml -R nishant/ui -f bump=patch   # or minor, major, 1.2.3
 ```
+
+The job refuses unless HEAD equals `origin/master`, pushes master before the tag, creates the GitHub
+Release from the CHANGELOG entry and dispatches `fanout.yml` itself (a tag pushed with `GITHUB_TOKEN` does
+not trigger other workflows). `npm run release patch` is the local fallback with the same order.
 
 The flow is: release, tag, fan-out PRs, Fold check, merge policy, deploy watch and revert.
 
-1. **Release.** `npm run release` runs `npm run check`, bumps the version on `master` and commits it, then
+1. **Release.** The release runs `npm run check`, bumps the version on `master` and commits it, then
    makes a detached commit on top that adds the built `dist/` and `site-dist/`, tags it `vX.Y.Z` and
    pushes both. `master` never contains `dist/`; the tag does, so an install needs no build step.
    It then prints the link to the fan-out runs. Add an entry to `CHANGELOG.md` with every change;
@@ -590,6 +634,6 @@ file in `dist/files.json`, not a fixed list.
 Semver on the git tags. A change is **breaking** when an app has to edit its code or
 markup to keep working or keep its look: removing or renaming a token, role, class,
 export, prop or file; changing a component's default; changing the cookie or storage key.
-Before 1.0 a breaking change bumps the minor (0.2.0); after, the major. New roles,
+Before 1.0 a breaking change bumped the minor (0.2.0); from 1.0 it bumps the major, so a major means app code must change, a minor adds, a patch fixes. New roles,
 components, props and files, and color adjustments that keep every contrast check passing,
 are minor or patch. Record every change in `CHANGELOG.md`.

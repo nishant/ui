@@ -44,6 +44,52 @@ function syncLayerAttr() {
   else html.removeAttribute('data-nish-layer-open');
 }
 
+// Dialog scrims, oldest first. While any is open, everything else on <body> is inert so
+// focus, clicks and screen readers stay in the top dialog. Toasts opt out with
+// data-nish-keep-active.
+const dialogPortals: HTMLElement[] = [];
+const inertedBySync = new Set<HTMLElement>();
+
+function syncInert() {
+  if (typeof document === 'undefined') return;
+  // React removes the DOM before passive cleanups run, so a scrim may already be detached.
+  for (let i = dialogPortals.length - 1; i >= 0; i--) if (!dialogPortals[i].isConnected) dialogPortals.splice(i, 1);
+  const top = dialogPortals[dialogPortals.length - 1];
+  if (!top) {
+    inertedBySync.forEach((el) => {
+      el.inert = false;
+      el.removeAttribute('inert');
+    });
+    inertedBySync.clear();
+    return;
+  }
+  for (const el of Array.from(document.body.children) as HTMLElement[]) {
+    const skip = el === top || el.contains(top) || el.hasAttribute('data-nish-keep-active');
+    if (skip) {
+      if (inertedBySync.has(el)) {
+        el.inert = false;
+        el.removeAttribute('inert');
+        inertedBySync.delete(el);
+      }
+    } else if (!el.inert) {
+      el.inert = true;
+      el.setAttribute('inert', '');
+      inertedBySync.add(el);
+    }
+  }
+}
+
+function pushInert(scrim: HTMLElement) {
+  if (!dialogPortals.includes(scrim)) dialogPortals.push(scrim);
+  syncInert();
+}
+
+function popInert(scrim: HTMLElement) {
+  const i = dialogPortals.indexOf(scrim);
+  if (i >= 0) dialogPortals.splice(i, 1);
+  syncInert();
+}
+
 const SHEET_EXIT_MS = 200;
 const PHONE_QUERY = '(max-width: 639px)';
 
@@ -148,6 +194,8 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
     layerStack.push(self);
     dialogCount++;
     syncLayerAttr();
+    const scrim = panel?.closest<HTMLElement>('[data-nish-layer]') ?? null;
+    if (scrim) pushInert(scrim);
 
     // Android back / browser back closes the top layer: the layer owns one history
     // entry. The push is deferred a tick so a Strict Mode mount-unmount-mount does not
@@ -229,6 +277,7 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
       layerStack.splice(layerStack.indexOf(self), 1);
       dialogCount--;
       syncLayerAttr();
+      if (scrim) popInert(scrim);
       document.removeEventListener('keydown', onKey);
       unlock();
       opener?.focus?.();

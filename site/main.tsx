@@ -13,6 +13,7 @@ import { ComponentPage } from './pages/component';
 import { ElevationPage, SpacingPage, TypographyPage, ZIndexPage } from './pages/foundations';
 import { FramePage, guardFrameFocus } from './pages/frame';
 import { GettingStartedPage } from './pages/getting-started';
+import { IconsPage } from './pages/icons';
 import { OverviewPage } from './pages/overview';
 import { PatternsPage } from './pages/patterns';
 import { StaticSitesPage } from './pages/static-sites';
@@ -52,6 +53,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { path: '/spacing', label: 'Spacing & radius' },
       { path: '/elevation', label: 'Shadows & motion' },
       { path: '/z-index', label: 'Z-index & breakpoints' },
+      { path: '/icons', label: 'Icons' },
     ],
   },
   {
@@ -86,6 +88,8 @@ function page(route: Route): { title: string; node: ReactNode; wide?: boolean } 
       return { title: 'Shadows & motion', node: <ElevationPage /> };
     case 'z-index':
       return { title: 'Z-index & breakpoints', node: <ZIndexPage /> };
+    case 'icons':
+      return { title: 'Icons', node: <IconsPage /> };
     case 'patterns':
       return { title: 'Patterns', node: <PatternsPage view={second === 'themes' ? 'themes' : 'docs'} />, wide: second === 'themes' };
     case 'components': {

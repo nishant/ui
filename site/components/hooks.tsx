@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, useBreakpoint, useDocumentTitle, useLocalStorage, useMediaQuery, useNow, useScrollSpy } from '../../src';
+import { BREAKPOINTS, Button, NARROW_QUERY, PHONE_QUERY, useBreakpoint, useDocumentTitle, useLocalStorage, useMediaQuery, useNarrow, useNow, usePhone, useScrollSpy } from '../../src';
 import { ago, time } from '../../src/format';
 import { Device } from './bottom-nav';
 import type { ComponentDoc } from './types';
@@ -20,13 +20,30 @@ function Media() {
   const dark = useMediaQuery('(prefers-color-scheme: dark)');
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const bp = useBreakpoint();
+  const phone = usePhone();
+  const narrow = useNarrow();
   return (
     <div className="grid w-full max-w-md gap-2">
       <Readout label="useBreakpoint()" value={`'${bp}'`} />
+      <Readout label="usePhone()" value={String(phone)} />
+      <Readout label="useNarrow()" value={String(narrow)} />
       <Readout label="useMediaQuery('(pointer: coarse)')" value={String(coarse)} />
       <Readout label="useMediaQuery('(prefers-color-scheme: dark)')" value={String(dark)} />
       <Readout label="useMediaQuery('(prefers-reduced-motion: reduce)')" value={String(reduced)} />
       <p className="text-sm text-th-hi3">Resize the window or turn the phone: the values follow.</p>
+    </div>
+  );
+}
+
+function Breakpoints() {
+  return (
+    <div className="grid w-full max-w-md gap-2">
+      {Object.entries(BREAKPOINTS).map(([name, px]) => (
+        <Readout key={name} label={`BREAKPOINTS.${name}`} value={`${px}px`} />
+      ))}
+      <Readout label="PHONE_QUERY" value={PHONE_QUERY} />
+      <Readout label="NARROW_QUERY" value={NARROW_QUERY} />
+      <p className="text-sm text-th-hi3">Phone is below sm (the Fold's cover screen). Narrow is below md, where BottomNav shows and NavRail hides.</p>
     </div>
   );
 }
@@ -109,13 +126,14 @@ export const hooks: ComponentDoc = {
   source: 'src/components/hooks.tsx',
   summary:
     'Small hooks every app was copying: media queries and breakpoints without a resize listener, the document title with cleanup, a ticking clock that sleeps in background tabs, localStorage state that never throws and syncs across tabs, and a scroll spy for jump navigation.',
-  importLine: "import { useMediaQuery, useBreakpoint, useDocumentTitle, useNow, useLocalStorage, useScrollSpy } from '@nish/ui';",
+  importLine: "import { useMediaQuery, useBreakpoint, usePhone, useNarrow, BREAKPOINTS, useDocumentTitle, useNow, useLocalStorage, useScrollSpy } from '@nish/ui';",
   controls: [],
   initial: {},
   render: () => <Media />,
   code: () => "const bp = useBreakpoint(); // 'base' | 'sm' | 'md' | 'lg' | 'xl'\nconst coarse = useMediaQuery('(pointer: coarse)');",
   stories: [
     { id: 'media', name: 'useMediaQuery, useBreakpoint', render: () => <Media /> },
+    { id: 'breakpoints', name: 'BREAKPOINTS, PHONE_QUERY, NARROW_QUERY', render: () => <Breakpoints /> },
     { id: 'now', name: 'useNow', render: () => <Now /> },
     { id: 'storage', name: 'useLocalStorage', render: () => <Stored /> },
     { id: 'title', name: 'useDocumentTitle', render: () => <TitleDemo /> },
@@ -130,16 +148,18 @@ export const hooks: ComponentDoc = {
       ),
     },
   ],
-  api: { functions: ['useMediaQuery', 'useBreakpoint', 'useDocumentTitle', 'useNow', 'useLocalStorage', 'useScrollSpy'], interfaces: [] },
-  usage: `import { useBreakpoint, useDocumentTitle, useLocalStorage, useMediaQuery, useNow } from '@nish/ui';
+  api: { functions: ['useMediaQuery', 'useBreakpoint', 'usePhone', 'useNarrow', 'useDocumentTitle', 'useNow', 'useLocalStorage', 'useScrollSpy'], interfaces: [] },
+  usage: `import { useDocumentTitle, useLocalStorage, useMediaQuery, useNarrow, useNow, usePhone } from '@nish/ui';
 
-const isPhone = useBreakpoint() === 'base';             // under 640px
+const isPhone = usePhone();                              // under 640px
+const isNarrow = useNarrow();                            // under 768px: BottomNav shows
 const hover = useMediaQuery('(hover: hover)');
 const [density, setDensity] = useLocalStorage('density', 'comfortable', { raw: true });
 const now = useNow(60_000);                              // re-render once a minute
 
 useDocumentTitle(unread ? \`Inbox (\${unread})\` : 'Inbox', { app: 'mail' });`,
   guidelines: [
+    'usePhone is true below 640px and useNarrow below 768px, using BREAKPOINTS so they agree with Tailwind. Use them instead of a private matchMedia string.',
     'Prefer CSS (Tailwind breakpoints, pointer-coarse:) for layout. Use the hooks when behavior changes, such as rendering a sheet instead of a menu.',
     'useMediaQuery and useBreakpoint are false and "base" on the server and on the first render, then update. Do not branch the markup of server-rendered pages on them.',
     'useLocalStorage never throws: private mode, a full quota and bad JSON all fall back to the initial value. Keep it for per-device conveniences, not for data that must survive.',

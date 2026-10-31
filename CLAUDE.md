@@ -7,8 +7,10 @@ package is built, released and consumed: [README.md](README.md). Every release:
 ## Autonomy
 
 Claude sessions build, commit, push, open and merge PRs and cut releases on their own judgment,
-without asking Nish. A release is `npm run release` (Nish runs it on the PC if the auto-mode
-classifier blocks it). The tag push starts the fan-out (`.github/workflows/fanout.yml`), which moves
+without asking Nish. A release runs in CI: merge the release's `## [x.y.z]` CHANGELOG entry to master, then
+`gh workflow run release.yml -R nishant/ui -f bump=<patch|minor|major>`. It refuses unless HEAD is
+origin/master, pushes master before the tag, creates the GitHub Release and starts the fan-out
+(`.github/workflows/fanout.yml`). `npm run release` is the local fallback. The fan-out moves
 every app and hosting: it opens a `ui/vX.Y.Z` PR in each repo and merges it when the checks and the
 Fold check pass. A held bump PR is adopted on its `ui/vX.Y.Z` branch (make the app's code changes
 there); the fan-out merges it on its next run. Check https://status.nish.software/fleet for what is
@@ -36,3 +38,5 @@ Validate every workflow file before pushing: `npx -y @action-validator/cli@0.6.0
 error (a plain `run:` value containing `: `) makes GitHub reject the whole file, so none of its triggers fire.
 An empty `FLEET_TOKEN` (a `gh secret set` prompt that got no paste) also fails quietly: the fan-out's plan job
 summary says "FLEET_TOKEN is not set". Re-set it and dispatch `fanout.yml` to check.
+`release.yml` pushes with GITHUB_TOKEN, which does not trigger other workflows (so neither `ci` nor the
+tag-push fan-out runs from it); `scripts/release.mjs --ci` dispatches `fanout.yml` itself.

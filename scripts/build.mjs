@@ -1,12 +1,14 @@
 // Builds dist/: generated CSS from src/tokens.mjs, the copied fonts, theme-init.js
 // with the theme list baked in, the React-free tokens entry, and the JS/types via tsup.
 import { createHash } from 'node:crypto';
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execSync } from 'node:child_process';
 import vm from 'node:vm';
 import { COLOR_ROLES, DEFAULT_THEME, SCALE, SHADOWS, SOFT_ROLES, THEMES } from '../src/tokens.mjs';
+import { TH_COLORS } from '../src/th-colors.mjs';
 import { buildComponentsCss } from './build-components.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -96,18 +98,6 @@ const componentsCss = buildComponentsCss(src, dist);
 
 // --- tailwind.css ------------------------------------------------------------------
 // Consumers: @import "tailwindcss"; @import "@nish/ui/tailwind.css";
-const twColors = [
-  ...COLOR_ROLES.filter((r) => !r.startsWith('chart-')).map((r) => [r, r]),
-  ...COLOR_ROLES.filter((r) => r.startsWith('chart-')).map((r) => [r, r]),
-  ...SOFT_ROLES.flatMap((r) => [[`${r}-soft`, `${r}-soft`], [`${r}-soft-solid`, `${r}-soft-solid`]]),
-  // Aliases for the names trading and nishboard already use.
-  ['gain', 'ok'],
-  ['danger', 'loss'],
-  ['2', 'hi2'],
-  ['3', 'hi3'],
-  ['bar', 'surface'],
-  ['focus', 'focus'],
-];
 const tailwindCss = [
   HEADER,
   '@import "./tokens.css";',
@@ -115,14 +105,22 @@ const tailwindCss = [
   '@import "./base.css" layer(base);',
   '',
   '/* Class names used by the components in this package. */',
-  '@source "./";',
+  // Only the shipped component JS (dist/*.js, chunks included). Not .map, .d.ts, theme.global.js
+  // or dist/node (the Vite plugin, ESLint preset and CLI). When dist sits in a gitignored
+  // node_modules, an explicit @source scans the whole folder, so the exclusions are explicit.
+  '@source "./*.js";',
+  '@source not "./theme.global.js";',
+  '@source not "./node";',
+  '@source not "./*.map";',
+  '@source not "./*.d.ts";',
+  '@source not "./*/**";',
   '',
   '/* dark: follows the active theme, not the OS. */',
   "@custom-variant dark (&:where([data-scheme='dark'], [data-scheme='dark'] *));",
   "@custom-variant light (&:where([data-scheme='light'], [data-scheme='light'] *));",
   '',
   '@theme inline {',
-  ...twColors.map(([name, role]) => `  --color-th-${name}: var(--nish-${role});`),
+  ...TH_COLORS.map(([name, role]) => `  --color-th-${name}: var(--nish-${role});`),
   // Dense type below text-xs (Nishboard widgets, table meta). cn() knows both sizes.
   ...['2xs', '3xs'].flatMap((s) => [`  --text-${s}: var(--nish-text-${s});`, `  --text-${s}--line-height: var(--nish-text-${s}-lh);`]),
   '  --font-sans: var(--nish-font-sans);',
@@ -162,6 +160,8 @@ testInit(init);
 writeFileSync(join(dist, 'theme-init.js'), init);
 
 testGlobal(readFileSync(join(dist, 'theme.global.js'), 'utf8'));
+await testSourceScan();
+await testVitePlugin();
 
 // --- tokens.js: @nish/ui/tokens, plain data for Node scripts (no React) ------------
 // src/tokens.mjs imports nothing, so it ships as is, with its hand-written types.
@@ -178,6 +178,63 @@ writeFileSync(
 );
 
 console.log('built dist/');
+
+/** dist/tailwind.css must scan only the shipped component JS in dist's top level, never all of dist (that pulled in
+ *  .map files with sourcesContent and .d.ts files, which minted classes nothing uses). Checked by a
+ *  real Tailwind compile in a temp git project that ignores node_modules, like a consumer's. */
+async function testSourceScan() {
+  const css = readFileSync(join(dist, 'tailwind.css'), 'utf8');
+  if (css.includes('@source "./";')) throw new Error('dist/tailwind.css must not scan all of dist (@source "./")');
+  for (const line of ['@source "./*.js";', '@source not "./node";', '@source not "./*.map";', '@source not "./*.d.ts";', '@source not "./*/**";']) {
+    if (!css.includes(line)) throw new Error(`dist/tailwind.css must contain ${line}`);
+  }
+
+  const { compile } = await import('@tailwindcss/node');
+  const { Scanner } = await import('@tailwindcss/oxide');
+  const tmp = mkdtempSync(join(tmpdir(), 'nish-scan-'));
+  try {
+    execSync('git init -q', { cwd: tmp });
+    writeFileSync(join(tmp, '.gitignore'), 'node_modules\n');
+    const pkg = join(tmp, 'node_modules/@nish/ui/dist');
+    mkdirSync(join(pkg, 'node'), { recursive: true });
+    mkdirSync(join(pkg, 'sub'), { recursive: true });
+    for (const f of ['tokens.css', 'fonts.css', 'base.css', 'tailwind.css']) copyFileSync(join(dist, f), join(pkg, f));
+    for (const f of readdirSync(join(dist, 'fonts'))) {
+      mkdirSync(join(pkg, 'fonts'), { recursive: true });
+      copyFileSync(join(dist, 'fonts', f), join(pkg, 'fonts', f));
+    }
+    writeFileSync(join(pkg, 'index.js'), 'export const a = "scan-keep-index flex";\n');
+    for (const f of ['index.js.map', 'index.d.ts', 'node/x.js', 'theme.global.js', 'sub/x.js']) {
+      writeFileSync(join(pkg, f), `x("scan-leak-${f.replace(/[^a-z]/gi, '-')}")`);
+    }
+    const twIndex = join(root, 'node_modules/tailwindcss/index.css').replaceAll('\\', '/');
+    const input = `@import "${twIndex}";\n@import "./node_modules/@nish/ui/dist/tailwind.css";\n`;
+    const compiler = await compile(input, { base: tmp, onDependency() {} });
+    // Like @tailwindcss/vite and postcss: the auto-detect root (the whole project, which is what
+    // reaches the gitignored dist folder) plus the @source entries the stylesheet declares.
+    const sources = [...(compiler.root === 'none' ? [] : [{ base: tmp, pattern: '**/*', negated: false }]), ...compiler.sources];
+    const scanner = new Scanner({ sources });
+    const candidates = scanner.scan();
+    const out = compiler.build(candidates);
+    // Candidates are only minted into CSS when they are valid utilities; check the scanned strings instead.
+    const seen = new Set(candidates);
+    const leaked = [...seen].filter((c) => c.startsWith('scan-leak-'));
+    if (!seen.has('flex') && !out.includes('.flex')) throw new Error('dist/tailwind.css no longer scans dist/index.js');
+    if (leaked.length) throw new Error(`dist/tailwind.css scans files it must not (${leaked.join(', ')})`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+/** @nish/ui/vite must inject dist/theme-init.js as the first thing in <head>. */
+async function testVitePlugin() {
+  const { nishThemeInit } = await import(pathToFileURL(join(dist, 'node/vite.js')).href);
+  const tags = nishThemeInit().transformIndexHtml.handler('<html><head></head></html>');
+  const want = readFileSync(join(dist, 'theme-init.js'), 'utf8').trim();
+  if (!Array.isArray(tags) || tags.length !== 1 || tags[0].children !== want || tags[0].injectTo !== 'head-prepend') {
+    throw new Error('dist/node/vite.js: nishThemeInit() must inject dist/theme-init.js once, at head-prepend');
+  }
+}
 
 /** @nish/ui/tokens must load in plain Node with nothing else installed: it may not
  *  import anything, and it must carry the documented exports. */

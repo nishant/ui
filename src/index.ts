@@ -161,7 +161,19 @@ export type {
 } from './components/charts';
 export { CommandPalette, useCommandHotkey, navigateFromLayer } from './components/command';
 export type { CommandItem, CommandPaletteProps } from './components/command';
-export { RelativeTime, useMediaQuery, useBreakpoint, useDocumentTitle, useNow, useLocalStorage } from './components/hooks';
+export {
+  RelativeTime,
+  useMediaQuery,
+  useBreakpoint,
+  useDocumentTitle,
+  useNow,
+  useLocalStorage,
+  BREAKPOINTS,
+  PHONE_QUERY,
+  NARROW_QUERY,
+  usePhone,
+  useNarrow,
+} from './components/hooks';
 export type { Breakpoint, RelativeTimeProps } from './components/hooks';
 export {
   FlowSteps,
@@ -204,4 +216,18 @@ export type { InboxProps } from './components/inbox';
 export { INBOX_SOURCE_LABELS, INBOX_DEFAULT_SETTINGS } from './inbox-types';
 export { INBOX_ACTION_HEADER, INBOX_ACTION_TIMEOUT_MS } from './inbox-types';
 export type { InboxItem, InboxView, InboxSeverity, InboxSettings, InboxListResponse, InboxAction, InboxActionResult, InboxActionCall } from './inbox-types';
+export { AppShell } from './components/app-shell';
+export type { AppShellProps } from './components/app-shell';
+export { apiFetch, ApiError, configureApi, useResource } from './components/resource';
+export type { ApiConfig, ApiFetchOptions, UseResourceOptions, Resource } from './components/resource';
+export { AppErrorBoundary } from './components/error-boundary';
+export type { AppErrorBoundaryProps } from './components/error-boundary';
+export { FilterBar, FilterSheet } from './components/filters';
+export type { FilterBarProps, FilterSheetProps } from './components/filters';
+export { useUrlState, locationAdapter } from './components/url-state';
+export type { UrlStateAdapter, UrlStateShape } from './components/url-state';
+export { SettingsSection, SettingRow, NumberField, useSaveStatus } from './components/settings';
+export type { SettingsSectionProps, SettingRowProps, NumberFieldProps, SaveStatus } from './components/settings';
+export { Combobox } from './components/combobox';
+export type { ComboboxProps, ComboboxOption } from './components/combobox';
 export { CheckIcon, ClockIcon, MoreIcon, BellIcon, SettingsIcon } from './components/icons';
