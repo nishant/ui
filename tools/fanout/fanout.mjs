@@ -21,7 +21,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sections } from './changelog.mjs';
 import { parseFleet } from './fleet.mjs';
-import { CmdError, api, apiJson, gh, git, isForbidden, redact, sh, sleep } from './gh.mjs';
+import { CmdError, api, apiJson, gh, git, isForbidden, isNoAccess, redact, sh, sleep } from './gh.mjs';
 import { compare, lockDirs, lowestPin, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 import { computeChecks, cut, decide, isAdoptedHead, limitFor, updateLabel } from './policy.mjs';
 
@@ -53,10 +53,46 @@ export function latestTag(names) {
   return tags.sort((a, b) => compare(a, b)).pop() ?? null;
 }
 
+const firstLine = (s) => String(s).split(/\r?\n/).find((l) => l.trim()) ?? '';
+// GitHub refusing the token, once the repo itself is known to be visible (a 404 is then a missing file).
+const REFUSED = /Could not resolve to a Repository|HTTP 403|Resource not accessible/;
+const refusedLine = (s) => String(s).split(/\r?\n/).find((l) => REFUSED.test(l)) ?? firstLine(s);
+
 /** One markdown line for a result. */
 export function resultLine(r) {
   const pr = r.pr ? ` (#${r.pr})` : '';
   return `- **${r.repo}**: ${r.result}${r.detail ? `, ${r.detail}` : ''}${pr}`;
+}
+
+/** The fix for a repo the token cannot see (the job summary says it in so many words). */
+export function tokenHint(repo) {
+  return `FLEET_TOKEN cannot reach ${repo}: add it to the token's Repository access (github.com → Settings → Developer settings → Fine-grained tokens)`;
+}
+
+/** The fix for a repo the token can read but not write (a public repo outside the token, or a missing permission). */
+export function tokenWriteHint(repo) {
+  return `FLEET_TOKEN may not write to ${repo}: check that the token's Repository access includes it and that it has Contents, Pull requests and Commit statuses read and write (github.com → Settings → Developer settings → Fine-grained tokens)`;
+}
+
+/**
+ * Name the token as the cause of an error that is GitHub refusing it. Only after the repo probe
+ * passed, so a 404 here is a missing file or workflow, not access, and is left as it was.
+ */
+export function explainError(r) {
+  if (r.result !== 'error') return r;
+  const text = String(r.detail ?? '');
+  if (/Could not resolve to a Repository/.test(text)) return { ...r, detail: tokenHint(r.repo) };
+  if (REFUSED.test(text)) return { ...r, detail: `${tokenWriteHint(r.repo)}. GitHub said: ${refusedLine(text).trim()}` };
+  return r;
+}
+
+/**
+ * The CLI's exit code: 1 when any repo ended in an error (an unreachable repo, an unreadable pin, a
+ * PR that could not be listed or opened, a revert that did not merge), so the run shows red.
+ * Held, checking, skipped and current are outcomes, not errors.
+ */
+export function exitCode(results, failed = false) {
+  return failed || results.some((r) => r.result === 'error') ? 1 : 0;
 }
 
 function parseArgs(argv) {
@@ -75,7 +111,6 @@ function parseArgs(argv) {
   return a;
 }
 
-const firstLine = (s) => String(s).split(/\r?\n/).find((l) => l.trim()) ?? '';
 const rawFile = (repo, path, ref) =>
   api(`repos/${repo}/contents/${path}?ref=${encodeURIComponent(ref)}`, { raw: true }).stdout;
 
@@ -268,6 +303,7 @@ export class Run {
         if (this.dry) this.would(`move ${behind.join(', ')} to ${tag} on #${pr.number}`);
         else {
           const topped = this.topUpBumpPr(entry, pr, tag, pin, notes, adopted);
+          if (topped.skip) return { repo: R, result: 'skipped', detail: topped.skip, pr: pr.number };
           if (topped.error) return { repo: R, result: 'error', detail: topped.error, pr: pr.number };
           if (topped.sha) {
             pushedAt = Date.now();
@@ -328,7 +364,8 @@ export class Run {
       cloneBase(R, `ui/${tag}`, dir);
       // Build only on the head whose adopted state was read; a push since then waits for the next run.
       if (git(['rev-parse', 'HEAD'], { cwd: dir }).stdout.trim() !== pr.headRefOid) {
-        return { error: `ui/${tag} moved while the fan-out read it; the next run moves the missing folders` };
+        // A race with a push, not an error: the next run sees the new head.
+        return { skip: `ui/${tag} moved while the fan-out read it; the next run moves the missing folders` };
       }
       const moved = bumpTree(entry, dir, tag, { at });
       step = 'git add';
@@ -559,7 +596,24 @@ export class Run {
 
   // ---- per repo ---------------------------------------------------------------------
 
+  /** `gh api repos/<R>`, never throwing: the result says whether the token can see the repo. */
+  probe(R) {
+    return api(`repos/${R}`, { allowFail: true });
+  }
+
+  /** null when the token can see the repo, else the error detail for the summary. */
+  reach(R) {
+    const r = this.probe(R);
+    if (r.code === 0) return null;
+    const out = `${r.stderr}\n${r.stdout}`;
+    return isNoAccess(out) ? tokenHint(R) : `Could not read ${R}: ${firstLine(redact(out))}`;
+  }
+
   async repo(entry, tagArg) {
+    // One check up front, so a repo outside the token is one plain line instead of several
+    // errors from each call that tripped over it.
+    const unreachable = this.reach(entry.repo);
+    if (unreachable) return [{ repo: entry.repo, result: 'error', detail: unreachable }];
     const out = [];
     try {
       if (entry.ui !== 'none') {
@@ -572,10 +626,14 @@ export class Run {
       }
       out.push(...(await this.settleDeps(entry)));
     } catch (e) {
-      out.push({ repo: entry.repo, result: 'error', detail: firstLine(redact(e.message)) });
+      // The first line of a CmdError is the command; GitHub's reason is in its output.
+      const reason = REFUSED.test(String(e.output ?? ''))
+        ? `${firstLine(redact(e.message))}: ${refusedLine(e.output).trim()}`
+        : firstLine(redact(e.message));
+      out.push({ repo: entry.repo, result: 'error', detail: reason });
       this.say(redact(e.stack ?? e.message));
     }
-    return out;
+    return out.map(explainError);
   }
 }
 
@@ -590,7 +648,14 @@ function findFile(dir, name) {
   return null;
 }
 
-export async function main(argv) {
+/** A GitHub Actions error annotation, so the reason shows on the run page, not only in the log. */
+function annotate(r) {
+  if (process.env.GITHUB_ACTIONS !== 'true') return;
+  const msg = String(r.detail ?? r.result).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+  console.log(`::error title=fan-out ${r.repo}::${msg}`);
+}
+
+export async function main(argv, { makeRun = (a) => new Run(a) } = {}) {
   let args;
   try {
     args = parseArgs(argv);
@@ -608,17 +673,21 @@ export async function main(argv) {
     console.error(`Unknown repo ${args.repo}: not in ${args.fleet}`);
     return 1;
   }
-  const run = new Run(args);
+  const run = makeRun(args);
   const summary = process.env.GITHUB_STEP_SUMMARY;
+  const results = [];
   for (const entry of picked) {
     run.say(`${entry.repo}${args.dry ? ' (dry run)' : ''}`);
     for (const r of await run.repo(entry, args.tag)) {
+      results.push(r);
       const line = resultLine(r);
       run.say(line);
       if (summary) appendFileSync(summary, `${line}\n`);
+      if (r.result === 'error') annotate(r);
     }
   }
-  return run.failed ? 1 : 0;
+  // The summary is written first; then any error fails the job, so the run shows red.
+  return exitCode(results, run.failed);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

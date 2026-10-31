@@ -486,6 +486,12 @@ The flow is: release, tag, fan-out PRs, Fold check, merge policy, deploy watch a
    deploy fails it reverts the merge in a `revert/<n>` PR and merges that, and holds that tag for the
    repo until a session looks.
 
+Each repo's matrix job writes one summary line per outcome. A held, checking, skipped or current
+outcome leaves the job green; an `error` outcome (the repo cannot be reached, the pin cannot be read,
+PRs cannot be listed or opened, a revert did not merge) fails the job after its summary is written,
+so the run shows red. A repo the token cannot see says so plainly: "FLEET_TOKEN cannot reach
+<repo>: add it to the token's Repository access".
+
 Check https://status.nish.software/fleet (behind the status login) for what is behind: per repo, the
 live and master `@nish/ui` version against the latest tag, CI state, and open bump and dependency PRs
 with their `fan-out` status.
