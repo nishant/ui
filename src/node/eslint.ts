@@ -69,8 +69,8 @@ export const rules: Record<string, NishRule> = {
     'text-white / bg-black ignore the theme. Use th-on-* on solid fills, or a surface role.',
   ),
   'no-legacy-th-alias': patternRule(
-    'Disallow the legacy th-* aliases (gain, danger, 2, 3, bar, focus).',
-    /(^|[\s:])-?[a-z-]+-th-(gain|danger|2|3|bar|focus)(?=$|[\s/"'`])/,
+    'Disallow the legacy th-* aliases (gain, danger, 2, 3, bar). th-focus is the focus ring role, not legacy.',
+    /(^|[\s:])-?[a-z-]+-th-(gain|danger|2|3|bar)(?=$|[\s/"'`])/,
     'Legacy th-* alias. Gains are th-ok, danger is th-loss, th-2/th-3 are th-hi2/th-hi3.',
   ),
   'no-hand-mixed-tint': patternRule(
