@@ -160,6 +160,7 @@ testInit(init);
 writeFileSync(join(dist, 'theme-init.js'), init);
 
 testGlobal(readFileSync(join(dist, 'theme.global.js'), 'utf8'));
+testStandalone();
 await testSourceScan();
 await testVitePlugin();
 
@@ -415,4 +416,19 @@ function testInit(code) {
     { matchMedia: () => ({ matches: false }) },
   );
   if (attrs['data-theme'] !== 'light') throw new Error('theme-init.js threw without document.querySelector');
+}
+
+/** Entries a static site may vendor as one file must not import a chunk (v1.0.0's
+ *  dist/format.js imported ./chunk-*.js and 404'd in hosting). */
+function testStandalone() {
+  for (const f of ['theme.js', 'format.js', 'chart.js', 'inbox-client.js']) {
+    let code;
+    try {
+      code = readFileSync(join(dist, f), 'utf8');
+    } catch {
+      continue; // chart.js is optional
+    }
+    const rel = code.match(/\b(?:from|import)\s*\(?\s*["']\.{1,2}\/[^"']+["']/);
+    if (rel) throw new Error(`dist/${f} must stand alone but imports ${rel[0]}`);
+  }
 }
