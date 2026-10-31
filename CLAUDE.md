@@ -40,3 +40,13 @@ An empty `FLEET_TOKEN` (a `gh secret set` prompt that got no paste) also fails q
 summary says "FLEET_TOKEN is not set". Re-set it and dispatch `fanout.yml` to check.
 `release.yml` pushes with GITHUB_TOKEN, which does not trigger other workflows (so neither `ci` nor the
 tag-push fan-out runs from it); `scripts/release.mjs --ci` dispatches `fanout.yml` itself.
+
+## Traps
+
+- A release whose major is higher than an app's pin (0.x → 1.0.0, 1.x → 2.0.0) is held in every app
+  ("Major release: a session has to adopt it"). When nothing needs to change, adopt each `ui/vX.Y.Z` PR with an
+  empty commit by someone other than `ui fan-out`; the next hourly run merges it once checks pass. A newer tag
+  closes older open bump PRs ("Superseded"), so adopt only the newest.
+- `npx playwright test` reuses a running harness server (`reuseExistingServer` locally); a leftover
+  `vite --config tests/overlay/vite.config.ts` keeps a worktree folder locked on Windows. Stop it before
+  `git worktree remove`.
