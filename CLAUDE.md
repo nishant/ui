@@ -15,22 +15,16 @@ every app and hosting: it opens a `ui/vX.Y.Z` PR in each repo and merges it when
 Fold check pass. A held bump PR is adopted on its `ui/vX.Y.Z` branch (make the app's code changes
 there); the fan-out merges it on its next run. Check https://status.nish.software/fleet for what is
 behind. Only taarora/arora-home is moved by hand: `bash scripts/bump-consumers.sh vX.Y.Z`.
-Work is done only when it is merged, released, adopted by
-the apps that need it, and confirmed live. Pick sensible defaults instead of asking; stop for
-Nish only when it is critically necessary (credentials, account signups, anything
-destructive to production data).
+Work is done only when it is merged, released, adopted by the apps that need it, and confirmed
+live. The rest of the rule (defaults instead of questions; stop only for credentials, account
+signups or anything destructive to production data) is "Autonomy" in [`global/CLAUDE.md`](https://github.com/nishant/skills/blob/master/global/CLAUDE.md) in `nishant/skills`.
 
 ## Target Device
 
-Every app built on this package is reviewed on a Samsung Galaxy Z Fold 7: a narrow cover
-screen (about 360–390 CSS px) and a near-square ~840px unfolded. Components, and every page
-that uses them, must look right with no horizontal page scroll at 360px, ~840px and desktop
-width, in light and dark, with 44px touch targets. `tools/visual-check.mjs` checks those
-sizes by default.
-
-Every page must also be reachable on the phone through a visible UI element (BottomNav,
-MoreSheet, a menu, or a link on another page), never only by typing its URL: no desktop-only
-nav entries, and no page that tells a phone user to open it on a desktop.
+Every app built on this package follows "Phones and layout" in [`global/CLAUDE.md`](https://github.com/nishant/skills/blob/master/global/CLAUDE.md) in `nishant/skills`: 360px, ~840px and
+desktop, light and dark, 44px targets, no horizontal page scroll, every page reachable through
+visible UI. Components must hold up the same way; `tools/visual-check.mjs` checks those sizes by
+default.
 
 ## Workflows
 
