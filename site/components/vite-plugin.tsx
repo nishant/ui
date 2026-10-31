@@ -26,7 +26,8 @@ import nish from '@nish/ui/eslint';
 
 export default [
   ...tseslint.configs.recommended,
-  ...nish, // after the TypeScript config: it ships rules only, no parser
+  ...nish.configs.react, // after the TypeScript config: it ships rules only, no parser
+  // servers and scripts: ...nish.configs.node (the core rules, no theme rules)
 ];`;
 
 const RULES = `nish/no-unknown-th-class   a th-* color @nish/ui does not define (a made-up name after bg-th-)
@@ -40,9 +41,17 @@ const CHECK = `# package.json: "th-check": "nish-th-check src"
 npx nish-th-check src site          # directories or files; default: src
 # exits 1 and prints file:line and the class for each unknown th-* color`;
 
+const TSCONFIG = `// tsconfig.json: a Vite + React app
+{ "extends": "@nish/ui/tsconfig/react.json", "include": ["src"] }
+
+// a server or script: NodeNext resolution and node types
+{ "extends": "@nish/ui/tsconfig/node.json", "include": ["server"] }
+
+// base.json: strict, ES2023, Bundler resolution, isolatedModules, noEmit`;
+
 export const vitePlugin: ComponentDoc = {
   id: 'vite-plugin',
-  name: 'Vite plugin and lint',
+  name: 'Vite plugin, lint and tsconfig',
   exports: [],
   source: 'src/node/vite.ts',
   summary:
@@ -57,6 +66,7 @@ export const vitePlugin: ComponentDoc = {
     { id: 'options', name: 'Plugin options', wide: true, render: () => <CodeBlock code={PLUGIN_OPTIONS} title="vite.config.ts" /> },
     { id: 'eslint', name: '@nish/ui/eslint', wide: true, render: () => <CodeBlock code={ESLINT} title="eslint.config.js" /> },
     { id: 'rules', name: 'The nish/* rules', wide: true, render: () => <CodeBlock code={RULES} title="rules" /> },
+    { id: 'tsconfig', name: 'TypeScript presets', wide: true, render: () => <CodeBlock code={TSCONFIG} title="tsconfig.json" /> },
     { id: 'check', name: 'nish-th-check', wide: true, render: () => <CodeBlock code={CHECK} title="terminal" /> },
   ],
   usage: `${PLUGIN}

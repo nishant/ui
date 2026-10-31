@@ -8,7 +8,8 @@
     "*.css"
   ],
   "files": [
-    "dist"
+    "dist",
+    "tsconfig"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -62,6 +63,7 @@
       "types": "./dist/node/eslint.d.ts",
       "import": "./dist/node/eslint.js"
     },
+    "./tsconfig/*": "./tsconfig/*",
     "./theme-init.js": "./dist/theme-init.js",
     "./theme.global.js": "./dist/theme.global.js",
     "./tailwind.css": "./dist/tailwind.css",

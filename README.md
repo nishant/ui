@@ -83,7 +83,7 @@ element silently loses its background) from shipping.
 import tseslint from 'typescript-eslint';
 import nish from '@nish/ui/eslint';
 
-export default [...tseslint.configs.recommended, ...nish];
+export default [...tseslint.configs.recommended, ...nish.configs.react]; // servers: nish.configs.node
 ```
 
 The preset is the plugin `nish` with six rules, all errors: `no-unknown-th-class`, `no-raw-palette`,
@@ -93,6 +93,16 @@ own rules rather than `no-restricted-syntax`, so it never replaces an app's own 
 `nish-th-check [dir|file ...]` (default `src`) does the unknown-class check alone, for CSS and HTML too,
 and exits 1 with file:line for each hit. Add `"th-check": "nish-th-check src"` to `package.json` and run it
 in `check`. This repo runs it over `src site demo` in `npm run check`.
+
+## TypeScript presets
+
+```json
+// tsconfig.json of a Vite + React app; servers and scripts extend node.json
+{ "extends": "@nish/ui/tsconfig/react.json", "include": ["src"] }
+```
+
+`base.json` is strict, ES2023, Bundler resolution, isolatedModules and noEmit. `react.json` adds the DOM libs,
+`react-jsx` and `vite/client` types. `node.json` switches to NodeNext with `node` types.
 
 ## Icons
 

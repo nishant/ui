@@ -129,7 +129,7 @@ import nish from '@nish/ui/eslint';
 
 export default [
   ...tseslint.configs.recommended,
-  ...nish, // after the TypeScript config; it adds the nish/* rules and ships no parser
+  ...nish.configs.react, // after the TypeScript config; it adds the nish/* rules and ships no parser
 ];`}
             />
             <CodeBlock

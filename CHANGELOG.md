@@ -18,7 +18,8 @@ a minor adds, and a patch fixes.
 - `SettingsSection`, `SettingRow`, `NumberField` (saves on blur and Enter) and `useSaveStatus`.
 - `Combobox`: an ARIA 1.2 combobox with a listbox, local or async options and optional custom values.
 - `BREAKPOINTS`, `PHONE_QUERY`, `NARROW_QUERY`, `usePhone()` and `useNarrow()`, so apps stop writing their own media query strings.
-- `@nish/ui/eslint`: a flat-config preset (plugin `nish`) with six rules for unknown `th-*` classes, raw palette classes, `text-white` and `bg-black`, legacy aliases, hand-mixed tints and arbitrary font sizes. And the `nish-th-check` command, which fails on unknown `th-*` classes in any source file. ui's own `npm run check` runs it over `src site demo`.
+- `@nish/ui/eslint`: `nish.configs.react` (also `recommended`) and `nish.configs.node`, flat-config arrays to spread after `tseslint.configs.recommended`. `react` has the core rules (`no-var`, `prefer-const`, `eqeqeq` smart, `no-empty` with no empty `catch`) plus the plugin `nish` with six rules for unknown `th-*` classes, raw palette classes, `text-white` and `bg-black`, legacy aliases, hand-mixed tints and arbitrary font sizes. And the `nish-th-check` command, which fails on unknown `th-*` classes in any source file. ui's own `npm run check` runs it over `src site demo`.
+- `@nish/ui/tsconfig/base.json`, `react.json` (Vite + React) and `node.json` (NodeNext): shared compiler presets, used as `"extends": "@nish/ui/tsconfig/react.json"`.
 - Docs: pages for every block above, a Vite plugin and lint page, and a Foundations page (`#/icons`) that records the icon decision: apps use `lucide-react`, and ui keeps inlining the few icons it needs on lucide's grid.
 - Tests: vitest with happy-dom and Testing Library (`npm run test:unit`), and Playwright specs for overlays (Escape order, focus trap and return, Android and browser Back) that run in CI.
 

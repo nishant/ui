@@ -67,9 +67,21 @@ tester.run('no-arbitrary-text-size', rule('no-arbitrary-text-size'), {
 });
 
 describe('preset', () => {
-  it('enables every rule under the nish plugin', () => {
-    const cfg = preset[0];
-    expect(cfg.plugins.nish).toBe(plugin);
-    for (const id of Object.keys(rules)) expect(cfg.rules[`nish/${id}`]).toBe('error');
+  it('react and recommended enable every rule under the nish plugin', () => {
+    for (const list of [preset.configs.react, preset.configs.recommended]) {
+      const theme = list.find((c) => c.name === 'nish/theme')!;
+      expect(theme.plugins!.nish).toBe(plugin);
+      for (const id of Object.keys(rules)) expect(theme.rules[`nish/${id}`]).toBe('error');
+      expect(list.some((c) => c.name === 'nish/base')).toBe(true);
+    }
+  });
+  it('node has the core rules and no theme rules', () => {
+    expect(preset.configs.node.map((c) => c.name)).toEqual(['nish/base']);
+    expect(preset.configs.node[0].rules['no-empty']).toEqual(['error', { allowEmptyCatch: false }]);
+  });
+  it('the core rules run under ESLint', async () => {
+    const { Linter } = await import('eslint');
+    const msgs = new Linter().verify('var a = 1; try { a++ } catch {}', [...preset.configs.node] as never, 'x.js');
+    expect(msgs.map((m) => m.ruleId).sort()).toEqual(['no-empty', 'no-var']);
   });
 });

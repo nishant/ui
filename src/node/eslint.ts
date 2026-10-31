@@ -91,13 +91,37 @@ export const plugin = { meta: { name: 'nish' }, rules };
 /** Exposed so tooling can list the defined colors. */
 export { TH_COLOR_NAMES };
 
-const config = [
-  {
-    name: 'nish/recommended',
-    files: ['**/*.{js,jsx,ts,tsx,mjs}'],
-    plugins: { nish: plugin },
-    rules: Object.fromEntries(Object.keys(rules).map((id) => [`nish/${id}`, 'error' as const])),
-  },
-];
+const nishRules = Object.fromEntries(Object.keys(rules).map((id) => [`nish/${id}`, 'error' as const]));
 
-export default config;
+/** Core ESLint rules every repo shares (no plugin needed). `no-empty` refuses a bare `catch {}`:
+ *  a comment saying why the failure is harmless is enough (trading's rule). */
+const coreRules = {
+  'no-var': 'error',
+  'prefer-const': 'error',
+  eqeqeq: ['error', 'smart'],
+  'no-empty': ['error', { allowEmptyCatch: false }],
+} as const;
+
+/** One flat-config object, structurally what ESLint's `Linter.Config` accepts. */
+export interface NishFlatConfig {
+  name: string;
+  files: string[];
+  plugins?: Record<string, typeof plugin>;
+  rules: Record<string, unknown>;
+}
+
+const base: NishFlatConfig = { name: 'nish/base', files: ['**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}'], rules: coreRules };
+const theme: NishFlatConfig = { name: 'nish/theme', files: ['**/*.{js,jsx,ts,tsx,mjs}'], plugins: { nish: plugin }, rules: nishRules };
+
+/** Flat-config arrays to spread after `tseslint.configs.recommended`:
+ *  react (an app's UI: the core rules plus the six nish/* theme rules), node (servers and scripts:
+ *  the core rules only), recommended (= react). */
+export const configs: Record<'recommended' | 'react' | 'node', NishFlatConfig[]> = {
+  recommended: [base, theme],
+  react: [base, theme],
+  node: [base],
+};
+
+const nish = { meta: { name: '@nish/ui/eslint' }, plugin, rules, configs };
+
+export default nish;
