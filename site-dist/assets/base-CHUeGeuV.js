@@ -1,0 +1,1529 @@
+var e=`/* Page-level defaults every nish.software site shares. Plain CSS so static pages can
+   link it; Tailwind apps get it through tailwind.css inside the base layer, so any
+   utility class still wins. */
+
+html {
+  background-color: var(--nish-bg);
+  color: var(--nish-hi);
+  font-family: var(--nish-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Layout contract. Bars publish their height on <html> (--nish-header-h,
+   --nish-bottom-nav-h, --nish-bottom-bar-h); everything that must clear them reads
+   --nish-bottom-inset or --nish-header-h. */
+:root {
+  --nish-page-gutter: 1rem;
+  --nish-header-h: 0px;
+  --nish-bottom-inset: calc(var(--nish-bottom-nav-h, 0px) + var(--nish-bottom-bar-h, 0px));
+}
+@media (min-width: 640px) {
+  :root {
+    --nish-page-gutter: 1.5rem;
+  }
+}
+/* Desktop scrollbars: reserve the gutter so the page does not shift when a dialog
+   hides the page scroll. */
+@media (hover: hover) and (pointer: fine) {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
+/* Anchor targets stop below the sticky header (and a sticky sub-bar). */
+.nish-scroll-target {
+  scroll-margin-top: calc(var(--nish-header-h, 0px) + var(--nish-sticky-extra, 0px) + 0.5rem);
+}
+/* Horizontal overflow fade, driven by data-at-start / data-at-end on the scroller. */
+.nish-scroll-fade {
+  --nish-fade-start: #000;
+  --nish-fade-end: #000;
+  mask-image: linear-gradient(to right, var(--nish-fade-start), #000 24px, #000 calc(100% - 24px), var(--nish-fade-end));
+  -webkit-mask-image: linear-gradient(to right, var(--nish-fade-start), #000 24px, #000 calc(100% - 24px), var(--nish-fade-end));
+}
+.nish-scroll-fade[data-at-start='false'] {
+  --nish-fade-start: transparent;
+}
+.nish-scroll-fade[data-at-end='false'] {
+  --nish-fade-end: transparent;
+}
+.nish-no-scrollbar {
+  scrollbar-width: none;
+}
+.nish-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Bottom padding that clears bottom bars (the nav already includes the safe area). */
+.nish-pad-bottom-inset {
+  padding-bottom: max(calc(var(--nish-bottom-inset) + 1rem), calc(1rem + env(safe-area-inset-bottom)));
+}
+
+/* A theme scoped to part of a page (<div data-theme="light" data-scheme="light">):
+   the tokens are re-declared there by tokens.css, but inherited text color was
+   computed on html, so set it again. Zero specificity, so any class still wins. */
+:where([data-theme]:not(html)) {
+  background-color: var(--nish-bg);
+  color: var(--nish-hi);
+}
+
+/* Numbers in tables line up as columns without per-cell classes. */
+table,
+.nish-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--nish-accent) 30%, transparent);
+}
+
+/* One keyboard-focus language everywhere. Components that draw their own focus
+   style still win; this is the fallback for everything that never thought about it. */
+:focus-visible {
+  outline: var(--nish-focus-width) solid var(--nish-focus);
+  outline-offset: var(--nish-focus-offset);
+}
+
+/* Recharts 3's accessibility layer makes the chart focusable, so a tap or click
+   focused it and drew a thick box round the whole plot. Pointer focus draws nothing;
+   keyboard focus gets a quiet accent ring. */
+.recharts-wrapper,
+.recharts-wrapper :focus {
+  outline: none;
+}
+.recharts-wrapper:focus-visible,
+.recharts-wrapper :focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--nish-accent) 45%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--nish-radius-sm);
+}
+/* Recharts' default hover cursor is a #ccc slab (bars) or line, bright on dark themes.
+   CSS beats the fill/stroke attributes Recharts writes, so every chart gets a quiet one. */
+.recharts-rectangle.recharts-tooltip-cursor {
+  fill: color-mix(in srgb, var(--nish-hi3) 14%, transparent);
+}
+.recharts-curve.recharts-tooltip-cursor {
+  stroke: var(--nish-line-strong);
+}
+
+/* Browser-default scrollbars clash with every theme, worst on light. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nish-line-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nish-line-strong);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nish-ghost);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* The "← nish.software" pill every subdomain carries at the top left of its header:
+   <a class="nish-pill-link" href="https://nish.software" title="Back to nish.software">← nish.software</a> */
+.nish-pill-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--nish-font-sans);
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--nish-hi2);
+  text-decoration: none;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 1px solid var(--nish-line);
+  border-radius: 999px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.nish-pill-link:hover {
+  color: var(--nish-hi);
+  border-color: var(--nish-line-strong);
+}
+/* Compact form for crowded headers: under 480px only the arrow shows, in a 44px circle,
+   and the words stay for screen readers. data-compact="always" keeps it compact at every
+   width.
+   <a class="nish-pill-link nish-pill-link--compact" href="https://nish.software"
+      title="Back to nish.software">&larr; <span class="nish-pill-link-label">nish.software</span></a> */
+@media (max-width: 480px) {
+  .nish-pill-link--compact {
+    min-width: var(--nish-tap-min, 44px);
+    justify-content: center;
+    padding-inline: 6px;
+  }
+  .nish-pill-link--compact .nish-pill-link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+.nish-pill-link--compact[data-compact='always'] {
+  min-width: var(--nish-tap-min, 44px);
+  justify-content: center;
+  padding-inline: 6px;
+}
+.nish-pill-link--compact[data-compact='always'] .nish-pill-link-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Scrolls, but draws no scrollbar: tab strips, chip rows, carousels. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* First thing in <body>: <a class="nish-skip-link" href="#main">Skip to content</a>.
+   Parked above the top edge (still read by screen readers) until a keyboard user tabs
+   to it, then a pill at the top left. */
+.nish-skip-link {
+  position: fixed;
+  top: var(--nish-space-2);
+  left: var(--nish-space-2);
+  z-index: var(--nish-z-tooltip);
+  transform: translateY(calc(-100% - var(--nish-space-4)));
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--nish-tap-min);
+  padding: 0 var(--nish-space-4);
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-elevated);
+  color: var(--nish-hi);
+  box-shadow: var(--nish-shadow-pop);
+  font-size: var(--nish-text-sm);
+  font-weight: var(--nish-weight-medium);
+  text-decoration: none;
+}
+.nish-skip-link:focus,
+.nish-skip-link:focus-visible {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Keyboard keys in running text and shortcut hints. The Kbd component adds sizes. */
+kbd {
+  font-family: var(--nish-font-mono);
+  font-size: 0.85em;
+  padding: 0 0.35em;
+  border: 1px solid var(--nish-line-strong);
+  border-radius: var(--nish-radius-xs);
+  background: var(--nish-elevated);
+  color: inherit;
+  white-space: nowrap;
+}
+
+/* Notches and home indicators on installed PWAs. */
+.nish-safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.nish-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--nish-elevated);
+}
+.nish-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--nish-overlay) 70%, transparent), transparent);
+  animation: nish-sheen 1.4s infinite;
+}
+
+@keyframes nish-sheen {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes nish-sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes nish-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes nish-toast-in-top {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes nish-bar-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+/* Indeterminate progress: a 40% wide stripe sweeping across (the stripe is the element). */
+@keyframes nish-loading-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@keyframes nish-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes nish-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nish-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes nish-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+/* Drawers: from the right edge (side="right") or the left (side="left"). */
+@keyframes nish-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes nish-slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Flow components (FlowSteps, StepBar, AgentNode, WorkflowBoard, ActivityFeed,
+   TickerText, AnimatedList; src/components/flow.tsx). Layout rules always apply; every
+   rule that moves, loops or fades sits inside prefers-reduced-motion: no-preference, so
+   under reduced motion state changes are instant and nothing loops. */
+
+/* The comet on a running AgentNode turns this angle. Where @property is unsupported the
+   angle stays 0 and the border is a static accent border. */
+@property --nish-flow-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes nish-flow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes nish-flow-ripple {
+  from {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+@keyframes nish-flow-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes nish-flow-pop {
+  0% {
+    transform: scale(0.7);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes nish-flow-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+@keyframes nish-flow-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nish-flow-exit {
+  from {
+    opacity: 1;
+    transform: none;
+    grid-template-rows: 1fr;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+    grid-template-rows: 0fr;
+  }
+}
+@keyframes nish-flow-feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+    grid-template-rows: 0fr;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    grid-template-rows: 1fr;
+  }
+}
+@keyframes nish-flow-flash {
+  from {
+    background-color: var(--nish-accent-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes nish-flow-dash {
+  to {
+    stroke-dashoffset: -6;
+  }
+}
+@keyframes nish-flow-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes nish-flow-shimmer-v {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes nish-flow-sweep {
+  from {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+@keyframes nish-flow-sweep-v {
+  from {
+    transform: scaleY(0);
+    opacity: 1;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+@keyframes nish-flow-ticker-in {
+  from {
+    opacity: 0;
+    transform: translateY(70%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nish-flow-ticker-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-70%);
+  }
+}
+@keyframes nish-flow-ring {
+  to {
+    --nish-flow-angle: 360deg;
+  }
+}
+@keyframes nish-flow-glow {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* --- FlowSteps ------------------------------------------------------------------ */
+.nish-flow-steps-box {
+  container-type: inline-size;
+  min-width: 0;
+}
+.nish-flow-steps {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nish-flow-step {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 3rem;
+}
+.nish-flow-step:last-child {
+  min-height: 2.75rem;
+}
+.nish-flow-node {
+  position: relative;
+  flex: none;
+}
+.nish-flow-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding-top: 0.25rem;
+  overflow-wrap: anywhere;
+}
+.nish-flow-conn {
+  position: absolute;
+  top: 2rem;
+  bottom: 0.25rem;
+  left: calc(0.875rem - 1px);
+  width: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background-color: var(--nish-line);
+}
+.nish-flow-fill,
+.nish-flow-shimmer,
+.nish-flow-sweep {
+  position: absolute;
+  inset: 0;
+}
+.nish-flow-fill {
+  background-color: var(--nish-ok-fill);
+  transform-origin: top;
+  transform: scaleY(0);
+}
+.nish-flow-conn[data-on='true'] .nish-flow-fill {
+  transform: scaleY(1);
+}
+.nish-flow-shimmer {
+  display: none;
+  background: linear-gradient(180deg, transparent, var(--nish-accent), transparent);
+}
+.nish-flow-sweep {
+  display: none;
+  transform-origin: top;
+  background: linear-gradient(180deg, var(--nish-accent), var(--nish-ok-fill));
+}
+.nish-flow-arc,
+.nish-flow-ripple {
+  display: none;
+}
+.nish-flow-arc {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.nish-flow-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid var(--nish-accent);
+  pointer-events: none;
+}
+.nish-flow-check path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.nish-flow-steps[data-orient='horizontal'] {
+  flex-direction: row;
+}
+.nish-flow-steps[data-orient='horizontal'] .nish-flow-step {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.25rem;
+  text-align: center;
+}
+.nish-flow-steps[data-orient='horizontal'] .nish-flow-text {
+  align-items: center;
+  padding-top: 0;
+}
+.nish-flow-steps[data-orient='horizontal'] .nish-flow-label {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.nish-flow-steps[data-orient='horizontal'] .nish-flow-conn {
+  top: calc(0.875rem - 1px);
+  right: calc(-50% + 1.125rem);
+  bottom: auto;
+  left: calc(50% + 1.125rem);
+  width: auto;
+  height: 2px;
+}
+.nish-flow-steps[data-orient='horizontal'] .nish-flow-fill {
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.nish-flow-steps[data-orient='horizontal'] .nish-flow-conn[data-on='true'] .nish-flow-fill {
+  transform: scaleX(1);
+}
+.nish-flow-steps[data-orient='horizontal'] .nish-flow-shimmer {
+  background: linear-gradient(90deg, transparent, var(--nish-accent), transparent);
+}
+.nish-flow-steps[data-orient='horizontal'] .nish-flow-sweep {
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--nish-accent), var(--nish-ok-fill));
+}
+@container (min-width: 640px) {
+  .nish-flow-steps[data-orient='auto'] {
+    flex-direction: row;
+  }
+  .nish-flow-steps[data-orient='auto'] .nish-flow-step {
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.25rem;
+    text-align: center;
+  }
+  .nish-flow-steps[data-orient='auto'] .nish-flow-text {
+    align-items: center;
+    padding-top: 0;
+  }
+  .nish-flow-steps[data-orient='auto'] .nish-flow-label {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  .nish-flow-steps[data-orient='auto'] .nish-flow-conn {
+    top: calc(0.875rem - 1px);
+    right: calc(-50% + 1.125rem);
+    bottom: auto;
+    left: calc(50% + 1.125rem);
+    width: auto;
+    height: 2px;
+  }
+  .nish-flow-steps[data-orient='auto'] .nish-flow-fill {
+    transform-origin: left;
+    transform: scaleX(0);
+  }
+  .nish-flow-steps[data-orient='auto'] .nish-flow-conn[data-on='true'] .nish-flow-fill {
+    transform: scaleX(1);
+  }
+  .nish-flow-steps[data-orient='auto'] .nish-flow-shimmer {
+    background: linear-gradient(90deg, transparent, var(--nish-accent), transparent);
+  }
+  .nish-flow-steps[data-orient='auto'] .nish-flow-sweep {
+    transform-origin: left;
+    background: linear-gradient(90deg, var(--nish-accent), var(--nish-ok-fill));
+  }
+}
+
+/* --- AgentNode ------------------------------------------------------------------ */
+.nish-flow-agent {
+  position: relative;
+}
+.nish-flow-agent[data-state='running'] {
+  border-color: var(--nish-accent);
+}
+
+/* --- WorkflowBoard -------------------------------------------------------------- */
+.nish-flow-board-box {
+  container-type: inline-size;
+  min-width: 0;
+}
+.nish-flow-board {
+  display: grid;
+  gap: 0.75rem;
+}
+.nish-flow-phase {
+  position: relative;
+  min-width: 0;
+}
+.nish-flow-phase::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+}
+.nish-flow-phase[data-state='active']::after {
+  opacity: 1;
+  box-shadow:
+    0 0 0 1px var(--nish-accent),
+    0 0 16px var(--nish-accent-soft);
+}
+.nish-flow-phase-conn {
+  display: none;
+  position: absolute;
+  top: 1.375rem;
+  left: 100%;
+  width: 1.5rem;
+  height: 12px;
+  margin-top: -6px;
+  color: var(--nish-line-strong);
+}
+.nish-flow-phase-conn[data-flow='true'] {
+  color: var(--nish-accent);
+}
+@container (min-width: 720px) {
+  .nish-flow-board {
+    grid-auto-columns: minmax(220px, 1fr);
+    grid-auto-flow: column;
+    gap: 1.5rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 0.25rem;
+  }
+  .nish-flow-phase-conn {
+    display: block;
+  }
+}
+
+/* --- ActivityFeed --------------------------------------------------------------- */
+.nish-flow-feed {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nish-flow-feed-item {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.nish-flow-feed-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(0.25rem - 0.5px);
+  width: 1px;
+  background-color: var(--nish-line);
+}
+.nish-flow-feed-item:first-child::before {
+  top: 0.875rem;
+}
+.nish-flow-feed-item:last-child::before {
+  bottom: calc(100% - 0.875rem);
+}
+.nish-flow-feed-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.nish-flow-feed-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 0.75rem;
+  padding: 0.375rem 0.25rem 0.375rem 1.5rem;
+  border-radius: 0.375rem;
+}
+.nish-flow-feed-dot {
+  position: absolute;
+  top: 0.625rem;
+  left: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+/* --- TickerText ----------------------------------------------------------------- */
+.nish-flow-ticker {
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+}
+.nish-flow-ticker > span {
+  display: block;
+  grid-area: 1 / 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- AnimatedList --------------------------------------------------------------- */
+.nish-flow-item {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.nish-flow-item-inner {
+  min-height: 0;
+  min-width: 0;
+}
+.nish-flow-item[data-phase='exit'] {
+  pointer-events: none;
+}
+.nish-flow-item[data-phase='exit'] > .nish-flow-item-inner {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nish-flow-rise {
+    animation: nish-rise-in 320ms var(--nish-ease-out) both;
+    animation-delay: var(--nish-flow-delay, 0ms);
+  }
+
+  /* FlowSteps */
+  .nish-flow-arc {
+    display: block;
+    animation: nish-flow-spin 1.1s linear infinite;
+  }
+  .nish-flow-ripple {
+    display: block;
+    animation: nish-flow-ripple 1.6s ease-out infinite;
+  }
+  .nish-flow-fill {
+    transition: transform 500ms var(--nish-ease-out);
+  }
+  .nish-flow-steps[data-sweep='true'] .nish-flow-fill {
+    transition-delay: var(--nish-flow-delay, 0ms);
+  }
+  .nish-flow-step[data-status='active'] > .nish-flow-conn > .nish-flow-shimmer {
+    display: block;
+    animation: nish-flow-shimmer-v 1.4s linear infinite;
+  }
+  .nish-flow-steps[data-sweep='true'] .nish-flow-sweep {
+    display: block;
+    opacity: 0;
+    animation: nish-flow-sweep-v 700ms ease-out both;
+    animation-delay: var(--nish-flow-delay, 0ms);
+  }
+  .nish-flow-node[data-fx='done'] {
+    animation: nish-flow-pop 320ms var(--nish-ease-out);
+  }
+  .nish-flow-node[data-fx='done'] .nish-flow-check path {
+    animation: nish-flow-draw 360ms ease-out both;
+  }
+  .nish-flow-node[data-fx='failed'] {
+    animation: nish-flow-shake 300ms ease-in-out;
+  }
+  .nish-flow-steps[data-orient='horizontal'] .nish-flow-step[data-status='active'] > .nish-flow-conn > .nish-flow-shimmer {
+    animation-name: nish-flow-shimmer;
+  }
+  .nish-flow-steps[data-orient='horizontal'] .nish-flow-sweep {
+    animation-name: nish-flow-sweep;
+  }
+  @container (min-width: 640px) {
+    .nish-flow-steps[data-orient='auto'] .nish-flow-step[data-status='active'] > .nish-flow-conn > .nish-flow-shimmer {
+      animation-name: nish-flow-shimmer;
+    }
+    .nish-flow-steps[data-orient='auto'] .nish-flow-sweep {
+      animation-name: nish-flow-sweep;
+    }
+  }
+
+  /* AgentNode: a comet of accent running round the border. */
+  .nish-flow-agent[data-state='running']::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    padding: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: conic-gradient(from var(--nish-flow-angle), transparent 0deg, transparent 230deg, var(--nish-accent) 360deg);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    animation: nish-flow-ring 2.4s linear infinite;
+  }
+  .nish-flow-agent-spin {
+    animation: nish-flow-spin 0.9s linear infinite;
+  }
+  .nish-flow-agent[data-fx='done'] .nish-flow-agent-icon {
+    animation: nish-flow-pop 300ms var(--nish-ease-out);
+  }
+  .nish-flow-agent[data-fx='done'] .nish-flow-check path {
+    animation: nish-flow-draw 300ms ease-out both;
+  }
+  .nish-flow-agent[data-fx='failed'] {
+    animation: nish-flow-shake 300ms ease-in-out;
+  }
+
+  /* WorkflowBoard */
+  .nish-flow-phase[data-state='active']::after {
+    animation: nish-flow-glow 2s ease-in-out infinite;
+  }
+  .nish-flow-phase-conn[data-flow='true'] .nish-flow-dashline {
+    animation: nish-flow-dash 1s linear infinite;
+  }
+
+  /* ActivityFeed */
+  .nish-flow-feed-item[data-fresh='true'] {
+    animation: nish-flow-feed-in 320ms var(--nish-ease-out) both;
+  }
+  .nish-flow-feed-item[data-fresh='true'] .nish-flow-feed-row {
+    animation: nish-flow-flash 1.2s ease-out both;
+  }
+
+  /* TickerText */
+  .nish-flow-ticker-in {
+    animation: nish-flow-ticker-in 260ms var(--nish-ease-out) both;
+  }
+  .nish-flow-ticker-out {
+    animation: nish-flow-ticker-out 200ms ease-in both;
+  }
+
+  /* AnimatedList */
+  .nish-flow-item[data-phase='enter'] {
+    animation: nish-flow-enter 380ms ease-out both;
+  }
+  .nish-flow-item[data-phase='exit'] {
+    animation: nish-flow-exit var(--nish-flow-exit-ms, 420ms) ease-in both;
+  }
+}
+
+/* Markdown and rich text: <div class="nish-prose">…rendered HTML…</div>. Every rule
+   targets children through :where(), so a utility class on a child still wins. Sized
+   for UI text (sm); set font-size on the container to scale it all. */
+.nish-prose {
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
+  line-height: var(--nish-text-sm-lh);
+  overflow-wrap: anywhere;
+}
+.nish-prose > :where(:first-child) {
+  margin-top: 0;
+}
+.nish-prose > :where(:last-child) {
+  margin-bottom: 0;
+}
+.nish-prose :where(p, ul, ol, blockquote, pre, table, hr, figure) {
+  margin: 0.75em 0;
+}
+.nish-prose :where(h1, h2, h3, h4, h5, h6) {
+  color: var(--nish-hi);
+  font-weight: var(--nish-weight-semibold);
+  letter-spacing: var(--nish-tracking-tight);
+  line-height: 1.3;
+  margin: 1.4em 0 0.5em;
+}
+.nish-prose :where(h1) {
+  font-size: 1.6em;
+}
+.nish-prose :where(h2) {
+  font-size: 1.35em;
+}
+.nish-prose :where(h3) {
+  font-size: 1.15em;
+}
+.nish-prose :where(h4, h5, h6) {
+  font-size: 1em;
+}
+.nish-prose :where(strong, b) {
+  color: var(--nish-hi);
+  font-weight: var(--nish-weight-semibold);
+}
+.nish-prose :where(a) {
+  color: var(--nish-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.nish-prose :where(a:hover) {
+  text-decoration-thickness: 2px;
+}
+.nish-prose :where(ul, ol) {
+  padding-left: 1.4em;
+}
+.nish-prose :where(ul) {
+  list-style: disc;
+}
+.nish-prose :where(ol) {
+  list-style: decimal;
+}
+.nish-prose :where(li) {
+  margin: 0.25em 0;
+}
+.nish-prose :where(li)::marker {
+  color: var(--nish-hi3);
+}
+.nish-prose :where(li > ul, li > ol) {
+  margin: 0.25em 0;
+}
+/* GitHub-style task lists: <li><input type="checkbox" disabled> …</li>. */
+.nish-prose :where(ul:has(> li > input[type='checkbox'])) {
+  list-style: none;
+  padding-left: 0.25em;
+}
+.nish-prose :where(li > input[type='checkbox']) {
+  margin: 0 0.5em 0 0;
+  vertical-align: -0.1em;
+  accent-color: var(--nish-accent);
+}
+.nish-prose :where(blockquote) {
+  padding-left: 1em;
+  border-left: 3px solid var(--nish-line-strong);
+  color: var(--nish-hi2);
+}
+.nish-prose :where(hr) {
+  border: 0;
+  border-top: 1px solid var(--nish-line);
+  margin: 1.5em 0;
+}
+.nish-prose :where(code) {
+  font-family: var(--nish-font-mono);
+  font-size: 0.875em;
+  padding: 0.1em 0.35em;
+  border-radius: var(--nish-radius-xs);
+  background: var(--nish-elevated);
+  color: var(--nish-hi);
+}
+.nish-prose :where(pre) {
+  padding: var(--nish-space-3) var(--nish-space-4);
+  overflow-x: auto;
+  border: 1px solid var(--nish-line);
+  border-radius: var(--nish-radius-sm);
+  background: var(--nish-elevated);
+  line-height: 1.55;
+}
+.nish-prose :where(pre code) {
+  padding: 0;
+  background: none;
+  font-size: 0.85em;
+  overflow-wrap: normal;
+}
+.nish-prose :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+.nish-prose :where(th, td) {
+  padding: 0.4em 0.75em;
+  border-bottom: 1px solid var(--nish-line);
+  text-align: left;
+  vertical-align: top;
+}
+.nish-prose :where(th) {
+  color: var(--nish-hi);
+  font-weight: var(--nish-weight-semibold);
+  border-bottom-color: var(--nish-line-strong);
+}
+.nish-prose :where(img, video) {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--nish-radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Spinners still signal "working" under reduced motion: they pulse instead of turning. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin,
+  .nish-spinner {
+    animation: nish-pulse 1.6s ease-in-out infinite !important;
+    animation-iteration-count: infinite !important;
+    animation-duration: 1.6s !important;
+  }
+}
+
+/* SystemCanvas (src/components/canvas.tsx). The viewport is the graph paper: its
+   background position and size follow the pan and zoom (the component writes them directly, no inherited
+   variables). Every rule that moves, loops or fades is
+   inside prefers-reduced-motion: no-preference; under reduced motion the active look is
+   static (hue border, solid edges). */
+.nish-canvas {
+  --c: var(--nish-accent);
+  --c-soft: var(--nish-accent-soft);
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  overflow: clip;
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  background-color: var(--nish-bg);
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--nish-line-strong) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line-strong) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to right, color-mix(in srgb, var(--nish-line) 28%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line) 28%, transparent) 1px, transparent 1px);
+  /* Position and size are written directly by the component on every pan and zoom frame. */
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  background-position: 0 0;
+}
+.nish-canvas[data-grid='major'] {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--nish-line-strong) 38%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--nish-line-strong) 38%, transparent) 1px, transparent 1px);
+}
+.nish-canvas[data-dragging='true'] {
+  cursor: grabbing;
+}
+.nish-canvas:focus-visible {
+  outline: 2px solid var(--nish-focus);
+  outline-offset: -2px;
+}
+.nish-canvas-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.nish-canvas-coltitle {
+  position: absolute;
+  font-size: 12px;
+  font-weight: var(--nish-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nish-hi3);
+  white-space: nowrap;
+}
+
+/* Groups */
+.nish-canvas-group {
+  position: absolute;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--nish-line);
+  background:
+    linear-gradient(to bottom, var(--c-soft), transparent 60%),
+    var(--nish-surface);
+  transition: border-color 300ms, box-shadow 300ms;
+}
+.nish-canvas-group[data-live] {
+  border-color: var(--c);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--c) 28%, transparent);
+}
+.nish-canvas-group[data-selected],
+.nish-canvas-node[data-selected] {
+  outline: 2px solid var(--nish-accent);
+  outline-offset: 2px;
+}
+.nish-canvas-group[data-selected] {
+  overflow: visible;
+}
+.nish-canvas-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--c);
+}
+.nish-canvas-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 52px;
+  padding: 3px 16px 0;
+  text-align: left;
+  cursor: pointer;
+}
+.nish-canvas-headtext {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.nish-canvas-title {
+  font-weight: var(--nish-weight-semibold);
+  color: var(--nish-hi);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nish-canvas-subtitle {
+  font-size: 12px;
+  color: var(--nish-hi3);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nish-canvas-badge {
+  flex-shrink: 0;
+}
+
+/* Nodes */
+.nish-canvas-slot {
+  position: absolute;
+  z-index: 2;
+}
+.nish-canvas-slot[data-active] {
+  z-index: 3;
+}
+.nish-canvas-node {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  padding: 0 10px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+  border: 1px solid var(--nish-line);
+  background: var(--nish-bg);
+  transition: border-color 400ms, box-shadow 600ms, background-color 300ms;
+}
+.nish-canvas-node:hover {
+  border-color: color-mix(in srgb, var(--c) 55%, var(--nish-line));
+}
+.nish-canvas-node[data-active] {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 10%, var(--nish-bg));
+}
+.nish-canvas-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--c);
+  background: var(--c-soft);
+}
+.nish-canvas-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.nish-canvas-label {
+  font-size: 13px;
+  font-weight: var(--nish-weight-medium);
+  color: var(--nish-hi);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nish-canvas-detail {
+  font-size: 11px;
+  color: var(--nish-hi3);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nish-canvas-count {
+  flex-shrink: 0;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: var(--nish-weight-semibold);
+  line-height: 18px;
+  text-align: center;
+  color: var(--nish-bg);
+  background: var(--c);
+}
+.nish-canvas-live {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 0 2px var(--nish-bg);
+}
+.nish-canvas-note {
+  /* Takes the detail line's place in the text column, with or without a detail. */
+  display: block;
+  overflow: hidden;
+  color: var(--c);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Edges */
+.nish-canvas-edges,
+.nish-canvas-ports {
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.nish-canvas-edge-line {
+  stroke: var(--nish-line-strong);
+  stroke-width: 1.5;
+  transition: stroke 400ms;
+}
+.nish-canvas-edge[data-dashed] .nish-canvas-edge-line {
+  stroke-dasharray: 5 5;
+}
+.nish-canvas-edge[data-active] .nish-canvas-edge-line {
+  stroke: var(--c);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.nish-canvas-ports {
+  /* Above the group borders, so each port dot sits on its card's edge. */
+  z-index: 4;
+}
+.nish-canvas-port {
+  fill: var(--nish-line-strong);
+  transition: fill 400ms;
+}
+.nish-canvas-port[data-active] {
+  fill: var(--c);
+}
+.nish-canvas-dot {
+  display: none;
+  fill: var(--c);
+}
+.nish-canvas-edge-label {
+  font-size: 11px;
+  fill: var(--nish-hi3);
+  paint-order: stroke;
+  stroke: var(--nish-bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+/* Controls */
+.nish-canvas-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--nish-line);
+  background: var(--nish-surface);
+  box-shadow: var(--nish-shadow-md, 0 4px 14px rgb(0 0 0 / 0.18));
+  cursor: default;
+}
+.nish-canvas-zoom {
+  min-width: 3ch;
+  margin-right: 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--nish-hi3);
+}
+
+@keyframes nish-canvas-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nish-canvas-ring {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+@keyframes nish-canvas-ping {
+  0% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes nish-canvas-glow {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes nish-canvas-travel {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+@keyframes nish-canvas-live {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nish-canvas-group,
+  .nish-canvas-slot {
+    animation: nish-canvas-rise 420ms var(--nish-ease-out) both;
+    animation-delay: var(--nish-canvas-delay, 0ms);
+  }
+  .nish-canvas-group[data-live]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 26px color-mix(in srgb, var(--c) 45%, transparent);
+    pointer-events: none;
+    opacity: 0.3;
+    animation: nish-canvas-glow 2.4s ease-in-out infinite;
+  }
+  .nish-canvas-node[data-active]::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    border: 2px solid var(--c);
+    pointer-events: none;
+    animation: nish-canvas-ring 1.6s ease-out infinite;
+  }
+  .nish-canvas-node[data-fx='ping'] {
+    animation: nish-canvas-ping 400ms var(--nish-ease-out);
+  }
+  .nish-canvas-live {
+    animation: nish-canvas-live 1.2s ease-in-out infinite;
+  }
+  .nish-canvas-edge[data-active] .nish-canvas-dot {
+    display: block;
+    offset-rotate: 0deg;
+    animation: nish-canvas-travel 1.6s linear infinite;
+  }
+}
+`;export{e as default};
