@@ -75,4 +75,13 @@ export function isForbidden(err) {
   return /HTTP 403|Resource not accessible/i.test(String(err?.output ?? err?.message ?? ''));
 }
 
+/**
+ * True when GitHub says the token cannot see a repo: a REST 404 or 403, or GraphQL's "Could not
+ * resolve to a Repository". A fine-grained token answers 404 for a private repo it does not cover.
+ * Use it on a repo-level probe only: on a file path a 404 just means the file is missing.
+ */
+export function isNoAccess(err) {
+  return /Could not resolve to a Repository|HTTP 40[34]|Resource not accessible/.test(String(err?.output ?? err?.message ?? err ?? ''));
+}
+
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
