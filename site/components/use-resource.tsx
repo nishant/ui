@@ -9,8 +9,8 @@ interface Quote {
   price: number;
 }
 
-function ResourceDemo({ intervalMs }: { intervalMs?: number }) {
-  const [fail, setFail] = useState(false);
+function ResourceDemo({ intervalMs, mode = 'normal' }: { intervalMs?: number; mode?: 'normal' | 'loading' | 'error' }) {
+  const [fail, setFail] = useState(mode === 'error');
   const failRef = useRef(fail);
   failRef.current = fail;
   const calls = useRef(0);
@@ -20,6 +20,10 @@ function ResourceDemo({ intervalMs }: { intervalMs?: number }) {
     (signal) =>
       new Promise<Quote>((resolve, reject) => {
         const n = ++calls.current;
+        if (mode === 'loading') {
+          signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+          return;
+        }
         const id = setTimeout(() => {
           if (failRef.current) reject(new ApiError('The quote service returned 503', { status: 503, url: 'demo/quote' }));
           else resolve({ symbol: 'NISH', price: 100 + n });
@@ -92,6 +96,8 @@ export const useResourceDoc: ComponentDoc = {
       note: 'Switch to another tab and back: polling pauses while hidden and refetches on return.',
       render: () => <ResourceDemo intervalMs={5000} />,
     },
+    { id: 'loading', name: 'Loading (never resolves)', render: () => <ResourceDemo mode="loading" /> },
+    { id: 'first-error', name: 'First load fails', render: () => <ResourceDemo mode="error" /> },
   ],
   api: { functions: ['apiFetch', 'configureApi', 'useResource'], interfaces: ['ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource'] },
   usage: `import { ApiError, ErrorState, SkeletonLines, apiFetch, configureApi, useResource } from '@nish/ui';

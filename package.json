@@ -57,11 +57,13 @@
     },
     "./vite": {
       "types": "./dist/node/vite.d.ts",
-      "import": "./dist/node/vite.js"
+      "import": "./dist/node/vite.js",
+      "default": "./dist/node/vite.js"
     },
     "./eslint": {
       "types": "./dist/node/eslint.d.ts",
-      "import": "./dist/node/eslint.js"
+      "import": "./dist/node/eslint.js",
+      "default": "./dist/node/eslint.js"
     },
     "./tsconfig/*": "./tsconfig/*",
     "./theme-init.js": "./dist/theme-init.js",

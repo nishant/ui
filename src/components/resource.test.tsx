@@ -174,6 +174,38 @@ describe('useResource', () => {
     expect(result.current.data).toBe('d2');
   });
 
+  it('keepPrevious: false drops the old data and error while the new key loads', async () => {
+    let release: (v: string) => void = () => {};
+    const fetcher = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('a failed'))
+      .mockImplementationOnce(() => new Promise<string>((r) => (release = r)));
+    const { result, rerender } = renderHook(({ k }) => useResource<string>(k, fetcher, { keepPrevious: false }), { initialProps: { k: 'a' } });
+    await flush();
+    expect(result.current.error?.message).toBe('a failed');
+    rerender({ k: 'b' });
+    await flush();
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.loading).toBe(true);
+    await act(async () => {
+      release('b-data');
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.data).toBe('b-data');
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('refreshing clears when disabled mid-fetch', async () => {
+    const fetcher = vi.fn(() => new Promise<string>(() => {}));
+    const { result, rerender } = renderHook(({ en }) => useResource('k', fetcher, { enabled: en }), { initialProps: { en: true } });
+    await flush();
+    expect(result.current.refreshing).toBe(true);
+    rerender({ en: false });
+    await flush();
+    expect(result.current.refreshing).toBe(false);
+  });
+
   it('polls on intervalMs and goes stale after 3 missed intervals', async () => {
     const fetcher = vi.fn().mockResolvedValueOnce('a').mockRejectedValue(new Error('down'));
     const { result } = renderHook(() => useResource('k', fetcher, { intervalMs: 1000 }));

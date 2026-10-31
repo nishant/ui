@@ -60,14 +60,16 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, State> {
         </p>
         {error.stack ? (
           <details className="mt-3">
-            <summary className="cursor-pointer text-sm text-th-hi3">Details</summary>
+            <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-th-hi3">Details</summary>
             <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-th-elevated p-2 font-mono text-xs text-th-hi2">{error.stack}</pre>
           </details>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant={stale ? 'secondary' : 'primary'} onClick={this.reset}>
-            Try again
-          </Button>
+          {stale ? null : (
+            <Button variant="primary" onClick={this.reset}>
+              Try again
+            </Button>
+          )}
           <Button variant={stale ? 'primary' : 'secondary'} onClick={() => location.reload()}>
             Reload page
           </Button>

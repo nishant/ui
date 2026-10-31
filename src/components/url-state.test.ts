@@ -45,6 +45,15 @@ describe('useUrlState with a memory adapter', () => {
     expect(r2.result.current[0].page).toBe(1);
   });
 
+  it('round-trips array values that contain a comma', () => {
+    const a = memoryAdapter();
+    const { result } = renderHook(() => useUrlState(DEFAULTS, { adapter: a }));
+    act(() => result.current[1]({ tags: ['Austin, TX'] }));
+    expect(result.current[0].tags).toEqual(['Austin, TX']);
+    act(() => result.current[1]({ tags: ['Austin, TX', 'Remote'] }));
+    expect(result.current[0].tags).toEqual(['Austin, TX', 'Remote']);
+  });
+
   it('serializes each type: arrays as repeated keys, booleans as 1/0', () => {
     const a = memoryAdapter();
     const { result } = renderHook(() => useUrlState(DEFAULTS, { adapter: a }));

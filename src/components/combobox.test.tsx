@@ -51,7 +51,7 @@ describe('Combobox', () => {
     expect(opts.map((o) => o.textContent)).toEqual(['MSFTMicrosoft']);
     fireEvent.change(input(), { target: { value: 'zzz' } });
     expect(screen.queryAllByRole('option')).toHaveLength(0);
-    expect(screen.getByText('No matches')).toBeTruthy();
+    expect(screen.getAllByText('No matches').length).toBeGreaterThan(0);
   });
 
   it('ArrowDown then Enter selects and calls onChange', () => {
@@ -168,7 +168,7 @@ describe('Combobox', () => {
     vi.advanceTimersByTime(200);
     expect(onQueryChange).toHaveBeenCalledTimes(1);
     expect(onQueryChange).toHaveBeenCalledWith('ab');
-    expect(screen.getByText('Searching…')).toBeTruthy();
+    expect(screen.getAllByText('Searching…').length).toBeGreaterThan(0);
     vi.useRealTimers();
   });
 
@@ -177,5 +177,24 @@ describe('Combobox', () => {
     expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();
     fireEvent.click(input());
     expect(screen.queryByRole('listbox')).toBeNull();
+  });
+
+  it('clears the value from the keyboard by emptying the input and pressing Enter', () => {
+    const onChange = vi.fn();
+    render(<Harness initial="AAPL" onChange={onChange} />);
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith(null, null);
+    expect(input.value).toBe('');
+  });
+
+  it('clears the value when an emptied input blurs', () => {
+    const onChange = vi.fn();
+    render(<Harness initial="AAPL" onChange={onChange} />);
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledWith(null, null);
   });
 });

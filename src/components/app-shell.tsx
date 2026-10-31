@@ -98,7 +98,7 @@ export function AppShell({
   const desktopNav = (
     <>
       {nav.map((item) => {
-        const className = cn(tabClass({ active: !!item.active }), 'hidden lg:inline-flex');
+        const className = cn(tabClass({ active: !!item.active }), 'inline-flex');
         const current = item.active ? ('page' as const) : undefined;
         if (renderLink && item.href != null) {
           return (
@@ -152,7 +152,18 @@ export function AppShell({
 
   return (
     <>
-      <a href={`#${MAIN_ID}`} className="nish-skip-link">
+      <a
+        href={`#${MAIN_ID}`}
+        className="nish-skip-link"
+        onClick={(e) => {
+          // A fragment link would change the route in hash-routed apps; move focus instead.
+          const main = document.getElementById(MAIN_ID);
+          if (!main) return;
+          e.preventDefault();
+          main.focus();
+          main.scrollIntoView?.();
+        }}
+      >
         Skip to content
       </a>
       <AppHeader
@@ -169,6 +180,7 @@ export function AppShell({
           </>
         }
         themeToggle={toggle}
+        className="max-lg:[&>nav]:hidden"
         nav={desktopNav}
         navLabel="Sections"
       />

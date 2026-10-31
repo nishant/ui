@@ -52,6 +52,8 @@ const inertedBySync = new Set<HTMLElement>();
 
 function syncInert() {
   if (typeof document === 'undefined') return;
+  // React removes the DOM before passive cleanups run, so a scrim may already be detached.
+  for (let i = dialogPortals.length - 1; i >= 0; i--) if (!dialogPortals[i].isConnected) dialogPortals.splice(i, 1);
   const top = dialogPortals[dialogPortals.length - 1];
   if (!top) {
     inertedBySync.forEach((el) => {

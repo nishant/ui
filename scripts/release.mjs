@@ -7,7 +7,8 @@
 // master never carries dist/. A release bumps the version on master, then makes a
 // tag commit on top of it that adds the built dist/, so `github:nishant/ui#vX.Y.Z`
 // installs ready to use with no build step, and site-dist/ (the docs site).
-// Order: master is pushed before the tag exists, so a failed push leaves no orphan tag.
+// Order: all local work (bump, site build, tag commit, tag) happens before any push, then master
+// is pushed before the tag, so a failed build pushes nothing and a failed push leaves no orphan tag.
 // Then the tag, a GitHub Release with the CHANGELOG section, and (in CI) the fan-out:
 // a tag pushed with GITHUB_TOKEN does not trigger other workflows, so --ci dispatches
 // .github/workflows/fanout.yml itself. A local tag push triggers it on its own.
@@ -54,7 +55,6 @@ pkg.version = version;
 writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 sh('npm install --package-lock-only --ignore-scripts --silent');
 sh(`git commit -qam "Release ${tag}"`);
-sh('git push -q origin master');
 
 // Tag commit: master + dist/ + the built docs site, detached so master stays
 // source-only. hosting serves site-dist/ at design.nish.software from the tag.
@@ -64,6 +64,8 @@ sh('git add -f dist site-dist');
 sh(`git commit -qm "${tag} build"`);
 sh(`git tag -a ${tag} -m "${tag}"`);
 sh('git checkout -q master');
+// Everything fallible and local is done; only now push, master first so a failed push leaves no orphan tag.
+sh('git push -q origin master');
 sh(`git push -q origin ${tag}`);
 console.log(`\nPushed ${tag}.`);
 

@@ -67,7 +67,7 @@ export interface SettingRowProps {
   className?: string;
 }
 
-const STATUS_TONE = { muted: 'text-th-hi3', error: 'text-th-loss', ok: 'text-th-gain' } as const;
+const STATUS_TONE = { muted: 'text-th-hi3', error: 'text-th-loss', ok: 'text-th-ok' } as const;
 
 /** One label + control row inside a SettingsSection. */
 export function SettingRow({
@@ -82,6 +82,9 @@ export function SettingRow({
   className,
 }: SettingRowProps) {
   const labelClass = 'block text-sm font-medium text-th-hi';
+  const auto = useId();
+  const labelId = `${auto}-label`;
+  const descId = `${auto}-desc`;
   const layout = stacked
     ? 'flex flex-col gap-2'
     : inline
@@ -95,17 +98,24 @@ export function SettingRow({
             {label}
           </label>
         ) : (
-          <span className={labelClass}>{label}</span>
-        )}
-        {description != null ? <p className="mt-0.5 text-sm text-th-hi3">{description}</p> : null}
-      </div>
-      <div className={cn('flex min-w-0 items-center gap-2', stacked ? 'w-full' : inline ? 'justify-end' : 'w-full sm:w-auto sm:justify-end')}>
-        {children}
-        {status != null ? (
-          <span role="status" aria-live="polite" className={cn('shrink-0 text-sm', STATUS_TONE[statusTone])}>
-            {status}
+          <span id={labelId} className={labelClass}>
+            {label}
           </span>
+        )}
+        {description != null ? (
+          <p id={descId} className="mt-0.5 text-sm text-th-hi3">
+            {description}
+          </p>
         ) : null}
+      </div>
+      <div
+        {...(htmlFor ? {} : { role: 'group', 'aria-labelledby': labelId, 'aria-describedby': description != null ? descId : undefined })}
+        className={cn('flex min-w-0 items-center gap-2', stacked ? 'w-full' : inline ? 'justify-end' : 'w-full sm:w-auto sm:justify-end')}
+      >
+        {children}
+        <span role="status" aria-live="polite" className={cn('shrink-0 text-sm empty:hidden', STATUS_TONE[statusTone])}>
+          {status}
+        </span>
       </div>
     </div>
   );
@@ -204,6 +214,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
   const draftRef = useRef(draft);
   const lastSent = useRef<{ v: number | null } | null>(null);
   const mounted = useRef(true);
+  const skipCommit = useRef(false);
 
   const setDraft = (next: string) => {
     draftRef.current = next;
@@ -255,10 +266,10 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
       if (precision != null) c = Number(c.toFixed(precision));
       next = c;
     }
-    setError(null);
     setDraft(fmt(next));
     if (next === value) return;
     if (lastSent.current && lastSent.current.v === next) return;
+    setError(null);
     lastSent.current = { v: next };
     let result: void | Promise<void>;
     try {
@@ -300,7 +311,9 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
       e.stopPropagation();
       setDraft(fmt(value));
       setError(null);
+      skipCommit.current = true;
       e.currentTarget.blur();
+      skipCommit.current = false;
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
       nudge(e.key === 'ArrowUp' ? 1 : -1);
@@ -329,6 +342,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
           }}
           onBlur={(e: FocusEvent<HTMLInputElement>) => {
             onBlur?.(e);
+            if (skipCommit.current) return;
             commit();
           }}
           onKeyDown={handleKeyDown}

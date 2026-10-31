@@ -114,7 +114,7 @@ export function FilterBar({
       onChange={search.onChange}
       placeholder={search.placeholder}
       aria-label={search.label ?? search.placeholder ?? 'Search'}
-      className={compact ? 'min-w-0 flex-1' : 'w-full max-w-xs'}
+      className={compact ? 'min-w-[10rem] flex-1 basis-40' : 'w-full max-w-xs'}
     />
   ) : null;
 
@@ -148,11 +148,9 @@ export function FilterBar({
           </>
         )}
       </div>
-      {summary ? (
-        <div aria-live="polite" className="mt-2 text-sm text-th-hi3">
-          {summary}
-        </div>
-      ) : null}
+      <div aria-live="polite" className={cn('text-sm text-th-hi3', summary ? 'mt-2' : undefined)}>
+        {summary || null}
+      </div>
       {compact && hasChildren ? (
         <FilterSheet open={open} onClose={() => setOpen(false)} title={sheetTitle} onClear={onClear} activeCount={activeCount}>
           {children}

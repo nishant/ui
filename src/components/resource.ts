@@ -193,6 +193,10 @@ export function useResource<T>(
   fetcherRef.current = fetcher;
   const keyRef = useRef(key);
   keyRef.current = key;
+  const keepPrevRef = useRef(keepPrevious);
+  keepPrevRef.current = keepPrevious;
+  const initialRef = useRef(o.initialData);
+  initialRef.current = o.initialData;
   const ctlRef = useRef<AbortController | null>(null);
   const runRef = useRef(0);
   const pollSkippedRef = useRef(false);
@@ -206,7 +210,17 @@ export function useResource<T>(
     ctlRef.current = ctl;
     const run = ++runRef.current;
     pollSkippedRef.current = false;
-    setState((s) => ({ ...s, key: k, fetching: true }));
+    setState((s) =>
+      s.key === k
+        ? { ...s, fetching: true }
+        : {
+            key: k,
+            data: keepPrevRef.current ? s.data : initialRef.current,
+            error: undefined,
+            updatedAt: keepPrevRef.current ? s.updatedAt : undefined,
+            fetching: true,
+          },
+    );
     try {
       const fn = fetcherRef.current;
       const data = await (fn ? fn(ctl.signal) : apiFetch<T>(k, { signal: ctl.signal }));
@@ -227,6 +241,7 @@ export function useResource<T>(
       runRef.current++;
       ctlRef.current?.abort();
       ctlRef.current = null;
+      setState((s) => (s.fetching ? { ...s, fetching: false } : s));
     };
   }, [active, key, load]);
 

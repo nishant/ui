@@ -92,7 +92,7 @@ test('Back closes the top layer and leaves history as it was', async ({ page }) 
   const lengthBefore = await page.evaluate(() => history.length);
 
   await openModal(page);
-  expect(await page.evaluate(() => history.length)).toBeGreaterThan(lengthBefore);
+  await expect.poll(() => page.evaluate(() => history.length)).toBeGreaterThan(lengthBefore);
   await page.goBack();
   await expect(modal(page)).toHaveCount(0);
   expect(page.url()).toBe(url);
@@ -104,7 +104,10 @@ test('Back closes the top layer and leaves history as it was', async ({ page }) 
   // With a nested confirm, Back closes only the confirm.
   await open(page);
   await openModal(page);
+  await expect.poll(() => page.evaluate(() => !!(history.state as any)?.nishLayer)).toBe(true);
+  const lengthModal = await page.evaluate(() => history.length);
   await openNested(page);
+  await expect.poll(() => page.evaluate(() => history.length)).toBeGreaterThan(lengthModal);
   await page.goBack();
   await expect(nested(page)).toHaveCount(0);
   await expect(modal(page)).toBeVisible();
@@ -116,11 +119,14 @@ test('content behind an open dialog is inert, the toast region is not', async ({
   await page.getByRole('button', { name: 'Toast' }).click();
   await openModal(page);
 
-  const openModalInert = await page.evaluate(() => {
-    const btn = [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Open modal');
-    return !!btn?.closest('[inert]');
-  });
-  expect(openModalInert).toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const btn = [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Open modal');
+        return !!btn?.closest('[inert]');
+      }),
+    )
+    .toBe(true);
 
   const toastRegionInert = await page.evaluate(() => {
     const region = document.querySelector('[role=status][aria-live=polite]');
@@ -130,8 +136,8 @@ test('content behind an open dialog is inert, the toast region is not', async ({
 
   await page.keyboard.press('Escape');
   await expect(modal(page)).toHaveCount(0);
-  expect(await page.evaluate(() => document.querySelectorAll('body [inert]').length)).toBe(0);
-  expect(await page.evaluate(() => [...document.body.children].some((el) => el.hasAttribute('inert')))).toBe(false);
+  await expect.poll(() => page.evaluate(() => document.querySelectorAll('body [inert]').length)).toBe(0);
+  await expect.poll(() => page.evaluate(() => [...document.body.children].some((el) => el.hasAttribute('inert')))).toBe(false);
 });
 
 test('Drawer: Escape closes it and focus returns', async ({ page }) => {

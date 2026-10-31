@@ -196,8 +196,8 @@ const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
  *  the screen on phones while a sheet or dialog is open (html[data-nish-layer-open]). */
 export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps) {
   const list = useToasts();
-  const [polite, setPolite] = useState('');
-  const [assertive, setAssertive] = useState('');
+  const [polite, setPolite] = useState({ text: '', seq: 0 });
+  const [assertive, setAssertive] = useState({ text: '', seq: 0 });
   const announced = useRef(new Set<number>());
   const timers = useRef<{ pending: Set<ReturnType<typeof setTimeout>>; clear: { polite?: ReturnType<typeof setTimeout>; assertive?: ReturnType<typeof setTimeout> } }>({
     pending: new Set(),
@@ -208,17 +208,24 @@ export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps)
   // toast once (a region that mounts with its text is often skipped by screen readers).
   useEffect(() => {
     const t = timers.current;
+    const batch: Record<'polite' | 'assertive', string[]> = { polite: [], assertive: [] };
     for (const item of list) {
       if (announced.current.has(item.id)) continue;
       announced.current.add(item.id);
       const text = item.body ? `${item.title}. ${item.body}` : item.title;
-      const kind = item.tone === 'error' ? 'assertive' : 'polite';
+      batch[item.tone === 'error' ? 'assertive' : 'polite'].push(text);
+    }
+    // Toasts added in the same batch are joined, and every write bumps seq so the keyed
+    // node is replaced and repeats of the same text are announced again.
+    for (const kind of ['polite', 'assertive'] as const) {
+      if (batch[kind].length === 0) continue;
+      const text = batch[kind].join('. ');
       const write = kind === 'assertive' ? setAssertive : setPolite;
       const handle = setTimeout(() => {
         t.pending.delete(handle);
-        write(text);
+        write((p) => ({ text, seq: p.seq + 1 }));
         clearTimeout(t.clear[kind]);
-        t.clear[kind] = setTimeout(() => write(''), 5_000);
+        t.clear[kind] = setTimeout(() => write((p) => ({ text: '', seq: p.seq + 1 })), 5_000);
       }, 100);
       t.pending.add(handle);
     }
@@ -253,10 +260,10 @@ export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps)
       )}
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {polite}
+        <span key={polite.seq}>{polite.text}</span>
       </div>
       <div role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">
-        {assertive}
+        <span key={assertive.seq}>{assertive.text}</span>
       </div>
       {list.map((t) => (
         <ToastCard key={t.id} t={t} />

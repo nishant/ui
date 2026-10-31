@@ -17,6 +17,23 @@ function Panel({ message }: { message: string }) {
   );
 }
 
+function Boom({ message, name }: { message: string; name?: string }): never {
+  const e = new Error(message);
+  if (name) e.name = name;
+  throw e;
+}
+
+/** Throws on mount, so the fallback shows without a click. */
+function Fallback({ message, name }: { message: string; name?: string }) {
+  return (
+    <div className="w-full max-w-lg">
+      <AppErrorBoundary>
+        <Boom message={message} name={name} />
+      </AppErrorBoundary>
+    </div>
+  );
+}
+
 function Demo({ message = 'Could not render the portfolio chart.' }: { message?: string }) {
   return (
     <div className="w-full max-w-lg">
@@ -40,11 +57,12 @@ export const appErrorBoundary: ComponentDoc = {
   render: () => <Demo />,
   code: () => '<AppErrorBoundary resetKeys={[location.pathname]} onError={(e) => report(e)}>\n  <Routes />\n</AppErrorBoundary>',
   stories: [
-    { id: 'default', name: 'Default fallback', render: () => <Demo /> },
+    { id: 'default', name: 'Default fallback', render: () => <Fallback message="Could not render the portfolio chart." /> },
+    { id: 'interactive', name: 'Throw on demand', render: () => <Demo /> },
     {
       id: 'chunk',
       name: 'Stale deploy (failed dynamic import)',
-      render: () => <Demo message="Failed to fetch dynamically imported module: /assets/Settings-3f2a.js" />,
+      render: () => <Fallback name="ChunkLoadError" message="Failed to fetch dynamically imported module: /assets/Settings-3f2a.js" />,
     },
   ],
   usage: `import { AppErrorBoundary } from '@nish/ui';

@@ -140,10 +140,11 @@ function ModalStory() {
             </>
           }
         >
-          <Field label="Symbol" hint="Escape closes the list (and then clears typed text) before it closes the dialog.">
-            <Combobox id="doc-cb-modal" options={TICKERS} value={value} onChange={(v) => setValue(v)} placeholder="Search symbols" />
-          </Field>
-          <div className="h-24" />
+          <div className="min-h-[20rem] [&_[role=listbox]]:max-h-[min(16rem,40dvh)]">
+            <Field label="Symbol" hint="Escape closes the list (and then clears typed text) before it closes the dialog.">
+              <Combobox id="doc-cb-modal" options={TICKERS} value={value} onChange={(v) => setValue(v)} placeholder="Search symbols" />
+            </Field>
+          </div>
         </Modal>
       ) : null}
     </>

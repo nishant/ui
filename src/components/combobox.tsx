@@ -144,7 +144,7 @@ export function Combobox({
     setDirty(true);
     setOpen(true);
     // Without allowCustom the first match is armed for Enter; with it, Enter commits the typed text.
-    if (allowCustom) setActive(-1);
+    if (allowCustom || next.trim() === '') setActive(-1);
     else {
       const test = filter ?? defaultFilter;
       const serverFiltered = onQueryChange != null && filter == null;
@@ -155,6 +155,15 @@ export function Combobox({
       window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(() => onQueryChange(next), DEBOUNCE_MS);
     }
+  }
+
+  /** An emptied input is a clear: the keyboard path to onChange(null, null). */
+  function commitEmpty(): boolean {
+    if (!dirty || text.trim() !== '' || !hasValue) return false;
+    onChange(null, null);
+    reset();
+    close();
+    return true;
   }
 
   function commitCustom(): boolean {
@@ -195,7 +204,7 @@ export function Combobox({
         if (open && active >= 0 && visible[active]) {
           e.preventDefault();
           select(visible[active]);
-        } else if (commitCustom()) {
+        } else if (commitEmpty() || commitCustom()) {
           e.preventDefault();
         } else if (open) {
           e.preventDefault();
@@ -250,8 +259,10 @@ export function Combobox({
         onKeyDown={onKeyDown}
         onClick={openList}
         onBlur={() => {
-          close();
-          reset();
+          if (!commitEmpty()) {
+            close();
+            reset();
+          }
         }}
         className={fieldClass({ size, className: 'pr-11' })}
       />
@@ -269,12 +280,16 @@ export function Combobox({
           </span>
         </button>
       ) : null}
+      <div role="status" aria-live="polite" className="sr-only">
+        {open ? (loading ? 'Searching…' : visible.length === 0 ? emptyText : `${visible.length} ${visible.length === 1 ? 'result' : 'results'}`) : ''}
+      </div>
       {open ? (
         <ul
           ref={listRef}
           id={listId}
           role="listbox"
           aria-label={ariaLabel}
+          aria-labelledby={ariaLabel ? undefined : inputId}
           className="absolute left-0 right-0 top-full z-40 mt-1 max-h-64 overflow-auto rounded-xl border border-th-line bg-th-elevated shadow-pop"
         >
           {visible.map((o, i) => {

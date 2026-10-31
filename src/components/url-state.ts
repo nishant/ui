@@ -39,10 +39,9 @@ export type UrlStateShape = Record<string, string | string[] | number | boolean>
 function parseValue(params: URLSearchParams, key: string, fallback: string | string[] | number | boolean) {
   if (!params.has(key)) return fallback;
   if (Array.isArray(fallback)) {
-    return params
-      .getAll(key)
-      .flatMap((v) => v.split(','))
-      .filter(Boolean);
+    // A single value may be the legacy comma form (a,b); repeated keys are taken as written.
+    const all = params.getAll(key);
+    return (all.length === 1 ? all[0].split(',') : all).filter(Boolean);
   }
   const raw = params.get(key) ?? '';
   if (typeof fallback === 'number') {
@@ -104,7 +103,11 @@ export function useUrlState<S extends UrlStateShape>(
         if (same(value, d[key])) continue;
         if (Array.isArray(value)) {
           if (value.length === 0) params.append(name, '');
-          else for (const v of value) params.append(name, v);
+          else {
+            for (const v of value) params.append(name, v);
+            // A lone value with a comma would be read back as the legacy comma form: add an empty key.
+            if (value.length === 1 && value[0].includes(',')) params.append(name, '');
+          }
         } else if (typeof value === 'boolean') params.set(name, value ? '1' : '0');
         else params.set(name, String(value));
       }

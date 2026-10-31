@@ -98,6 +98,28 @@ describe('NumberField', () => {
     expect(screen.getByText('Server said no')).toBeTruthy();
   });
 
+  it('keeps the rejection error when the field then loses focus', async () => {
+    const onCommit = vi.fn(() => Promise.reject(new Error('Server said no')));
+    render(<NumberField aria-label="Threshold" value={10} onCommit={onCommit} />);
+    const input = screen.getByLabelText('Threshold') as HTMLInputElement;
+    input.focus();
+    fireEvent.change(input, { target: { value: '20' } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+    expect(screen.getByText('Server said no')).toBeTruthy();
+    fireEvent.blur(input);
+    expect(screen.getByText('Server said no')).toBeTruthy();
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('Escape never commits, even when the value is not normalized', () => {
+    const { input, onCommit } = setup({ value: 150, max: 100 });
+    input.focus();
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('shows a busy state while the promise is pending', async () => {
     let resolve!: () => void;
     const onCommit = vi.fn(() => new Promise<void>((r) => (resolve = r)));
@@ -142,7 +164,7 @@ describe('SettingsSection and SettingRow', () => {
     );
     expect(screen.getByRole('region', { name: 'Scanner' })).toBeTruthy();
     expect(screen.getByLabelText('Interval').id).toBe('iv');
-    expect(screen.getByText('Saved').className).toContain('text-th-gain');
+    expect(screen.getByText('Saved').className).toContain('text-th-ok');
   });
 });
 

@@ -40,17 +40,15 @@ export function IconsPage() {
 
       <Section title="The decision">
         <Prose>
-          <ul>
-            <li>
+            <p>
               <strong>Apps use <code>lucide-react</code> (^1).</strong> It tree-shakes per icon, has a large maintained set, is MIT licensed, and trading, startpage and nishboard already use it.
-            </li>
-            <li>
+            </p>
+            <p>
               <strong>@nish/ui inlines its own.</strong> The few icons a component needs (the close X, the check, the chevron) are SVGs in the package, drawn on lucide&apos;s 24px grid with a 2px stroke, round caps and joins. That keeps the package free of an icon dependency, so an app is never pinned to one lucide version, and a new icon in an app needs no release of ui.
-            </li>
-            <li>
+            </p>
+            <p>
               <strong>One style.</strong> Stroke icons that take <code>currentColor</code>, so they follow the theme with no extra classes. Do not mix in filled or two-tone sets.
-            </li>
-          </ul>
+            </p>
         </Prose>
       </Section>
 

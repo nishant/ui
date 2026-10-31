@@ -1,7 +1,8 @@
 // Builds dist/: generated CSS from src/tokens.mjs, the copied fonts, theme-init.js
 // with the theme list baked in, the React-free tokens entry, and the JS/types via tsup.
 import { createHash } from 'node:crypto';
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execSync } from 'node:child_process';
@@ -105,10 +106,13 @@ const tailwindCss = [
   '',
   '/* Class names used by the components in this package. */',
   // Only the shipped component JS (dist/*.js, chunks included). Not .map, .d.ts, theme.global.js
-  // or dist/node (the Vite plugin, ESLint preset and CLI): `*.js` does not reach subfolders.
+  // or dist/node (the Vite plugin, ESLint preset and CLI). When dist sits in a gitignored
+  // node_modules, an explicit @source scans the whole folder, so the exclusions are explicit.
   '@source "./*.js";',
   '@source not "./theme.global.js";',
   '@source not "./node";',
+  '@source not "./*.map";',
+  '@source not "./*.d.ts";',
   '',
   '/* dark: follows the active theme, not the OS. */',
   "@custom-variant dark (&:where([data-scheme='dark'], [data-scheme='dark'] *));",
@@ -155,7 +159,7 @@ testInit(init);
 writeFileSync(join(dist, 'theme-init.js'), init);
 
 testGlobal(readFileSync(join(dist, 'theme.global.js'), 'utf8'));
-testSourceScan();
+await testSourceScan();
 await testVitePlugin();
 
 // --- tokens.js: @nish/ui/tokens, plain data for Node scripts (no React) ------------
@@ -175,11 +179,46 @@ writeFileSync(
 console.log('built dist/');
 
 /** dist/tailwind.css must scan only the shipped component JS, never all of dist (that pulled in
- *  .map files with sourcesContent and .d.ts files, which minted classes nothing uses). */
-function testSourceScan() {
+ *  .map files with sourcesContent and .d.ts files, which minted classes nothing uses). Checked by a
+ *  real Tailwind compile in a temp git project that ignores node_modules, like a consumer's. */
+async function testSourceScan() {
   const css = readFileSync(join(dist, 'tailwind.css'), 'utf8');
   if (css.includes('@source "./";')) throw new Error('dist/tailwind.css must not scan all of dist (@source "./")');
-  if (!css.includes('@source "./*.js";')) throw new Error('dist/tailwind.css must scan dist/*.js');
+  for (const line of ['@source "./*.js";', '@source not "./node";', '@source not "./*.map";', '@source not "./*.d.ts";']) {
+    if (!css.includes(line)) throw new Error(`dist/tailwind.css must contain ${line}`);
+  }
+
+  const { compile } = await import('@tailwindcss/node');
+  const { Scanner } = await import('@tailwindcss/oxide');
+  const tmp = mkdtempSync(join(tmpdir(), 'nish-scan-'));
+  try {
+    execSync('git init -q', { cwd: tmp });
+    writeFileSync(join(tmp, '.gitignore'), 'node_modules\n');
+    const pkg = join(tmp, 'node_modules/@nish/ui/dist');
+    mkdirSync(join(pkg, 'node'), { recursive: true });
+    mkdirSync(join(pkg, 'sub'), { recursive: true });
+    for (const f of ['tokens.css', 'fonts.css', 'base.css', 'tailwind.css']) copyFileSync(join(dist, f), join(pkg, f));
+    for (const f of readdirSync(join(dist, 'fonts'))) {
+      mkdirSync(join(pkg, 'fonts'), { recursive: true });
+      copyFileSync(join(dist, 'fonts', f), join(pkg, 'fonts', f));
+    }
+    writeFileSync(join(pkg, 'index.js'), 'export const a = "scan-keep-index flex";\n');
+    for (const f of ['index.js.map', 'index.d.ts', 'node/x.js', 'theme.global.js', 'sub/x.js']) {
+      writeFileSync(join(pkg, f), `x("scan-leak-${f.replace(/[^a-z]/gi, '-')}")`);
+    }
+    const twIndex = join(root, 'node_modules/tailwindcss/index.css').replaceAll('\\', '/');
+    const input = `@import "${twIndex}";\n@import "./node_modules/@nish/ui/dist/tailwind.css";\n`;
+    const compiler = await compile(input, { base: tmp, onDependency() {} });
+    const scanner = new Scanner({ sources: compiler.sources.length ? compiler.sources : [{ base: tmp, pattern: '**/*', negated: false }] });
+    const out = compiler.build(scanner.scan());
+    // Candidates are only minted into CSS when they are valid utilities; check the scanned strings instead.
+    const seen = new Set(scanner.scan());
+    const leaked = [...seen].filter((c) => c.startsWith('scan-leak-'));
+    if (!seen.has('flex') && !out.includes('.flex')) throw new Error('dist/tailwind.css no longer scans dist/index.js');
+    if (leaked.length) throw new Error(`dist/tailwind.css scans files it must not (${leaked.join(', ')})`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 }
 
 /** @nish/ui/vite must inject dist/theme-init.js as the first thing in <head>. */
