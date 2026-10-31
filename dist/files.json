@@ -1,0 +1,11 @@
+{
+  "static": [
+    "nish.css",
+    "nish-components.css",
+    "theme-init.js",
+    "theme.js",
+    "theme.global.js",
+    "fonts/inter-latin-wght-normal.3100e775.woff2",
+    "fonts/inter-latin-ext-wght-normal.34b9c504.woff2"
+  ]
+}
