@@ -1070,7 +1070,7 @@ export function AppHeader({
       {nav ? (
         <nav
           aria-label={navLabel}
-          className={cn('nish-no-scrollbar -mb-px flex gap-1 overflow-x-auto px-[var(--nish-page-gutter,1rem)]', innerClassName)}
+          className={cn('nish-no-scrollbar -mb-px flex gap-6 overflow-x-auto px-[var(--nish-page-gutter,1rem)]', innerClassName)}
         >
           {nav}
         </nav>
