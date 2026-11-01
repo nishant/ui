@@ -46,7 +46,7 @@ for (let i = 1; i < xs.length; i++) assert.ok(xs[i] - xs[i - 1] >= 420, 'columns
 
 // A group of one node has a single column; the empty layout is empty.
 assert.equal(lay.groups.g2.w, 204);
-assert.deepEqual(layoutSystem([]), { width: 0, height: 0, groups: {}, nodes: {} });
+assert.deepEqual(layoutSystem([]), { mode: 'columns', width: 0, height: 0, titleRoom: 36, headers: [], groups: {}, nodes: {} });
 
 // The edge channels outside the outermost sub-columns fit inside the layout.
 const left = Math.min(...groups.map((g) => lay.groups[g.id].x));
