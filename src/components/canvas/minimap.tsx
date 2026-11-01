@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { memo, useCallback, useEffect, useImperativeHandle, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import type { CanvasLayout } from './layout';
 import type { CanvasGroup } from './types';
 import type { View } from './view';
@@ -15,7 +15,7 @@ const MIN_CANVAS_W = 600;
 const hueVar = (hue: string | undefined, soft: boolean) => (hue ? `var(--nish-${hue}${soft ? '-soft' : ''})` : soft ? 'var(--nish-accent-soft)' : 'var(--nish-accent)');
 
 /** A small overview of the whole map with the current view drawn on it. Click or drag to move the view. */
-export function Minimap({
+export const Minimap = memo(function Minimap({
   layout,
   groups,
   handleRef,
@@ -135,4 +135,4 @@ export function Minimap({
       </svg>
     </div>
   );
-}
+});

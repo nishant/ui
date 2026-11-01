@@ -152,4 +152,20 @@ verify('columns', columns, 'right');
 assert.deepEqual(routeEdges(bands, groups, [...edges]), downRoutes, 'bands routing is repeatable');
 assert.deepEqual(routeEdges({ ...bands, groups: {}, nodes: {} }, groups, edges), {}, 'a layout with no boxes routes nothing');
 
+// Edges inside one group stay inside it: a short connector, never a loop around the card.
+{
+  const inner = [e('i1', 'F/n0', 'F/n3'), e('i2', 'F/n0', 'F/n2'), e('i3', 'F/n0', 'F/n1')];
+  const r = routeEdges(bands, groups, inner);
+  const gb = bands.groups.F;
+  for (const id of ['i1', 'i2', 'i3']) {
+    const route = r[id];
+    assert.ok(route, `inner ${id} is routed`);
+    for (const [x, y] of route.points) {
+      assert.ok(x >= gb.x && x <= gb.x + gb.w && y >= gb.y && y <= gb.y + gb.h, `inner ${id} stays inside its group`);
+    }
+  }
+  assert.equal(r.i1.dir, 'down');
+  assert.equal(r.i3.dir, 'right');
+}
+
 console.log('canvas-route-check: ok');

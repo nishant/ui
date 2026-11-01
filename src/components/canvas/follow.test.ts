@@ -97,4 +97,13 @@ describe('followStep', () => {
     const b = many.targets[0]!.box;
     expect((b.y + b.h / 2) * many.view.k + many.view.y).toBeLessThan(780 * 0.45);
   });
+
+  it('on a phone centers x on the node group when the group fits', () => {
+    const { groups, layout } = fixture();
+    layout.groups = { g1: { x: 0, y: 0, w: 300, h: 300 } };
+    layout.nodes.b = box(120, 100);
+    const t = followTargets(groups, layout).filter((x) => x.id === 'b');
+    const v = followStep(t, 0, 360, 780, fit).view;
+    expect(150 * v.k + v.x).toBeCloseTo(180);
+  });
 });

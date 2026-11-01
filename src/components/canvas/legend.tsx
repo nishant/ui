@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { memo, useEffect, useId, useRef, useState } from 'react';
 import { cn } from '../../cn';
 import { Svg } from './icons';
 import type { CanvasEdgeKind } from './types';
@@ -19,7 +19,7 @@ function Sample({ line }: { line: CanvasEdgeKind['line'] }) {
 }
 
 /** The "Lines" button and its panel: one row per edge kind to show or hide it. */
-export function EdgeLegend({ kinds, hidden, onToggle }: { kinds: CanvasEdgeKind[]; hidden: ReadonlySet<string>; onToggle: (id: string) => void }) {
+export const EdgeLegend = memo(function EdgeLegend({ kinds, hidden, onToggle }: { kinds: CanvasEdgeKind[]; hidden: ReadonlySet<string>; onToggle: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -91,4 +91,4 @@ export function EdgeLegend({ kinds, hidden, onToggle }: { kinds: CanvasEdgeKind[
       ) : null}
     </div>
   );
-}
+});

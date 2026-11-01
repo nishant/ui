@@ -10,6 +10,8 @@ export interface FollowTarget {
   group: string;
   note?: string;
   box: Box;
+  /** The node's group box; on a phone the camera centers x on it so the group is not cut off. */
+  groupBox?: Box;
   at: number;
 }
 
@@ -33,7 +35,7 @@ export function followTargets(groups: CanvasGroup[], layout: CanvasLayout): Foll
     for (const n of g.nodes) {
       const box = layout.nodes[n.id];
       if (!n.active || !box) continue;
-      out.push({ id: n.id, label: n.label, group: g.title, note: n.note, box, at: n.activeAt ?? 0 });
+      out.push({ id: n.id, label: n.label, group: g.title, note: n.note, box, groupBox: layout.groups[g.id], at: n.activeAt ?? 0 });
     }
   }
   // Array.prototype.sort is stable, so equal times keep layout order.
@@ -41,18 +43,23 @@ export function followTargets(groups: CanvasGroup[], layout: CanvasLayout): Foll
 }
 
 /** `view` for centering a world rect at zoom `k`; on a phone the center sits in the top 45% of the viewport (the drawer may cover the rest). */
-function place(w: number, h: number, k: number, box: Box): View {
+function place(w: number, h: number, k: number, box: Box, groupBox?: Box, top = 0): View {
   const v = centerOn(w, h, k, box);
-  return w < PHONE_W ? { ...v, y: (h * PHONE_TOP) / 2 - (box.y + box.h / 2) * k } : v;
+  if (w >= PHONE_W) return v;
+  // Never let the box head slide under the overlay row (`top` px): center at max(22.5% of h, top + half the box).
+  const y = Math.max((h * PHONE_TOP) / 2, top + (box.h * k) / 2) - (box.y + box.h / 2) * k;
+  // Center x on the node's group when the group fits the width, so its title and left cards stay on screen.
+  if (groupBox && groupBox.w * k <= w - 24) return { ...v, x: w / 2 - (groupBox.x + groupBox.w / 2) * k, y };
+  return { ...v, y };
 }
 
 /** The view for step `i` (0-based) of following `targets` in a w x h viewport. */
-export function followStep(targets: FollowTarget[], i: number, w: number, h: number, fit: View): FollowStep {
+export function followStep(targets: FollowTarget[], i: number, w: number, h: number, fit: View, top = 0): FollowStep {
   if (targets.length === 0) return { mode: 'idle', view: fit, targets: [] };
   const phone = w < PHONE_W;
   const single = phone ? 0.8 : 1;
   if (targets.length === 1) {
-    return { mode: 'all', targets, view: place(w, h, single, targets[0]!.box) };
+    return { mode: 'all', targets, view: place(w, h, single, targets[0]!.box, targets[0]!.groupBox, top) };
   }
   let x0 = Infinity;
   let y0 = Infinity;
@@ -67,13 +74,14 @@ export function followStep(targets: FollowTarget[], i: number, w: number, h: num
   const bbox: Box = { x: x0 - BBOX_PAD, y: y0 - BBOX_PAD, w: x1 - x0 + 2 * BBOX_PAD, h: y1 - y0 + 2 * BBOX_PAD };
   const kAll = Math.min((w - VIEW_PAD) / bbox.w, (h - VIEW_PAD) / bbox.h, 1.1);
   if (kAll >= (phone ? 0.55 : 0.75)) {
-    return { mode: 'all', targets, view: place(w, h, clampK(kAll), bbox) };
+    return { mode: 'all', targets, view: place(w, h, clampK(kAll), bbox, undefined, top) };
   }
   const target = targets[((i % targets.length) + targets.length) % targets.length]!;
-  return { mode: 'one', targets: [target], view: place(w, h, single, target.box) };
+  return { mode: 'one', targets: [target], view: place(w, h, single, target.box, target.groupBox, top) };
 }
 
-const signature = (targets: FollowTarget[]) => targets.map((t) => t.id).join('|');
+// Sorted, so a reorder by activeAt alone (same set of ids) does not count as a change and re-fly.
+const signature = (targets: FollowTarget[]) => targets.map((t) => t.id).sort().join('|');
 const captionKey = (targets: FollowTarget[]) => targets.map((t) => `${t.id}:${t.label}:${t.group}:${t.note ?? ''}`).join('|');
 
 /** While `on`, flies the camera to the active nodes: on switch-on, when the set of active ids
@@ -85,6 +93,8 @@ export function useFollow(o: {
   layout: CanvasLayout;
   size: { w: number; h: number };
   fit: () => View;
+  /** Height in px of the overlay row (legend) a phone view keeps clear. */
+  inset?: number;
   fly: (v: View) => void;
 }): { step: FollowStep | null } {
   const { on, groups, layout, size } = o;
@@ -99,14 +109,23 @@ export function useFollow(o: {
   const sig = signature(targets);
   const caption = captionKey(targets);
 
+  // The visiting index restarts only when follow turns on or the active ids change, not on a resize or relayout.
+  const indexKey = useRef('');
   useEffect(() => {
-    if (!on) return;
-    index.current = 0;
+    if (!on) {
+      indexKey.current = '';
+      return;
+    }
+    const key = sig;
+    if (indexKey.current !== key) {
+      indexKey.current = key;
+      index.current = 0;
+    }
     let timer: ReturnType<typeof setInterval> | undefined;
     const run = (advance: boolean) => {
       const cur = latest.current;
       if (advance) index.current += 1;
-      const next = followStep(followTargets(cur.groups, cur.layout), index.current, cur.size.w, cur.size.h, cur.fit());
+      const next = followStep(followTargets(cur.groups, cur.layout), index.current, cur.size.w, cur.size.h, cur.fit(), cur.inset ?? 0);
       setStep(next);
       cur.fly(next.view);
       if (next.mode === 'one' && timer === undefined) timer = setInterval(() => run(true), CYCLE_MS);
@@ -125,7 +144,7 @@ export function useFollow(o: {
   useEffect(() => {
     if (!on) return;
     const cur = latest.current;
-    const next = followStep(followTargets(cur.groups, cur.layout), index.current, cur.size.w, cur.size.h, cur.fit());
+    const next = followStep(followTargets(cur.groups, cur.layout), index.current, cur.size.w, cur.size.h, cur.fit(), cur.inset ?? 0);
     setStep((prev) => (!prev || captionKey(prev.targets) === captionKey(next.targets) ? prev : { ...prev, targets: next.targets }));
   }, [on, caption]);
 

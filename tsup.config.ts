@@ -28,8 +28,23 @@ if (existsSync('src/node/eslint.ts')) nodeEntry['node/eslint'] = 'src/node/eslin
 
 const configs: Options[] = [
   {
-    // The React entries (index and system-canvas) with code splitting; they share chunks.
-    entry: { index: 'src/index.ts', 'system-canvas': 'src/system-canvas.ts' },
+    // The main entry. SystemCanvas is imported from './system-canvas.js', which stays external here and is
+    // built on its own below, so a bundler can tree-shake the canvas out of apps that do not render it.
+    entry: { index: 'src/index.ts' },
+    format: ['esm'],
+    dts: true,
+    sourcemap: true,
+    target: 'es2022',
+    jsx: 'automatic',
+    external: ['react', 'react-dom', 'react/jsx-runtime', './system-canvas.js'],
+    outDir: 'dist',
+    clean: false,
+    splitting: true,
+  },
+  {
+    // @nish/ui/system-canvas: one self-contained module (no shared chunks with index), so the canvas
+    // never lands in a chunk that the rest of the component set needs.
+    entry: { 'system-canvas': 'src/system-canvas.ts' },
     format: ['esm'],
     dts: true,
     sourcemap: true,
@@ -38,7 +53,7 @@ const configs: Options[] = [
     external: ['react', 'react-dom', 'react/jsx-runtime'],
     outDir: 'dist',
     clean: false,
-    splitting: true,
+    splitting: false,
   },
   {
     // theme.js and the small entries must stand alone: static sites vendor them as single files.

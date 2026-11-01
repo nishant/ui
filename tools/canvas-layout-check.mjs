@@ -382,7 +382,7 @@ bl.headers.forEach((h, b) => {
   );
   assert.deepEqual(
     [h.x, h.y],
-    [first.x, first.y - 30],
+    [first.x, first.y - 12],
     `band ${b} header sits over its first group`,
   );
 });

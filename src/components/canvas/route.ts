@@ -124,8 +124,42 @@ export function routeEdges(layout: CanvasLayout, groups: CanvasGroup[], edges: C
   const t: CanvasLayout = { ...layout, mode: 'columns', width: layout.height, height: layout.width, groups: {}, nodes: {} };
   for (const id of Object.keys(layout.groups)) t.groups[id] = flip(layout.groups[id]!);
   for (const id of Object.keys(layout.nodes)) t.nodes[id] = flip(layout.nodes[id]!);
-  const routed = routeColumns(t, groups, edges);
+  // An edge between two nodes of one group would loop around the whole card through the outer
+  // corridors. Draw a short connector between the two cards inside the group instead.
+  const groupOf = new Map<string, string>();
+  for (const g of groups) for (const n of g.nodes) groupOf.set(n.id, g.id);
+  const inside: CanvasEdge[] = [];
+  const outside: CanvasEdge[] = [];
+  for (const e of edges) {
+    const g = groupOf.get(e.from);
+    (g !== undefined && g === groupOf.get(e.to) ? inside : outside).push(e);
+  }
+  const routed = routeColumns(t, groups, outside);
   const result: Record<string, RoutedEdge> = {};
+  for (const e of inside) {
+    const a = layout.nodes[e.from];
+    const b = layout.nodes[e.to];
+    if (!a || !b || e.from === e.to) continue;
+    let points: [number, number][];
+    let dir: 'right' | 'down';
+    if (b.y >= a.y + a.h) {
+      // Target below: bottom border to top border, with a bend in the gap when not aligned.
+      const ax = a.x + a.w / 2;
+      const bx = b.x + b.w / 2;
+      const my = (a.y + a.h + b.y) / 2;
+      points = corners([[ax, a.y + a.h], [ax, my], [bx, my], [bx, b.y]]);
+      dir = 'down';
+    } else if (b.x >= a.x + a.w && Math.abs(b.y - a.y) < 1) {
+      // Same row, target to the right: right border to left border.
+      const cy = a.y + a.h / 2;
+      points = [[a.x + a.w, cy], [b.x, cy]];
+      dir = 'right';
+    } else {
+      // Upward or leftward links inside a group have no clean short route; the link is left out.
+      continue;
+    }
+    result[e.id] = { id: e.id, points, d: roundedPath(points), dir };
+  }
   for (const id of Object.keys(routed)) {
     const points = routed[id]!.points.map(([x, y]): [number, number] => [y, x]);
     result[id] = { id, points, d: roundedPath(points), dir: 'down' };

@@ -1,9 +1,10 @@
+import { memo } from 'react';
 import { StatusDot } from '../display';
 import { TickerText } from '../flow';
 import type { FollowStep } from './follow';
 
 /** The pill at the bottom left of the canvas saying what follow mode is looking at. */
-export function FollowCaption({ step }: { step: FollowStep | null }) {
+export const FollowCaption = memo(function FollowCaption({ step }: { step: FollowStep | null }) {
   if (!step) return null;
   const only = step.targets.length === 1 ? step.targets[0]! : null;
   const text =
@@ -26,4 +27,4 @@ export function FollowCaption({ step }: { step: FollowStep | null }) {
       </div>
     </div>
   );
-}
+});

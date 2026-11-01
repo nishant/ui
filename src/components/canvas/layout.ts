@@ -1,5 +1,5 @@
 import type { CanvasEdge, CanvasGroup, CanvasLayoutMode } from "./types";
-import { FIT_PAD, PHONE_K, PHONE_MAX_W } from "./view";
+import { FIT_PAD, PHONE_K } from "./view";
 
 // =====================================================================================
 // Layout
@@ -185,7 +185,7 @@ function layoutBands(
       const s = sized.get(g.id)!;
       placeGroup(out, g, s, x, y);
       if (r.firstOfBand && gi === 0)
-        out.headers.push({ index: r.band, x, y: y - 30 });
+        out.headers.push({ index: r.band, x, y: y - 12 }); // the header's bottom edge sits here (see system-canvas.tsx), clear of arrowheads
       x += s.w + GROUP_GAP_X;
     });
     if (ri === rows.length - 1) out.height = y + r.h + CHANNEL_EDGE;
@@ -280,17 +280,25 @@ export function layoutSystem(
   return out;
 }
 
-/** The layout to show in a viewport of `viewport` px. "columns" and "bands" use that mode;
- *  "auto" picks whichever candidate shows the map biggest. Pure and deterministic. */
-export function pickLayout(
+/** Layouts that do not depend on the viewport: every bands candidate (the row width that fits the
+ *  n widest groups side by side, n = 1..most groups in a band) and, in "auto", the columns layout. */
+export interface LayoutCandidates {
+  mode: CanvasLayoutMode;
+  bands: CanvasLayout[];
+  columns: CanvasLayout | null;
+}
+
+export function layoutCandidates(
   groups: CanvasGroup[],
   edges: CanvasEdge[],
-  viewport: { w: number; h: number },
   mode: CanvasLayoutMode = "auto",
-): CanvasLayout {
-  if (mode === "columns") return layoutSystem(groups, { mode: "columns" });
-
-  // Bands candidates: the row width that fits the n widest groups side by side, n = 1..most groups in a band.
+): LayoutCandidates {
+  if (mode === "columns")
+    return {
+      mode,
+      bands: [],
+      columns: layoutSystem(groups, { mode: "columns" }),
+    };
   const sized = sizeGroups(groups);
   const widths = groups.map((g) => sized.get(g.id)!.w).sort((a, b) => b - a);
   const perBand = new Map<number, number>();
@@ -306,15 +314,31 @@ export function pickLayout(
     rowWidths.push(sum + (n - 1) * GROUP_GAP_X);
   }
   if (rowWidths.length === 0) rowWidths.push(0);
-  const candidates = [...new Set(rowWidths)].map((width) =>
-    layoutSystem(groups, { mode: "bands", width, edges }),
-  );
+  return {
+    mode,
+    bands: [...new Set(rowWidths)].map((width) =>
+      layoutSystem(groups, { mode: "bands", width, edges }),
+    ),
+    columns: mode === "auto" ? layoutSystem(groups, { mode: "columns" }) : null,
+  };
+}
 
+// Only canvases narrower than this are treated as phones (one readable column at the phone zoom).
+// A docs-preview canvas of 480 to 600 px is scored like any other.
+const PHONE_LAYOUT_W = 480;
+
+/** Picks from `layoutCandidates` for a viewport. Cheap, so it can run on every resize. */
+export function chooseLayout(
+  c: LayoutCandidates,
+  viewport: { w: number; h: number },
+): CanvasLayout {
+  if (c.mode === "columns") return c.columns!;
+  const candidates = c.bands;
   if (viewport.w <= 0 || viewport.h <= 0) return candidates[0]!;
-  if (viewport.w < PHONE_MAX_W) {
+  if (viewport.w < PHONE_LAYOUT_W) {
     // Phones scroll vertically through readable cards: the widest candidate that still fits at the phone zoom.
     let pick = candidates[0]!;
-    for (const c of candidates) if (c.width * PHONE_K <= viewport.w) pick = c;
+    for (const x of candidates) if (x.width * PHONE_K <= viewport.w) pick = x;
     return pick;
   }
 
@@ -333,7 +357,17 @@ export function pickLayout(
     if (top - s < 0.005) best = i;
   });
   const bands = candidates[best]!;
-  if (mode === "bands") return bands;
-  const columns = layoutSystem(groups, { mode: "columns" });
-  return score(columns) > scores[best]! ? columns : bands;
+  if (c.mode === "bands" || !c.columns) return bands;
+  return score(c.columns) > scores[best]! ? c.columns : bands;
+}
+
+/** The layout to show in a viewport of `viewport` px. "columns" and "bands" use that mode;
+ *  "auto" picks whichever candidate shows the map biggest. Pure and deterministic. */
+export function pickLayout(
+  groups: CanvasGroup[],
+  edges: CanvasEdge[],
+  viewport: { w: number; h: number },
+  mode: CanvasLayoutMode = "auto",
+): CanvasLayout {
+  return chooseLayout(layoutCandidates(groups, edges, mode), viewport);
 }

@@ -15,7 +15,7 @@ a minor adds, and a patch fixes.
 - Follow mode (`follow`, `onFollowChange`, `CanvasNode.activeAt`): flies the camera to active nodes, with a caption saying what it follows. Any manual pan or zoom turns it off.
 - Minimap (`minimap`) on viewports 600 px wide or more: click or drag to move the view.
 - Double-click or double-tap a group header to zoom to that group; selecting something off screen brings it into view.
-- `@nish/ui/system-canvas`: the canvas, `layoutSystem`, `pickLayout`, `routeEdges` and their types as a subpath export.
+- `@nish/ui/system-canvas`: the canvas, `layoutSystem`, `pickLayout`, `routeEdges` and their types as a subpath export. It builds as one self-contained module that `index.js` imports, so a bundler can tree-shake the canvas out of an app that does not render it (or load it in a lazy chunk).
 
 ### Changed
 

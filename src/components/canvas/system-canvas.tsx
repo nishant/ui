@@ -18,7 +18,7 @@ import { IconButton } from '../primitives';
 import { FollowCaption } from './follow-caption';
 import { useFollow } from './follow';
 import { FitIcon, FollowIcon, MinusIcon, PlusIcon } from './icons';
-import { pickLayout, type CanvasLayout } from './layout';
+import { chooseLayout, layoutCandidates, type CanvasLayout } from './layout';
 import { EdgeLegend } from './legend';
 import { Minimap, type MinimapHandle } from './minimap';
 import { hueStyle, NodeView } from './node';
@@ -26,7 +26,12 @@ import { labelPoint, routeEdges, type Box } from './route';
 import type { CanvasEdgeKind, CanvasGroup, CanvasHue, CanvasNode, SystemCanvasProps } from './types';
 import { ANIM_MS, centerOn, clampK, DOUBLE_MS, DOUBLE_PX, DRAG_PX, ease, FIT_PAD, FOLLOW_MS, KEY_PAN, LABEL_K, LOD_K, MIN_K, PHONE_K, PHONE_MAX_W, ZOOM_STEP, zoomAround, type View } from './view';
 
+const insetFor = (w: number, minimap: boolean) => (minimap && w >= MINIMAP_MIN_W ? TOP_INSET_MINIMAP : TOP_INSET);
 const NO_KINDS: CanvasEdgeKind[] = [];
+// World-free screen px kept clear at the top for the legend button (12 px offset + 44 px button + gap), and with the minimap (176 x ~130 at top 12) shown.
+const TOP_INSET = 64;
+const TOP_INSET_MINIMAP = 150;
+const MINIMAP_MIN_W = 600;
 const initialHidden = (kinds: CanvasEdgeKind[]) => new Set(kinds.filter((k) => k.hidden).map((k) => k.id));
 
 // SystemCanvas: a pannable, zoomable graph-paper canvas of grouped nodes and edges that
@@ -109,15 +114,22 @@ export function SystemCanvas({
   /** The viewer moved the view: stop auto-fitting and stop following. */
   const markMoved = useCallback(() => {
     touched.current = true;
-    if (followRef.current) setFollow(false);
+    if (followRef.current) {
+      followRef.current = false; // a burst of events in one frame stops follow once
+      setFollow(false);
+    }
   }, [setFollow]);
 
   const sig = groups.map((g) => `${g.id}:${g.column}:${g.band ?? ''}:${g.nodes.map((n) => n.id).join(',')}`).join('|');
   const visSig = visibleEdges.map((e) => `${e.id}:${e.from}:${e.to}`).join('|');
   // The layout and the viewport size it was picked for (0 until the first measurement).
-  const [picked, setPicked] = useState(() => ({ layout: pickLayout(groups, visibleEdges, { w: 0, h: 0 }, layoutMode), w: 0, h: 0 }));
+  // The candidates do not depend on the viewport, so a resize only re-chooses between them.
+  const cands = useMemo(() => layoutCandidates(groups, visibleEdges, layoutMode), [sig, visSig, layoutMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [picked, setPicked] = useState(() => ({ layout: chooseLayout(cands, { w: 0, h: 0 }), w: 0, h: 0 }));
   const layout = picked.layout;
   const latest = useRef({
+    cands,
+    minimap,
     groups,
     layout,
     vis: visibleEdges,
@@ -127,7 +139,7 @@ export function SystemCanvas({
   useLayoutEffect(() => {
     followRef.current = followOn;
     followProps.current = { controlled: follow !== undefined, onFollowChange };
-    latest.current = { groups, layout, vis: visibleEdges, mode: layoutMode };
+    latest.current = { cands, minimap, groups, layout, vis: visibleEdges, mode: layoutMode };
   });
 
   // --- applying a view ---------------------------------------------------------
@@ -200,16 +212,18 @@ export function SystemCanvas({
    *  zoom stays 0.55 and the view centers on the first active node, else the first group. */
   const fitView = useCallback((): View => {
     const { w, h } = size.current;
-    const { groups: gs, layout: lay } = latest.current;
+    const { groups: gs, layout: lay, minimap: mini } = latest.current;
+    const top = insetFor(w, mini);
     const cw = Math.max(1, lay.width);
     const ch = Math.max(1, lay.height + lay.titleRoom);
-    const fit = Math.min((w - FIT_PAD * 2) / cw, (h - FIT_PAD * 2) / ch, 1);
+    const availH = h - top - FIT_PAD;
+    const fit = Math.min((w - FIT_PAD * 2) / cw, availH / ch, 1);
     if (fit >= PHONE_K || (w >= PHONE_MAX_W && fit >= MIN_K) || gs.length === 0) {
       const k = clampK(Number.isFinite(fit) && fit > 0 ? fit : 1);
       return {
         k,
         x: (w - lay.width * k) / 2,
-        y: (h - ch * k) / 2 + lay.titleRoom * k,
+        y: top + (availH - ch * k) / 2 + lay.titleRoom * k,
       };
     }
     let box: Box | undefined;
@@ -221,7 +235,10 @@ export function SystemCanvas({
       }
     }
     box ??= lay.groups[gs[0]!.id];
-    return box ? centerOn(w, h, PHONE_K, box) : { k: PHONE_K, x: FIT_PAD, y: FIT_PAD + lay.titleRoom * PHONE_K };
+    if (!box) return { k: PHONE_K, x: FIT_PAD, y: top + lay.titleRoom * PHONE_K };
+    // Keep the box head clear of the overlay row.
+    const v = centerOn(w, h, PHONE_K, box);
+    return { ...v, y: Math.max(h / 2, top + (box.h * PHONE_K) / 2) - (box.y + box.h / 2) * PHONE_K };
   }, []);
 
   const doFit = useCallback(
@@ -237,10 +254,10 @@ export function SystemCanvas({
   // nothing; otherwise it just refits.
   const relayout = useCallback(
     (data: boolean) => {
-      const { groups: gs, vis, layout: cur, mode } = latest.current;
+      const { cands: cs, layout: cur } = latest.current;
       const { w, h } = size.current;
-      const next = pickLayout(gs, vis, { w, h }, mode);
-      if (!data && next.mode === cur.mode && next.width === cur.width) {
+      const next = chooseLayout(cs, { w, h });
+      if (!data && next.mode === cur.mode && next.width === cur.width && next.height === cur.height) {
         if (!touched.current && !followRef.current) doFit(false);
         return;
       }
@@ -251,6 +268,13 @@ export function SystemCanvas({
 
   // The first measurement happens before paint; later size changes are throttled to a frame.
   const layoutRaf = useRef(0);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /** Publishes the measured size to follow's state, only while following (otherwise a resize re-renders nothing). */
+  const syncViewport = useCallback(() => {
+    if (!followRef.current) return;
+    const { w, h } = size.current;
+    setViewport((old) => (old.w === w && old.h === h ? old : { w, h }));
+  }, []);
   useLayoutEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
@@ -267,9 +291,12 @@ export function SystemCanvas({
       if (layoutRaf.current) return;
       layoutRaf.current = requestAnimationFrame(() => {
         layoutRaf.current = 0;
-        const { w, h } = size.current;
-        setViewport((old) => (old.w === w && old.h === h ? old : { w, h }));
         relayout(false);
+        // The minimap's visibility and view rect follow the new size even when the view stays put.
+        miniRef.current?.setView(view.current, size.current);
+        // Follow re-flies only once a resize settles; nothing re-renders per frame.
+        clearTimeout(settleTimer.current);
+        settleTimer.current = setTimeout(syncViewport, 150);
       });
     };
     measure();
@@ -279,8 +306,14 @@ export function SystemCanvas({
       ro.disconnect();
       cancelAnimationFrame(layoutRaf.current);
       layoutRaf.current = 0;
+      clearTimeout(settleTimer.current);
     };
-  }, [relayout]);
+  }, [relayout, syncViewport]);
+
+  // Switching follow on picks up any size change that happened while it was off.
+  useEffect(() => {
+    if (followOn) syncViewport();
+  }, [followOn, syncViewport]);
 
   const firstData = useRef(true);
   useLayoutEffect(() => {
@@ -744,6 +777,7 @@ export function SystemCanvas({
     layout,
     size: viewport,
     fit: fitView,
+    inset: TOP_INSET,
     fly,
   });
   const canFollow = useMemo(() => groups.some((g) => g.nodes.some((n) => n.active !== undefined)), [groups]);
@@ -787,7 +821,7 @@ export function SystemCanvas({
     >
       <div ref={worldRef} className="nish-canvas-world" style={{ width: layout.width, height: layout.height }}>
         {headerViews.map((t) => (
-          <div key={t.key} className="nish-canvas-coltitle" style={{ left: t.x, top: t.y }}>
+          <div key={t.key} className="nish-canvas-coltitle" style={layout.mode === 'bands' ? { left: t.x, top: t.y, lineHeight: 1, transform: 'translateY(-100%)' } : { left: t.x, top: t.y }}>
             {t.text}
           </div>
         ))}
