@@ -80,3 +80,10 @@ export const FitIcon = () => (
     <rect x="8" y="8" width="8" height="8" rx="1" />
   </Svg>
 );
+export const FollowIcon = () => (
+  <Svg>
+    <circle cx="12" cy="12" r="7" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+  </Svg>
+);

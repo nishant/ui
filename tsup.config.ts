@@ -28,8 +28,8 @@ if (existsSync('src/node/eslint.ts')) nodeEntry['node/eslint'] = 'src/node/eslin
 
 const configs: Options[] = [
   {
-    // The React entry on its own, with code splitting.
-    entry: { index: 'src/index.ts' },
+    // The React entries (index and system-canvas) with code splitting; they share chunks.
+    entry: { index: 'src/index.ts', 'system-canvas': 'src/system-canvas.ts' },
     format: ['esm'],
     dts: true,
     sourcemap: true,

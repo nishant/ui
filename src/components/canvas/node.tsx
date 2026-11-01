@@ -16,6 +16,8 @@ interface NodeViewProps {
   hue: CanvasHue | undefined;
   box: { x: number; y: number; w: number; h: number };
   selected: boolean;
+  /** Hover or selection focus is on something else: fade this card. */
+  dim: boolean;
   delay: number;
   onSelect: ((id: string, type: 'node' | 'group') => void) | undefined;
 }
@@ -42,7 +44,7 @@ function usePing(active: boolean) {
 }
 
 export const NodeView = memo(
-  function NodeView({ node, groupTitle, hue, box, selected, delay, onSelect }: NodeViewProps) {
+  function NodeView({ node, groupTitle, hue, box, selected, dim, delay, onSelect }: NodeViewProps) {
     const active = !!node.active;
     const heat = clamp01(node.heat);
     const ref = usePing(active);
@@ -61,7 +63,7 @@ export const NodeView = memo(
     }
     const aria = `${node.label}, ${groupTitle}${active ? (node.note ? `, active: ${node.note}` : ', active') : ''}`;
     return (
-      <div className="nish-canvas-slot" style={style} data-active={active || undefined}>
+      <div className="nish-canvas-slot" style={style} data-active={active || undefined} data-dim={dim || undefined}>
         <button
           ref={ref}
           type="button"
@@ -71,6 +73,7 @@ export const NodeView = memo(
           data-selected={selected || undefined}
           data-heat={heat > 0 || undefined}
           aria-label={aria}
+          title={node.detail || undefined}
           aria-pressed={selected}
           onClick={() => onSelect?.(node.id, 'node')}
         >
@@ -99,6 +102,7 @@ export const NodeView = memo(
     a.groupTitle === b.groupTitle &&
     a.hue === b.hue &&
     a.selected === b.selected &&
+    a.dim === b.dim &&
     a.delay === b.delay &&
     a.onSelect === b.onSelect &&
     a.box.x === b.box.x &&

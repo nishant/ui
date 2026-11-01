@@ -14,6 +14,8 @@ export interface RoutedEdge {
   points: [number, number][];
   /** The same line as an SVG path with rounded corners; also valid for CSS `offset-path`. */
   d: string;
+  /** Direction of travel of the last segment: "right" in "columns", "down" in "bands". */
+  dir: 'right' | 'down';
 }
 
 const LANE_MARGIN = 16; // a lane keeps this far from the cards on both sides of its channel
@@ -103,6 +105,8 @@ export function labelPoint(pts: [number, number][]): { x: number; y: number } {
   return best;
 }
 
+const flip = (b: Box): Box => ({ x: b.y, y: b.x, w: b.h, h: b.w });
+
 /** Routes every edge as an orthogonal line (horizontal and vertical segments, rounded corners)
  *  from the right border of its source card to the left border of its target card. A node
  *  attaches at its own center height, a group at its card's middle. Group boxes are clustered
@@ -112,8 +116,24 @@ export function labelPoint(pts: [number, number][]): { x: number; y: number } {
  *  right than the next travels along a horizontal corridor free of cards; backward edges and
  *  edges inside one sub-column do the same, mirrored. Two edges share a line only at a shared
  *  source or target port. Pure and deterministic; the result is keyed by edge id and skips
- *  edges with an unknown end. */
+ *  edges with an unknown end. In a "bands" layout the same router runs on the transposed layout
+ *  (x and y swapped) and the points are swapped back: lines leave the bottom border of the
+ *  source card and enter the top border of the target card, and `dir` is "down". */
 export function routeEdges(layout: CanvasLayout, groups: CanvasGroup[], edges: CanvasEdge[]): Record<string, RoutedEdge> {
+  if (layout.mode !== 'bands') return routeColumns(layout, groups, edges);
+  const t: CanvasLayout = { ...layout, mode: 'columns', width: layout.height, height: layout.width, groups: {}, nodes: {} };
+  for (const id of Object.keys(layout.groups)) t.groups[id] = flip(layout.groups[id]!);
+  for (const id of Object.keys(layout.nodes)) t.nodes[id] = flip(layout.nodes[id]!);
+  const routed = routeColumns(t, groups, edges);
+  const result: Record<string, RoutedEdge> = {};
+  for (const id of Object.keys(routed)) {
+    const points = routed[id]!.points.map(([x, y]): [number, number] => [y, x]);
+    result[id] = { id, points, d: roundedPath(points), dir: 'down' };
+  }
+  return result;
+}
+
+function routeColumns(layout: CanvasLayout, groups: CanvasGroup[], edges: CanvasEdge[]): Record<string, RoutedEdge> {
   const result: Record<string, RoutedEdge> = {};
   const cards: { id: string; box: Box }[] = [];
   for (const g of groups) {
@@ -288,7 +308,7 @@ export function routeEdges(layout: CanvasLayout, groups: CanvasGroup[], edges: C
         ? [[src.x, src.y], [xo, src.y], [xo, dst.y], [dst.x, dst.y]]
         : [[src.x, src.y], [xo, src.y], [xo, ty], [xe, ty], [xe, dst.y], [dst.x, dst.y]];
     const points = corners(raw);
-    result[w.edge.id] = { id: w.edge.id, points, d: roundedPath(points) };
+    result[w.edge.id] = { id: w.edge.id, points, d: roundedPath(points), dir: 'right' };
   }
   return result;
 }

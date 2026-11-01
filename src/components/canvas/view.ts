@@ -14,6 +14,10 @@ export const FIT_PAD = 48;
 export const TITLE_ROOM = 36; // world px above y=0 taken by the column titles
 export const LABEL_K = 0.8;
 export const ANIM_MS = 300;
+export const FOLLOW_MS = 700; // follow mode's fly
+export const LOD_K = 0.6; // below this zoom the cards drop their details
+export const DOUBLE_MS = 300; // two taps this close make a double-tap
+export const DOUBLE_PX = 10;
 export const DRAG_PX = 4;
 export const KEY_PAN = 48;
 export const ZOOM_STEP = 1.25;

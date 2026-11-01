@@ -1193,6 +1193,11 @@ kbd {
   text-transform: uppercase;
   color: var(--nish-hi3);
   white-space: nowrap;
+  /* A pill, so lines pass behind the title instead of through it. */
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--nish-bg);
 }
 
 /* Groups */
@@ -1205,7 +1210,7 @@ kbd {
   background:
     linear-gradient(to bottom, var(--c-soft), transparent 60%),
     var(--nish-surface);
-  transition: border-color 300ms, box-shadow 300ms;
+  transition: border-color 300ms, box-shadow 300ms, opacity 200ms;
 }
 .nish-canvas-group[data-live] {
   border-color: var(--c);
@@ -1267,6 +1272,10 @@ kbd {
 .nish-canvas-slot {
   position: absolute;
   z-index: 2;
+  transition: opacity 200ms;
+}
+.nish-canvas-slot[data-dim] {
+  opacity: 0.35;
 }
 .nish-canvas-slot[data-active] {
   z-index: 3;
@@ -1370,18 +1379,64 @@ kbd {
   overflow: visible;
   pointer-events: none;
 }
+.nish-canvas-edge {
+  transition: opacity 200ms;
+}
 .nish-canvas-edge-line {
   stroke: var(--nish-line-strong);
   stroke-width: 1.5;
   transition: stroke 400ms;
 }
-.nish-canvas-edge[data-dashed] .nish-canvas-edge-line {
-  stroke-dasharray: 5 5;
+.nish-canvas-edge[data-line='dashed'] .nish-canvas-edge-line {
+  stroke-dasharray: 6 5;
+}
+.nish-canvas-edge[data-line='dotted'] .nish-canvas-edge-line {
+  stroke-dasharray: 0.5 6;
+  stroke-linecap: round;
+  stroke-width: 2.25;
 }
 .nish-canvas-edge[data-active] .nish-canvas-edge-line {
   stroke: var(--c);
   stroke-width: 2;
-  stroke-dasharray: none;
+}
+.nish-canvas-arrow {
+  fill: var(--nish-line-strong);
+  transition: fill 400ms;
+}
+.nish-canvas-edge[data-active] .nish-canvas-arrow {
+  fill: var(--c);
+}
+
+/* Focus: hover or selection lights its edges and the cards at their other ends. */
+.nish-canvas[data-focus] .nish-canvas-edge:not([data-hot]) {
+  opacity: 0.1;
+}
+.nish-canvas[data-focus] .nish-canvas-edge[data-hot] .nish-canvas-edge-line {
+  stroke: var(--c);
+  stroke-width: 2.5;
+}
+.nish-canvas[data-focus] .nish-canvas-edge[data-hot] .nish-canvas-arrow {
+  fill: var(--c);
+}
+.nish-canvas[data-focus] .nish-canvas-group:not([data-related]) {
+  opacity: 0.5;
+}
+
+/* Level of detail: zoomed out, the details go and the titles grow. */
+.nish-canvas[data-lod='far'] :is(.nish-canvas-detail, .nish-canvas-note, .nish-canvas-subtitle, .nish-canvas-badge) {
+  visibility: hidden;
+}
+.nish-canvas[data-lod='far'] .nish-canvas-label {
+  font-size: 19px;
+}
+.nish-canvas[data-lod='far'] .nish-canvas-title {
+  font-size: 24px;
+}
+.nish-canvas[data-lod='far'] .nish-canvas-coltitle {
+  font-size: 20px;
+}
+.nish-canvas[data-lod='far'] .nish-canvas-icon {
+  transform: scale(1.25);
 }
 .nish-canvas-ports {
   /* Above the group borders, so each port dot sits on its card's edge. */
@@ -1489,10 +1544,34 @@ kbd {
   }
 }
 
+@keyframes nish-canvas-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  /* A new layout slides the cards to their places; data-relayout is on for a moment after the switch. */
+  .nish-canvas[data-relayout] .nish-canvas-group {
+    transition:
+      border-color 300ms,
+      box-shadow 300ms,
+      opacity 200ms,
+      left 450ms var(--nish-ease-out),
+      top 450ms var(--nish-ease-out);
+  }
+  .nish-canvas[data-relayout] .nish-canvas-slot {
+    transition:
+      opacity 200ms,
+      left 450ms var(--nish-ease-out),
+      top 450ms var(--nish-ease-out);
+  }
+  .nish-canvas[data-relayout] :is(.nish-canvas-edges, .nish-canvas-ports) {
+    animation: nish-canvas-fade 300ms var(--nish-ease-out) both;
+  }
   .nish-canvas-group,
   .nish-canvas-slot {
-    animation: nish-canvas-rise 420ms var(--nish-ease-out) both;
+    animation: nish-canvas-rise 420ms var(--nish-ease-out) backwards;
     animation-delay: var(--nish-canvas-delay, 0ms);
   }
   .nish-canvas-group[data-live]::before {

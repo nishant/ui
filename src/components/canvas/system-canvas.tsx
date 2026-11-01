@@ -9,17 +9,25 @@ import {
   type CSSProperties,
   type FocusEvent as ReactFocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { cn } from '../../cn';
 import { usePrefersReducedMotion } from '../flow';
 import { IconButton } from '../primitives';
-import { FitIcon, MinusIcon, PlusIcon } from './icons';
-import { layoutSystem } from './layout';
+import { FollowCaption } from './follow-caption';
+import { useFollow } from './follow';
+import { FitIcon, FollowIcon, MinusIcon, PlusIcon } from './icons';
+import { pickLayout, type CanvasLayout } from './layout';
+import { EdgeLegend } from './legend';
+import { Minimap, type MinimapHandle } from './minimap';
 import { hueStyle, NodeView } from './node';
 import { labelPoint, routeEdges, type Box } from './route';
-import type { CanvasGroup, CanvasHue, CanvasNode, SystemCanvasProps } from './types';
-import { ANIM_MS, centerOn, clampK, DRAG_PX, ease, FIT_PAD, KEY_PAN, LABEL_K, MIN_K, PHONE_K, PHONE_MAX_W, TITLE_ROOM, ZOOM_STEP, zoomAround, type View } from './view';
+import type { CanvasEdgeKind, CanvasGroup, CanvasHue, CanvasNode, SystemCanvasProps } from './types';
+import { ANIM_MS, centerOn, clampK, DOUBLE_MS, DOUBLE_PX, DRAG_PX, ease, FIT_PAD, FOLLOW_MS, KEY_PAN, LABEL_K, LOD_K, MIN_K, PHONE_K, PHONE_MAX_W, ZOOM_STEP, zoomAround, type View } from './view';
+
+const NO_KINDS: CanvasEdgeKind[] = [];
+const initialHidden = (kinds: CanvasEdgeKind[]) => new Set(kinds.filter((k) => k.hidden).map((k) => k.id));
 
 // SystemCanvas: a pannable, zoomable graph-paper canvas of grouped nodes and edges that
 // light up where work is happening. The layout is computed (layoutSystem), never stored.
@@ -40,6 +48,12 @@ export function SystemCanvas({
   groups,
   edges,
   columns,
+  bands,
+  layout: layoutMode = 'auto',
+  edgeKinds,
+  follow,
+  onFollowChange,
+  minimap = true,
   selected = null,
   onSelect,
   height = '100%',
@@ -55,12 +69,66 @@ export function SystemCanvas({
   const size = useRef({ w: 0, h: 0 });
   const touched = useRef(false); // the viewer moved the view; stop auto-fitting
   const zoomLabelRef = useRef<HTMLSpanElement>(null);
+  const miniRef = useRef<MinimapHandle>(null);
   const [labelsOn, setLabelsOn] = useState(true);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [viewport, setViewport] = useState({ w: 0, h: 0 }); // follow re-flies when this changes
 
-  const sig = groups.map((g) => `${g.id}:${g.column}:${g.nodes.map((n) => n.id).join(',')}`).join('|');
-  const layout = useMemo(() => layoutSystem(groups), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
-  const latest = useRef({ groups, layout });
-  latest.current = { groups, layout };
+  // --- edge kinds: hidden kinds are left out of the layout and the routing ----------
+  const kindList = edgeKinds ?? NO_KINDS;
+  const kindSig = kindList.map((k) => k.id).join('|');
+  const [hiddenState, setHiddenState] = useState(() => ({
+    sig: kindSig,
+    set: initialHidden(kindList),
+  }));
+  let hiddenKinds = hiddenState.set;
+  if (hiddenState.sig !== kindSig) {
+    const next = { sig: kindSig, set: initialHidden(kindList) };
+    setHiddenState(next);
+    hiddenKinds = next.set;
+  }
+  const toggleKind = useCallback((id: string) => {
+    setHiddenState((s) => {
+      const set = new Set(s.set);
+      if (!set.delete(id)) set.add(id);
+      return { sig: s.sig, set };
+    });
+  }, []);
+  const visibleEdges = useMemo(() => edges.filter((e) => !e.kind || !hiddenKinds.has(e.kind)), [edges, hiddenKinds]);
+  const lineOf = useMemo(() => new Map(kindList.map((k) => [k.id, k.line ?? 'solid'] as const)), [kindList]);
+
+  // --- follow is controlled when `follow` is set ----------------------------------
+  const [internalFollow, setInternalFollow] = useState(false);
+  const followOn = follow ?? internalFollow;
+  const followRef = useRef(followOn);
+  const followProps = useRef({ controlled: follow !== undefined, onFollowChange });
+  const setFollow = useCallback((on: boolean) => {
+    if (!followProps.current.controlled) setInternalFollow(on);
+    followProps.current.onFollowChange?.(on);
+  }, []);
+  /** The viewer moved the view: stop auto-fitting and stop following. */
+  const markMoved = useCallback(() => {
+    touched.current = true;
+    if (followRef.current) setFollow(false);
+  }, [setFollow]);
+
+  const sig = groups.map((g) => `${g.id}:${g.column}:${g.band ?? ''}:${g.nodes.map((n) => n.id).join(',')}`).join('|');
+  const visSig = visibleEdges.map((e) => `${e.id}:${e.from}:${e.to}`).join('|');
+  // The layout and the viewport size it was picked for (0 until the first measurement).
+  const [picked, setPicked] = useState(() => ({ layout: pickLayout(groups, visibleEdges, { w: 0, h: 0 }, layoutMode), w: 0, h: 0 }));
+  const layout = picked.layout;
+  const latest = useRef({
+    groups,
+    layout,
+    vis: visibleEdges,
+    mode: layoutMode,
+  });
+  // Event handlers and effects read the latest props through refs; synced first, before the other layout effects.
+  useLayoutEffect(() => {
+    followRef.current = followOn;
+    followProps.current = { controlled: follow !== undefined, onFollowChange };
+    latest.current = { groups, layout, vis: visibleEdges, mode: layoutMode };
+  });
 
   // --- applying a view ---------------------------------------------------------
   const apply = useCallback((v: View) => {
@@ -74,8 +142,11 @@ export function SystemCanvas({
       const min = `${24 * v.k}px ${24 * v.k}px`;
       vp.style.backgroundPosition = `${v.x}px ${v.y}px`;
       vp.style.backgroundSize = `${maj}, ${maj}, ${min}, ${min}`;
-      vp.dataset.grid = v.k < 0.6 ? 'major' : 'both';
+      vp.dataset.grid = v.k < LOD_K ? 'major' : 'both';
+      const lod = v.k < LOD_K ? 'far' : 'near';
+      if (vp.dataset.lod !== lod) vp.dataset.lod = lod;
     }
+    miniRef.current?.setView(v, size.current);
     const zl = zoomLabelRef.current;
     if (zl) {
       const text = `${Math.round(v.k * 100)}%`;
@@ -91,9 +162,9 @@ export function SystemCanvas({
     target.current = null;
   }, []);
 
-  /** Moves to `v`: a 300 ms ease, or at once when `animate` is false or motion is reduced. */
+  /** Moves to `v`: a 300 ms ease (`ms`), or at once when `animate` is false or motion is reduced. */
   const go = useCallback(
-    (v: View, animate: boolean) => {
+    (v: View, animate: boolean, ms = ANIM_MS) => {
       cancelAnimationFrame(raf.current);
       if (!animate || reduced) {
         target.current = null;
@@ -104,11 +175,15 @@ export function SystemCanvas({
       target.current = v;
       const t0 = performance.now();
       const step = (now: number) => {
-        const t = Math.min(1, (now - t0) / ANIM_MS);
+        const t = Math.min(1, (now - t0) / ms);
         const e = ease(t);
         // Interpolate zoom in log space so the motion feels even.
         const k = from.k * Math.pow(v.k / from.k, e);
-        apply({ k, x: from.x + (v.x - from.x) * e, y: from.y + (v.y - from.y) * e });
+        apply({
+          k,
+          x: from.x + (v.x - from.x) * e,
+          y: from.y + (v.y - from.y) * e,
+        });
         if (t < 1) raf.current = requestAnimationFrame(step);
         else {
           raf.current = 0;
@@ -127,11 +202,15 @@ export function SystemCanvas({
     const { w, h } = size.current;
     const { groups: gs, layout: lay } = latest.current;
     const cw = Math.max(1, lay.width);
-    const ch = Math.max(1, lay.height + TITLE_ROOM);
+    const ch = Math.max(1, lay.height + lay.titleRoom);
     const fit = Math.min((w - FIT_PAD * 2) / cw, (h - FIT_PAD * 2) / ch, 1);
     if (fit >= PHONE_K || (w >= PHONE_MAX_W && fit >= MIN_K) || gs.length === 0) {
       const k = clampK(Number.isFinite(fit) && fit > 0 ? fit : 1);
-      return { k, x: (w - lay.width * k) / 2, y: (h - ch * k) / 2 + TITLE_ROOM * k };
+      return {
+        k,
+        x: (w - lay.width * k) / 2,
+        y: (h - ch * k) / 2 + lay.titleRoom * k,
+      };
     }
     let box: Box | undefined;
     for (const g of gs) {
@@ -142,7 +221,7 @@ export function SystemCanvas({
       }
     }
     box ??= lay.groups[gs[0]!.id];
-    return box ? centerOn(w, h, PHONE_K, box) : { k: PHONE_K, x: FIT_PAD, y: FIT_PAD + TITLE_ROOM * PHONE_K };
+    return box ? centerOn(w, h, PHONE_K, box) : { k: PHONE_K, x: FIT_PAD, y: FIT_PAD + lay.titleRoom * PHONE_K };
   }, []);
 
   const doFit = useCallback(
@@ -153,37 +232,109 @@ export function SystemCanvas({
     [fitView, go],
   );
 
-  // First fit happens before paint; later size or layout changes refit until the viewer
-  // moves the view themselves.
+  // Pick the layout for the current viewport and data. A resize only swaps the layout when the
+  // chosen candidate (mode or row width) changes, so a resize inside one candidate re-renders
+  // nothing; otherwise it just refits.
+  const relayout = useCallback(
+    (data: boolean) => {
+      const { groups: gs, vis, layout: cur, mode } = latest.current;
+      const { w, h } = size.current;
+      const next = pickLayout(gs, vis, { w, h }, mode);
+      if (!data && next.mode === cur.mode && next.width === cur.width) {
+        if (!touched.current && !followRef.current) doFit(false);
+        return;
+      }
+      setPicked({ layout: next, w, h });
+    },
+    [doFit],
+  );
+
+  // The first measurement happens before paint; later size changes are throttled to a frame.
+  const layoutRaf = useRef(0);
   useLayoutEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
+    let first = true;
     const measure = () => {
       const r = vp.getBoundingClientRect();
       size.current = { w: r.width, h: r.height };
-      if (!touched.current) doFit(false);
+      if (first) {
+        first = false;
+        setViewport({ w: r.width, h: r.height });
+        relayout(true);
+        return;
+      }
+      if (layoutRaf.current) return;
+      layoutRaf.current = requestAnimationFrame(() => {
+        layoutRaf.current = 0;
+        const { w, h } = size.current;
+        setViewport((old) => (old.w === w && old.h === h ? old : { w, h }));
+        relayout(false);
+      });
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(vp);
-    return () => ro.disconnect();
-  }, [doFit]);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(layoutRaf.current);
+      layoutRaf.current = 0;
+    };
+  }, [relayout]);
 
+  const firstData = useRef(true);
   useLayoutEffect(() => {
-    if (!touched.current) doFit(false);
-  }, [sig, doFit]);
+    if (firstData.current) {
+      firstData.current = false;
+      return;
+    }
+    relayout(true);
+  }, [sig, visSig, layoutMode, relayout]);
+
+  // A new layout: the first one fits at once; a different one slides the cards to their new
+  // places (data-relayout switches the CSS transition on for a moment) and refits.
+  const prevLayout = useRef<CanvasLayout | null>(null);
+  const fitted = useRef(false);
+  const relayoutTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useLayoutEffect(() => {
+    const prev = prevLayout.current;
+    prevLayout.current = layout;
+    if (picked.w <= 0 || picked.h <= 0) return; // picked before the first measurement
+    if (!fitted.current) {
+      fitted.current = true;
+      doFit(false);
+      return;
+    }
+    const moved = !prev || prev.mode !== layout.mode || prev.width !== layout.width || prev.height !== layout.height;
+    if (!moved) {
+      if (!touched.current && !followRef.current) doFit(false);
+      return;
+    }
+    const vp = viewportRef.current;
+    if (vp) {
+      vp.dataset.relayout = 'true';
+      clearTimeout(relayoutTimer.current);
+      relayoutTimer.current = setTimeout(() => {
+        delete vp.dataset.relayout;
+      }, 500);
+    }
+    stop(); // a running fly would aim at the old layout
+    if (!touched.current && !followRef.current) doFit(true);
+  }, [layout, picked.w, picked.h, doFit, stop]);
+
+  useEffect(() => () => clearTimeout(relayoutTimer.current), []);
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
 
   // --- zoom and pan helpers ----------------------------------------------------
   const zoomBy = useCallback(
     (factor: number, animate: boolean) => {
-      touched.current = true;
+      markMoved();
       const base = target.current ?? view.current;
       const { w, h } = size.current;
       go(zoomAround(base, base.k * factor, w / 2, h / 2), animate);
     },
-    [go],
+    [go, markMoved],
   );
 
   // --- wheel (needs a non-passive listener) ------------------------------------
@@ -194,7 +345,7 @@ export function SystemCanvas({
       if ((e.target as Element | null)?.closest('[data-canvas-ui]')) return;
       e.preventDefault();
       stop();
-      touched.current = true;
+      markMoved();
       const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? size.current.h : 1;
       const v = view.current;
       if (e.ctrlKey) {
@@ -206,7 +357,7 @@ export function SystemCanvas({
     };
     vp.addEventListener('wheel', onWheel, { passive: false });
     return () => vp.removeEventListener('wheel', onWheel);
-  }, [apply, stop]);
+  }, [apply, stop, markMoved]);
 
   // --- pointers: drag, click vs drag, pinch ------------------------------------
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -219,12 +370,51 @@ export function SystemCanvas({
     pinchDist: number;
     pinchMid: { x: number; y: number };
     pinchView: View;
-  }>({ mode: 'none', startX: 0, startY: 0, lastX: 0, lastY: 0, pinchDist: 1, pinchMid: { x: 0, y: 0 }, pinchView: { x: 0, y: 0, k: 1 } });
+  }>({
+    mode: 'none',
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastY: 0,
+    pinchDist: 1,
+    pinchMid: { x: 0, y: 0 },
+    pinchView: { x: 0, y: 0, k: 1 },
+  });
   const dragged = useRef(false);
+  const lastTap = useRef<{
+    t: number;
+    x: number;
+    y: number;
+    el: Element;
+  } | null>(null);
+  const lastDouble = useRef(0); // when a double-tap last fired, so the browser's own dblclick is ignored
 
-  const local = (e: ReactPointerEvent) => {
+  const local = (e: { clientX: number; clientY: number }) => {
     const r = viewportRef.current!.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  /** A double-click or double-tap: on a group head zoom to the group, on empty canvas zoom in. */
+  const doubleAt = (el: Element, p: { x: number; y: number }) => {
+    if (el.closest('[data-canvas-ui]') || el.closest('.nish-canvas-slot')) return;
+    const { w, h } = size.current;
+    const head = el.closest('.nish-canvas-head');
+    if (head) {
+      const box = latest.current.layout.groups[(head as HTMLElement).dataset.canvasId ?? ''];
+      if (!box) return;
+      const k = Math.min(1.5, Math.max(MIN_K, Math.min((w - FIT_PAD * 2) / box.w, (h - FIT_PAD * 2) / box.h)));
+      markMoved();
+      go(centerOn(w, h, k, box), true);
+      return;
+    }
+    markMoved();
+    const base = target.current ?? view.current;
+    go(zoomAround(base, base.k * 1.5, p.x, p.y), true);
+  };
+
+  const onDoubleClick = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (performance.now() - lastDouble.current < 600) return;
+    doubleAt(e.target as Element, local(e));
   };
 
   const startPinch = () => {
@@ -259,7 +449,7 @@ export function SystemCanvas({
           // The pointer already ended.
         }
       }
-      touched.current = true;
+      markMoved();
       startPinch();
     }
   };
@@ -286,7 +476,8 @@ export function SystemCanvas({
       stop();
       g.mode = 'pan';
       dragged.current = true;
-      touched.current = true;
+      markMoved();
+      setHoverId(null);
       try {
         viewportRef.current!.setPointerCapture(e.pointerId);
       } catch {
@@ -318,6 +509,20 @@ export function SystemCanvas({
       g.lastX = rest.x;
       g.lastY = rest.y;
     } else if (pointers.current.size === 0) {
+      if (g.mode === 'pending' && e.pointerType === 'touch' && e.type === 'pointerup') {
+        // A touch tap that did not drag; two close together on the same thing are a double-tap.
+        const p = local(e);
+        const now = performance.now();
+        const el = (e.target as Element).closest('[data-canvas-id]') ?? (e.target as Element);
+        const lt = lastTap.current;
+        if (lt && now - lt.t <= DOUBLE_MS && lt.el === el && Math.hypot(p.x - lt.x, p.y - lt.y) <= DOUBLE_PX) {
+          lastTap.current = null;
+          lastDouble.current = now;
+          doubleAt(e.target as Element, p);
+        } else {
+          lastTap.current = { t: now, x: p.x, y: p.y, el };
+        }
+      }
       g.mode = 'none';
       delete vp.dataset.dragging;
       // The click that follows this pointerup is swallowed when the pointer dragged.
@@ -333,6 +538,38 @@ export function SystemCanvas({
       e.preventDefault();
     }
   };
+
+  // --- hover focus (mouse and pen only; touch uses selection) -------------------
+  const onPointerOver = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch' || gesture.current.mode === 'pan' || gesture.current.mode === 'pinch') return;
+    if (typeof window.matchMedia === 'function' && !window.matchMedia('(hover: hover)').matches) return;
+    const id = (e.target as Element).closest('[data-canvas-id]')?.getAttribute('data-canvas-id') ?? null;
+    setHoverId((old) => (old === id ? old : id));
+  };
+  const onPointerLeave = () => setHoverId(null);
+
+  // --- selecting something brings it into view ---------------------------------
+  const prevSelected = useRef(selected);
+  useEffect(() => {
+    if (prevSelected.current === selected) return;
+    prevSelected.current = selected;
+    if (!selected || followRef.current) return;
+    const lay = latest.current.layout;
+    const box = lay.nodes[selected] ?? lay.groups[selected];
+    const { w, h } = size.current;
+    if (!box || w <= 0 || h <= 0) return;
+    const v = target.current ?? view.current;
+    const left = box.x * v.k + v.x;
+    const top = box.y * v.k + v.y;
+    const inside = left >= 0 && top >= 0 && left + box.w * v.k <= w && top + box.h * v.k <= h;
+    if (inside && v.k >= LOD_K) return;
+    const k = clampK(Math.max(v.k, 0.8));
+    const next = centerOn(w, h, k, box);
+    // On a phone the drawer covers the bottom: use the top 45%.
+    if (w < PHONE_MAX_W) next.y = (h * 0.45) / 2 - (box.y + box.h / 2) * k;
+    touched.current = true;
+    go(next, true);
+  }, [selected, go]);
 
   // --- keyboard ----------------------------------------------------------------
   // The viewport is never scrolled by the browser; focus pans the view instead.
@@ -358,7 +595,7 @@ export function SystemCanvas({
     const left = box.x * v.k + v.x;
     const top = box.y * v.k + v.y;
     if (left >= 0 && top >= 0 && left + box.w * v.k <= w && top + box.h * v.k <= h) return;
-    touched.current = true;
+    markMoved();
     go(centerOn(w, h, v.k, box), true);
   };
 
@@ -369,22 +606,22 @@ export function SystemCanvas({
     switch (e.key) {
       case 'ArrowLeft':
         stop();
-        touched.current = true;
+        markMoved();
         apply({ ...v, x: v.x + KEY_PAN });
         break;
       case 'ArrowRight':
         stop();
-        touched.current = true;
+        markMoved();
         apply({ ...v, x: v.x - KEY_PAN });
         break;
       case 'ArrowUp':
         stop();
-        touched.current = true;
+        markMoved();
         apply({ ...v, y: v.y + KEY_PAN });
         break;
       case 'ArrowDown':
         stop();
-        touched.current = true;
+        markMoved();
         apply({ ...v, y: v.y - KEY_PAN });
         break;
       case '+':
@@ -421,29 +658,18 @@ export function SystemCanvas({
     return { nodes, grps };
   }, [groups]);
 
-  const columnTitles = useMemo(() => {
-    if (!columns) return [];
-    const seen = new Map<number, { x: number; y: number }>();
-    for (const g of groups) {
-      const box = layout.groups[g.id];
-      if (!box) continue;
-      const old = seen.get(g.column);
-      if (!old) seen.set(g.column, { x: box.x, y: box.y });
-      else
-        seen.set(g.column, {
-          x: Math.min(old.x, box.x),
-          y: Math.min(old.y, box.y),
-        });
-    }
-    return [...seen.entries()]
-      .filter(([c]) => columns[c])
-      .map(([c, p]) => ({ c, x: p.x, y: p.y - TITLE_ROOM, text: columns[c]! }));
-  }, [columns, groups, layout]);
+  const headerViews = useMemo(
+    () =>
+      layout.headers.flatMap((h) => {
+        const text = layout.mode === 'bands' ? (bands?.[h.index] ?? columns?.[h.index]) : columns?.[h.index];
+        return text ? [{ key: `${layout.mode}:${h.index}`, x: h.x, y: h.y, text }] : [];
+      }),
+    [layout, bands, columns],
+  );
 
-  // Routing depends only on the layout and the edge ends, so a pan, a zoom or an activity
-  // update never recomputes it.
-  const edgeSig = edges.map((e) => `${e.id}:${e.from}:${e.to}`).join('|');
-  const routes = useMemo(() => routeEdges(layout, groups, edges), [layout, edgeSig]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Routing depends only on the layout and the visible edge ends, so a pan, a zoom or an
+  // activity update never recomputes it.
+  const routes = useMemo(() => routeEdges(layout, groups, visibleEdges), [layout, visSig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { edgeViews, ports } = useMemo(() => {
     const hueOf = (id: string): { hue: CanvasHue | undefined; active: boolean } | undefined => {
@@ -453,24 +679,87 @@ export function SystemCanvas({
       if (g) return { hue: g.hue, active: g.nodes.some((x) => x.active) };
       return undefined;
     };
-    const views = edges.flatMap((edge) => {
+    const views = visibleEdges.flatMap((edge) => {
       const route = routes[edge.id];
       const to = hueOf(edge.to);
       if (!route || !to) return [];
-      return [{ edge, route, mid: labelPoint(route.points), hue: to.hue, active: to.active }];
+      const line = edge.dashed ? 'dashed' : ((edge.kind ? lineOf.get(edge.kind) : undefined) ?? 'solid');
+      return [
+        {
+          edge,
+          route,
+          line,
+          mid: labelPoint(route.points),
+          hue: to.hue,
+          active: to.active,
+        },
+      ];
     });
     // Quiet edges first so an active edge that shares a trunk with one draws on top.
     views.sort((a, b) => Number(a.active) - Number(b.active));
+    // Source ports only: the arrowheads mark where an edge ends.
     const dots = new Map<string, { x: number; y: number; hue: CanvasHue | undefined; active: boolean }>();
     for (const v of views) {
-      for (const p of [v.route.points[0]!, v.route.points[v.route.points.length - 1]!]) {
-        const key = `${p[0]}|${p[1]}`;
-        const old = dots.get(key);
-        if (!old || (v.active && !old.active)) dots.set(key, { x: p[0], y: p[1], hue: v.hue, active: v.active });
-      }
+      const p = v.route.points[0]!;
+      const key = `${p[0]}|${p[1]}`;
+      const old = dots.get(key);
+      if (!old || (v.active && !old.active)) dots.set(key, { x: p[0], y: p[1], hue: v.hue, active: v.active });
     }
     return { edgeViews: views, ports: [...dots.entries()] };
-  }, [edges, routes, lookup]);
+  }, [visibleEdges, routes, lookup, lineOf]);
+
+  // Focus: the hovered thing, else the selected one. Its edges stay lit, the cards at their
+  // other ends stay clear, everything else dims.
+  const focus = useMemo(() => {
+    const id = hoverId ?? selected;
+    if (!id) return null;
+    const node = lookup.nodes.get(id);
+    const grp = node ? node.group : lookup.grps.get(id);
+    if (!grp) return null;
+    const mine = new Set<string>(node ? [id] : [id, ...grp.nodes.map((n) => n.id)]);
+    const related = new Set<string>([id, grp.id]);
+    if (!node) for (const n of grp.nodes) related.add(n.id);
+    const addEnd = (eid: string) => {
+      related.add(eid);
+      const n = lookup.nodes.get(eid);
+      if (n) related.add(n.group.id);
+      const g = lookup.grps.get(eid);
+      if (g) for (const x of g.nodes) related.add(x.id);
+    };
+    const hot = new Set<string>();
+    for (const e of visibleEdges) {
+      if (!mine.has(e.from) && !mine.has(e.to)) continue;
+      hot.add(e.id);
+      addEnd(e.from);
+      addEnd(e.to);
+    }
+    return { related, hot };
+  }, [hoverId, selected, lookup, visibleEdges]);
+
+  // --- follow --------------------------------------------------------------------
+  const fly = useCallback((v: View) => go(v, true, FOLLOW_MS), [go]);
+  const { step } = useFollow({
+    on: followOn,
+    groups,
+    layout,
+    size: viewport,
+    fit: fitView,
+    fly,
+  });
+  const canFollow = useMemo(() => groups.some((g) => g.nodes.some((n) => n.active !== undefined)), [groups]);
+
+  const jumpTo = useCallback(
+    (wx: number, wy: number) => {
+      stop();
+      markMoved();
+      const { w, h } = size.current;
+      const v = view.current;
+      apply({ k: v.k, x: w / 2 - wx * v.k, y: h / 2 - wy * v.k });
+    },
+    [apply, stop, markMoved],
+  );
+
+  const layoutKey = `${layout.mode}:${layout.width}`;
 
   return (
     <div
@@ -482,37 +771,49 @@ export function SystemCanvas({
       className={cn('nish-canvas', className)}
       style={{ height }}
       data-grid="both"
+      data-lod="near"
+      data-focus={focus ? 'true' : undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endPointer}
       onPointerCancel={endPointer}
+      onPointerOver={onPointerOver}
+      onPointerLeave={onPointerLeave}
+      onDoubleClick={onDoubleClick}
       onClickCapture={onClickCapture}
       onKeyDown={onKeyDown}
       onScroll={onScroll}
       onFocusCapture={onFocusCapture}
     >
       <div ref={worldRef} className="nish-canvas-world" style={{ width: layout.width, height: layout.height }}>
-        {columnTitles.map((t) => (
-          <div key={t.c} className="nish-canvas-coltitle" style={{ left: t.x, top: t.y }}>
+        {headerViews.map((t) => (
+          <div key={t.key} className="nish-canvas-coltitle" style={{ left: t.x, top: t.y }}>
             {t.text}
           </div>
         ))}
 
-        <svg className="nish-canvas-edges" width={layout.width} height={layout.height} aria-hidden="true" focusable="false">
-          {edgeViews.map(({ edge, route, mid, hue, active }) => (
-            <g key={edge.id} style={hueStyle(hue)} className="nish-canvas-edge" data-active={active || undefined} data-dashed={edge.dashed || undefined}>
-              <path className="nish-canvas-edge-line" d={route.d} fill="none" />
-              {active ? <circle className="nish-canvas-dot" r="3.5" style={{ offsetPath: `path("${route.d}")` }} /> : null}
-              {edge.label && labelsOn ? (
-                <text className="nish-canvas-edge-label" x={mid.x} y={mid.y - 6} textAnchor="middle">
-                  {edge.label}
-                </text>
-              ) : null}
-            </g>
-          ))}
+        <svg key={`e${layoutKey}`} className="nish-canvas-edges" width={layout.width} height={layout.height} aria-hidden="true" focusable="false">
+          {edgeViews.map(({ edge, route, line, mid, hue, active }) => {
+            const hot = focus?.hot.has(edge.id) ?? false;
+            const end = route.points[route.points.length - 1]!;
+            const [ex, ey] = end;
+            const arrow = route.dir === 'down' ? `M${ex} ${ey}L${ex - 3.5} ${ey - 8}L${ex + 3.5} ${ey - 8}Z` : `M${ex} ${ey}L${ex - 8} ${ey - 3.5}L${ex - 8} ${ey + 3.5}Z`;
+            return (
+              <g key={edge.id} style={hueStyle(hue)} className="nish-canvas-edge" data-active={active || undefined} data-line={line} data-hot={hot || undefined}>
+                <path className="nish-canvas-edge-line" d={route.d} fill="none" />
+                <path className="nish-canvas-arrow" d={arrow} />
+                {active ? <circle className="nish-canvas-dot" r="3.5" style={{ offsetPath: `path("${route.d}")` }} /> : null}
+                {edge.label && (labelsOn || hot) ? (
+                  <text className="nish-canvas-edge-label" x={mid.x} y={mid.y - 6} textAnchor="middle">
+                    {edge.label}
+                  </text>
+                ) : null}
+              </g>
+            );
+          })}
         </svg>
 
-        <svg className="nish-canvas-ports" width={layout.width} height={layout.height} aria-hidden="true" focusable="false">
+        <svg key={`p${layoutKey}`} className="nish-canvas-ports" width={layout.width} height={layout.height} aria-hidden="true" focusable="false">
           {ports.map(([key, p]) => (
             <circle key={key} className="nish-canvas-port" cx={p.x} cy={p.y} r={3} style={hueStyle(p.hue)} data-active={p.active || undefined} />
           ))}
@@ -539,15 +840,10 @@ export function SystemCanvas({
                 }
                 data-live={live || undefined}
                 data-selected={selected === g.id || undefined}
+                data-related={focus?.related.has(g.id) || undefined}
               >
                 <span className="nish-canvas-band" aria-hidden="true" />
-                <button
-                  type="button"
-                  className="nish-canvas-head"
-                  data-canvas-id={g.id}
-                  aria-pressed={selected === g.id}
-                  onClick={() => onSelect?.(g.id, 'group')}
-                >
+                <button type="button" className="nish-canvas-head" data-canvas-id={g.id} aria-pressed={selected === g.id} onClick={() => onSelect?.(g.id, 'group')}>
                   <span className="nish-canvas-headtext">
                     <span className="nish-canvas-title">{g.title}</span>
                     {g.subtitle ? <span className="nish-canvas-subtitle">{g.subtitle}</span> : null}
@@ -566,6 +862,7 @@ export function SystemCanvas({
                     hue={g.hue}
                     box={nb}
                     selected={selected === n.id}
+                    dim={focus ? !focus.related.has(n.id) : false}
                     delay={delay}
                     onSelect={onSelect}
                   />
@@ -575,6 +872,10 @@ export function SystemCanvas({
           );
         })}
       </div>
+
+      <EdgeLegend kinds={kindList} hidden={hiddenKinds} onToggle={toggleKind} />
+      {minimap ? <Minimap layout={layout} groups={groups} handleRef={miniRef} onJump={jumpTo} /> : null}
+      <FollowCaption step={step} />
 
       <div data-canvas-ui className="nish-canvas-controls">
         <span ref={zoomLabelRef} className="nish-canvas-zoom" aria-hidden="true">
@@ -597,6 +898,11 @@ export function SystemCanvas({
         >
           <FitIcon />
         </IconButton>
+        {canFollow ? (
+          <IconButton label="Follow activity" variant="ghost" className="size-11" active={followOn} aria-pressed={followOn} onClick={() => setFollow(!followOn)}>
+            <FollowIcon />
+          </IconButton>
+        ) : null}
       </div>
     </div>
   );

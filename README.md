@@ -322,7 +322,7 @@ ago(Date.now() - 3 * 60_000);     // "3m"
 | `ActivityFeed` | Timeline of short updates, newest first; new rows open, fade in and flash | [ActivityFeed](https://design.nish.software/#/components/activity-feed) |
 | `TickerText` | One line of text that slides when it changes | [TickerText](https://design.nish.software/#/components/ticker-text) |
 | `AnimatedList`, `usePrefersReducedMotion()` | List with enter, exit and FLIP move animations; hook for the reduced-motion preference | [AnimatedList](https://design.nish.software/#/components/animated-list) |
-| `SystemCanvas`, `layoutSystem()`, `routeEdges()` | Pannable, zoomable graph-paper canvas of grouped nodes and right-angled edges; active nodes pulse in their group's hue and edges into them flow | [SystemCanvas](https://design.nish.software/#/components/system-canvas) |
+| `SystemCanvas`, `layoutSystem()`, `pickLayout()`, `routeEdges()` | Pannable, zoomable graph-paper canvas of grouped nodes and right-angled edges, laid out in bands or columns (`layout="auto"` picks); edge kinds with a legend, hover focus, follow mode and a minimap. Also importable on its own from `@nish/ui/system-canvas` | [SystemCanvas](https://design.nish.software/#/components/system-canvas) |
 | `Sparkline` | Dependency-free SVG trend line | [Sparkline](https://design.nish.software/#/components/sparkline) |
 | `Disclosure` | `<details>` show-more, plain or card | [Disclosure](https://design.nish.software/#/components/disclosure) |
 | `Kbd` | Keyboard key | [Kbd](https://design.nish.software/#/components/kbd) |
@@ -354,6 +354,7 @@ ago(Date.now() - 3 * 60_000);     // "3m"
 | `ThemeToggle`, `useTheme()` | System / Light / Dark control with labels, compact mode, a pill variant and an optional preset picker | [ThemeToggle](https://design.nish.software/#/components/theme-toggle) |
 | `mountThemeToggle()` | `@nish/ui/theme` and `window.nishTheme`: the one-button theme toggle for static pages, optionally with the word | [mountThemeToggle](https://design.nish.software/#/components/mount-theme-toggle) |
 | `showToast()` | `@nish/ui/theme` and `window.nishTheme`: one toast for static pages, with the React toast's timer policy | [showToast](https://design.nish.software/#/components/show-toast) |
+| `@nish/ui/system-canvas` | `SystemCanvas` and its layout and routing helpers, for loading the canvas in a lazy chunk | [SystemCanvas](https://design.nish.software/#/components/system-canvas) |
 | `@nish/ui/chart` | `seriesColor`, `CHART`, `tooltipStyle`, `chartTheme`, `useChartTheme` for any chart library | [Chart colors](https://design.nish.software/#/components/chart) |
 | `@nish/ui/tokens` | Token data for Node scripts, with no React import | [Color](https://design.nish.software/#/color) |
 | `.nish-prose` | Markdown and rich text styles (nish.css, tailwind.css) | [Prose](https://design.nish.software/#/components/prose) |
