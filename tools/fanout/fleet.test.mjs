@@ -36,7 +36,7 @@ test('full entries: name, bump, live, hosts, id as checkout, none', () => {
         fleet: true,
         ui: 'vendored',
         bump: 'node scripts/sync-ui.mjs && cd minecraft && npm ci',
-        live: 'C:\Apps\hosting',
+        live: 'C:\\Apps\\hosting',
         hosts: ['minecraft.nish.software', 'trips.nish.software', 'design.nish.software'],
         deploy: 'deploy.yml',
         fold: true,
@@ -47,7 +47,7 @@ test('full entries: name, bump, live, hosts, id as checkout, none', () => {
   );
   assert.equal(h.name, 'Hosting');
   assert.equal(h.bump, 'node scripts/sync-ui.mjs && cd minecraft && npm ci');
-  assert.equal(h.live, 'C:\Apps\hosting');
+  assert.equal(h.live, 'C:\\Apps\\hosting');
   assert.deepEqual(h.hosts, ['minecraft.nish.software', 'trips.nish.software', 'design.nish.software']);
   assert.equal(h.fold, true);
   assert.equal(n.live, null);
