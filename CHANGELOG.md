@@ -9,6 +9,10 @@ a minor adds, and a patch fixes.
 ### Added
 
 - `isCrossSiteWrite()` in `@nish/ui/server` and `crossSiteGuard()` in `@nish/ui/server/hono`: refuse a POST, PUT, PATCH or DELETE that a page on another origin sent, including another *.nish.software subdomain (SameSite=Lax cookies still ride along from those). Fetch metadata decides, with an Origin-against-Host fallback for older browsers; requests without either header (servers, the inbox and MCP callers) pass. `allowedOrigins` lets named origins through. Mount it first: `app.use('*', crossSiteGuard())`.
+- `ServiceTokensSection` and `useServiceTokens`: the settings block that lists the service tokens an app accepts, with a Revoke button on each (the confirm dialog says a revoked token cannot be restored). It has loading, empty and error states, and a docs page on design.nish.software.
+- `@nish/ui/server`: `loadManagedServiceTokens` and `jsonRevocationStore`. Revocations are kept by the token's sha256 in one small JSON file in the app's data dir, so they take effect at once and survive restarts and deploys; `service-tokens.json` and `SERVICE_TOKENS` stay the seed. A revoked token gets 401 from `checkServiceRequest`.
+- `@nish/ui/server/hono`: `mountServiceTokenRoutes` (GET the list, POST to revoke), for the app's settings page.
+- Types `ServiceTokenView` and `ServiceTokenListResponse`.
 
 ### Changed
 

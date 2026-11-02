@@ -238,6 +238,12 @@
       "settle": 1000
     },
     {
+      "name": "service-tokens",
+      "url": "http://localhost:5191/#/components/service-tokens",
+      "waitFor": "[data-page]",
+      "settle": 1000
+    },
+    {
       "name": "confirm-dialog",
       "url": "http://localhost:5191/#/components/confirm-dialog",
       "waitFor": "[data-page]",

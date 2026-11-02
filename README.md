@@ -121,6 +121,8 @@ More than 60 components, each with live stories, props and guidelines on the
   Switch, Segmented, Chip, SearchInput, Field
 - **Feedback:** Toast, Callout, Spinner, Skeleton, EmptyState, ErrorState, StatusDot, Meter
 - **Overlays:** Modal, Drawer, ConfirmDialog, Popover, DropdownMenu, Tooltip
+- **Settings:** SettingsSection, SettingRow, NumberField, ServiceTokensSection (list and revoke
+  service tokens)
 - **Layout and navigation:** AppShell, AppHeader, BottomNav, NavRail, MoreSheet, Tabs,
   PageHeader, Card, Table, FilterBar, SplitStage
 - **Data and motion:** Stat, Sparkline, MediaRow, ActivityFeed, WorkflowBoard, SystemCanvas,

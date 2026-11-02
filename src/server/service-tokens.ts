@@ -1,12 +1,17 @@
 // Service tokens: scoped bearer tokens for machine clients (the local nish MCP server), stored
 // only as sha256 hashes. Entries come from a committed JSON file at the app root and/or the
-// SERVICE_TOKENS env var (a JSON array of the same entries). Revoke a token by deleting its entry.
+// SERVICE_TOKENS env var (a JSON array of the same entries). Revoke a token by deleting its entry,
+// or at once with loadManagedServiceTokens, whose revocations live in the app's own state.
 //
 // Phase 1 is direct-loopback only: Caddy proxies every public host to the same 127.0.0.1 port and
 // keeps the public Host, so a v1 request must name a loopback Host and carry no proxy headers.
 // "Arrived on loopback" alone proves nothing, so the token is still required.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+import type { ServiceTokenView } from '../service-token-types';
+
+export type { ServiceTokenView } from '../service-token-types';
 
 export interface ServiceTokenEntry {
   id: string;
@@ -60,12 +65,14 @@ function parseEntries(raw: unknown, where: string): ServiceTokenEntry[] {
   return out;
 }
 
-/**
- * Loads entries from `file` (missing file = no entries) and from `env` (the SERVICE_TOKENS value).
- * Read once at startup; a deploy restarts the app, which is when the file changes.
- */
-export function loadServiceTokens(o: { file?: string; env?: string } = {}): ServiceTokens {
-  const entries: ServiceTokenEntry[] = [];
+interface SeedEntry {
+  entry: ServiceTokenEntry;
+  source: 'file' | 'env';
+}
+
+/** Reads `file` (missing file = no entries) and `env`, file first, recording each entry's source. */
+function readSeed(o: { file?: string; env?: string }): SeedEntry[] {
+  const out: SeedEntry[] = [];
   if (o.file) {
     let text: string | null = null;
     try {
@@ -75,7 +82,7 @@ export function loadServiceTokens(o: { file?: string; env?: string } = {}): Serv
     }
     if (text !== null) {
       try {
-        entries.push(...parseEntries(JSON.parse(text), o.file));
+        for (const entry of parseEntries(JSON.parse(text), o.file)) out.push({ entry, source: 'file' });
       } catch {
         console.warn(`[service-tokens] ${o.file}: not valid JSON, ignored`);
       }
@@ -83,12 +90,146 @@ export function loadServiceTokens(o: { file?: string; env?: string } = {}): Serv
   }
   if (o.env && o.env.trim()) {
     try {
-      entries.push(...parseEntries(JSON.parse(o.env), 'SERVICE_TOKENS'));
+      for (const entry of parseEntries(JSON.parse(o.env), 'SERVICE_TOKENS')) out.push({ entry, source: 'env' });
     } catch {
       console.warn('[service-tokens] SERVICE_TOKENS: not valid JSON, ignored');
     }
   }
-  return createServiceTokens(entries);
+  return out;
+}
+
+/**
+ * Loads entries from `file` (missing file = no entries) and from `env` (the SERVICE_TOKENS value).
+ * Read once at startup; a deploy restarts the app, which is when the file changes.
+ */
+export function loadServiceTokens(o: { file?: string; env?: string } = {}): ServiceTokens {
+  return createServiceTokens(readSeed(o).map((s) => s.entry));
+}
+
+export interface RevokedToken {
+  sha256: string;
+  id: string;
+  at: string;
+}
+export interface RevocationStore {
+  load(): RevokedToken[];
+  save(list: RevokedToken[]): void;
+}
+
+/** JSON file store: missing file = []; any other read error throws (fail closed); invalid JSON or
+ *  shape = warn once, file renamed to `<file>.bad-<timestamp>`, [] (if that rename fails it throws);
+ *  invalid records are kept and written back unchanged on save.
+ *  save writes `<file>.tmp` then renames, creating the directory. File shape:
+ *  { "version": 1, "revoked": RevokedToken[] }. */
+export function jsonRevocationStore(file: string): RevocationStore {
+  let warned = false;
+  // Records that failed validation are written back unchanged on the next save, never dropped.
+  const kept: unknown[] = [];
+  const warn = (why: string) => {
+    if (warned) return;
+    warned = true;
+    console.warn(`[service-tokens] ${file}: ${why}, ignored`);
+  };
+  return {
+    load() {
+      let text: string;
+      try {
+        text = readFileSync(file, 'utf8');
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+        // Fail closed: starting without the revocations would bring revoked tokens back to life.
+        throw err;
+      }
+      // Set the unreadable file aside so the next save cannot destroy its old records.
+      const setAside = (why: string): RevokedToken[] => {
+        warn(why);
+        // Not best effort: if the rename fails (EBUSY, EPERM, EACCES) let it throw so startup fails
+        // closed, rather than a later save overwriting the invalid file and destroying its records.
+        renameSync(file, `${file}.bad-${Date.now()}`);
+        return [];
+      };
+      let raw: unknown;
+      try {
+        raw = JSON.parse(text);
+      } catch {
+        return setAside('not valid JSON');
+      }
+      const list = (raw as { revoked?: unknown } | null)?.revoked;
+      if (!raw || typeof raw !== 'object' || !Array.isArray(list)) return setAside('unexpected shape');
+      const out: RevokedToken[] = [];
+      for (const r of list as Array<Record<string, unknown>>) {
+        if (r && typeof r === 'object' && typeof r.sha256 === 'string' && HEX_RE.test(r.sha256) && typeof r.id === 'string' && typeof r.at === 'string') {
+          out.push({ sha256: r.sha256, id: r.id, at: r.at });
+        } else {
+          warn('unexpected shape');
+          kept.push(r);
+        }
+      }
+      return out;
+    },
+    save(list) {
+      mkdirSync(dirname(file), { recursive: true });
+      const tmp = `${file}.tmp`;
+      writeFileSync(tmp, `${JSON.stringify({ version: 1, revoked: [...list, ...kept] }, null, 2)}\n`, 'utf8');
+      renameSync(tmp, file);
+    },
+  };
+}
+
+export interface ManagedServiceTokens extends ServiceTokens {
+  /** Every entry (file first, then env) with its revoked state. */
+  views(): ServiceTokenView[];
+  /** Revokes every current entry with this id. Returns false when no entry has it.
+   *  Idempotent: an already revoked entry keeps its first `at`. */
+  revoke(id: string): boolean;
+}
+
+export function loadManagedServiceTokens(o: {
+  file?: string;
+  env?: string;
+  revocations: RevocationStore | string; // a string is a path for jsonRevocationStore
+  now?: () => Date;
+}): ManagedServiceTokens {
+  const seed = readSeed(o);
+  const store = typeof o.revocations === 'string' ? jsonRevocationStore(o.revocations) : o.revocations;
+  const now = o.now ?? (() => new Date());
+  const revoked = new Map<string, RevokedToken>();
+  for (const r of store.load()) if (!revoked.has(r.sha256)) revoked.set(r.sha256, r);
+  const base = createServiceTokens(seed.map((s) => s.entry));
+  return {
+    verify(authorization, scope) {
+      // A revoked token answers like an unknown one, whatever scope it asks for: do not leak
+      // that it was ever valid. Checked before the scope check so the answer is never 403.
+      const m = /^Bearer ([^\s]+)$/.exec(authorization ?? '');
+      if (m && TOKEN_RE.test(m[1]) && revoked.has(hashServiceToken(m[1]))) return { ok: false, status: 401 };
+      return base.verify(authorization, scope);
+    },
+    list: base.list,
+    views() {
+      return seed.map(({ entry, source }) => {
+        const r = revoked.get(entry.sha256);
+        const view: ServiceTokenView = { id: entry.id, name: entry.name, scopes: [...entry.scopes], created: entry.created, source, revoked: !!r };
+        if (r) view.revokedAt = r.at;
+        return view;
+      });
+    },
+    revoke(id) {
+      const matches = seed.filter((s) => s.entry.id === id);
+      if (matches.length === 0) return false;
+      const at = now().toISOString();
+      const added: RevokedToken[] = [];
+      for (const { entry } of matches) {
+        if (revoked.has(entry.sha256) || added.some((a) => a.sha256 === entry.sha256)) continue;
+        added.push({ sha256: entry.sha256, id: entry.id, at });
+      }
+      if (added.length > 0) {
+        // Save first: a failed save leaves memory and disk in agreement, and a retry saves again.
+        store.save([...revoked.values(), ...added]);
+        for (const a of added) revoked.set(a.sha256, a);
+      }
+      return true;
+    },
+  };
 }
 
 export function createServiceTokens(entries: ServiceTokenEntry[]): ServiceTokens {
