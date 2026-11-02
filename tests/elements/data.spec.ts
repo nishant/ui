@@ -149,9 +149,7 @@ test.describe('<nish-filter-bar>', () => {
     expect(box.clearTop).toBeGreaterThan(box.selTop);
   });
 
-  // FIXME(filter-bar.ts): its MutationObserver routes Lit's marker comment nodes and removes them, so
-  // the next property change throws "ChildPart has no parentNode" and nothing re-lays out.
-  test.fixme('Clear filters is hidden while active-count is 0', async ({ page }) => {
+  test('Clear filters is hidden while active-count is 0', async ({ page }) => {
     await load(page);
     await page.evaluate(() => document.getElementById('fb')!.setAttribute('active-count', '0'));
     await expect(page.getByRole('button', { name: 'Clear filters' })).toBeHidden();
@@ -189,9 +187,7 @@ test.describe('<nish-filter-bar>', () => {
     await expect(sheet).toBeHidden();
   });
 
-  // FIXME(filter-bar.ts): its MutationObserver routes Lit's marker comment nodes and removes them, so
-  // the next property change throws "ChildPart has no parentNode" and nothing re-lays out.
-  test.fixme('sheet-title renames the sheet; crossing the breakpoint closes it and moves the chips back', async ({ page }) => {
+  test('sheet-title renames the sheet; crossing the breakpoint closes it and moves the chips back', async ({ page }) => {
     await load(page);
     await page.evaluate(() => document.getElementById('fb')!.setAttribute('sheet-title', 'Refine'));
     await page.setViewportSize({ width: 390, height: 800 });
@@ -203,9 +199,7 @@ test.describe('<nish-filter-bar>', () => {
     await expect(page.locator('#fb .nish-filter-bar')).toHaveAttribute('data-compact', 'false');
   });
 
-  // FIXME(filter-bar.ts): its MutationObserver routes Lit's marker comment nodes and removes them, so
-  // the next property change throws "ChildPart has no parentNode" and nothing re-lays out.
-  test.fixme('sheet-below="lg" switches to the sheet at 1000px', async ({ page }) => {
+  test('sheet-below="lg" switches to the sheet at 1000px', async ({ page }) => {
     await load(page);
     await page.setViewportSize({ width: 1000, height: 800 });
     await expect(page.locator('#fb .nish-filter-bar')).toHaveAttribute('data-compact', 'false');
