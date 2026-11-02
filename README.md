@@ -1,49 +1,41 @@
 # @nish/ui
 
-The shared theme for every `*.nish.software` app and site: design tokens, seven themes,
-theme switching that follows one choice across subdomains, and the small React
-components every app ended up writing for itself.
+Design tokens, seven themes, theme switching that can follow one choice across subdomains, and
+the React components behind every `*.nish.software` app. Tailwind 4 first, with plain CSS and
+static HTML supported too.
 
 Docs, live components in every theme, and the contrast matrix: **https://design.nish.software**
 
-Used by:
-
-| App | How it installs | Stack |
-|---|---|---|
-| nish.software (the hub) | codeload tarball | Vite + plain TypeScript and plain CSS (no React, no Tailwind): `nish.css`, `theme.js`; npm |
-| jobs.nish.software (repo job-apps) | codeload tarball | React 19 + Tailwind 4 + Vite in `apps/web`, npm workspaces (`packages/worker` and `packages/api` pin it too) |
-| trading.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite in `apps/web` (`packages/server` pins it too), pnpm |
-| Nishboard (desktop) | codeload tarball | Electron + React 19 + Tailwind 4 + Vite in `apps/renderer`, pnpm |
-| status.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
-| trackers.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
-| workflows.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
-| start.nish.software (repo nishant.github.io) | codeload tarball | React 19 + Tailwind 4 + Vite, npm |
-| inbox (nishant/inbox, no page of its own) | codeload tarball | Hono server, npm; no UI: it imports the inbox protocol from `@nish/ui/inbox-client` |
-| minecraft, trips and design (nishant/hosting) | vendored dist files | static HTML |
-| taarora/arora-home | vendored dist files with a palette pass | another account's repo, outside the fan-out |
-
-Every npm app pins the codeload tarball (`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`), which needs only HTTPS. The fan-out writes that form. The list of repos is `fleet.yaml` in nishant/hosting.
+MIT licensed. Releases and how they reach the apps: [docs/RELEASING.md](docs/RELEASING.md).
+Every change: [CHANGELOG.md](CHANGELOG.md).
 
 ## Install
 
-Releases are git tags whose commit includes the built `dist/`, so installs need no build
-step.
+From npm, where it is published as `@nish-software/ui`. Install it under the name `@nish/ui`
+(an npm alias) and every import in these docs works as written:
 
 ```bash
-npm install github:nishant/ui#v0.1.2
-pnpm add github:nishant/ui#v0.1.2
+npm install @nish/ui@npm:@nish-software/ui
+pnpm add @nish/ui@npm:@nish-software/ui
 ```
 
-`github:` specs clone over SSH when the machine has a key and fall back to HTTPS when it has
-none. A machine with an SSH key that GitHub does not accept (CI runners, the hosting PC)
-fails instead. Use the tarball URL there, which only needs HTTPS:
+`npm install @nish-software/ui` works too; then write `@nish-software/ui` wherever these docs
+say `@nish/ui` (`@nish-software/ui/tailwind.css`, `@nish-software/ui/theme`, ...).
+
+Straight from a git tag, whose commit includes the built `dist/`, so there is no build step:
 
 ```json
-"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/v0.1.2"
+"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/v1.2.0"
 ```
 
+The codeload tarball needs only HTTPS. `github:nishant/ui#v1.2.0` works as well, but it clones
+over SSH when the machine has a key, and fails where GitHub does not accept that key (CI
+runners, servers).
+
 React and react-dom are optional peers (React 19 or later). Static sites and tools that
-only use the CSS and `@nish/ui/theme` do not get React installed.
+only use the CSS and `@nish/ui/theme` do not get React installed. The `@nish/ui/server`,
+`@nish/ui/server/hono` and `@nish/ui/inbox-client` entries are the nish.software apps' login
+and inbox kit; other projects can ignore them.
 
 ## Quick start: React + Tailwind 4
 
@@ -179,6 +171,9 @@ The choice (`system` or a theme name) is shared across subdomains:
 
 - `setThemeChoice()` writes a `nish-theme` cookie on `.nish.software`
   (`Path=/; Max-Age=31536000; SameSite=Lax; Secure`) and the same value to `localStorage`.
+  Another site shares it across its own subdomains with `<html data-nish-domain="example.com">`
+  (it applies only on that domain and its subdomains). Without the attribute, hosts outside
+  nish.software keep the choice in `localStorage` only.
 - `theme-init.js` reads the cookie first, then `localStorage` (the only store on localhost
   and in Electron), then follows the OS.
 - `theme.ts` re-applies the choice when another tab saves one, when the OS scheme flips
@@ -481,89 +476,9 @@ errors, missing focus rings and empty screenshots.
 
 ## Releasing
 
-Releases run in CI. Merge the release's `## [x.y.z]` CHANGELOG entry to master, then:
-
-```bash
-gh workflow run release.yml -R nishant/ui -f bump=patch   # or minor, major, 1.2.3
-```
-
-The job refuses unless HEAD equals `origin/master`, pushes master before the tag, creates the GitHub
-Release from the CHANGELOG entry and dispatches `fanout.yml` itself (a tag pushed with `GITHUB_TOKEN` does
-not trigger other workflows). `npm run release patch` is the local fallback with the same order.
-
-The flow is: release, tag, fan-out PRs, Fold check, merge policy, deploy watch and revert.
-
-1. **Release.** The release runs `npm run check`, bumps the version on `master` and commits it, then
-   makes a detached commit on top that adds the built `dist/` and `site-dist/`, tags it `vX.Y.Z` and
-   pushes both. `master` never contains `dist/`; the tag does, so an install needs no build step.
-   It then prints the link to the fan-out runs. Add an entry to `CHANGELOG.md` with every change;
-   the docs site renders it.
-2. **Fan-out PRs.** The tag push starts `.github/workflows/fanout.yml` ("fan-out"). For every repo in
-   `hosting/fleet.yaml` (hosting included) it opens or updates a `ui/vX.Y.Z` PR titled "Move @nish/ui to
-   vX.Y.Z" within 5 minutes: it rewrites the pin, regenerates the lockfile, runs the repo's `bump`
-   command, and puts the release notes in the PR body. A repo that pins @nish/ui in more than one package lists the
-   others in `uiExtraDirs` (comma-separated, next to `uiDir`; job-apps: `packages/worker`): every
-   folder's pin moves in the one PR, and the lockfile is regenerated once at the workspace root (or
-   in each folder that has its own lockfile). A repo counts as current only when every folder is on
-   the tag; an open bump PR that missed a folder gets a commit on its branch that moves it. An hourly run catches up on anything missed and
-   closes bump PRs that a newer tag replaced. To run it by hand:
-   `gh workflow run fanout.yml -R nishant/ui -f tag=vX.Y.Z -f repo=all` (`repo` can be one `owner/name`).
-3. **Fold check.** Each bump PR (and each Dependabot PR) runs the repo's checks plus the
-   [Fold check](docs/fold-check.md): the PR and its base branch are built, screenshot at 360, 840 and
-   1440 wide in light and dark, the Fold rules run on both, and a pixel diff per shot is posted as a PR
-   comment and a `fold-report` artifact.
-4. **Merge policy.** The fan-out merges a PR (`gh pr merge --merge --delete-branch`) when its checks
-   pass, the Fold check finds no new problems and the pages changed less than the limit:
-
-   | PR | Limit |
-   |---|---|
-   | ui patch (`0.7.0` to `0.7.1`) | 1% |
-   | ui minor (`0.7.x` to `0.8.0`) | 10% |
-   | Dependabot minor-and-patch group | 1% |
-
-   Otherwise it holds the PR and writes the reason into a `fan-out` commit status on the PR head. The
-   hold reasons are: no checks ran, checks failed, a major release (from 1.0), release notes with a
-   `### Behavior changes` section, the Fold report missing, new Fold problems, the base branch could
-   not be rendered, pages changed more than the limit, the PR changes `.github/workflows` (the token
-   cannot merge those), or the merge itself failed. A held bump PR is adopted on its `ui/vX.Y.Z`
-   branch (make the app's code changes there), and the fan-out merges it on its next run.
-5. **Deploy watch and revert.** After a merge the fan-out follows the repo's deploy workflow. If the
-   deploy fails it reverts the merge in a `revert/<n>` PR and merges that, and holds that tag for the
-   repo until a session looks.
-
-Each repo's matrix job writes one summary line per outcome. A held, checking, skipped or current
-outcome leaves the job green; an `error` outcome (the repo cannot be reached, the pin cannot be read,
-PRs cannot be listed or opened, a revert did not merge) fails the job after its summary is written,
-so the run shows red. A repo the token cannot see says so plainly: "FLEET_TOKEN cannot reach
-<repo>: add it to the token's Repository access".
-
-Check https://status.nish.software/fleet (behind the status login) for what is behind: per repo, the
-live and master `@nish/ui` version against the latest tag, CI state, and open bump and dependency PRs
-with their `fan-out` status.
-
-**`FLEET_TOKEN`.** The fan-out runs with one fine-grained personal access token stored as the Actions
-secret `FLEET_TOKEN` in nishant/ui (the default `GITHUB_TOKEN` cannot reach other repos, and what it
-opens does not trigger their checks or deploys). Owner nishant; repositories: every repo in
-`hosting/fleet.yaml` and nishant/hosting itself (the plan job reads `fleet.yaml` from it); permissions:
-Contents, Pull requests and Commit statuses read and write, Actions read (Metadata read is always
-included). Set it with `gh secret set FLEET_TOKEN --repo nishant/ui`. Without it the run only writes
-a job summary saying nothing was fanned out.
-
-**Adding a repo to the fan-out.** Add an entry to `hosting/fleet.yaml`, then give the repo
-the `PR` workflow (`.github/workflows/pr.yml`, its checks), the `Fold` workflow (`.github/workflows/fold.yml`, see [docs/fold-check.md](docs/fold-check.md)), `fold.visual.json`,
-`scripts/fold-serve.mjs` and `.github/dependabot.yml`.
-
-**arora-home** (`taarora/arora-home`) vendors `dist/` with a colour-blind palette pass instead of
-installing the package, and another account owns it, so the fan-out token cannot write to it. After a
-release, run `bash scripts/bump-consumers.sh vX.Y.Z` yourself: it runs that repo's
-`scripts/sync-nish-ui.py vX.Y.Z`, opens the PR, merges it after its `pr_status.py` passes (per its
-CLAUDE.md) and watches the deploy. If the palette or contrast check fails on a new release, no PR is
-opened and someone has to look.
-
-**Static sites** (minecraft, trips, design) live in nishant/hosting, which is in the fan-out: its bump
-PR runs `scripts/sync-ui.mjs` (it copies the vendored files from `dist/files.json` and updates their
-hashes) and restamps the pages. `scripts/sync-ui.mjs --check --offline` fails CI if a vendored copy
-was edited by hand.
+Releases run in CI (`release.yml`), go to every nish.software app through the fan-out, and are
+published to npm as `@nish-software/ui`. The whole flow, the merge policy and the npm setup:
+[docs/RELEASING.md](docs/RELEASING.md).
 
 ## The docs site
 
@@ -594,6 +509,7 @@ stories and controls live in `site/components/<id>.tsx`, one file per component;
 | `src/css/` | `base.css` (page defaults, focus ring, scrollbars, reduced motion, prose, kbd, skip link), `components.css` (the static `nish-*` classes, built to `dist/nish-components.css`) and `fonts.css`. |
 | `scripts/build.mjs` | Builds `dist/`: tokens.css, tailwind.css, nish.css, hashed fonts, theme-init.js, the JS via tsup, and tests theme-init.js and theme.global.js. |
 | `scripts/release.mjs` | `npm run release`: check, version, tag with `dist/`, push. |
+| `.github/workflows/publish.yml`, `tools/npm-publish.mjs` | Publishes a tag to npm as `@nish-software/ui` ([docs/RELEASING.md](docs/RELEASING.md#npm)). |
 | `scripts/bump-consumers.sh` | Moves taarora/arora-home only; the fan-out moves every other repo. |
 | `.github/workflows/fanout.yml`, `tools/fanout/` | The fan-out: opens, settles and merges the bump PRs in every repo of `hosting/fleet.yaml`. |
 | `.github/workflows/fold-check.yml`, `tools/fold-diff.mjs`, `tools/fold-comment.mjs` | The Fold check every app's PRs run: [docs/fold-check.md](docs/fold-check.md). |

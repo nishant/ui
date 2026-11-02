@@ -1,8 +1,28 @@
 {
   "name": "@nish/ui",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Design tokens, theme switching and React components shared by every *.nish.software app.",
   "license": "MIT",
+  "author": "Nishant Arora",
+  "homepage": "https://design.nish.software",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nishant/ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nishant/ui/issues"
+  },
+  "keywords": [
+    "design-system",
+    "design-tokens",
+    "tailwindcss",
+    "tailwind",
+    "react",
+    "themes",
+    "dark-mode",
+    "components",
+    "css-variables"
+  ],
   "type": "module",
   "sideEffects": [
     "*.css"
