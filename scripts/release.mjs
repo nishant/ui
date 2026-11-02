@@ -11,7 +11,8 @@
 // is pushed before the tag, so a failed build pushes nothing and a failed push leaves no orphan tag.
 // Then the tag, a GitHub Release with the CHANGELOG section, and (in CI) the fan-out:
 // a tag pushed with GITHUB_TOKEN does not trigger other workflows, so --ci dispatches
-// .github/workflows/fanout.yml itself. A local tag push triggers it on its own.
+// .github/workflows/fanout.yml itself. A local tag push triggers it on its own. Then (in CI) the
+// npm publish, .github/workflows/publish.yml.
 import { execFileSync, execSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -77,6 +78,17 @@ if (ci || process.env.GH_TOKEN) {
 if (ci) {
   execFileSync('gh', ['workflow', 'run', 'fanout.yml', '--ref', 'master', '-f', `tag=${tag}`], { stdio: 'inherit' });
   console.log('Dispatched the fan-out.');
+  // npm (@nish-software/ui) after the fan-out: the tag is out either way, so a failed dispatch
+  // turns the run red without undoing anything; rerun it by hand.
+  try {
+    execFileSync('gh', ['workflow', 'run', 'publish.yml', '--ref', 'master', '-f', `tag=${tag}`], { stdio: 'inherit' });
+    console.log('Dispatched the npm publish.');
+  } catch {
+    console.error(`Could not dispatch the npm publish: gh workflow run publish.yml -R nishant/ui -f tag=${tag}`);
+    process.exitCode = 1;
+  }
+} else {
+  console.log(`Publish it to npm: gh workflow run publish.yml -R nishant/ui -f tag=${tag}`);
 }
 console.log(`The fan-out opens the bump PRs: https://github.com/nishant/ui/actions/workflows/fanout.yml`);
 console.log(`arora-home is not in the fan-out: bash scripts/bump-consumers.sh ${tag}`);

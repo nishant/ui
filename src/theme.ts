@@ -1,8 +1,9 @@
 /** Theme switching shared by every nish.software page.
  *
  *  The choice ('system' or a theme name) lives in a `nish-theme` cookie on
- *  `.nish.software`, so picking dark on one subdomain applies on all of them. On
- *  localhost and in Electron there is no shared domain, so it falls back to
+ *  `.nish.software`, so picking dark on one subdomain applies on all of them. Another
+ *  site shares it across its own subdomains with <html data-nish-domain="example.com">.
+ *  Anywhere else (localhost, Electron, a host outside that domain) it falls back to
  *  localStorage. theme-init.js applies the same rules before first paint; this
  *  module takes over for runtime switching and keeps tabs and subdomains in sync.
  */
@@ -54,9 +55,22 @@ function readCookie(): string | null {
   return m ? m[1] : null;
 }
 
-function onSharedDomain(): boolean {
-  const h = typeof location === 'undefined' ? '' : location.hostname;
-  return h === SHARED_DOMAIN || h.endsWith('.' + SHARED_DOMAIN);
+const covers = (domain: string, host: string) => host === domain || host.endsWith('.' + domain);
+
+/** The domain the cookie is shared on, or null for localStorage only. A page sets its own
+ *  with <html data-nish-domain="example.com">; it counts only when this host is that
+ *  domain or one of its subdomains, so a stray attribute cannot write a cookie the
+ *  browser would refuse. Without it, nish.software hosts share on `.nish.software`. */
+function cookieDomain(host: string, attr: string | null): string | null {
+  const h = host.toLowerCase();
+  const own = (attr ?? '').trim().toLowerCase().replace(/^\./, '');
+  if (own) return covers(own, h) ? own : null;
+  return covers(SHARED_DOMAIN, h) ? SHARED_DOMAIN : null;
+}
+
+function sharedDomain(): string | null {
+  if (typeof location === 'undefined' || typeof document === 'undefined') return null;
+  return cookieDomain(location.hostname, document.documentElement.getAttribute('data-nish-domain'));
 }
 
 /** The saved choice; 'system' when nothing (valid) is saved. */
@@ -113,9 +127,10 @@ export function setThemeChoice(choice: ThemeChoice): ThemeName {
   } catch {
     // private mode: the cookie (or nothing) still carries it for this page view
   }
-  if (onSharedDomain()) {
+  const domain = sharedDomain();
+  if (domain) {
     const secure = location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${KEY}=${choice}; Domain=.${SHARED_DOMAIN}; Path=/; Max-Age=${ONE_YEAR}; SameSite=Lax${secure}`;
+    document.cookie = `${KEY}=${choice}; Domain=.${domain}; Path=/; Max-Age=${ONE_YEAR}; SameSite=Lax${secure}`;
   }
   return applyTheme(choice);
 }
