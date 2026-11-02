@@ -6,6 +6,8 @@ import { pathToFileURL } from 'node:url';
 
 const UI_KINDS = ['npm', 'pnpm', 'vendored', 'none'];
 
+const str = (v) => (typeof v === 'string' ? v : '');
+
 const strList = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : []);
 
 /**
@@ -23,17 +25,17 @@ export function fleetFromCatalog(json) {
       const live = typeof e.live === 'string' && e.live && e.live.toLowerCase() !== 'none' ? e.live : null;
       return {
         repo: e.repo,
-        name: e.name || short,
-        base: e.base || 'master',
+        name: str(e.name) || short,
+        base: str(e.base) || 'master',
         ui: UI_KINDS.includes(e.ui) ? e.ui : 'none',
-        uiDir: e.uiDir || '.',
+        uiDir: str(e.uiDir) || '.',
         // More folders that pin @nish/ui the same way (a worker or server package in the same repo).
         uiExtraDirs: strList(e.uiExtraDirs),
-        bump: e.bump || null,
+        bump: str(e.bump) || null,
         live,
-        checkout: e.id || short,
+        checkout: str(e.id) || short,
         hosts: strList(e.hosts),
-        deploy: e.deploy || 'deploy.yml',
+        deploy: str(e.deploy) || 'deploy.yml',
         fold: e.fold === true,
       };
     });

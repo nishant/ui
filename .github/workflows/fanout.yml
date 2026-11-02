@@ -28,7 +28,7 @@ jobs:
             {
               echo '### Nothing was fanned out'
               echo
-              echo 'FLEET_TOKEN is not set, so nothing was fanned out. Create a fine-grained token (owner nishant; repositories: the ones in hosting's catalog.json and nishant/hosting itself; Contents, Pull requests and Commit statuses read and write, Actions read) and run: `gh secret set FLEET_TOKEN --repo nishant/ui`'
+              echo 'FLEET_TOKEN is not set, so nothing was fanned out. Create a fine-grained token (owner nishant; repositories: the ones in catalog.json in nishant/hosting and nishant/hosting itself; Contents, Pull requests and Commit statuses read and write, Actions read) and run: `gh secret set FLEET_TOKEN --repo nishant/ui`'
             } >> "$GITHUB_STEP_SUMMARY"
             echo 'matrix=[]' >> "$GITHUB_OUTPUT"
             exit 0

@@ -108,3 +108,15 @@ test('uiExtraDirs: string array, default empty', () => {
   assert.deepEqual(t.uiExtraDirs, ['packages/server', 'packages/cli']);
   assert.deepEqual(d.uiExtraDirs, []);
 });
+
+test('non-string scalar fields fall back to defaults', () => {
+  const [e] = fleetFromCatalog(
+    cat({ repo: 'a/b', fleet: true, bump: { x: 1 }, base: 5, uiDir: [], id: 7, deploy: true, name: 9 }),
+  );
+  assert.equal(e.bump, null);
+  assert.equal(e.base, 'master');
+  assert.equal(e.uiDir, '.');
+  assert.equal(e.checkout, 'b');
+  assert.equal(e.deploy, 'deploy.yml');
+  assert.equal(e.name, 'b');
+});
