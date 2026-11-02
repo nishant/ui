@@ -1384,25 +1384,29 @@ export function DropdownMenu({
 }: DropdownMenuProps) {
   const [openState, setOpenState] = useState(defaultOpen);
   const open = openProp ?? openState;
-  // The trigger node is state, since render reads it to pick the portal host; the
-  // positioning and focus hooks read it through a ref.
+  // The trigger node is a ref for the positioning and focus hooks (set before their layout
+  // effects run) and state for render, which picks the portal host from it.
+  const triggerRef = useRef<HTMLElement | null>(null);
   const [triggerNode, setTriggerNode] = useState<HTMLElement | null>(null);
-  const triggerRef = useLatest(triggerNode);
   const triggerPropRef = (trigger.props as { ref?: Ref<HTMLElement> }).ref;
   const attachTrigger = useCallback(
     (node: HTMLElement | null) => {
+      triggerRef.current = node;
       setTriggerNode(node);
       setRef(triggerPropRef, node);
     },
     [triggerPropRef],
   );
+  // The menu renders once the trigger is known, so a menu open on mount portals straight
+  // into the trigger's layer instead of moving there (and remounting) a render later.
+  const shown = open && triggerNode != null;
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const triggerId = useId();
   // Which item takes focus when the menu opens.
   const initial = useRef<'first' | 'last' | 'menu'>('first');
   const asSheet = usePhoneViewport(sheetBelow === 'sm');
-  const pos = useAnchoredPosition(triggerRef, menuRef, open && !asSheet, side, align, 4);
+  const pos = useAnchoredPosition(triggerRef, menuRef, shown && !asSheet, side, align, 4);
 
   const onOpenChangeRef = useLatest(onOpenChange);
   const setOpen = useCallback(
@@ -1415,13 +1419,13 @@ export function DropdownMenu({
   const close = useCallback(() => setOpen(false), [setOpen]);
   const dismiss = useCallback((reason: PopoverCloseReason) => setOpen(false, reason), [setOpen]);
   // As a sheet, the Drawer owns Escape, the scrim and the back gesture.
-  useDismiss(open && !asSheet, menuRef, triggerRef, dismiss);
-  useReturnFocus(open, menuRef, triggerRef);
+  useDismiss(shown && !asSheet, menuRef, triggerRef, dismiss);
+  useReturnFocus(shown, menuRef, triggerRef);
 
   // Focus in on open, and again whenever the focused row disappears (a submenu view
   // replaced the rows), so focus is never lost to <body>.
   useEffect(() => {
-    if (!open) return;
+    if (!shown) return;
     const menu = menuRef.current;
     if (!menu) return;
     const focusInitial = () => {
@@ -1441,7 +1445,7 @@ export function DropdownMenu({
       window.clearTimeout(t);
       mo.disconnect();
     };
-  }, [open, asSheet]);
+  }, [shown, asSheet]);
 
   function openWith(where: 'first' | 'last' | 'menu') {
     initial.current = where;
@@ -1542,7 +1546,7 @@ export function DropdownMenu({
             </div>
           </Drawer>
         </MenuContext.Provider>
-      ) : open ? (
+      ) : shown ? (
         createPortal(
           <MenuContext.Provider value={{ close }}>
             <div

@@ -207,6 +207,6 @@ function Root() {
     'Set container to false for a full-bleed page (a map, a board). The <main id="nish-main"> landmark stays, so the skip link still works.',
     'Signed out, render the same AppShell with no nav (nav={signedIn ? nav : []}), so the header and banners do not jump when someone logs in.',
     'Put app banners (a live alert, maintenance) in banner, not above the page: they stay under the header while the page scrolls, below the ConnectionBanner.',
-    'Use sidebar when there are more destinations than fit as header tabs at 1024px, or when the app needs tools beside the nav. Give each item a hint: it is the tooltip in the expanded sidebar and the rail.',
+    'Use sidebar when there are more destinations than fit as header tabs at 1024px, or when the app needs tools beside the nav. Its tools move into the header below 1024px; its footer shows in the sidebar only. Give each item a hint: it is the tooltip in the expanded sidebar and the rail.',
   ],
 };

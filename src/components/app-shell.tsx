@@ -22,9 +22,11 @@ export interface AppShellSidebar {
   /** localStorage key that remembers the uncontrolled state across visits. Default
    *  "nish-sidebar-collapsed"; false keeps it in memory only. */
   storageKey?: string | false;
-  /** Buttons above the nav (search, an assistant). Give them labels: collapsed, they stack as icons. */
+  /** Buttons above the nav (search, an assistant). Give them labels: collapsed, they stack as
+   *  icons. Below 1024px, where there is no sidebar, they show in the header before `actions`. */
   tools?: ReactNode;
-  /** Next to the collapse button at the bottom. */
+  /** Next to the collapse button at the bottom. Sidebar only: put anything people need on a
+   *  phone in `actions` or `moreItems` too. */
   footer?: ReactNode;
 }
 
@@ -169,7 +171,8 @@ export function AppShell({
 
   const moreMenu =
     moreItems.length > 0 ? (
-      <div className="hidden md:inline-flex">
+      // With nav, under 768px these items live in the MoreSheet; signed out there is no sheet.
+      <div className={hasNav ? 'hidden md:inline-flex' : 'inline-flex'}>
         <DropdownMenu
           align="end"
           trigger={
@@ -223,6 +226,7 @@ export function AppShell({
         compactPill
         actions={
           <>
+            {hasNav && side?.tools != null ? <span className="flex items-center gap-2 lg:hidden">{side.tools}</span> : null}
             {actions}
             {moreMenu}
           </>

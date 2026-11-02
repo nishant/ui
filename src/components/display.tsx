@@ -923,7 +923,8 @@ export interface AppHeaderProps {
   /** An icon before the name, drawn in the accent color. */
   icon?: ReactNode;
   /** Replaces the icon and name, and their home link, with your own node (a profile
-   *  switcher, a wordmark with a subtitle). It is not wrapped in a link. */
+   *  switcher, a wordmark with a subtitle). It is not wrapped in a link; `name` stays for
+   *  screen readers. */
   brand?: ReactNode;
   /** Where the "← nish.software" pill goes. Default https://nish.software. */
   hubHref?: string;
@@ -1041,7 +1042,10 @@ export function AppHeader({
           </a>
         )}
         {brand != null ? (
-          <div className="flex min-w-0 items-center">{brand}</div>
+          <div className="flex min-w-0 items-center">
+            <span className="sr-only">{name}</span>
+            {brand}
+          </div>
         ) : homeHref != null ? (
           <a href={homeHref} className={cn(markClass, 'min-h-11 min-w-11 rounded-lg', hideName && 'max-sm:justify-center')}>
             {mark}

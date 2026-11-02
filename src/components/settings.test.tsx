@@ -169,10 +169,16 @@ describe('NumberField', () => {
     expect(onCommit).toHaveBeenLastCalledWith(-20);
   });
 
-  it('steps below zero without a min', () => {
+  it('steps below zero without a min, keeping the number pad', () => {
     const { input } = setup({ value: 0 });
+    expect(input.getAttribute('inputmode')).toBe('decimal');
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     expect(input.value).toBe('-1');
+  });
+
+  it('reads the suffix with the value', () => {
+    const { input } = setup({ suffix: 'min' });
+    expect(input.getAttribute('aria-valuetext')).toBe('10 min');
   });
 
   it('renders the suffix and follows an external value change', () => {

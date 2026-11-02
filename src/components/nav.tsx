@@ -449,7 +449,8 @@ export interface NavSidebarProps {
  *  renders it from 1024px when given `sidebar`. */
 export function NavSidebar({ items, collapsed, onCollapsedChange, tools, footer, label = 'Sections', renderLink, className }: NavSidebarProps) {
   return (
-    <div
+    <aside
+      aria-label="Sidebar"
       className={cn(
         'flex h-full shrink-0 flex-col border-r border-th-line bg-th-surface py-3 pl-[env(safe-area-inset-left)] transition-[width] duration-200 motion-reduce:transition-none',
         collapsed ? 'w-16' : 'w-56',
@@ -495,15 +496,11 @@ export function NavSidebar({ items, collapsed, onCollapsedChange, tools, footer,
       </nav>
       <div className={cn('mt-3 flex gap-2 border-t border-th-line pt-3', collapsed ? 'flex-col items-center' : 'items-center justify-between px-3')}>
         {footer}
-        <IconButton
-          label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-expanded={!collapsed}
-          onClick={() => onCollapsedChange(!collapsed)}
-        >
+        <IconButton label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => onCollapsedChange(!collapsed)}>
           {collapsed ? <PanelLeftOpenIcon size={18} /> : <PanelLeftCloseIcon size={18} />}
         </IconButton>
       </div>
-    </div>
+    </aside>
   );
 }
 

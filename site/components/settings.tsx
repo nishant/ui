@@ -112,7 +112,7 @@ export const settingsDoc: ComponentDoc = {
     {
       id: 'negative',
       name: 'NumberField with negatives',
-      note: 'A field whose min allows negatives (or has no min) opens the full keyboard on phones, since the decimal keypad has no minus key. It is a spinbutton: screen readers hear its range and value.',
+      note: 'A field whose min is below zero opens the full keyboard on phones, since the iOS decimal keypad has no minus key. It is a spinbutton: screen readers hear its range and its value with the suffix.',
       render: () => <NegativeDemo />,
     },
     {
@@ -163,7 +163,7 @@ function Alerts({ settings, patch }) {
     'Pass htmlFor so the label is a real label for the control. A Switch with no visible label of its own needs aria-label.',
     'Use inline for Switch and Checkbox rows so the control stays at the end of the label row on a phone; use stacked for textareas and other wide controls.',
     'NumberField saves on blur and Enter, so there is no Save button. Return the promise from onCommit so the field shows a spinner and restores the old value if the save fails.',
-    'NumberField clamps to min and max and takes a negative number only when min allows it. Arrow keys step by step.',
+    'NumberField clamps to min and max. Give a field that can go negative a min below zero, so phones show a keyboard with a minus key. Arrow keys step by step.',
     'Use compact inside a Modal, Drawer or side panel, where a Card inside the surface would be a box in a box.',
     'Feed useSaveStatus().label and .tone into a row status, so the result is announced politely and not only shown.',
   ],

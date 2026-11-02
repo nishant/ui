@@ -349,9 +349,9 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
   // the last committed value stands.
   const shown = parseDraft(draft);
   const now = draft.trim() !== '' && !Number.isNaN(shown) ? shown : (value ?? undefined);
-  // The decimal keypad on phones has no minus key, so a field that takes negatives asks for
-  // the full keyboard.
-  const negatives = min == null || min < 0;
+  // The iOS decimal keypad has no minus key, so a field whose min is below zero asks for the
+  // full keyboard. Without a min the number pad stays: most fields never go negative.
+  const negatives = min != null && min < 0;
 
   return (
     <div className="flex min-w-0 flex-col gap-1">
@@ -366,6 +366,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
           aria-valuemin={min}
           aria-valuemax={max}
           aria-valuenow={now}
+          aria-valuetext={now != null && typeof suffix === 'string' ? `${now} ${suffix}` : undefined}
           autoComplete="off"
           value={draft}
           invalid={invalid || error != null}

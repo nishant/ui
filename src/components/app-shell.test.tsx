@@ -50,11 +50,22 @@ describe('AppShell', () => {
     expect(screen.getByRole('main').textContent).toBe('Log in');
   });
 
+  it('signed out, shows moreItems in the header menu at every width', () => {
+    render(<AppShell name="Jobs" moreItems={[{ key: 'help', label: 'Help', icon, onSelect: () => {} }]}>x</AppShell>);
+    expect(screen.getByRole('button', { name: 'More' }).parentElement?.className).toBe('inline-flex');
+  });
+
   it('renders the banner in the sticky stack under the header', () => {
     render(<AppShell name="Jobs" nav={SIX} connection={false} banner={<p>Market closes early</p>}>x</AppShell>);
     const banner = screen.getByText('Market closes early');
     expect(banner.parentElement?.className).toContain('sticky');
     expect(screen.getByRole('main').contains(banner)).toBe(false);
+  });
+
+  it('shows the sidebar tools in the header below 1024px', () => {
+    render(<AppShell name="Jobs" nav={SIX} sidebar={{ tools: <button type="button">Search</button> }}>x</AppShell>);
+    const inHeader = within(screen.getByRole('banner')).getByRole('button', { name: 'Search' });
+    expect(inHeader.parentElement?.className).toContain('lg:hidden');
   });
 
   it('puts a custom brand in the header instead of the home link', () => {
@@ -72,7 +83,7 @@ describe('AppShell', () => {
     const side = toggle.parentElement?.parentElement as HTMLElement;
     expect(within(side).getAllByRole('link', { hidden: true }).map((a) => a.textContent)).toEqual(SIX.map((i) => i.label));
     fireEvent.click(toggle);
-    expect(screen.getByRole('button', { name: 'Expand sidebar', hidden: true }).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Expand sidebar', hidden: true })).toBeTruthy();
     expect(localStorage.getItem('nish-sidebar-collapsed')).toBe('true');
     unmount();
     render(<AppShell name="Jobs" nav={SIX} sidebar>x</AppShell>);
