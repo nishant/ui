@@ -103,6 +103,8 @@ export function useFollow(o: {
     latest.current = o;
   });
   const index = useRef(0);
+  /** The piece shown in 'one' mode, by id. */
+  const visiting = useRef<string | null>(null);
   const [step, setStep] = useState<FollowStep | null>(null);
 
   const targets = on ? followTargets(groups, layout) : [];
@@ -120,12 +122,18 @@ export function useFollow(o: {
     if (indexKey.current !== key) {
       indexKey.current = key;
       index.current = 0;
+      visiting.current = null;
     }
     let timer: ReturnType<typeof setInterval> | undefined;
     const run = (advance: boolean) => {
       const cur = latest.current;
-      if (advance) index.current += 1;
-      const next = followStep(followTargets(cur.groups, cur.layout), index.current, cur.size.w, cur.size.h, cur.fit(), cur.inset ?? 0);
+      const ts = followTargets(cur.groups, cur.layout);
+      // The order is newest first, so it shifts as activity times change: find the piece being
+      // visited by id, not by its old position, and step to the one after it.
+      const at = visiting.current ? ts.findIndex((t) => t.id === visiting.current) : -1;
+      index.current = at < 0 ? 0 : advance ? at + 1 : at;
+      const next = followStep(ts, index.current, cur.size.w, cur.size.h, cur.fit(), cur.inset ?? 0);
+      visiting.current = next.mode === 'one' ? (next.targets[0]?.id ?? null) : null;
       setStep(next);
       cur.fly(next.view);
       if (next.mode === 'one' && timer === undefined) timer = setInterval(() => run(true), CYCLE_MS);
@@ -144,8 +152,14 @@ export function useFollow(o: {
   useEffect(() => {
     if (!on) return;
     const cur = latest.current;
-    const next = followStep(followTargets(cur.groups, cur.layout), index.current, cur.size.w, cur.size.h, cur.fit(), cur.inset ?? 0);
-    setStep((prev) => (!prev || captionKey(prev.targets) === captionKey(next.targets) ? prev : { ...prev, targets: next.targets }));
+    const ts = followTargets(cur.groups, cur.layout);
+    setStep((prev) => {
+      if (!prev || prev.mode === 'idle') return prev;
+      // 'one' keeps showing the piece the view is on (by id), with its fresh note; 'all' shows every active piece.
+      const fresh = prev.mode === 'one' ? ts.filter((t) => t.id === visiting.current) : ts;
+      if (fresh.length === 0 || captionKey(prev.targets) === captionKey(fresh)) return prev;
+      return { ...prev, targets: fresh };
+    });
   }, [on, caption]);
 
   return { step: on ? step : null };

@@ -18,7 +18,7 @@ import { IconButton } from '../primitives';
 import { FollowCaption } from './follow-caption';
 import { useFollow } from './follow';
 import { FitIcon, FollowIcon, MinusIcon, PlusIcon } from './icons';
-import { chooseLayout, layoutCandidates, type CanvasLayout } from './layout';
+import { chooseLayout, layoutCandidates, SCROLL_K, type CanvasLayout } from './layout';
 import { EdgeLegend } from './legend';
 import { Minimap, type MinimapHandle } from './minimap';
 import { hueStyle, NodeView } from './node';
@@ -32,6 +32,8 @@ const NO_KINDS: CanvasEdgeKind[] = [];
 const TOP_INSET = 64;
 const TOP_INSET_MINIMAP = 150;
 const MINIMAP_MIN_W = 600;
+// Screen px from either side that the corner overlays (legend, minimap) can cover.
+const CORNER_W = 200;
 const initialHidden = (kinds: CanvasEdgeKind[]) => new Set(kinds.filter((k) => k.hidden).map((k) => k.id));
 
 // SystemCanvas: a pannable, zoomable graph-paper canvas of grouped nodes and edges that
@@ -213,12 +215,24 @@ export function SystemCanvas({
   const fitView = useCallback((): View => {
     const { w, h } = size.current;
     const { groups: gs, layout: lay, minimap: mini } = latest.current;
-    const top = insetFor(w, mini);
     const cw = Math.max(1, lay.width);
     const ch = Math.max(1, lay.height + lay.titleRoom);
+    // The legend and minimap sit in the top corners: keep a strip clear for them only when a card
+    // of the map, fitted without that strip, would land under one of them.
+    const inset = insetFor(w, mini);
+    const free = Math.min((w - FIT_PAD * 2) / cw, (h - FIT_PAD * 2) / ch, 1);
+    const fx = (w - cw * free) / 2;
+    const fy = FIT_PAD + (h - FIT_PAD * 2 - ch * free) / 2 + lay.titleRoom * free;
+    const underCorner = Object.values(lay.groups).some((b) => {
+      const top0 = fy + b.y * free;
+      const left = fx + b.x * free;
+      const right = left + b.w * free;
+      return top0 < inset && (left < CORNER_W || right > w - CORNER_W);
+    });
+    const top = underCorner ? inset : FIT_PAD;
     const availH = h - top - FIT_PAD;
     const fit = Math.min((w - FIT_PAD * 2) / cw, availH / ch, 1);
-    if (fit >= PHONE_K || (w >= PHONE_MAX_W && fit >= MIN_K) || gs.length === 0) {
+    if (fit >= PHONE_K || (w >= PHONE_MAX_W && fit >= SCROLL_K - 0.05) || gs.length === 0) {
       const k = clampK(Number.isFinite(fit) && fit > 0 ? fit : 1);
       return {
         k,
@@ -236,14 +250,25 @@ export function SystemCanvas({
         break;
       }
     }
-    box ??= lay.groups[gs[0]!.id];
-    if (!box) return { k: PHONE_K, x: FIT_PAD, y: top + lay.titleRoom * PHONE_K };
+    // Fill the width when the map is narrower than the canvas at the phone zoom (an unfolded Fold).
+    const pk = clampK(Math.min(1, Math.max(PHONE_K, (w - 48) / Math.max(1, lay.width))));
+    // The map's top edge never drops below the overlay row and its bottom never rises above the
+    // bottom padding, so the view never opens on empty canvas above or below the map.
+    const pinY = (y: number) => Math.max(Math.min(y, top + lay.titleRoom * pk), h - FIT_PAD - lay.height * pk);
+    const centerX = (lay.width * pk <= w - 24 ? (w - lay.width * pk) / 2 : undefined);
+    if (!box) {
+      // Nothing active: open on the top of the map (the first band), centered across when it fits.
+      const first = lay.groups[gs[0]!.id];
+      const x = centerX ?? (first ? w / 2 - (first.x + first.w / 2) * pk : FIT_PAD);
+      return { k: pk, x, y: top + lay.titleRoom * pk };
+    }
     // Keep the box head clear of the overlay row. A node centers x on its group (as follow does) when
     // the group fits, so the group's left cards and title are not cut off.
-    const v = centerOn(w, h, PHONE_K, box);
+    const v = centerOn(w, h, pk, box);
     const gb = activeGroup;
-    if (gb && gb.w * PHONE_K <= w - 24) v.x = w / 2 - (gb.x + gb.w / 2) * PHONE_K;
-    return { ...v, y: Math.max(h / 2, top + (box.h * PHONE_K) / 2) - (box.y + box.h / 2) * PHONE_K };
+    if (centerX !== undefined) v.x = centerX;
+    else if (gb && gb.w * pk <= w - 24) v.x = w / 2 - (gb.x + gb.w / 2) * pk;
+    return { ...v, y: pinY(Math.max(h / 2, top + (box.h * pk) / 2) - (box.y + box.h / 2) * pk) };
   }, []);
 
   const doFit = useCallback(

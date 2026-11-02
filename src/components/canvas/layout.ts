@@ -326,6 +326,8 @@ export function layoutCandidates(
 // Only canvases narrower than this are treated as phones (one readable column at the phone zoom).
 // From 480 to 600 px the best-scoring candidate is used unless it would fit below the phone zoom.
 const PHONE_LAYOUT_W = 480;
+// Below this best score a canvas 600 px or wider also gets the fits-across layout.
+export const SCROLL_K = 0.35;
 
 /** Picks from `layoutCandidates` for a viewport. Cheap, so it can run on every resize. */
 export function chooseLayout(
@@ -351,12 +353,15 @@ export function chooseLayout(
   });
   // fitView keeps the phone zoom (PHONE_K) below PHONE_MAX_W when the fit is smaller, so below
   // PHONE_MAX_W use the same threshold here: the widest candidate that fits at the phone zoom.
+  // From PHONE_MAX_W up the same happens when even the best candidate would open below
+  // SCROLL_K (fitView's overlay insets make the real fit a little smaller than this score):
+  // a readable map that fits across and scrolls down beats a whole map too small to read.
   if (
     viewport.w < PHONE_LAYOUT_W ||
-    (viewport.w < PHONE_MAX_W && top < PHONE_K)
+    top < (viewport.w < PHONE_MAX_W ? PHONE_K : SCROLL_K)
   ) {
     let pick = candidates[0]!;
-    for (const x of candidates) if (x.width * PHONE_K <= viewport.w) pick = x;
+    for (const x of candidates) if (x.width * PHONE_K <= viewport.w - 24) pick = x;
     return pick;
   }
   const bands = candidates[best]!;
