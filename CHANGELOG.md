@@ -4,7 +4,7 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
-## [1.1.0] - 2026-11-02
+## [1.2.0] - 2026-11-02
 
 ### Added
 
@@ -15,6 +15,23 @@ a minor adds, and a patch fixes.
 ### Changed
 
 - The README is for people using the package: it starts with install (npm, codeload, git). The list of apps, the release flow, the fan-out and its merge policy moved to `docs/RELEASING.md`.
+## [1.1.0] - 2026-11-01
+
+### Added
+
+- `SystemCanvas` bands layout: bands stacked top to bottom, each wrapping its groups into rows, with lines leaving a card's bottom border and entering the next card's top border. `layout="auto"` picks whichever of bands (and how many groups per row) or columns shows the map biggest in the current viewport, and re-picks on resize with the cards sliding to their places. `pickLayout()` is exported.
+- Edge kinds (`edgeKinds`, `CanvasEdge.kind`) with a line legend: solid, dashed or dotted lines that can be shown or hidden. Hidden kinds are left out of layout and routing. Every edge ends in an arrowhead.
+- Focus highlight: hovering or selecting a node or group highlights its lines and the cards at their other ends and dims the rest.
+- Level of detail: below 60% zoom, card details hide and titles and labels grow.
+- Follow mode (`follow`, `onFollowChange`, `CanvasNode.activeAt`): flies the camera to active nodes, with a caption saying what it follows. Any manual pan or zoom turns it off.
+- Minimap (`minimap`) on viewports 600 px wide or more: click or drag to move the view.
+- Double-click or double-tap a group header to zoom to that group; selecting something off screen brings it into view.
+- `@nish/ui/system-canvas`: the canvas, `layoutSystem`, `pickLayout`, `routeEdges` and their types as a subpath export. It builds as one self-contained module that `index.js` imports, so a bundler can tree-shake the canvas out of an app that does not render it (or load it in a lazy chunk).
+
+### Changed
+
+- `SystemCanvas` defaults to `layout="auto"`. Pass `layout="columns"` for the old look.
+- `AppHeader`: the nav row has 24 px between links instead of 4 px.
 
 ## [1.0.2] - 2026-10-31
 
