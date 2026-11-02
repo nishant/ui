@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [Unreleased]
+
+### Added
+
+- `isCrossSiteWrite()` in `@nish/ui/server` and `crossSiteGuard()` in `@nish/ui/server/hono`: refuse a POST, PUT, PATCH or DELETE that a page on another origin sent, including another *.nish.software subdomain (SameSite=Lax cookies still ride along from those). Fetch metadata decides, with an Origin-against-Host fallback for older browsers; requests without either header (servers, the inbox and MCP callers) pass. `allowedOrigins` lets named origins through. Mount it first: `app.use('*', crossSiteGuard())`.
+
 ## [1.4.1] - 2026-11-02
 
 ### Changed
