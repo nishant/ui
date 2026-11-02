@@ -163,7 +163,7 @@ export const filterBar: ComponentDoc = {
     <button value="open" aria-pressed="true">Open</button>
     <button value="closed">Closed</button>
   </nish-chip-group>
-  <select class="nish-select" aria-label="Sort by">
+  <select class="nish-select" data-slot="trailing" aria-label="Sort by">
     <option>Newest</option>
     <option>Oldest</option>
   </select>

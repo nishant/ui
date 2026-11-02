@@ -252,6 +252,19 @@ test.describe('<nish-split>', () => {
     await expect(sep).toHaveAttribute('aria-valuenow', '55');
   });
 
+  test('Enter and a double-click on a divider reset every pane to equal shares', async ({ page }) => {
+    await load(page);
+    const sep = page.locator('#sp-row > .nish-split-divider');
+    await expect(sep).toHaveAttribute('aria-valuenow', '30');
+    await sep.focus();
+    await page.keyboard.press('Enter');
+    await expect(sep).toHaveAttribute('aria-valuenow', '50');
+    await page.keyboard.press('ArrowRight');
+    await expect(sep).toHaveAttribute('aria-valuenow', '55');
+    await sep.dblclick();
+    await expect(sep).toHaveAttribute('aria-valuenow', '50');
+  });
+
   test('keys stop at min and never invert the panes', async ({ page }) => {
     await load(page);
     const sep = page.locator('#sp-row > .nish-split-divider');
@@ -341,6 +354,18 @@ test.describe('<nish-split>', () => {
       await ctx.close();
     }
   });
+
+  test('stacked panes keep the stack height at 360px', async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    try {
+      await load(page);
+      const heights = await page.evaluate(() => ['sp-a', 'sp-b'].map((id) => document.getElementById(id)!.parentElement!.getBoundingClientRect().height));
+      for (const h of heights) expect(h).toBeGreaterThanOrEqual(255);
+    } finally {
+      await ctx.close();
+    }
+  });
 });
 
 test.describe('<nish-nav-rail>', () => {
@@ -348,7 +373,8 @@ test.describe('<nish-nav-rail>', () => {
     await load(page, { path: '/home/deep' });
     const nav = page.locator('#nr > nav.nish-nav-rail');
     await expect(nav).toHaveAttribute('aria-label', 'Pages');
-    await expect(nav.locator('a.nish-nav-rail-item')).toHaveCount(3);
+    await expect(nav.locator('a.nish-nav-rail-item')).toHaveCount(4);
+    await expect(nav.locator('.nish-nav-rail-tools a')).toHaveClass(/nish-nav-rail-item/);
     await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
     await expect(nav.locator('a[href="/home"]')).toHaveAttribute('aria-current', 'page');
     // The other-origin link never counts.
@@ -378,6 +404,25 @@ test.describe('<nish-nav-rail>', () => {
       document.querySelector('#nr > nav')!.insertBefore(a, document.querySelector('#nr > nav')!.firstChild);
     });
     await expect(page.locator('#nr-extra')).toHaveClass(/nish-nav-rail-item/);
+  });
+
+  test('hash-only links never claim the path match and keep an author aria-current', async ({ page }) => {
+    await load(page, { path: '/home' });
+    await page.evaluate(() => {
+      const rail = document.createElement('nish-nav-rail');
+      rail.id = 'nr-hash';
+      rail.innerHTML = '<a href="#a">A</a><a href="#b" aria-current="page">B</a>';
+      document.body.append(rail);
+    });
+    const links = page.locator('#nr-hash a');
+    await expect(links.nth(0)).toHaveClass(/nish-nav-rail-item/);
+    await expect(links.nth(0)).not.toHaveAttribute('aria-current', /.*/);
+    await expect(links.nth(1)).toHaveAttribute('aria-current', 'page');
+    await page.evaluate(() => {
+      location.hash = '#a';
+    });
+    await expect(links.nth(0)).toHaveAttribute('aria-current', 'page');
+    await expect(links.nth(1)).not.toHaveAttribute('aria-current', /.*/);
   });
 
   test('the rail shows from 768px and hides from 1024px', async ({ page }) => {
@@ -451,7 +496,8 @@ test.describe('<nish-scroll-row>', () => {
     });
     await expect(row).toHaveClass(/nish-scroll-row--bleed/);
     await expect(row).not.toHaveClass(/nish-scroll-row--snap/);
-    await expect(row).not.toHaveClass(/nish-scroll-fade/);
+    await expect(row).toHaveClass(/nish-scroll-row--no-fade/);
+    expect(await row.evaluate((e) => getComputedStyle(e).maskImage)).toBe('none');
   });
 });
 
@@ -811,4 +857,72 @@ test('every wave 3 element is defined, and loading both built files again does n
   // The elements keep working after the second load.
   await page.locator('#ts th[data-sort="name"] button').click();
   await expect(page.locator('#ts th[data-sort="name"]')).toHaveAttribute('aria-sort', 'ascending');
+});
+
+test.describe('re-connect safety (a DOM move)', () => {
+  const move = (page: Page, id: string): Promise<void> =>
+    page.evaluate((i) => {
+      const el = document.getElementById(i)!;
+      const holder = document.createElement('div');
+      holder.id = `${i}-holder`;
+      document.body.appendChild(holder);
+      el.remove();
+      holder.appendChild(el);
+    }, id);
+
+  test('<nish-filter-bar> does not double its structure and keeps the same child nodes', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => ((window as unknown as { __c: Element }).__c = document.getElementById('fb-chips')!));
+    await move(page, 'fb');
+    await expect(page.locator('#fb .nish-filter-bar')).toHaveCount(1);
+    await expect(page.locator('#fb .nish-filter-bar-chips #fb-chips')).toHaveCount(1);
+    expect(await page.evaluate(() => (window as unknown as { __c: Element }).__c === document.getElementById('fb-chips'))).toBe(true);
+    await clearEvents(page);
+    await page.locator('#fb-chips button', { hasText: 'Open' }).click();
+    expect((await events(page, 'nish-change', 'fb-chips')).length).toBe(1);
+  });
+
+  test('<nish-filter-bar> forgets a removed chip across the breakpoint, both ways', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => document.getElementById('fb-select')!.remove());
+    await page.setViewportSize({ width: 390, height: 800 });
+    await expect(page.locator('#fb .nish-filter-bar')).toHaveAttribute('data-compact', 'true');
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(page.locator('#fb .nish-filter-bar')).toHaveAttribute('data-compact', 'false');
+    await expect(page.locator('#fb-select')).toHaveCount(0);
+    await page.setViewportSize({ width: 390, height: 800 });
+    await expect(page.locator('#fb-select')).toHaveCount(0);
+    await expect(page.locator('#fb .nish-filter-btn')).toBeVisible();
+  });
+
+  test('<nish-split> keeps one divider per pair and its panes', async ({ page }) => {
+    await load(page);
+    await move(page, 'sp-row');
+    await expect(page.locator('#sp-row > .nish-split-pane')).toHaveCount(2);
+    await expect(page.locator('#sp-row > .nish-split-divider')).toHaveCount(1);
+    await expect(page.locator('#sp-a')).toHaveCount(1);
+    await page.locator('#sp-row > .nish-split-divider').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#sp-row > .nish-split-divider')).toHaveAttribute('aria-valuenow', '35');
+  });
+
+  test('<nish-scroll-row> keeps one scroll row and its children', async ({ page }) => {
+    await load(page);
+    const before = await page.locator('#sr .nish-chip').count();
+    await move(page, 'sr');
+    await expect(page.locator('#sr .nish-scroll-row')).toHaveCount(1);
+    await expect(page.locator('#sr .nish-chip')).toHaveCount(before);
+  });
+
+  test('<nish-command-palette> keeps one dialog, and its hotkey stops after removal', async ({ page }) => {
+    await load(page);
+    await move(page, 'cp');
+    await expect(page.locator('#cp dialog')).toHaveCount(1);
+    await page.keyboard.press('Control+k');
+    await expect(page.locator('#cp dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => document.getElementById('cp')!.remove());
+    await page.keyboard.press('Control+k');
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+  });
 });

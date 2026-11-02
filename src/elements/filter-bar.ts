@@ -124,11 +124,19 @@ export class NishFilterBar extends NishElement {
       this.#layout();
     });
     this.#observer.observe(this, { childList: true });
+    // Also watch the containers the filters live in, so a page removing one updates the bar.
+    this.#observer.observe(this.#chips, { childList: true });
+    if (this.#sheetBody) this.#observer.observe(this.#sheetBody, { childList: true });
+  }
+
+  /** Forget filters the page removed (their parent is no longer the chips row or sheet body). */
+  #prune(): void {
+    this.#filters = this.#filters.filter((n) => n.parentNode === this.#chips || n.parentNode === this.#sheetBody);
   }
 
   /** Put one author-written node in its slot (loose text between elements is dropped). */
   #route(node: Node): void {
-    if (node === this.#root) return;
+    if (node === this.#root || node instanceof Comment) return; // Lit's marker comments stay put
     if (!(node instanceof HTMLElement)) {
       node.parentNode?.removeChild(node);
       return;
@@ -138,7 +146,8 @@ export class NishFilterBar extends NishElement {
     else if (slot === 'summary') this.#summary.appendChild(node);
     else if (node.localName === 'nish-search' && !this.#searchSlot.firstChild) this.#searchSlot.appendChild(node);
     else {
-      this.#filters.push(node);
+      this.#prune();
+      if (!this.#filters.includes(node)) this.#filters.push(node);
       (this.#mode === 'compact' ? (this.#sheetBody ?? this.#chips) : this.#chips).appendChild(node);
     }
   }
@@ -222,6 +231,7 @@ export class NishFilterBar extends NishElement {
     const button = this.#button;
     const clear = this.#clear;
     if (!root || !sheet || !body || !button || !clear) return;
+    this.#prune();
     const mode = this.#mql?.matches ? 'compact' : 'wide';
     if (mode !== this.#mode) {
       if (mode === 'compact') {

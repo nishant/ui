@@ -54,6 +54,8 @@ export class NishNavRail extends NishElement {
     // Keep the slots in order after the links, however the author wrote them.
     if (tools) nav.appendChild(tools);
     if (footer) nav.appendChild(footer);
+    // Links in the tools and footer slots look like rail items too (they are not current-link candidates).
+    for (const a of Array.from(nav.querySelectorAll<HTMLAnchorElement>(':scope > .nish-nav-rail-tools a, :scope > .nish-nav-rail-footer a'))) a.classList.add('nish-nav-rail-item');
     this.#sync();
     this.#stopCurrent = mountCurrentLink(nav, (a) => a.classList.add('nish-nav-rail-item'));
   }

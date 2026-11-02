@@ -227,7 +227,7 @@ export abstract class NishChartBase extends NishElement {
       this.ro.observe(this);
     }
     this.themeObserver = new MutationObserver(() => this.requestUpdate());
-    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
   }
 
   override disconnectedCallback(): void {

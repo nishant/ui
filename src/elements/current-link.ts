@@ -23,6 +23,14 @@ export function mountCurrentLink(nav: HTMLElement, decorate?: (a: HTMLAnchorElem
         continue;
       }
       if (url.origin !== location.origin) continue;
+      // A hash-only link shares the page's path: match it on the hash, never on the path.
+      if (url.hash && url.pathname === location.pathname) {
+        if (url.hash === location.hash) {
+          best = a;
+          bestLen = Infinity;
+        }
+        continue;
+      }
       const base = url.pathname;
       const hit = base === '/' ? path === '/' : path === base || path.startsWith(base.endsWith('/') ? base : `${base}/`);
       if (hit && base.length > bestLen) {
@@ -47,9 +55,11 @@ export function mountCurrentLink(nav: HTMLElement, decorate?: (a: HTMLAnchorElem
   });
   mark();
   window.addEventListener('popstate', mark);
+  window.addEventListener('hashchange', mark);
   observer.observe(nav, { childList: true });
   return () => {
     window.removeEventListener('popstate', mark);
+    window.removeEventListener('hashchange', mark);
     observer.disconnect();
   };
 }

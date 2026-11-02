@@ -45,7 +45,8 @@ interface Drag {
 /** `<nish-split orientation="row|column" sizes="50,50" min="120" storage-key>`: its children
  *  become `.nish-split-pane`s with a `.nish-split-divider` (`role=separator`) between each pair.
  *  Dragging a divider, or ArrowLeft/Right (row) and ArrowUp/Down (column) on it, resizes the
- *  two panes next to it (5% per key press, never below `min` px). `sizes` is each pane's share
+ *  two panes next to it (5% per key press, never below `min` px). Enter or a double-click on a
+ *  divider resets all panes to equal shares. `sizes` is each pane's share
  *  in percent and reflects; `nish-resize` fires with `detail: { sizes }`. `storage-key` saves
  *  the sizes in localStorage (a saved list of another length is ignored). Under a coarse
  *  pointer below 640px the panes stack and the dividers hide. Iframes get `pointer-events:
@@ -161,6 +162,7 @@ export class NishSplit extends NishElement {
       d.addEventListener('pointerup', (e) => this.#up(e));
       d.addEventListener('pointercancel', (e) => this.#up(e));
       d.addEventListener('keydown', (e) => this.#key(e, i));
+      d.addEventListener('dblclick', () => this.#equalize());
       this.insertBefore(d, panes[i + 1]!);
       this.#dividers.push(d);
     }
@@ -202,10 +204,12 @@ export class NishSplit extends NishElement {
     this.style.minHeight = '0';
     this.#panes.forEach((pane, i) => {
       pane.style.minWidth = '0';
-      pane.style.minHeight = '0';
       if (this.#stacked) {
+        // Stacked panes keep the CSS stack height instead of shrinking to their content.
+        pane.style.minHeight = 'var(--nish-split-stack-h, 16rem)';
         pane.style.flex = 'none';
       } else {
+        pane.style.minHeight = '0';
         pane.style.flex = `${sizes[i]} 1 0%`;
       }
       // A pane that only holds a nested split lets it fill the pane.
@@ -250,16 +254,19 @@ export class NishSplit extends NishElement {
     return next;
   }
 
+  #save(next: number[]): void {
+    if (!this.storageKey) return;
+    try {
+      window.localStorage.setItem(this.storageKey, JSON.stringify(next));
+    } catch {
+      // Quota or blocked storage: the sizes still apply for this page.
+    }
+  }
+
+  /** Set the sizes (updated() does the one layout) and fire `nish-resize`. Storage is written
+   *  by the caller, once per gesture, not per pointermove. */
   #commit(next: number[]): void {
     this.sizes = next;
-    this.#layout();
-    if (this.storageKey) {
-      try {
-        window.localStorage.setItem(this.storageKey, JSON.stringify(next));
-      } catch {
-        // Quota or blocked storage: the sizes still apply for this page.
-      }
-    }
     this.dispatchEvent(new CustomEvent<NishResizeDetail>('nish-resize', { bubbles: true, detail: { sizes: next } }));
   }
 
@@ -307,11 +314,25 @@ export class NishSplit extends NishElement {
     const drag = this.#drag;
     if (!drag) return;
     this.#drag = null;
+    if (this.sizes) this.#save(this.sizes);
     for (const [frame, prev] of drag.restore) frame.style.pointerEvents = prev;
     this.removeAttribute('data-dragging');
   }
 
+  /** Reset every pane to an equal share (Enter or double-click on a divider). */
+  #equalize(): void {
+    if (this.#stacked || this.#panes.length < 2) return;
+    const next = normalize(null, this.#panes.length);
+    this.#commit(next);
+    this.#save(next);
+  }
+
   #key(e: KeyboardEvent, index: number): void {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      this.#equalize();
+      return;
+    }
     const row = this.orientation !== 'column';
     const dec = row ? 'ArrowLeft' : 'ArrowUp';
     const inc = row ? 'ArrowRight' : 'ArrowDown';
@@ -323,6 +344,7 @@ export class NishSplit extends NishElement {
     const next = this.#moved(before, index, e.key === inc ? KEY_STEP : -KEY_STEP, minPct);
     if (next[index] === before[index]) return;
     this.#commit(next);
+    this.#save(next);
   }
 }
 

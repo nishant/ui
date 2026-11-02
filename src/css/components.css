@@ -3300,7 +3300,7 @@
     min-width: var(--nish-tap-min);
     min-height: var(--nish-tap-min);
   }
-  :where(.nish-tab, .nish-chip) {
+  :where(.nish-tab, .nish-chip, .nish-th-sort) {
     min-width: var(--nish-tap-min);
   }
   :where(span.nish-chip) {
@@ -3531,7 +3531,7 @@
    search layout below 768px from the media query.
    <div class="nish-filter-bar">
      <label class="nish-search nish-filter-bar-search">…</label>
-     <div class="nish-filter-bar-chips"><div class="nish-chips">…</div><select class="nish-select">…</select></div>
+     <div class="nish-filter-bar-chips"><div class="nish-chips">…</div></div>
      <div class="nish-filter-bar-trailing"><select class="nish-select">…</select></div>
      <div class="nish-filter-bar-summary" aria-live="polite">42 jobs</div>
    </div>
@@ -4116,6 +4116,15 @@
 :where(.nish-scroll-row--snap) > :where(*) {
   scroll-snap-align: start;
 }
+/* Children keep their width; the row scrolls instead of squashing them. */
+:where(.nish-scroll-row) > :where(*) {
+  flex-shrink: 0;
+}
+/* fade="false" on <nish-scroll-row>: no edge fade. */
+:where(.nish-scroll-row--no-fade) {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
 
 /* --- Settings (.nish-settings-section, .nish-setting-row) --------------------------------------
    SettingsSection and SettingRow: a titled group of label-and-control rows in one card,
@@ -4420,6 +4429,11 @@
   font: inherit;
   font-size: var(--nish-text-base);
   outline: none;
+}
+/* Base :focus-visible (0,1,0) outranks the zero-specificity rule above, so !important keeps the borderless field row free of a ring. */
+:where(.nish-command-input) > :where(input),
+:where(input.nish-command-input) {
+  outline: none !important;
 }
 :where(input.nish-command-input) {
   padding-inline: 16px;

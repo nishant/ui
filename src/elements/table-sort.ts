@@ -135,20 +135,23 @@ export class NishTableSort extends NishElement {
     const sign = direction === 'ascending' ? 1 : -1;
     const table = th.closest('table');
     if (!table) return;
+    const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
     for (const tbody of Array.from(table.tBodies)) {
       const rows = Array.from(tbody.rows).map((row, order) => {
         const cell = row.cells[index];
         const key = cell ? (cell.getAttribute('data-value') ?? cell.textContent ?? '').trim() : '';
-        return { row, key, order };
+        return { row, key, num: parseNumber(key), order };
       });
       const filled = rows.filter((r) => r.key !== '');
       const blank = rows.filter((r) => r.key === '');
-      const numeric = th.classList.contains('nish-th--num') || (filled.length > 0 && filled.every((r) => parseNumber(r.key) !== null));
+      const numeric = th.classList.contains('nish-th--num') || (filled.length > 0 && filled.every((r) => r.num !== null));
       filled.sort((a, b) => {
-        const cmp = numeric ? (parseNumber(a.key) ?? 0) - (parseNumber(b.key) ?? 0) : a.key.localeCompare(b.key, undefined, { numeric: false, sensitivity: 'base' });
+        const cmp = numeric ? (a.num ?? 0) - (b.num ?? 0) : collator.compare(a.key, b.key);
         return cmp * sign || a.order - b.order;
       });
-      for (const r of [...filled, ...blank]) tbody.appendChild(r.row);
+      const frag = document.createDocumentFragment();
+      for (const r of [...filled, ...blank]) frag.appendChild(r.row);
+      tbody.appendChild(frag);
     }
   }
 }

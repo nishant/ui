@@ -46,6 +46,7 @@ export class NishSectionNav extends NishElement {
     super.disconnectedCallback();
     this.#stopSpy?.();
     this.#stopSpy = null;
+    this.#spySticky = null;
     this.#observer?.disconnect();
     this.#observer = null;
     this.#nav?.removeEventListener('click', this.#onClickBound);
@@ -68,11 +69,11 @@ export class NishSectionNav extends NishElement {
     this.#nav = nav;
     this.#sync();
     nav.addEventListener('click', this.#onClickBound);
-    this.#stopSpy = mountScrollspy(nav);
+    this.#startSpy(nav);
     // Links added or removed later (a framework renders them late) need a fresh spy.
     this.#observer = new MutationObserver(() => {
       this.#stopSpy?.();
-      this.#stopSpy = mountScrollspy(nav);
+      this.#startSpy(nav);
     });
     this.#observer.observe(nav, { childList: true });
   }
@@ -82,6 +83,33 @@ export class NishSectionNav extends NishElement {
     if (!nav) return;
     nav.setAttribute('aria-label', this.label || 'Sections');
     nav.style.position = this.sticky ? '' : 'static';
+    if (this.#spySticky !== null && this.#spySticky !== this.sticky) this.#startSpy(nav);
+  }
+
+  #spySticky: boolean | null = null;
+
+  /** Mounts the scrollspy. Like React's SectionNav, a non-sticky nav publishes no
+   *  `--nish-sticky-extra`: mountScrollspy always writes it, so it is cleared again after each
+   *  write (our ResizeObserver is created after the spy's, so it runs after it). */
+  #startSpy(nav: HTMLElement): void {
+    this.#stopSpy?.();
+    const stop = mountScrollspy(nav);
+    this.#spySticky = this.sticky;
+    if (this.sticky) {
+      this.#stopSpy = stop;
+      return;
+    }
+    const root = document.documentElement;
+    const clear = (): void => {
+      root.style.removeProperty('--nish-sticky-extra');
+    };
+    clear();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(clear) : null;
+    ro?.observe(nav);
+    this.#stopSpy = () => {
+      ro?.disconnect();
+      stop();
+    };
   }
 
   #onClick(e: MouseEvent): void {

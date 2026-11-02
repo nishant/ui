@@ -31,6 +31,7 @@ export class NishScrollRow extends NishElement {
 
   #row: HTMLElement | null = null;
   #resize: ResizeObserver | null = null;
+  #late: MutationObserver | null = null;
   readonly #onScroll = (): void => this.#edges();
 
   constructor() {
@@ -51,6 +52,8 @@ export class NishScrollRow extends NishElement {
     this.#row?.removeEventListener('scroll', this.#onScroll);
     this.#resize?.disconnect();
     this.#resize = null;
+    this.#late?.disconnect();
+    this.#late = null;
     this.#row = null;
   }
 
@@ -68,6 +71,14 @@ export class NishScrollRow extends NishElement {
       this.appendChild(row);
     }
     this.#row = row;
+    // Children a framework renders after mount join the row.
+    this.#late?.disconnect();
+    this.#late = new MutationObserver(() => {
+      const r = this.#row;
+      if (!r) return;
+      for (const n of Array.from(this.childNodes)) if (n !== r && n.nodeType === 1) r.appendChild(n);
+    });
+    this.#late.observe(this, { childList: true });
     this.#sync();
     row.addEventListener('scroll', this.#onScroll, { passive: true });
     if (typeof ResizeObserver !== 'undefined') {
@@ -103,7 +114,7 @@ export class NishScrollRow extends NishElement {
     else row.removeAttribute('aria-label');
     row.classList.toggle('nish-scroll-row--bleed', this.bleed);
     row.classList.toggle('nish-scroll-row--snap', this.snap);
-    row.classList.toggle('nish-scroll-fade', this.fade);
+    row.classList.toggle('nish-scroll-row--no-fade', !this.fade);
   }
 }
 
