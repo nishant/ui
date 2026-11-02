@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.2.2] - 2026-11-02
+
+### Changed
+
+- The npm name is now **`nish-ui`** (`npm install nish-ui`) instead of `@nish-software/ui`, which was never published. `npm install @nish/ui@npm:nish-ui` still installs it under the name the docs use. Nothing changes for the apps: the repo, the tags and the codeload pins keep `@nish/ui`.
+
 ## [1.2.1] - 2026-11-02
 
 ### Fixed

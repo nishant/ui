@@ -1,7 +1,7 @@
 # CLAUDE.md — @nish/ui
 
 The shared tokens, themes and React components of every *.nish.software app. How the
-package is used: [README.md](README.md). How it is released, reaches the apps and npm (`@nish-software/ui`): [docs/RELEASING.md](docs/RELEASING.md). Every release:
+package is used: [README.md](README.md). How it is released, reaches the apps and npm (`nish-ui`): [docs/RELEASING.md](docs/RELEASING.md). Every release:
 [CHANGELOG.md](CHANGELOG.md).
 
 ## Autonomy
