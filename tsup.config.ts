@@ -26,6 +26,27 @@ const nodeEntry: Record<string, string> = {};
 if (existsSync('src/node/vite.ts')) nodeEntry['node/vite'] = 'src/node/vite.ts';
 if (existsSync('src/node/eslint.ts')) nodeEntry['node/eslint'] = 'src/node/eslint.ts';
 
+// One self-contained ESM file with Lit bundled in and no shared chunks, because static sites vendor single files.
+// Types are hand-written (public*.d.ts) so dist/elements*.d.ts never imports lit.
+function elementsConfig(name: string, entry: string, types: string): Options {
+  return {
+    entry: { [name]: entry },
+    format: ['esm'],
+    dts: false,
+    onSuccess: async () => {
+      const { copyFileSync } = await import('node:fs');
+      copyFileSync(types, `dist/${name}.d.ts`);
+    },
+    sourcemap: true,
+    target: 'es2022',
+    noExternal: ['lit', /^@lit\//],
+    minify: true,
+    outDir: 'dist',
+    clean: false,
+    splitting: false,
+  };
+}
+
 const configs: Options[] = [
   {
     // The main entry. SystemCanvas is imported from './system-canvas.js', which stays external here and is
@@ -79,25 +100,11 @@ const configs: Options[] = [
     outDir: 'dist',
     clean: false,
   },
-  {
-    // @nish/ui/elements (nish-ui/elements): web components. One self-contained ESM file with Lit bundled in
-    // and no shared chunks, because static sites vendor single files. Lit is a devDependency.
-    entry: { elements: 'src/elements/index.ts' },
-    format: ['esm'],
-    // Types are hand-written (src/elements/public.d.ts) so dist/elements.d.ts never imports lit.
-    dts: false,
-    onSuccess: async () => {
-      const { copyFileSync } = await import('node:fs');
-      copyFileSync('src/elements/public.d.ts', 'dist/elements.d.ts');
-    },
-    sourcemap: true,
-    target: 'es2022',
-    noExternal: ['lit', /^@lit\//],
-    minify: true,
-    outDir: 'dist',
-    clean: false,
-    splitting: false,
-  },
+  elementsConfig('elements', 'src/elements/index.ts', 'src/elements/public.d.ts'),
+  // Wave 2 and 3 entries: each is its own self-contained file (own Lit copy), so a page loads only what it uses.
+  elementsConfig('elements-forms', 'src/elements/forms.ts', 'src/elements/public-forms.d.ts'),
+  elementsConfig('elements-data', 'src/elements/data.ts', 'src/elements/public-data.d.ts'),
+  elementsConfig('elements-charts', 'src/elements/charts.ts', 'src/elements/public-charts.d.ts'),
   { entry: { 'server/index': 'src/server/index.ts', 'server/hono': 'src/server/hono.ts' }, format: ['esm'], dts: true, sourcemap: true, target: 'node22', platform: 'node', outDir: 'dist', clean: false, splitting: false, external: ['hono', /^hono\//] },
 ];
 if (Object.keys(nodeEntry).length) configs.push({ ...nodeBase, entry: nodeEntry });

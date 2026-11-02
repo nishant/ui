@@ -90,12 +90,15 @@ export function StaticSitesPage() {
           code={`<script src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/theme-init.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/nish.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/nish-components.css">
-<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/elements.js"></script>`}
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/elements.js"></script>
+<!-- load only the files whose tags the page uses -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/elements-forms.js"></script>`}
         />
         <div className="grid gap-3 lg:grid-cols-2">
           <CodeBlock
             title="with a bundler"
             code={`import 'nish-ui/elements';
+import 'nish-ui/elements/forms'; // wave 2: field, search, switch, chips, combobox, tabs, segmented, copy, sparkline
 // in a fleet app: import '@nish/ui/elements';
 import { toast } from 'nish-ui/elements';
 
@@ -113,9 +116,12 @@ toast('Saved', { tone: 'ok' });`}
         <Prose>
           <p>
             <code>{'<nish-theme-toggle>'}</code>, <code>{'<nish-sheet>'}</code>, <code>{'<nish-dialog>'}</code>, <code>{'<nish-bottom-nav>'}</code> and{' '}
-            <code>toast()</code> work in plain HTML, in any framework and in Claude artifacts. React apps keep the React components and never load them.
+            <code>toast()</code> (<code>elements.js</code>) and <code>{'<nish-field>'}</code>, <code>{'<nish-search>'}</code>, <code>{'<nish-switch>'}</code>,{' '}
+            <code>{'<nish-chip-group>'}</code>, <code>{'<nish-combobox>'}</code>, <code>{'<nish-tabs>'}</code>, <code>{'<nish-segmented>'}</code>,{' '}
+            <code>{'<nish-copy-button>'}</code> and <code>{'<nish-sparkline>'}</code> (<code>elements-forms.js</code>; <code>elements-data.js</code> and{' '}
+            <code>elements-charts.js</code> are the data and chart files) work in plain HTML, in any framework and in Claude artifacts. React apps keep the React components and never load them.
             The elements use light DOM, so your own CSS applies, and they never inject CSS: link <code>nish.css</code> and{' '}
-            <code>nish-components.css</code> as above. The button, card, bottom nav, theme toggle, modal, more sheet and toast pages have an HTML tab with the markup, running live.
+            <code>nish-components.css</code> as above. The button, card, bottom nav, theme toggle, modal, more sheet, toast, form, combobox, tabs, segmented and list row pages have an HTML tab with the markup, running live.
           </p>
           <p>In a Claude artifact, inline the CSS and load elements.js from jsdelivr; artifacts only allow stylesheets from Google Fonts.</p>
         </Prose>

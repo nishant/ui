@@ -38,6 +38,14 @@ export const emptyState: ComponentDoc = {
       action: a.action ? '{<Button size="sm">Add a tracker</Button>}' : undefined,
       compact: a.compact,
     }),
+  html: {
+    height: 260,
+    code: `<div class="nish-empty">
+  <p class="nish-empty-title">No price drops yet</p>
+  <p>Trackers check every hour. Changes show up here.</p>
+  <button class="nish-btn nish-btn--sm">Add a tracker</button>
+</div>`,
+  },
   stories: [
     {
       id: 'page',

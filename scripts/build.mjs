@@ -175,7 +175,7 @@ await testCn();
 // to guess them (hosting's scripts/sync-ui.mjs can read this instead of a fixed list).
 writeFileSync(
   join(dist, 'files.json'),
-  JSON.stringify({ static: ['nish.css', componentsCss, 'theme-init.js', 'theme.js', 'theme.global.js', 'elements.js', ...fontFiles] }, null, 2) + '\n',
+  JSON.stringify({ static: ['nish.css', componentsCss, 'theme-init.js', 'theme.js', 'theme.global.js', 'elements.js', 'elements-forms.js', 'elements-data.js', 'elements-charts.js', ...fontFiles] }, null, 2) + '\n',
 );
 
 console.log('built dist/');

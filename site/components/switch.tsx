@@ -58,6 +58,15 @@ export const switchDoc: ComponentDoc = {
       labelSide: a.labelSide === 'start' ? undefined : a.labelSide,
       disabled: a.disabled,
     }),
+  html: {
+    height: 200,
+    code: `<div style="display:grid;gap:12px">
+  <nish-switch label="Alerts" description="Notify me about drops." checked></nish-switch>
+  <nish-switch label="Dark map" size="sm" name="darkmap"></nish-switch>
+  <nish-switch label="Disabled" disabled></nish-switch>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
+  },
   stories: [
     { id: 'default', name: 'Default', render: () => <Demo label="Auto refresh" /> },
     { id: 'off', name: 'Off', render: () => <Demo label="Show weekends" initial={false} /> },

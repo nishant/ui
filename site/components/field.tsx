@@ -45,6 +45,21 @@ export const field: ComponentDoc = {
       },
       '<Input type="email" value={email} onChange={…} />',
     ),
+  html: {
+    height: 300,
+    code: `<div style="display:grid;gap:16px;max-width:24rem">
+  <nish-field label="Stack size" hint="Up to 64 items.">
+    <input class="nish-input" type="number" value="16">
+  </nish-field>
+  <nish-field label="Nickname" optional error="Nicknames need at least 3 letters.">
+    <input class="nish-input" value="ab">
+  </nish-field>
+  <nish-field label="Server" layout="inline" label-width="6rem">
+    <select class="nish-select"><option>Survival</option><option>Creative</option></select>
+  </nish-field>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
+  },
   stories: [
     { id: 'default', name: 'Default', render: () => <div className="w-full max-w-sm"><Field label="Company"><Input defaultValue="Anthropic" /></Field></div> },
     { id: 'hint', name: 'With a hint', render: () => <div className="w-full max-w-sm"><Field label="Target salary" hint="Yearly, before tax."><Input inputMode="numeric" defaultValue="180000" /></Field></div> },

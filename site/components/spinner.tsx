@@ -23,6 +23,15 @@ export const spinner: ComponentDoc = {
   render: (a) => <Spinner size={a.size as 'md'} label={String(a.label) || undefined} className="text-th-hi3" />,
   code: (a) =>
     jsx('Spinner', { size: a.size === 'md' ? undefined : a.size, label: a.label || undefined, className: 'text-th-hi3' }),
+  html: {
+    height: 120,
+    code: `<div style="display:flex;align-items:center;gap:16px">
+  <span class="nish-spinner nish-spinner--sm" role="status" aria-label="Loading"></span>
+  <span class="nish-spinner" role="status" aria-label="Loading"></span>
+  <span class="nish-spinner nish-spinner--lg" role="status" aria-label="Loading"></span>
+  <button class="nish-btn nish-btn--primary" aria-busy="true" disabled>Save</button>
+</div>`,
+  },
   stories: [
     {
       id: 'sizes',

@@ -49,6 +49,19 @@ export const pageHeader: ComponentDoc = {
       back: a.back ? "{<Link to=\"/\" className={buttonClass({ variant: 'link' })}>← Jobs</Link>}" : undefined,
       actions: a.actions ? '{<Button variant="primary">Add job</Button>}' : undefined,
     }),
+  html: {
+    height: 200,
+    code: `<header class="nish-page-header">
+  <div>
+    <h1 class="nish-page-header-title">Applications</h1>
+    <p class="nish-page-header-subtitle">24 open, 3 interviews this week.</p>
+  </div>
+  <div class="nish-page-header-actions">
+    <button class="nish-btn nish-btn--sm">Export</button>
+    <button class="nish-btn nish-btn--sm nish-btn--primary">Add job</button>
+  </div>
+</header>`,
+  },
   stories: [
     { id: 'title', name: 'Title only', render: () => <PageHeader title="Watchlist" className="w-full" /> },
     {

@@ -60,6 +60,22 @@ export const appHeader: ComponentDoc = {
       nav: a.nav ? '{<Nav />}' : undefined,
       themeToggle: a.toggle ? undefined : '{false}',
     }),
+  html: {
+    height: 220,
+    code: `<header class="nish-app-header">
+  <a class="nish-pill-link nish-app-header-back" href="https://nish.software">&larr; nish.software</a>
+  <a class="nish-app-header-name" href="/">Trading</a>
+  <div class="nish-app-header-tools">
+    <button class="nish-icon-btn" aria-label="Add">+</button>
+    <nish-theme-toggle></nish-theme-toggle>
+  </div>
+  <nav class="nish-app-header-nav" aria-label="Trading">
+    <a class="nish-tab" href="/" aria-current="page">Overview</a>
+    <a class="nish-tab" href="/positions">Positions</a>
+    <a class="nish-tab" href="/scans">Scans</a>
+  </nav>
+</header>`,
+  },
   stories: [
     {
       id: 'default',

@@ -70,6 +70,16 @@ export const input: ComponentDoc = {
       disabled: a.disabled,
       'aria-describedby': a.invalid ? 'search-error' : undefined,
     }),
+  html: {
+    height: 280,
+    code: `<div style="display:grid;gap:12px;max-width:24rem">
+  <input class="nish-input" type="text" placeholder="Tracker name" aria-label="Tracker name">
+  <input class="nish-input" type="email" value="nish@example.com" aria-label="Email">
+  <input class="nish-input" type="text" value="not a number" aria-invalid="true" aria-describedby="n-err" aria-label="Quantity">
+  <small class="nish-error" id="n-err" role="alert">Enter a number.</small>
+  <input class="nish-input" type="text" placeholder="Disabled" disabled aria-label="Disabled">
+</div>`,
+  },
   stories: [
     {
       id: 'label',

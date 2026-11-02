@@ -285,6 +285,13 @@ import { readToken, onThemeChange } from '@nish/ui';
 const draw = () => chart.update({ line: readToken('chart-1'), grid: readToken('line') });
 onThemeChange(draw);`}
         />
+        <CodeBlock
+          title="A color that must not flip with the theme"
+          code={`/* A white poker chip stays light and a black one stays dark in both themes.
+   light-dark() picks by the page's color-scheme, which the theme sets: */
+.chip--white { background: light-dark(var(--nish-surface), var(--nish-hi)); }
+.chip--black { background: light-dark(var(--nish-hi), var(--nish-surface)); }`}
+        />
       </Section>
     </div>
   );

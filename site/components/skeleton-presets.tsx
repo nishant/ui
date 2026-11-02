@@ -37,6 +37,17 @@ export const skeletonPresets: ComponentDoc = {
       : a.kind === 'CardListSkeleton'
         ? jsx('CardListSkeleton', { count: Number(a.count) === 3 ? undefined : Number(a.count), lines: Number(a.lines) === 2 ? undefined : Number(a.lines) })
         : jsx('SkeletonCard', { lines: Number(a.lines) === 3 ? undefined : Number(a.lines), media: a.media === 'none' ? undefined : a.media }),
+  html: {
+    height: 410,
+    code: `<div class="nish-skeleton-group" aria-busy="true" aria-label="Loading" style="display:grid;gap:12px;max-width:28rem">
+  <div class="nish-card" style="display:grid;gap:10px;padding:16px">
+    <div class="nish-skeleton nish-skeleton--thumb"></div>
+    <span class="nish-skeleton nish-skeleton--text" style="width: 70%"></span>
+    <span class="nish-skeleton nish-skeleton--text"></span>
+    <span class="nish-skeleton nish-skeleton--text" style="width: 50%"></span>
+  </div>
+</div>`,
+  },
   stories: [
     { id: 'card', name: 'SkeletonCard', render: () => <div className="w-full"><SkeletonCard /></div> },
     {

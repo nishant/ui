@@ -3,6 +3,7 @@ import { cn } from '../cn';
 import { CheckIcon, XIcon } from './icons';
 import { Spinner } from './feedback';
 import { fieldClass } from './primitives';
+import { COMBOBOX_DEBOUNCE_MS, COMBOBOX_MAX_SHOWN, defaultComboboxFilter } from '../combobox-filter';
 
 export interface ComboboxOption {
   value: string;
@@ -37,14 +38,9 @@ export interface ComboboxProps {
   className?: string;
 }
 
-const MAX_SHOWN = 50;
-const DEBOUNCE_MS = 200;
-
-const defaultFilter = (o: ComboboxOption, q: string) => {
-  const needle = q.trim().toLowerCase();
-  if (!needle) return true;
-  return o.label.toLowerCase().includes(needle) || (o.hint?.toLowerCase().includes(needle) ?? false);
-};
+const MAX_SHOWN = COMBOBOX_MAX_SHOWN;
+const DEBOUNCE_MS = COMBOBOX_DEBOUNCE_MS;
+const defaultFilter = defaultComboboxFilter;
 
 /** A text input with a listbox of suggestions (ARIA 1.2 combobox). Pick from the options,
  *  or with `allowCustom` commit what was typed. The list sits under the input and works

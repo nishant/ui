@@ -36,6 +36,19 @@ export const select: ComponentDoc = {
       { defaultValue: 'applied', size: a.size === 'md' ? undefined : a.size, invalid: a.invalid, disabled: a.disabled },
       '\n  <option value="open">Open</option>\n  <option value="applied">Applied</option>\n',
     ).replace('>\n  \n', '>\n'),
+  html: {
+    height: 160,
+    code: `<div style="display:grid;gap:12px;max-width:24rem">
+  <select class="nish-select" aria-label="Server">
+    <option>Survival</option>
+    <option>Creative</option>
+    <option>Hardcore</option>
+  </select>
+  <select class="nish-select" aria-label="Disabled server" disabled>
+    <option>Survival</option>
+  </select>
+</div>`,
+  },
   stories: [
     {
       id: 'default',

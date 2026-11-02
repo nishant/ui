@@ -38,6 +38,14 @@ export const searchInput: ComponentDoc = {
       disabled: a.disabled,
       'aria-label': 'Search jobs',
     }),
+  html: {
+    height: 170,
+    code: `<div style="display:grid;gap:12px;max-width:24rem">
+  <nish-search placeholder="Search trackers" label="Search trackers"></nish-search>
+  <nish-search size="sm" value="diamond" label="Search items"></nish-search>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
+  },
   stories: [
     { id: 'default', name: 'Empty', render: () => <div className="w-full max-w-sm"><Demo /></div> },
     { id: 'value', name: 'With a value', note: 'Clear search appears; Escape clears too.', render: () => <div className="w-full max-w-sm"><Demo initial="staff engineer" /></div> },

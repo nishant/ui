@@ -49,6 +49,9 @@ function frameDocument(code: string): string {
 <link rel="stylesheet" href="${base}nish.css">
 <link rel="stylesheet" href="${base}nish-components.css">
 <script type="module" src="${base}elements.js"></script>
+<script type="module" src="${base}elements-forms.js"></script>
+<script type="module" src="${base}elements-data.js"></script>
+<script type="module" src="${base}elements-charts.js"></script>
 <style>body{margin:0;padding:16px}</style></head><body>${code.replace(CDN_DIST, base)}</body></html>`;
 }
 
@@ -106,7 +109,7 @@ function UsageCode({ doc }: { doc: ComponentDoc }) {
           <CodeBlock code={doc.html.code.replaceAll('nish-ui@X.Y.Z', `nish-ui@${docgen.version}`)} title={`${doc.id}.html`} collapseAt={16} />
           <p className="text-sm text-th-hi3">
             Live, with no React. The page links <code className="inline">nish.css</code>, <code className="inline">nish-components.css</code> and{' '}
-            <code className="inline">elements.js</code>; see{' '}
+            the element files (<code className="inline">elements*.js</code>); see{' '}
             <a className="doc-link" href={href('/static-sites')}>
               Static sites
             </a>

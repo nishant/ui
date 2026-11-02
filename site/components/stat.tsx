@@ -54,6 +54,22 @@ export const stat: ComponentDoc = {
       loading: a.loading || undefined,
     }),
   api: { functions: ['signTone'], interfaces: [] },
+  html: {
+    height: 520,
+    code: `<dl class="nish-stats">
+  <div class="nish-stat"><dt class="nish-stat-label">Day P&amp;L</dt><dd class="nish-stat-value nish-stat-value--ok">+$1,284</dd><dd class="nish-stat-sub">+0.8% today</dd></div>
+  <div class="nish-stat"><dt class="nish-stat-label">Open positions</dt><dd class="nish-stat-value">12</dd></div>
+  <div class="nish-stat"><dt class="nish-stat-label">Drawdown</dt><dd class="nish-stat-value nish-stat-value--loss">-3.2%</dd></div>
+</dl>
+
+<!-- Exactly four tiles: two per row, then four from 640px. -->
+<dl class="nish-stats nish-stats--4" style="margin-top:12px">
+  <div class="nish-stat"><dt class="nish-stat-label">Capacity</dt><dd class="nish-stat-value">640 GB</dd></div>
+  <div class="nish-stat"><dt class="nish-stat-label">Read</dt><dd class="nish-stat-value">3.3 GB/s</dd></div>
+  <div class="nish-stat"><dt class="nish-stat-label">Write</dt><dd class="nish-stat-value">1.9 GB/s</dd></div>
+  <div class="nish-stat"><dt class="nish-stat-label">Endurance</dt><dd class="nish-stat-value">1.2 PBW</dd></div>
+</dl>`,
+  },
   stories: [
     {
       id: 'grid',

@@ -4,6 +4,13 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [Unreleased]
+
+### Added
+
+- `nish-ui/elements/forms`: `<nish-field>`, `<nish-search>`, `<nish-switch>`, `<nish-chip-group>`, `<nish-combobox>`, `<nish-tabs>`, `<nish-segmented>`, `<nish-copy-button>` and `<nish-sparkline>`; new classes for tabs, list rows, headers, key-value lists and legends; the toast, sheet, dialog and bottom nav classes now match React.
+- `.nish-callout--text` (running text in one block), `.nish-stats--4` (two, then four columns from 640px), and `.nish-pill-link` in nish-components.css, so pages without nish.css get it.
+
 ## [1.7.0] - 2026-11-02
 
 ### Added

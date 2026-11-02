@@ -77,6 +77,21 @@ export const chip: ComponentDoc = {
       },
       String(a.label),
     ),
+  html: {
+    height: 210,
+    code: `<nish-chip-group label="Resources">
+  <button>Iron</button>
+  <button aria-pressed="true">Gold</button>
+  <button>Diamond</button>
+  <span class="nish-chip" data-removable>Netherite</span>
+</nish-chip-group>
+<p style="margin:16px 0 8px;font-size:14px">Plain classes, no script:</p>
+<div class="nish-chips" role="group" aria-label="Sizes">
+  <button type="button" class="nish-chip nish-chip--sm" aria-pressed="true">Small</button>
+  <button type="button" class="nish-chip nish-chip--sm" aria-pressed="false">Large</button>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
+  },
   stories: [
     { id: 'filters', name: 'Toggle filters', render: () => <Filters /> },
     { id: 'sm', name: 'Small', render: () => <Filters size="sm" /> },

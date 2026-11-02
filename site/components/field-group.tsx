@@ -80,6 +80,19 @@ export const fieldGroup: ComponentDoc = {
       },
       '<Checkbox label="Full time" … />',
     ),
+  html: {
+    height: 280,
+    code: `<fieldset class="nish-field" style="max-width:24rem;margin:0;border:0;padding:0">
+  <legend class="nish-field-label">Resources</legend>
+  <nish-chip-group label="Resources">
+    <button>Iron</button>
+    <button aria-pressed="true">Gold</button>
+    <button>Diamond</button>
+  </nish-chip-group>
+  <small class="nish-hint">Pick any that apply.</small>
+</fieldset>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
+  },
   stories: [
     { id: 'chips', name: 'A ChipGroup', render: () => <div className="w-full max-w-sm"><WorkMode /></div> },
     { id: 'error', name: 'With an error', note: 'The error is role="alert" and tied to the fieldset.', render: () => <div className="w-full max-w-sm"><WorkMode error /></div> },

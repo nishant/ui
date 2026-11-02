@@ -73,6 +73,36 @@ export const callout: ComponentDoc = {
       },
       String(a.body),
     ),
+  html: {
+    height: 580,
+    code: `<div class="nish-callout nish-callout--neutral" style="margin-bottom:8px">
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <div><p class="nish-callout-title">Read-only</p><p>This board is shared with you.</p></div>
+</div>
+<div class="nish-callout nish-callout--accent" style="margin-bottom:8px">
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <div><p class="nish-callout-title">New: price alerts</p><p>Get a notification when an item drops.</p></div>
+</div>
+<div class="nish-callout nish-callout--info" style="margin-bottom:8px">
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <div><p class="nish-callout-title">Market closed</p><p>Quotes are from the 4:00 pm close.</p></div>
+</div>
+<div class="nish-callout nish-callout--ok" style="margin-bottom:8px">
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <div><p class="nish-callout-title">All sites are up</p><p>Last checked 2 minutes ago.</p></div>
+</div>
+<div class="nish-callout nish-callout--warn" style="margin-bottom:8px">
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <div><p class="nish-callout-title">Token expires soon</p><p>Reconnect to keep syncing.</p></div>
+</div>
+<div class="nish-callout nish-callout--loss">
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <div><p class="nish-callout-title">Sync failed</p><p>The store returned 503.</p></div>
+</div>
+<div class="nish-callout nish-callout--text nish-callout--warn" style="margin-top:8px">
+  Prices change <b>daily</b>; check the store before you buy.
+</div>`,
+  },
   stories: [
     {
       id: 'tones',

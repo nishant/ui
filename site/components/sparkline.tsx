@@ -42,6 +42,14 @@ export const sparkline: ComponentDoc = {
       fill: a.fill || undefined,
       height: Number(a.height) === 28 ? undefined : Number(a.height),
     }),
+  html: {
+    height: 120,
+    code: `<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+  <span>Response time</span>
+  <nish-sparkline values="142,138,151,160,149,171,182,176,168,190,204,198" label="Response time, last 12 checks" width="120" height="28"></nish-sparkline>
+  <nish-sparkline values="12,14,13,16,18,17,21" tone="ok" label="Uptime trend" width="120" height="28"></nish-sparkline>
+</div>`,
+  },
   stories: [
     {
       id: 'tones',
