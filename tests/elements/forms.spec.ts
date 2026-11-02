@@ -738,6 +738,7 @@ test.describe('<nish-copy-button>', () => {
     expect(await copied(page)).toEqual([]);
     expect(await events(page, 'nish-copy', 'cp1')).toHaveLength(0);
     await expect(btn).toHaveText('Copy', { timeout: 3000 });
+    await expect(btn).toBeFocused();
   });
 });
 

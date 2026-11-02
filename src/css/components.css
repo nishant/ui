@@ -1388,6 +1388,7 @@
   background: transparent;
   color: var(--nish-accent);
   font: inherit;
+  font-size: var(--nish-text-sm);
   font-weight: var(--nish-weight-medium);
   text-decoration: none;
   cursor: pointer;

@@ -121,6 +121,10 @@ export class NishCopyButton extends NishElement {
     }
     if (this.#timer) clearTimeout(this.#timer);
     this.#timer = setTimeout(() => {
+      // The hidden textarea may hold focus; hand it back to the button before Lit removes it.
+      if (document.activeElement?.matches('textarea[data-copy-source]') && this.contains(document.activeElement)) {
+        this.querySelector('button')?.focus();
+      }
       this.manual = false;
       this.#timer = null;
     }, COPIED_MS);
@@ -135,7 +139,7 @@ export class NishCopyButton extends NishElement {
           </button>`
         : html`<button type="button" class="nish-btn nish-btn--sm nish-copy-btn" ?data-copied=${this.copied} @click=${() => this.#onClick()}>
             ${icon}${shown}
-          </button>`}<span role="status" aria-live="polite" style=${HIDDEN}>${this.copied ? this.copiedLabel : this.manual ? 'Press Ctrl+C' : nothing}</span>${this.manual && this.value != null ? html`<textarea data-copy-source readonly tabindex="-1" aria-hidden="true" style=${HIDDEN} .value=${this.value}></textarea>` : nothing}`;
+          </button>`}<span role="status" aria-live="polite" style=${HIDDEN}>${this.copied ? this.copiedLabel : this.manual ? 'Press Ctrl+C' : nothing}</span>${this.manual && this.value != null ? html`<textarea data-copy-source readonly tabindex="-1" aria-label=${this.value} style=${HIDDEN} .value=${this.value}></textarea>` : nothing}`;
   }
 }
 
