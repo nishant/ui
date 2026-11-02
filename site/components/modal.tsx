@@ -213,6 +213,25 @@ export const modal: ComponentDoc = {
       ') : null}',
     ].join('\n'),
   framed: { height: 460 },
+  html: {
+    height: 360,
+    code: `<button type="button" class="nish-btn" data-dialog-open="close-position">Close position</button>
+
+<nish-dialog id="close-position">
+  <h2 class="nish-dialog-title">Close position</h2>
+  <div class="nish-dialog-body">Close 2 contracts of AMD Nov 20 $180 calls at market?</div>
+  <div class="nish-dialog-actions">
+    <button type="button" class="nish-btn" data-dialog-close value="cancel">Cancel</button>
+    <button type="button" class="nish-btn nish-btn--danger" data-dialog-close value="close">Close position</button>
+  </div>
+</nish-dialog>
+
+<script>
+  document.getElementById('close-position').addEventListener('nish-close', (e) => {
+    if (e.detail.value === 'close') console.log('closing the position');
+  });
+</script>`,
+  },
   stories: [
     { id: 'confirm', name: 'Confirm', render: () => <ModalPreview size="md" footer long={false} title="Close position" /> },
     { id: 'details', name: 'Long body, lg', note: 'The body scrolls; the footer stays.', render: () => <ModalPreview size="lg" footer long title="Review the order" /> },

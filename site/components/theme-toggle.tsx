@@ -21,6 +21,14 @@ export const themeToggle: ComponentDoc = {
   render: (a) => <ThemeToggle presets={!!a.presets} labels={!!a.labels} size={a.size === 'md' ? 'md' : 'sm'} compact={!!a.compact} />,
   code: (a) => jsx('ThemeToggle', { presets: a.presets, labels: a.labels, size: a.size === 'sm' ? undefined : a.size, compact: a.compact }),
   api: { functions: ['useTheme'], interfaces: ['ThemeState'] },
+  html: {
+    height: 140,
+    code: `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+  <nish-theme-toggle></nish-theme-toggle>
+  <nish-theme-toggle labelled></nish-theme-toggle>
+  <nish-theme-toggle pill labelled label-system="System" label-light="Light" label-dark="Dark"></nish-theme-toggle>
+</div>`,
+  },
   stories: [
     { id: 'modes', name: 'System, light, dark', note: 'Clicking changes this whole site.', render: () => <ThemeToggle /> },
     { id: 'md', name: 'Medium', render: () => <ThemeToggle size="md" /> },

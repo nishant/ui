@@ -175,6 +175,23 @@ export const bottomNav: ComponentDoc = {
       ...(a.hideFrom === 'lg' ? ["  hideFrom=\"lg\""] : []),
       '/>',
     ].join('\n'),
+  html: {
+    height: 240,
+    code: `<nish-bottom-nav label="Sections">
+  <a href="/">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    <span>Home</span>
+  </a>
+  <a href="/trips">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
+    <span>Trips</span>
+  </a>
+  <a href="/settings">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+    <span>Settings</span>
+  </a>
+</nish-bottom-nav>`,
+  },
   stories: [
     {
       id: 'four',
