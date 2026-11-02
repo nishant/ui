@@ -14,6 +14,10 @@ a minor adds, and a patch fixes.
 - `ListRow` `titleLines={2}` lets the title wrap to two lines. The default stays one line.
 - `[data-dragging] iframe` turns off pointer events on frames while a split drag is active.
 
+### Fixed
+
+- `ListRow`: an active row's subtitle and meta use `text-th-hi2`, so they keep 4.5:1 contrast on the accent tint in light themes.
+
 ## [1.2.1] - 2026-11-02
 
 ### Fixed

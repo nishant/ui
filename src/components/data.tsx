@@ -478,9 +478,14 @@ export function ListRow({
         >
           {title}
         </span>
-        {subtitle ? <span className="line-clamp-2 block text-sm text-th-hi3">{subtitle}</span> : null}
+        {/* On the active row's accent tint, hi3 falls under 4.5:1 in light themes; hi2 holds it. */}
+        {subtitle ? (
+          <span className={cn('line-clamp-2 block text-sm', active ? 'text-th-hi2' : 'text-th-hi3')}>{subtitle}</span>
+        ) : null}
       </span>
-      {meta ? <span className="shrink-0 text-right text-xs tabular-nums text-th-hi3">{meta}</span> : null}
+      {meta ? (
+        <span className={cn('shrink-0 text-right text-xs tabular-nums', active ? 'text-th-hi2' : 'text-th-hi3')}>{meta}</span>
+      ) : null}
       {trailing ? <span className="flex shrink-0 items-center">{trailing}</span> : null}
       {external ? <ExternalGlyph size={14} className="shrink-0 text-th-hi3" /> : null}
       {showChevron && !external ? <ChevronRight size={16} className="shrink-0 text-th-ghost" /> : null}
