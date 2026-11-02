@@ -97,6 +97,8 @@ export interface MediaRowProps {
   chevron?: boolean;
   /** A 44px-minimum row with a small thumbnail, for tiles and widgets. */
   dense?: boolean;
+  /** Dense, with 11px title and 10px meta and detail text: for small widget tiles that use small type. */
+  compact?: boolean;
   /** Makes the whole row a button. */
   onClick?: () => void;
   /** Makes the whole row a link. */
@@ -120,19 +122,21 @@ export function MediaRow({
   trailing,
   chevron,
   dense = false,
+  compact = false,
   onClick,
   href,
   as,
   className,
 }: MediaRowProps) {
-  const size = thumbSize ?? (dense ? 'sm' : 'md');
-  const badgeSize = dense ? 'xs' : 'sm';
+  const small = dense || compact;
+  const size = thumbSize ?? (small ? 'sm' : 'md');
+  const badgeSize = small ? 'xs' : 'sm';
   const hasBadges = live !== undefined || !!badges;
   const subtitle =
     meta || detail ? (
       <>
         {meta ? <span className="block truncate">{meta}</span> : null}
-        {detail ? <span className="block truncate text-xs text-th-hi3">{detail}</span> : null}
+        {detail ? <span className={cn('block truncate text-th-hi3', compact ? 'text-3xs' : 'text-xs')}>{detail}</span> : null}
       </>
     ) : undefined;
   return (
@@ -140,6 +144,7 @@ export function MediaRow({
       as={as}
       className={className}
       dense={dense}
+      compact={compact}
       href={href}
       onClick={onClick}
       chevron={chevron}

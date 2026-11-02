@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.4.0] - 2026-11-02
+
+### Added
+
+- `MediaRow` and `ListRow` `compact`: a dense row with an 11px title and 10px subtitle, meta and detail, for widget tiles that use small type (Nishboard). It keeps the small thumbnail, the xs badges and the 44px row. The MediaRow docs page has a Compact story and control.
+
 ## [1.3.0] - 2026-11-02
 
 ### Added
