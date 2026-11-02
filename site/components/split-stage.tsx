@@ -274,6 +274,22 @@ export const splitStage: ComponentDoc = {
         renderPane: '{(id) => <Player id={id} />}',
       },
     ),
+  html: {
+    height: 300,
+    code: `<nish-split sizes="40,60" min="120" storage-key="docs-split" style="height:240px">
+  <div style="padding:12px">Pane A. Drag the divider, or focus it and press the arrow keys.</div>
+  <div style="padding:12px">
+    <nish-split orientation="column" sizes="50,50" min="60" style="height:100%">
+      <div style="padding:8px">Pane B</div>
+      <div style="padding:8px">Pane C</div>
+    </nish-split>
+  </div>
+</nish-split>
+<script>
+  document.querySelector('nish-split').addEventListener('nish-resize', (e) => console.log(e.detail.sizes));
+</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,
+  },
   stories: [
     {
       id: 'live',

@@ -50,6 +50,15 @@ export const barChart: ComponentDoc = {
       xTicks: a.xTicks === 'ends' ? undefined : a.xTicks,
       valueFormat: '{(v) => money(v, { compact: true })}',
     }),
+  html: {
+    height: 370,
+    code: `<nish-bar-chart
+  label="Orders per day"
+  height="180"
+  show-values
+  data='[{"label":"Mon","value":14},{"label":"Tue","value":22},{"label":"Wed","value":18},{"label":"Thu","value":27},{"label":"Fri","value":31}]'></nish-bar-chart>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-charts.js"></script>`,
+  },
   stories: [
     {
       id: 'months',

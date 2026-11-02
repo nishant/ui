@@ -63,6 +63,21 @@ export const sectionNav: ComponentDoc = {
       '  updateHash={false} // hash-routed apps',
       '/>',
     ].join('\n'),
+  html: {
+    height: 400,
+    code: `<nish-section-nav label="On this page" sticky="false">
+  <a href="#overview">Overview</a>
+  <a href="#install">Install</a>
+  <a href="#usage">Usage</a>
+</nish-section-nav>
+<section id="overview" class="nish-scroll-target"><h3>Overview</h3><p>The link of the section you are reading is marked.</p></section>
+<section id="install" class="nish-scroll-target"><h3>Install</h3><p>Click a link to scroll to its section.</p></section>
+<section id="usage" class="nish-scroll-target"><h3>Usage</h3><p>With update-hash on, the address bar follows.</p></section>
+<script>
+  document.querySelector('nish-section-nav').addEventListener('nish-select', (e) => console.log(e.detail.id));
+</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,
+  },
   stories: [
     {
       id: 'sticky',

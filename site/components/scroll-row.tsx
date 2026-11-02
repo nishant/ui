@@ -42,6 +42,20 @@ export const scrollRow: ComponentDoc = {
       { label: 'Categories', fade: a.fade ? undefined : '{false}', snap: a.snap ? true : undefined },
       '\n  {tags.map((t) => <Chip key={t} pressed={t === tag} onClick={() => setTag(t)}>{t}</Chip>)}\n',
     ),
+  html: {
+    height: 160,
+    code: `<nish-scroll-row label="Topics" snap>
+  <button class="nish-chip" aria-pressed="true">All</button>
+  <button class="nish-chip">Guides</button>
+  <button class="nish-chip">Builds</button>
+  <button class="nish-chip">Redstone</button>
+  <button class="nish-chip">Farms</button>
+  <button class="nish-chip">Villages</button>
+  <button class="nish-chip">Mods</button>
+  <button class="nish-chip">Servers</button>
+</nish-scroll-row>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,
+  },
   stories: [
     { id: 'chips', name: 'Chips', note: 'Narrow the window: the row scrolls instead of wrapping.', render: () => <Chips initial="Visas" label="Categories" /> },
     { id: 'nofade', name: 'No fades', render: () => <Chips fade={false} label="Categories" /> },

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>data elements harness</title>
+  </head>
+  <body>
+    <!-- Every wave 3 element, written as plain markup so the parse-time path is the one tested.
+         data.spec.ts drives it; data.ts loads the elements and records their events. -->
+    <main id="root" style="padding:16px;display:flex;flex-direction:column;gap:24px;align-items:stretch;max-width:720px">
+      <button type="button" class="nish-btn" id="before" style="align-self:flex-start">Before</button>
+
+      <!-- Table sort -->
+      <nish-table-sort id="ts">
+        <table class="nish-table">
+          <thead>
+            <tr>
+              <th data-sort="name">Name</th>
+              <th data-sort="qty" class="nish-th nish-th--num">Qty</th>
+              <th data-sort="note">Note</th>
+              <th>Plain</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Cherry</td><td>10</td><td data-value="b">Second</td><td>x</td></tr>
+            <tr><td>apple</td><td>2</td><td></td><td>x</td></tr>
+            <tr><td>Banana</td><td>1,500</td><td data-value="a">First</td><td>x</td></tr>
+            <tr><td>Date</td><td></td><td data-value="c">Third</td><td>x</td></tr>
+          </tbody>
+        </table>
+      </nish-table-sort>
+
+      <nish-table-sort id="ts-manual" manual>
+        <table class="nish-table">
+          <thead>
+            <tr><th data-sort="host">Host</th><th data-sort="up">Up</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>zeta</td><td>1</td></tr>
+            <tr><td>alpha</td><td>2</td></tr>
+          </tbody>
+        </table>
+      </nish-table-sort>
+
+      <!-- Filter bar -->
+      <nish-filter-bar id="fb" active-count="2">
+        <nish-search id="fb-search" label="Search jobs" placeholder="Search jobs"></nish-search>
+        <nish-chip-group id="fb-chips" label="Status">
+          <button value="open">Open</button>
+          <button value="closed">Closed</button>
+        </nish-chip-group>
+        <select id="fb-select" class="nish-select" aria-label="Sort">
+          <option>Newest</option>
+          <option>Oldest</option>
+        </select>
+        <select id="fb-trailing" class="nish-select" aria-label="View" data-slot="trailing">
+          <option>List</option>
+          <option>Grid</option>
+        </select>
+        <span id="fb-summary" data-slot="summary">42 jobs</span>
+      </nish-filter-bar>
+
+      <!-- Split -->
+      <div style="height:200px;display:flex">
+        <nish-split id="sp-row" sizes="30,70" min="100" style="flex:1">
+          <div id="sp-a">Left</div>
+          <div id="sp-b">Right</div>
+        </nish-split>
+      </div>
+      <div style="height:240px;display:flex">
+        <nish-split id="sp-col" orientation="column" sizes="50,50" min="40" style="flex:1">
+          <div id="sp-top">Top</div>
+          <div id="sp-bottom">Bottom</div>
+        </nish-split>
+      </div>
+      <div style="height:240px;display:flex">
+        <nish-split id="sp-nest" style="flex:1">
+          <div id="sp-n1">One</div>
+          <nish-split id="sp-inner" orientation="column">
+            <div id="sp-n2">Two</div>
+            <div id="sp-n3">Three</div>
+          </nish-split>
+        </nish-split>
+      </div>
+      <div style="height:200px;display:flex">
+        <nish-split id="sp-saved" storage-key="data-spec-split" sizes="50,50" style="flex:1">
+          <div id="sp-s1">S1</div>
+          <div id="sp-s2"><iframe id="sp-frame" title="Embedded" srcdoc="<p>frame</p>" style="width:100%;height:100%;border:0"></iframe></div>
+        </nish-split>
+      </div>
+
+      <!-- Nav rail -->
+      <div style="display:flex;min-height:260px">
+        <nish-nav-rail id="nr" label="Pages">
+          <a href="/home"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-8 9 8v10H3z"/></svg><span>Home</span></a>
+          <a href="/lists"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/></svg><span>Lists</span></a>
+          <a href="https://example.com/away"><span>Away</span></a>
+          <div data-slot="footer"><button type="button" class="nish-icon-btn" id="nr-footer" aria-label="Theme">T</button></div>
+          <div data-slot="tools"><a href="/search"><span>Search</span></a></div>
+        </nish-nav-rail>
+      </div>
+
+      <!-- Scroll row -->
+      <div style="width:240px;border:1px solid var(--nish-line)">
+        <nish-scroll-row id="sr" label="Topics" snap>
+          <button type="button" class="nish-chip" style="flex:none">One</button>
+          <button type="button" class="nish-chip" style="flex:none">Two</button>
+          <button type="button" class="nish-chip" style="flex:none">Three</button>
+          <button type="button" class="nish-chip" style="flex:none">Four</button>
+          <button type="button" class="nish-chip" style="flex:none">Five</button>
+          <button type="button" class="nish-chip" style="flex:none">Six</button>
+          <button type="button" class="nish-chip" style="flex:none">Seven</button>
+          <button type="button" class="nish-chip" style="flex:none">Eight</button>
+          <button type="button" class="nish-chip" style="flex:none" aria-pressed="true" id="sr-active">Nine</button>
+        </nish-scroll-row>
+      </div>
+      <div style="width:600px">
+        <nish-scroll-row id="sr-short" label="Short"><button type="button" class="nish-chip">Only</button></nish-scroll-row>
+      </div>
+
+      <!-- Command palette -->
+      <button type="button" class="nish-btn" id="cp-open" style="align-self:flex-start">Open palette</button>
+      <input id="other-input" class="nish-input" aria-label="Other field" style="max-width:240px" />
+      <nish-command-palette id="cp" hotkey placeholder="Jump to…" empty-text="Nothing found">
+        <a href="#jobs" data-group="Pages" data-hint="/jobs" data-keywords="work career">Jobs</a>
+        <a href="#trips" data-group="Pages" data-hint="/trips">Trips</a>
+        <button type="button" id="cp-theme" data-id="theme" data-group="Actions" data-keywords="dark light">Toggle theme</button>
+        <button type="button" id="cp-plain" data-id="plain">Ungrouped action</button>
+      </nish-command-palette>
+      <nish-command-palette id="cp2" placeholder="Search…"></nish-command-palette>
+
+      <!-- Charts -->
+      <nish-line-chart id="lc" label="Latency" height="160" y-format="number" data='[{"x":1,"y":3},{"x":2,"y":5},{"x":3,"y":4},{"x":4,"y":8}]'></nish-line-chart>
+      <nish-line-chart id="lc-multi" label="CPU and memory" height="160" series='[{"label":"CPU","points":[{"x":1,"y":10},{"x":2,"y":30},{"x":3,"y":20}]},{"label":"Memory","points":[{"x":1,"y":50},{"x":2,"y":55},{"x":3,"y":60}]}]'></nish-line-chart>
+      <nish-line-chart id="lc-one" label="One point" data='[7]'></nish-line-chart>
+      <nish-line-chart id="lc-flat" label="Flat" data='[5,5,5,5]'></nish-line-chart>
+      <nish-line-chart id="lc-empty" label="Empty" data='[]'></nish-line-chart>
+      <nish-line-chart id="lc-empty-text" label="Nothing" empty="Waiting for data"></nish-line-chart>
+      <nish-bar-chart id="bc" label="Visits" height="140" show-values data='[{"label":"Mon","value":3},{"label":"Tue","value":9},{"label":"Wed","value":5}]'></nish-bar-chart>
+      <nish-bar-chart id="bc-empty" label="No bars" data='[]'></nish-bar-chart>
+
+      <!-- Section nav -->
+      <nish-section-nav id="sn" label="On this page">
+        <a href="#sec-a">Alpha</a>
+        <a href="#sec-b">Beta</a>
+        <a href="#sec-c">Gamma</a>
+      </nish-section-nav>
+      <section id="sec-a" class="nish-scroll-target" style="height:700px"><h2>Alpha</h2></section>
+      <section id="sec-b" class="nish-scroll-target" style="height:700px"><h2>Beta</h2></section>
+      <section id="sec-c" class="nish-scroll-target" style="height:700px"><h2>Gamma</h2></section>
+    </main>
+    <script type="module" src="./data.ts"></script>
+  </body>
+</html>

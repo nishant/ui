@@ -155,6 +155,26 @@ export const filterBar: ComponentDoc = {
         '<StatusChips />',
       ),
     ].join('\n'),
+  html: {
+    height: 260,
+    code: `<nish-filter-bar active-count="1" sheet-title="Filters">
+  <nish-search placeholder="Search jobs" label="Search jobs"></nish-search>
+  <nish-chip-group label="Status">
+    <button value="open" aria-pressed="true">Open</button>
+    <button value="closed">Closed</button>
+  </nish-chip-group>
+  <select class="nish-select" aria-label="Sort by">
+    <option>Newest</option>
+    <option>Oldest</option>
+  </select>
+  <span data-slot="summary">42 jobs</span>
+</nish-filter-bar>
+<script>
+  document.querySelector('nish-filter-bar').addEventListener('nish-clear', () => console.log('clear filters'));
+</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,
+  },
   stories: [
     {
       id: 'wide',

@@ -120,8 +120,10 @@ tags the page uses:
 - `elements-forms.js` (`nish-ui/elements/forms`): `<nish-field>`, `<nish-search>`,
   `<nish-switch>`, `<nish-chip-group>`, `<nish-combobox>`, `<nish-tabs>`, `<nish-segmented>`,
   `<nish-copy-button>` and `<nish-sparkline>`.
-- `elements-data.js` (`nish-ui/elements/data`): the data elements (coming).
-- `elements-charts.js` (`nish-ui/elements/charts`): the chart elements (coming).
+- `elements-data.js` (`nish-ui/elements/data`): `<nish-table-sort>`, `<nish-filter-bar>`,
+  `<nish-split>`, `<nish-nav-rail>`, `<nish-scroll-row>`, `<nish-section-nav>` and
+  `<nish-command-palette>`.
+- `elements-charts.js` (`nish-ui/elements/charts`): `<nish-line-chart>` and `<nish-bar-chart>`.
 
 Most component pages on the docs site, including all the form, feedback and display pages, have an HTML tab with the markup, running live. More in
 [Static sites](https://design.nish.software/#/static-sites).
