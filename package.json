@@ -199,5 +199,9 @@
     "vite": "^8.3.5",
     "vitest": "^4.1.12",
     "wait-on": "^9.5.1"
+  },
+  "overrides": {
+    "minimatch": "^11.0.4",
+    "follow-redirects": "^1.16.2"
   }
 }
