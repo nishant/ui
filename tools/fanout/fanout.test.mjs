@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { redact } from './gh.mjs';
-import { bumpTree, latestTag, prBody, resultLine } from './fanout.mjs';
+import { bumpTree, latestTag, notOnNpmLine, npmHas, prBody, resultLine } from './fanout.mjs';
 
 test('prBody: patch, no behavior changes', () => {
   const body = prBody({ pin: 'v0.7.0', tag: 'v0.7.1', behaviorChanges: false, markdown: '### [0.7.1]\n\nDocs.' });
@@ -72,8 +72,8 @@ test('bumpTree: moves uiDir and every uiExtraDirs folder, one lockfile run at th
     const entry = { ui: 'npm', uiDir: 'apps/web', uiExtraDirs: ['packages/worker'], bump: null };
     const moved = bumpTree(entry, dir, 'v0.9.3', { run: (cmd, o) => calls.push([cmd, o.cwd]) });
     assert.deepEqual(moved, ['apps/web', 'packages/worker']);
-    assert.equal(pinIn(dir, 'apps/web/package.json'), URL_OF('v0.9.3'));
-    assert.equal(pinIn(dir, 'packages/worker/package.json'), URL_OF('v0.9.3'));
+    assert.equal(pinIn(dir, 'apps/web/package.json'), 'npm:nish-ui@0.9.3');
+    assert.equal(pinIn(dir, 'packages/worker/package.json'), 'npm:nish-ui@0.9.3');
     assert.deepEqual(calls, [['npx -y npm@10 install --package-lock-only --ignore-scripts', dir]]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -92,7 +92,7 @@ test('bumpTree: uiDir already on the tag still moves the extra folder (pnpm, per
     const entry = { ui: 'pnpm', uiDir: 'web', uiExtraDirs: ['server'], bump: 'node x.mjs' };
     const moved = bumpTree(entry, dir, 'v0.9.3', { run: (cmd, o) => calls.push([cmd, o.cwd]) });
     assert.deepEqual(moved, ['server']);
-    assert.equal(pinIn(dir, 'server/package.json'), URL_OF('v0.9.3'));
+    assert.equal(pinIn(dir, 'server/package.json'), 'npm:nish-ui@0.9.3');
     assert.deepEqual(calls, [
       ['corepack pnpm install --lockfile-only', join(dir, 'web')],
       ['corepack pnpm install --lockfile-only', join(dir, 'server')],
@@ -129,4 +129,48 @@ test('bumpTree: a folder without a pin throws, naming the file', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('bumpTree: a vendored repo also moves the npm pin in its package.json and its lockfile', () => {
+  const dir = tree({
+    'ui.json': '{\n  "tag": "v0.9.2"\n}\n',
+    'package.json': pkgWith('v0.9.0').replace('"dependencies"', '"devDependencies"'),
+    'package-lock.json': '{}',
+  });
+  try {
+    const calls = [];
+    const moved = bumpTree({ ui: 'vendored', uiDir: '.', uiExtraDirs: [], bump: 'node scripts/sync-ui.mjs' }, dir, 'v0.9.3', {
+      run: (cmd, o) => calls.push([cmd, o.cwd]),
+    });
+    assert.deepEqual(moved, ['.']);
+    assert.match(readFileSync(join(dir, 'ui.json'), 'utf8'), /"tag": "v0\.9\.3"/);
+    assert.equal(JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).devDependencies['@nish/ui'], 'npm:nish-ui@0.9.3');
+    assert.deepEqual(calls, [
+      ['npx -y npm@10 install --package-lock-only --ignore-scripts', dir],
+      ['node scripts/sync-ui.mjs', dir],
+    ]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('bumpTree: a vendored repo whose package.json has no @nish/ui pin runs no npm', () => {
+  const dir = tree({ 'ui.json': '{ "tag": "v0.9.2" }', 'package.json': '{ "devDependencies": {} }', 'package-lock.json': '{}' });
+  try {
+    const calls = [];
+    bumpTree({ ui: 'vendored', uiDir: '.', uiExtraDirs: [], bump: null }, dir, 'v0.9.3', { run: (cmd) => calls.push(cmd) });
+    assert.deepEqual(calls, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('npmHas: the exact version only; E404 or an unreachable registry is "not yet"', () => {
+  const seen = [];
+  assert.equal(npmHas('v1.5.0', { run: (cmd, args) => (seen.push([cmd, ...args]), '1.5.0\n') }), true);
+  assert.deepEqual(seen, [['npm', 'view', 'nish-ui@1.5.0', 'version']]);
+  assert.equal(npmHas('v1.5.0', { run: () => '' }), false);
+  assert.equal(npmHas('v1.5.0', { run: () => { throw new Error('npm error code E404'); } }), false);
+  assert.equal(npmHas('v1.5.0', { run: () => { throw new Error('ENOTFOUND registry.npmjs.org'); } }), false);
+  assert.equal(notOnNpmLine('v1.5.0'), 'nish-ui 1.5.0 is not on npm yet; the next run retries.');
 });

@@ -26,9 +26,15 @@ examples exactly as written, install it under that name with an npm alias:
 npm install @nish/ui@npm:nish-ui
 ```
 
-The nish.software apps pin a git tag instead, which carries the same built files:
-`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`. The release
-fan-out keeps that pin current, so the version is never written by hand.
+The nish.software apps pin that alias to an exact version,
+`"@nish/ui": "npm:nish-ui@X.Y.Z"`. The release fan-out keeps the pin current, so the version is
+never written by hand.
+
+### Fallback: without the npm registry
+
+Every release tag carries the same built files, so a machine that cannot reach npm can pin the
+tag's tarball, which needs only HTTPS:
+`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`.
 
 ## Usage
 

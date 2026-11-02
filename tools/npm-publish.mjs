@@ -2,7 +2,7 @@
 // Publish a release tag to npm as nish-ui: node tools/npm-publish.mjs <tag-checkout> [--tag vX.Y.Z] [--dry-run]
 //
 // Run by .github/workflows/publish.yml, which checks out the tag (it carries dist/) into its own
-// folder. The repo and every tag keep the name @nish/ui, so the codeload pins and the fan-out
+// folder. The repo and every tag keep the name @nish/ui, so the fan-out and the tags
 // never see the npm name; only the copy published here is renamed (the @nish scope on npm is
 // someone else's). Publishing is idempotent: a version already on npm is skipped.
 import { execFileSync } from 'node:child_process';

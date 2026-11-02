@@ -154,3 +154,20 @@ test('main: held and current repos exit 0', async () => {
   assert.match(summary, /- \*\*nishant\/trackers\*\*: held, No checks ran on this PR \(#3\)/);
   assert.equal(printed.some((l) => l.startsWith('::error')), false);
 });
+
+test('main: a tag npm does not have yet touches no repo and says so in the summary, exit 0', async () => {
+  const fleet = '- repo: nishant/status\n  ui: npm\n';
+  const asked = [];
+  const { code, summary } = await runMain(fleet, () => {
+    const run = new Run({ dry: false, wait: 0, npmHas: (tag) => (asked.push(tag), false) });
+    run.probe = () => ok;
+    run.tagExists = () => true;
+    // Any GitHub call past the npm check would land here.
+    run.settle = () => assert.fail('settle ran');
+    run.settleDeps = async () => [];
+    return run;
+  });
+  assert.equal(code, 0);
+  assert.deepEqual(asked, ['v0.10.0']);
+  assert.equal(summary, '- **nishant/status**: skipped, nish-ui 0.10.0 is not on npm yet; the next run retries.\n');
+});

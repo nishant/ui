@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compare, isPatch, lockDirs, lowestPin, major, parse, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
+import { compare, isPatch, lockDirs, lowestPin, major, npmSpec, parse, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 
 const pkg = (spec, section = 'dependencies') =>
   `{\n  "name": "app",\n  "${section}": {\n    "@nish/ui": "${spec}",\n    "react": "^19.0.0"\n  }\n}\n`;
@@ -25,19 +25,35 @@ test('pinOf: no pin, no tag in the spec, bad json', () => {
   assert.equal(pinOf('npm', 'not json'), null);
 });
 
-test('rewritePin keeps formatting and rewrites the whole spec to the codeload tarball', () => {
-  const before = pkg('github:nishant/ui#v0.7.0');
-  const after = rewritePin('npm', before, 'v0.7.1');
-  assert.equal(
-    after,
-    before.replace('github:nishant/ui#v0.7.0', 'https://codeload.github.com/nishant/ui/tar.gz/refs/tags/v0.7.1'),
-  );
-  const tabs = '{\n\t"dependencies": {\n\t\t"@nish/ui" :   "github:nishant/ui#v0.7.0"\n\t}\n}';
-  assert.match(rewritePin('npm', tabs, 'v0.7.1'), /"@nish\/ui" : {3}"https:\/\/codeload\.github\.com\/nishant\/ui\/tar\.gz\/refs\/tags\/v0\.7\.1"/);
+test('pinOf: the npm alias, exact or with a caret; an alias to another package is no pin', () => {
+  assert.equal(pinOf('npm', pkg('npm:nish-ui@1.5.0')), 'v1.5.0');
+  assert.equal(pinOf('pnpm', pkg('npm:nish-ui@^1.5.0')), 'v1.5.0');
+  assert.equal(pinOf('npm', pkg('npm:nish-ui@1.5.0', 'devDependencies')), 'v1.5.0');
+  assert.equal(pinOf('npm', pkg('npm:other@1.0.0')), null);
+  assert.equal(pinOf('npm', pkg('npm:nish-ui@latest')), null);
 });
+
+test('npmSpec', () => {
+  assert.equal(npmSpec('v1.5.0'), 'npm:nish-ui@1.5.0');
+});
+
+test('rewritePin migrates codeload, github: and the alias to the exact npm alias, keeping formatting', () => {
+  for (const from of [
+    'https://codeload.github.com/nishant/ui/tar.gz/refs/tags/v0.7.0',
+    'github:nishant/ui#v0.7.0',
+    'npm:nish-ui@0.7.0',
+    'npm:nish-ui@^0.7.0',
+  ]) {
+    const before = pkg(from);
+    assert.equal(rewritePin('npm', before, 'v0.7.1'), before.replace(from, 'npm:nish-ui@0.7.1'));
+  }
+  const tabs = '{\n\t"dependencies": {\n\t\t"@nish/ui" :   "github:nishant/ui#v0.7.0"\n\t}\n}';
+  assert.equal(rewritePin('pnpm', tabs, 'v0.7.1'), '{\n\t"dependencies": {\n\t\t"@nish/ui" :   "npm:nish-ui@0.7.1"\n\t}\n}');
+});
+
 test('rewritePin: vendored and devDependencies', () => {
   assert.equal(rewritePin('vendored', '{\n  "tag": "v0.7.0",\n  "x": 1\n}', 'v0.7.1'), '{\n  "tag": "v0.7.1",\n  "x": 1\n}');
-  assert.match(rewritePin('npm', pkg('github:nishant/ui#v0.7.0', 'devDependencies'), 'v0.8.0'), /refs\/tags\/v0\.8\.0/);
+  assert.match(rewritePin('npm', pkg('github:nishant/ui#v0.7.0', 'devDependencies'), 'v0.8.0'), /"npm:nish-ui@0\.8\.0"/);
 });
 test('rewritePin: no pin throws with the path', () => {
   assert.throws(() => rewritePin('npm', '{}', 'v0.7.1', 'apps/web/package.json'), /No @nish\/ui pin in apps\/web\/package\.json/);

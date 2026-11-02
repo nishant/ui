@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [Unreleased]
+
+### Changed
+
+- Fan-out pins apps to npm (`npm:nish-ui@X.Y.Z`); publish runs before the fan-out, and the fan-out waits until npm has the version. A vendored repo's `package.json` pin (hosting's, for `@nish/ui/eslint`) moves with its `ui.json`. The README, docs/RELEASING.md and the Getting started page lead with npm; the codeload tarball is the fallback without the npm registry.
+
 ## [1.4.1] - 2026-11-02
 
 ### Changed

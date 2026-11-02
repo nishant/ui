@@ -6,6 +6,7 @@
 //        [--wait <minutes>] [--dry-run]
 //
 // Needs GH_TOKEN (the FLEET_TOKEN secret in Actions, or `gh auth token` locally).
+import { execFileSync } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
@@ -22,7 +23,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sections } from './changelog.mjs';
 import { parseFleet } from './fleet.mjs';
 import { CmdError, api, apiJson, gh, git, isForbidden, isNoAccess, redact, sh, sleep } from './gh.mjs';
-import { compare, lockDirs, lowestPin, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
+import { compare, lockDirs, lowestPin, npmSpec, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 import { computeChecks, cut, decide, isAdoptedHead, limitFor, updateLabel } from './policy.mjs';
 
 const UI_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -207,12 +208,50 @@ export function bumpTree(entry, dir, tag, { run = sh, at = {} } = {}) {
       run(cmd, { cwd: d === '.' ? dir : join(dir, d), env: NO_TOKEN_ENV });
     }
   }
+  if (entry.ui === 'vendored') bumpVendoredPackage(dir, dirs, tag, { run, at });
   if (entry.bump) {
     at.step = entry.bump;
     run(entry.bump, { cwd: dir, env: NO_TOKEN_ENV });
   }
   return moved;
 }
+
+/**
+ * A vendored repo can also pin @nish/ui in a package.json next to its ui.json (hosting does, for
+ * `@nish/ui/eslint`): move that npm pin with the vendored one and regenerate its lockfile.
+ */
+function bumpVendoredPackage(dir, dirs, tag, { run, at }) {
+  for (const d of dirs) {
+    const rel = pinFile('npm', d);
+    if (!existsSync(join(dir, rel))) continue;
+    const text = readFileSync(join(dir, rel), 'utf8');
+    const pin = pinOf('npm', text);
+    // No pin is fine (nothing to move). A pin past the tag, or already the alias at it, stays.
+    if (!pin || compare(pin, tag) > 0 || text.includes(`"${npmSpec(tag)}"`)) continue;
+    at.step = `pin rewrite (${rel})`;
+    writeFileSync(join(dir, rel), rewritePin('npm', text, tag, rel));
+    if (existsSync(join(dir, d === '.' ? 'package-lock.json' : `${d}/package-lock.json`))) {
+      at.step = d === '.' ? LOCK_CMD.npm : `${LOCK_CMD.npm} (in ${d})`;
+      run(LOCK_CMD.npm, { cwd: d === '.' ? dir : join(dir, d), env: NO_TOKEN_ENV });
+    }
+  }
+}
+
+/**
+ * Whether npm has nish-ui at `tag` yet. Any failure (E404, npm unreachable) counts as "not yet":
+ * the next hourly run retries, so a bump PR never points at a version npm does not have.
+ */
+export function npmHas(tag, { run = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' }) } = {}) {
+  const version = String(tag).replace(/^v/, '');
+  try {
+    return run('npm', ['view', `nish-ui@${version}`, 'version']).trim() === version;
+  } catch {
+    return false;
+  }
+}
+
+/** The job summary line when the tag is not on npm yet (exact copy from the spec). */
+export const notOnNpmLine = (tag) => `nish-ui ${String(tag).replace(/^v/, '')} is not on npm yet; the next run retries.`;
 
 export class Run {
   constructor(args) {
@@ -222,6 +261,26 @@ export class Run {
     this.failed = false;
     this.checkRunsForbidden = false;
     this.ui = args.uiRoot ?? UI_ROOT;
+    this.npmHas = args.npmHas ?? npmHas;
+    this.npmSeen = new Set();
+  }
+
+  /**
+   * Wait for npm to have `tag`, up to `--wait` minutes (at most 15; none on the hourly run). The
+   * release dispatches publish.yml just before the fan-out, so a dispatched run usually waits a
+   * minute or two; the hourly run retries whatever is still missing.
+   */
+  async onNpm(tag) {
+    if (this.npmSeen.has(tag)) return true;
+    const end = Date.now() + Math.min(this.waitMin, 15) * 60_000;
+    for (;;) {
+      if (this.npmHas(tag)) {
+        this.npmSeen.add(tag);
+        return true;
+      }
+      if (Date.now() >= end) return false;
+      await sleep(POLL_MS);
+    }
   }
 
   say(line) {
@@ -241,6 +300,9 @@ export class Run {
   async uiBump(entry, tag) {
     const R = entry.repo;
     if (!this.tagExists(tag)) return { repo: R, result: 'error', detail: `No tag ${tag}` };
+    // Before any repo work: never point a bump PR at a version npm does not have, since apps
+    // install npm:nish-ui@X.Y.Z. main() writes the result line, with this text, to the job summary.
+    if (!(await this.onNpm(tag))) return { repo: R, result: 'skipped', detail: notOnNpmLine(tag) };
 
     // The lowest pin across uiDir and uiExtraDirs: a repo is current only when every folder is.
     const base = lowestPin(entry.ui, pinDirs(entry), (path) => rawFile(R, path, entry.base));

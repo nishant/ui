@@ -16,7 +16,8 @@ export PYTHONIOENCODING=utf-8 PYTHONUTF8=1
 tag="${1:?usage: bump-consumers.sh vX.Y.Z [--dry-run|--no-merge]}"
 mode="${2:-}"
 [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag must look like v0.3.0, got $tag" >&2; exit 2; }
-url="https://codeload.github.com/nishant/ui/tar.gz/refs/tags/$tag"
+# The npm alias, as the fan-out writes it (tools/fanout/pin.mjs npmSpec).
+url="npm:nish-ui@${tag#v}"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
@@ -48,11 +49,12 @@ for p in python3 python; do
   if "$p" -c 'import sys' >/dev/null 2>&1; then py="$p"; break; fi
 done
 
-# Rewrites the "@nish/ui" dependency in package.json ($1) to $url. Prints nothing;
+# Rewrites the "@nish/ui" dependency in package.json ($1) to $url, from any of the three forms
+# (github:, the codeload tarball, the npm alias). Prints nothing;
 # the caller asks git whether the file changed.
 rewrite() {
   sed -E -i.bak \
-    "s~(\"@nish/ui\"[[:space:]]*:[[:space:]]*\")(github:nishant/ui#v[^\"]+|https://codeload\.github\.com/nishant/ui/tar\.gz/refs/tags/v[^\"]+)(\")~\1$url\3~" \
+    "s~(\"@nish/ui\"[[:space:]]*:[[:space:]]*\")(github:nishant/ui#v[^\"]+|https://codeload\.github\.com/nishant/ui/tar\.gz/refs/tags/v[^\"]+|npm:nish-ui@[^\"]+)(\")~\1$url\3~" \
     "$1"
   rm -f "$1.bak"
 }
