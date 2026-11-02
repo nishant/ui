@@ -2,6 +2,7 @@
 // Imports only types from 'hono', so there is no runtime dependency on it.
 import type { Context, Env, ErrorHandler, Handler, Hono, MiddlewareHandler } from 'hono';
 import { clientIp } from './client-ip';
+import { isCrossSiteWrite, type CrossSiteOptions } from './cross-site';
 import { INBOX_ACTION_PATH, isInboxCall, parseInboxActionCall } from './inbox/action';
 import type { InboxActionCall, InboxData } from './inbox/types';
 import type { Limiter } from './limiter';
@@ -99,6 +100,16 @@ export function mountSessionRoutes<E extends Env>(app: Hono<E>, o: LoginOptions 
     endSession(c, o.auth);
     return c.json({ authed: false });
   });
+}
+
+/** app.use('*', crossSiteGuard()): isCrossSiteWrite -> 403 { error: message } (default
+ *  'Cross-site request refused.'), before any route or login runs; everything else goes on. */
+export function crossSiteGuard(opts?: CrossSiteOptions & { message?: string }): MiddlewareHandler {
+  const message = opts?.message ?? 'Cross-site request refused.';
+  return async (c, next) => {
+    if (isCrossSiteWrite(c.req.method, (name) => c.req.header(name), opts)) return c.json({ error: message }, 403);
+    await next();
+  };
 }
 
 /** app.get('*', serveSpa(...)): createSpaHandler(o) on c.req.raw. */
