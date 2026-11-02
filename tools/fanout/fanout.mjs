@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// The ui fan-out: open (or update) a `ui/vX.Y.Z` PR in every repo listed in hosting/fleet.yaml,
+// The ui fan-out: open (or update) a `ui/vX.Y.Z` PR in every repo listed in hosting/catalog.json,
 // settle it (checks, Fold report, merge policy), watch the deploy and revert on failure.
 //
-//   node tools/fanout/fanout.mjs --fleet fleet.yaml --tag v0.7.1|latest [--repo owner/name|all]
+//   node tools/fanout/fanout.mjs --catalog catalog.json --tag v0.7.1|latest [--repo owner/name|all]
 //        [--wait <minutes>] [--dry-run]
 //
 // Needs GH_TOKEN (the FLEET_TOKEN secret in Actions, or `gh auth token` locally).
@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sections } from './changelog.mjs';
-import { parseFleet } from './fleet.mjs';
+import { fleetFromCatalog } from './fleet.mjs';
 import { CmdError, api, apiJson, gh, git, isForbidden, isNoAccess, redact, sh, sleep } from './gh.mjs';
 import { compare, lockDirs, lowestPin, npmSpec, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 import { computeChecks, cut, decide, isAdoptedHead, limitFor, updateLabel } from './policy.mjs';
@@ -100,14 +100,14 @@ function parseArgs(argv) {
   const a = { fleet: null, tag: null, repo: 'all', wait: 0, dry: false };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
-    if (k === '--fleet') a.fleet = argv[++i];
+    if (k === '--catalog' || k === '--fleet') a.fleet = argv[++i];
     else if (k === '--tag') a.tag = argv[++i];
     else if (k === '--repo') a.repo = argv[++i] || 'all';
     else if (k === '--wait') a.wait = Number(argv[++i]);
     else if (k === '--dry-run') a.dry = true;
     else throw new Error(`Unknown argument ${k}`);
   }
-  if (!a.fleet || !a.tag) throw new Error('usage: fanout.mjs --fleet <file> --tag <vX.Y.Z|latest> [--repo owner/name|all] [--wait <minutes>] [--dry-run]');
+  if (!a.fleet || !a.tag) throw new Error('usage: fanout.mjs --catalog <catalog.json> --tag <vX.Y.Z|latest> [--repo owner/name|all] [--wait <minutes>] [--dry-run]');
   if (!Number.isFinite(a.wait) || a.wait < 0) throw new Error('--wait needs a number of minutes');
   return a;
 }
@@ -172,7 +172,7 @@ function gitAuthEnv() {
 
 const authGit = (args, opts = {}) => git(args, { ...opts, env: { ...opts.env, ...gitAuthEnv() } });
 
-// Repo-controlled commands (fleet.yaml bump, pnpm hooks) run without any token in their env.
+// Repo-controlled commands (catalog.json bump, pnpm hooks) run without any token in their env.
 const NO_TOKEN_ENV = { GH_TOKEN: undefined, GITHUB_TOKEN: undefined, GH_ENTERPRISE_TOKEN: undefined, GITHUB_ENTERPRISE_TOKEN: undefined };
 
 function cloneBase(repo, base, dir, depth = 1) {
@@ -729,7 +729,7 @@ export async function main(argv, { makeRun = (a) => new Run(a) } = {}) {
     console.error('GH_TOKEN is not set');
     return 1;
   }
-  const fleet = parseFleet(readFileSync(args.fleet, 'utf8'));
+  const fleet = fleetFromCatalog(readFileSync(args.fleet, 'utf8'));
   const picked = args.repo === 'all' ? fleet : fleet.filter((e) => e.repo === args.repo);
   if (picked.length === 0) {
     console.error(`Unknown repo ${args.repo}: not in ${args.fleet}`);

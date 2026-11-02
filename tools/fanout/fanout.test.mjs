@@ -43,7 +43,7 @@ test('CLI: missing GH_TOKEN exits 1 with a message', () => {
   const cli = new URL('./fanout.mjs', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
   const env = { ...process.env };
   delete env.GH_TOKEN;
-  const r = spawnSync(process.execPath, [cli, '--fleet', 'nope.yaml', '--tag', 'latest'], { encoding: 'utf8', env });
+  const r = spawnSync(process.execPath, [cli, '--catalog', 'nope.json', '--tag', 'latest'], { encoding: 'utf8', env });
   assert.equal(r.status, 1);
   assert.match(r.stderr, /GH_TOKEN is not set/);
 });
