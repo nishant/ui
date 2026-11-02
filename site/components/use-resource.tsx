@@ -120,7 +120,7 @@ await apiFetch('/api/positions', { method: 'POST', body: { symbol: 'NISH' } });`
   guidelines: [
     'loading is true only while there is no data yet. Use refreshing for a subtle spinner on background loads, and keep showing the data.',
     'A failed refresh keeps the last good data and sets error. Show a small notice, not a blank page.',
-    'apiFetch throws ApiError with status 0 for network failures and timeouts, and the message comes from body.error or body.message when the server sent one.',
+    'apiFetch throws ApiError with status 0 for network failures ("Could not reach the server.") and timeouts ("The server took too long to answer."). Otherwise the message is the server\'s body.error or body.message sentence; a bare code such as not_found, or no message at all, becomes the shared wording: "Log in to continue." for a 401, "That was not found.", "The server had a problem. Try again." or "The server answered 503.". Show error.message as it is.',
     'The key is the request identity: change it to refetch (a filter, a page). Pass null to wait for a dependency.',
     'There is no shared cache and no request dedupe. Two hooks on the same key fetch twice; lift the hook up and pass the result down.',
     'For optimistic updates call mutate with the new value, then reload to confirm it with the server.',

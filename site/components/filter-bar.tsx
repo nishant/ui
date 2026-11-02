@@ -224,6 +224,7 @@ export function Jobs({ jobs }) {
   guidelines: [
     'Filter state belongs to the page. FilterBar only lays the controls out; useUrlState is the usual place to keep them.',
     'useUrlState replaces the history entry (no Back-button trail of keystrokes) and leaves the hash, history.state and unknown query keys alone. Values equal to the default are left out of the URL.',
+    'A list is written as repeated keys (?loc=Austin%2C+TX&loc=Dallas), so a value may hold a comma. For links written in the older comma form (?tags=a,b), pass comma: true, or the keys that used it (comma: ["tags"]).',
     'Pass activeCount so the Filters button shows how many filters are on; without it a phone user cannot tell that the list is filtered.',
     'Put the one control people change most (a sort Select, a view toggle) in trailing: it stays visible at every width.',
     'On a router that owns the URL, pass an adapter built on its search-params hook instead of the default location adapter.',

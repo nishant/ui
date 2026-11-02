@@ -4,6 +4,24 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [Unreleased]
+
+### Added
+
+- `AppShell` `sidebar`: from 1024px the nav is a left sidebar of icon and label rows instead of header tabs. It collapses to icons (the label becomes the tooltip) from a button at its foot, remembers the choice in localStorage (`storageKey`), can be controlled (`collapsed`, `onCollapsedChange`) and takes `tools` above the nav and a `footer`.
+- `AppShell` `banner`: app banners in one sticky stack under the header, below the ConnectionBanner, so the two never overlap. The stack publishes its height as `--nish-banners-h`, and the rail and sidebar stick below it.
+- `AppShell` without `nav` (now optional) is the signed-out frame: no tabs, rail, sidebar, bottom bar or More sheet.
+- `AppShell` and `AppHeader` `brand`: your own node in place of the icon, the name and their home link (a profile switcher, a wordmark with a subtitle).
+- `NumberField` is a spinbutton (`role="spinbutton"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`). When `min` allows negatives (or there is no `min`) it asks phones for the full keyboard, since the decimal keypad has no minus key, and it reads a typographic minus (−).
+- `SettingsSection` and `SettingRow` `compact`: no Card, a small heading and 44px rows with the label beside the control at every width, for modals, sheets and side panels. Rows in a compact section are compact by default.
+- `useUrlState` `comma`: `true` or a list of keys also reads a single `?tags=a,b` as two values, for links written in the older comma form.
+
+### Changed
+
+- `useUrlState` keeps a single list value whole, so `?loc=Austin%2C+TX` reads as `['Austin, TX']`. A single comma value used to be split; pass `comma` for the keys whose old links need that.
+- `apiFetch` errors use the wording the apps share: "Could not reach the server.", "The server took too long to answer.", "Log in to continue." (401), "That was not found." (a 404 code), "The server had a problem. Try again." (any other bare code such as `server_error`) and "The server answered 503." when the response has no message. A sentence from the server in `error` or `message` is still shown as it is.
+- ui lints with `react-hooks/refs` as an error: latest-value refs are written in a layout effect instead of during render (overlays, menus, useResource, useLocalStorage, useCommandHotkey, the command palette and the flow components). Behavior is unchanged.
+
 ## [1.4.1] - 2026-11-02
 
 ### Changed
