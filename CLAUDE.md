@@ -47,6 +47,9 @@ tag-push fan-out runs from it); `scripts/release.mjs --ci` dispatches `fanout.ym
 
 ## Traps
 
+- A push to master while `release.yml` runs (another session's `[skip ci]` ROADMAP commit) fails the release
+  ("HEAD is not origin/master" or a rejected `git push origin master`). Nothing lands (no version commit, no tag):
+  dispatch it again once master is quiet.
 - A release whose major is higher than an app's pin (0.x → 1.0.0, 1.x → 2.0.0) is held in every app
   ("Major release: a session has to adopt it"). When nothing needs to change, adopt each `ui/vX.Y.Z` PR with an
   empty commit by someone other than `ui fan-out`; the next hourly run merges it once checks pass. A newer tag
