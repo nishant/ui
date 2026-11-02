@@ -20,6 +20,7 @@ a minor adds, and a patch fixes.
 ### Changed
 
 - `SystemCanvas` defaults to `layout="auto"`. Pass `layout="columns"` for the old look.
+- `AppHeader`: the nav row has 24 px between links instead of 4 px.
 
 ## [1.0.2] - 2026-10-31
 
