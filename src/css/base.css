@@ -1295,6 +1295,11 @@ kbd {
   background: var(--nish-bg);
   transition: border-color 400ms, box-shadow 600ms, background-color 300ms;
 }
+/* Afterglow of recent work, from the slot's heat values. :where keeps it under hover and active. */
+.nish-canvas-node:where([data-heat]) {
+  border-color: var(--nish-canvas-heat-line, var(--nish-line));
+  box-shadow: var(--nish-canvas-heat-glow, none);
+}
 .nish-canvas-node:hover {
   border-color: color-mix(in srgb, var(--c) 55%, var(--nish-line));
 }
