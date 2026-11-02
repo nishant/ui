@@ -56,6 +56,14 @@ export const textarea: ComponentDoc = {
       invalid: a.invalid,
       disabled: a.disabled,
     }),
+  html: {
+    height: 260,
+    code: `<div style="display:grid;gap:12px;max-width:24rem">
+  <textarea class="nish-textarea" rows="3" placeholder="Notes" aria-label="Notes"></textarea>
+  <!-- Grows with its text; --nish-rows sets the minimum height. -->
+  <textarea class="nish-textarea nish-textarea--grow" rows="2" style="--nish-rows: 2" placeholder="Grows as you type" aria-label="Comment"></textarea>
+</div>`,
+  },
   stories: [
     { id: 'label', name: 'With a label', render: () => <div className="w-full max-w-sm"><Field label="Paste a resume"><Textarea rows={3} defaultValue="Senior engineer, 8 years of TypeScript and React." /></Field></div> },
     { id: 'invalid', name: 'Invalid', render: () => <div className="w-full max-w-sm"><Field label="Notes" error="Keep it under 500 characters."><Textarea defaultValue="Too long" /></Field></div> },

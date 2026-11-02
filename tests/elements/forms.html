@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>forms elements harness</title>
+  </head>
+  <body>
+    <!-- Every wave 2 element, written as plain markup so the parse-time path is the one tested.
+         forms.spec.ts drives it; forms.ts loads the elements and records their events. -->
+    <main id="root" style="padding:16px;display:flex;flex-direction:column;gap:16px;align-items:flex-start;max-width:480px">
+      <nish-field id="f-hint" label="Email" hint="We never share it">
+        <input class="nish-input" type="email" name="email" />
+      </nish-field>
+
+      <nish-field id="f-opt" label="Nickname" optional layout="inline" label-width="7rem">
+        <input class="nish-input" id="nick" type="text" aria-describedby="nick-note" />
+      </nish-field>
+      <p id="nick-note">Shown on your profile.</p>
+
+      <nish-field id="f-cb" label="Fruit" hint="Pick one">
+        <nish-combobox id="cb-field" placeholder="Search fruit">
+          <option value="apple">Apple</option>
+          <option value="banana">Banana</option>
+        </nish-combobox>
+      </nish-field>
+
+      <nish-field id="f-search" label="Find">
+        <nish-search id="s-field"></nish-search>
+      </nish-field>
+
+      <form id="form" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start" onsubmit="return false">
+        <nish-search id="s1" placeholder="Search jobs" name="q"></nish-search>
+
+        <nish-switch id="sw1" label="Alerts" description="Email me when it changes" name="alerts"></nish-switch>
+        <nish-switch id="sw2" label="Locked" disabled></nish-switch>
+
+        <nish-combobox id="cb1" label="Fruit" placeholder="Pick a fruit" name="fruit">
+          <option value="apple">Apple</option>
+          <option value="banana">Banana</option>
+          <option value="cherry" data-hint="red">Cherry</option>
+          <option value="date">Date</option>
+          <option value="elder">Elderberry</option>
+        </nish-combobox>
+
+        <nish-segmented id="sg1" label="Size" value="m" name="size">
+          <button value="s">Small</button>
+          <button value="m">Medium</button>
+          <button value="l">Large</button>
+        </nish-segmented>
+        <button type="submit" class="nish-btn" id="submit">Save</button>
+      </form>
+
+      <nish-combobox id="cb2" label="Tag" allow-custom empty-text="Nothing here" placeholder="Tag">
+        <option value="red">Red</option>
+        <option value="blue">Blue</option>
+      </nish-combobox>
+      <nish-combobox id="cb3" label="Color">
+        <option value="red">Red</option>
+        <option value="green">Green</option>
+        <option value="blue">Blue</option>
+      </nish-combobox>
+
+      <nish-chip-group id="cg-multi" label="Status">
+        <button value="open">Open</button>
+        <button>Closed</button>
+        <button value="all">All</button>
+      </nish-chip-group>
+      <nish-chip-group id="cg-single" label="Range" single>
+        <button value="day">Day</button>
+        <button value="week">Week</button>
+        <button value="month">Month</button>
+      </nish-chip-group>
+      <nish-chip-group id="cg-remove" label="Selected">
+        <span class="nish-chip" data-removable>Draft</span>
+        <span class="nish-chip" data-removable>Review</span>
+      </nish-chip-group>
+
+      <nish-tabs id="tb1" label="Sections">
+        <button value="a">Alpha</button>
+        <button value="b">Beta</button>
+        <button value="c">Gamma</button>
+      </nish-tabs>
+      <div data-tab-panel="a" data-tabs="tb1">Alpha panel</div>
+      <div data-tab-panel="b" data-tabs="tb1">Beta panel</div>
+      <div data-tab-panel="c" data-tabs="tb1">Gamma panel</div>
+
+      <nish-tabs id="tb2" label="Pills" variant="pill" size="sm" value="nope">
+        <button value="x">One</button>
+        <button value="y">Two</button>
+      </nish-tabs>
+
+      <nish-segmented id="sg2" label="Mode" value="zzz">
+        <button value="one">One</button>
+        <button value="two">Two</button>
+      </nish-segmented>
+
+      <nish-copy-button id="cp1" value="npm i nish-ui"></nish-copy-button>
+      <code id="src">from the page</code>
+      <nish-copy-button id="cp2" for="src" label="Copy command" copied-label="Done"></nish-copy-button>
+      <nish-copy-button id="cp3" value="icon text" icon></nish-copy-button>
+
+      <nish-sparkline id="sp1" values="3,5,4,8" label="Response time"></nish-sparkline>
+      <nish-sparkline id="sp2" values="4"></nish-sparkline>
+    </main>
+    <script type="module" src="./forms.ts"></script>
+  </body>
+</html>

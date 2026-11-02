@@ -2,8 +2,10 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 // Parity: the same component rendered by the React twin (react.html) and by the element or
 // nish-* class markup (index.html) must look the same. For each wave 1 component and state
-// (theme toggle; sheet open; dialog open; toast in each tone; bottom nav with an active item),
-// at 360x780 and 1440x900, in light and dark:
+// (theme toggle; sheet open; dialog open; toast in each tone; bottom nav with an active item) and
+// each wave 2 class and element in each state that changes its look (WAVE2_CASES: fields, switch,
+// chip, tabs in every variant, open combobox, list rows, callouts, dots, ...), at 360x780 and
+// 1440x900, in light and dark:
 //   - the main box has the same width and height (within 1px);
 //   - the box has equal background-color, border-color (when it has a border), border-radius
 //     and padding;
@@ -12,9 +14,10 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 //     with padding on the title, so the computed padding of those nodes is not comparable).
 // The box's own color and font-size are not compared: a React box inherits them and its text
 // nodes set them, which the title and body checks cover.
-// The test fails when the element version drifts from the React one. Differences that exist
-// today are listed in KNOWN_GAPS with their exact values: a new or changed difference fails, and so
-// does a listed gap that no longer shows up, until the CSS is aligned. Run with PARITY_VERBOSE=1 to print every difference with its values.
+// The test fails when the element version drifts from the React one. KNOWN_GAPS is the mechanism for
+// a difference that cannot be closed yet (exact values, "prop element vs react"); it is empty: a new
+// difference is fixed in the CSS, never listed. Run with PARITY_VERBOSE=1 to print every difference
+// with its values.
 
 const BASE = 'http://localhost:5194';
 const SIZES = [
@@ -33,6 +36,9 @@ interface Case {
   query: string;
   react: Part;
   element: Part;
+  /** Measurements left out of the comparison because the two versions draw the same look with a different
+   *  structure (e.g. "box.paddingTop"). Each use says why next to the case. */
+  ignore?: readonly string[];
   /** Sizes at which the component is shown (the bottom nav hides from 768px). */
   sizes?: readonly (typeof SIZES)[number]['name'][];
 }
@@ -75,78 +81,182 @@ const CASES: Case[] = [
   },
 ];
 
-/** Differences that exist today: real gaps between the nish-* CSS and the React twin, found by this
- *  test, each with its exact values (`prop element vs react`, numbers rounded to whole px). A case
- *  must show exactly this set at that size and scheme: a difference that is not listed fails, and a
- *  listed one that no longer shows up fails too, so a gap cannot linger after it is closed and
- *  cannot grow unnoticed. When the CSS is aligned, delete the entry (ROADMAP tracks it). */
+// --- Wave 2 ---------------------------------------------------------------------------------
+// react.tsx and elements.ts render the same case id in a 28rem stage. Most React components take
+// className="case" and the nish-* markup carries class "case", so `.case` is often the box on both
+// sides. `both` is for cases whose selectors are the same in the two pages.
+
+const both = (box: string, rest: Omit<Part, 'box'> = {}): Pick<Case, 'react' | 'element'> => ({
+  react: { box, ...rest },
+  element: { box, ...rest },
+});
+const wave2 = (id: string, parts: Pick<Case, 'react' | 'element'>, query = '', ignore?: readonly string[]): Case => ({
+  name: id.replace(/-/g, ' '),
+  query: `c=${id}${query}`,
+  ...parts,
+  ...(ignore ? { ignore } : {}),
+});
+// The React switch is a transparent button around a 2px-padded track that holds the knob; .nish-switch is
+// the track itself and draws the knob with a pseudo-element. Same look, so the track's padding is not compared.
+const TRACK_PADDING = ['box.paddingTop', 'box.paddingRight', 'box.paddingBottom', 'box.paddingLeft'] as const;
+// The React header keeps its padding on the inner row, .nish-app-header on the header itself.
+const HEADER_PADDING = TRACK_PADDING;
+const callout = (tone: string): Case =>
+  wave2(`callout-${tone}`, {
+    react: { box: '.case', title: '.case p.font-medium', body: '.case .basis-60 > div' },
+    element: { box: '.case', title: '.nish-callout-title', body: '.case div > p:not(.nish-callout-title)' },
+  });
+const chip = (id: string, react = '#stage button', element = 'nish-chip-group button'): Case =>
+  wave2(id, { react: { box: react, title: react }, element: { box: element, title: element } });
+const tabs = (id: string): Case => wave2(id, both('[role="tablist"]', { title: '[role="tab"][aria-selected="true"]' }));
+const seg = (id: string): Case => wave2(id, both('[role="radiogroup"]', { title: '[role="radio"][aria-checked="true"]' }));
+const listRow = (id: string, body = true): Case =>
+  wave2(id, {
+    react: { box: '.case', title: '.case > span.min-w-0 > span:first-child', ...(body ? { body: '.case > span.min-w-0 > span:nth-child(2)' } : {}) },
+    element: { box: '.case', title: '.nish-list-title', ...(body ? { body: '.nish-list-subtitle' } : {}) },
+  });
+const dots = ['neutral', 'accent', 'ok', 'warn', 'loss', 'info', 'xs', 'md', 'lg-halo'];
+const SWITCH = {
+  react: { box: '#stage button[role="switch"] > span', title: '#stage label > span.min-w-0 > span:first-child' },
+  element: { box: '#stage button.nish-switch', title: '#stage label > span > span:first-child' },
+};
+const SWITCH_DESC = {
+  react: { ...SWITCH.react, body: '#stage label > span.min-w-0 > span:nth-child(2)' },
+  element: { ...SWITCH.element, body: '#stage label > span > span:nth-child(2)' },
+};
+const CHECK = {
+  react: { box: '#stage input[type="checkbox"]', title: '#stage label span.leading-snug' },
+  element: { box: '#stage input[type="checkbox"]', title: '.nish-check-text' },
+};
+const clear = { body: 'button[aria-label^="Clear"]' };
+
+const WAVE2_CASES: Case[] = [
+  wave2('input', both('#stage input')),
+  wave2('select', both('#stage select')),
+  wave2('textarea', both('#stage textarea')),
+  wave2('textarea-grow', both('#stage textarea')),
+  wave2('label', both('.case', { title: '.case' })),
+  wave2('field', {
+    react: { box: '.case', title: '.case label', body: '.case p' },
+    element: { box: '.nish-field', title: 'label.nish-field-label', body: 'small.nish-hint' },
+  }),
+  wave2('field-error', {
+    react: { box: '.case', title: '.case label', body: '.case p[role="alert"]' },
+    element: { box: '.nish-field', title: 'label.nish-field-label', body: 'small.nish-error' },
+  }),
+  wave2('field-inline', {
+    react: { box: '.case', title: '.case label', body: '.case p' },
+    element: { box: '.nish-field', title: 'label.nish-field-label', body: 'small.nish-hint' },
+  }),
+  wave2('field-group', {
+    react: { box: '.case', title: '.case legend', body: '.case > p' },
+    element: { box: '.case', title: '.case legend', body: 'small.nish-hint' },
+  }),
+  wave2('checkbox', CHECK),
+  wave2('checkbox-checked', CHECK),
+  wave2('switch', SWITCH, '', TRACK_PADDING),
+  wave2('switch-on', SWITCH_DESC, '', TRACK_PADDING),
+  wave2('switch-sm-on', SWITCH, '', TRACK_PADDING),
+  wave2('switch-start', SWITCH_DESC, '', TRACK_PADDING),
+  wave2('search', both('#stage input', clear)),
+  wave2('search-sm', both('#stage input', clear)),
+  wave2('search-xs', both('#stage input', clear)),
+  wave2('search-empty', both('#stage input')),
+  wave2('search-bare', both('#stage input', clear)),
+  chip('chip-off'),
+  chip('chip-on'),
+  chip('chip-sm'),
+  chip('chip-suggestion', '#stage button', '#stage button'),
+  chip('chip-tag', '#stage [role="group"] > span', '#stage .nish-chip'),
+  seg('seg'),
+  seg('seg-xs'),
+  seg('seg-md'),
+  seg('seg-block'),
+  wave2('skeleton-text', both('.case')),
+  wave2('skeleton-circle', both('.case')),
+  // The React spinner is an svg and the nish-* one a bordered ring: these compare the box each takes.
+  wave2('spinner', both('.case')),
+  wave2('spinner-sm', both('.case')),
+  wave2('spinner-lg', both('.case')),
+  wave2('empty', both('.case', { title: '.case p', body: '.case p:nth-of-type(2)' })),
+  wave2('error-state', both('.case', { title: '.case p' })),
+  ...['info', 'accent', 'ok', 'warn', 'loss'].map(callout),
+  ...dots.map((d) => wave2(`dot-${d}`, both('.case'))),
+  wave2('stat', both('.case', { title: '.case dt', body: '.case dd' })),
+  wave2('stat-ok', both('.case', { title: '.case dt', body: '.case dd' })),
+  wave2('stat-inset', both('.case', { title: '.case dt', body: '.case dd' })),
+  wave2('stat-sm', both('.case', { title: '.case dt', body: '.case dd' })),
+  wave2('meter', both('.case')),
+  wave2('meter-xs', both('.case')),
+  wave2('meter-sm', both('.case')),
+  wave2('meter-md', both('.case')),
+  wave2('disclosure', both('.case', { title: 'summary' })),
+  wave2('disclosure-open', both('.case', { title: 'summary', body: '.case > div' })),
+  wave2('disclosure-card-open', both('.case', { title: 'summary', body: '.case > div' })),
+  ...['tabs', 'tabs-sm', 'tabs-xs', 'tabs-block', 'tabs-pill', 'tabs-pill-sm', 'tabs-pill-xs', 'tabs-pill-block'].map(tabs),
+  wave2('combobox', both('#stage input[role="combobox"]', { body: 'button[aria-label="Clear"]' })),
+  wave2('combobox-sm', both('#stage input[role="combobox"]', { body: 'button[aria-label="Clear"]' })),
+  wave2('combobox-open', both('ul[role="listbox"]', { title: 'li[aria-selected="true"]' }), '&open=1'),
+  wave2('combobox-loading', both('ul[role="listbox"]', { title: 'li[role="presentation"]' }), '&open=1'),
+  wave2('combobox-empty', both('ul[role="listbox"]', { title: 'li[role="presentation"]' }), '&open=1'),
+  listRow('list-row'),
+  listRow('list-row-active'),
+  listRow('list-row-danger'),
+  listRow('list-row-dense', false),
+  listRow('list-row-compact'),
+  listRow('list-row-title2'),
+  listRow('list-row-plain'),
+  wave2('kbd', both('.case', { title: '.case' })),
+  wave2('page-header', both('.case', { title: 'h1', body: '.case p' })),
+  wave2('section-header', {
+    react: { box: '.case', title: 'h2', body: '.case span' },
+    element: { box: '.case', title: 'h2', body: '.nish-section-header-actions > span' },
+  }),
+  wave2('kv', both('.case', { title: '.case dt', body: '.case dd' })),
+  wave2('kv-dense', both('.case', { title: '.case dt', body: '.case dd' })),
+  wave2('kv-wrap', both('.case', { title: '.case dt', body: '.case dd' })),
+  wave2('kv-words', both('.case', { title: '.case dt', body: '.case dd' })),
+  wave2('legend', both('.case', { title: '.case li' })),
+  wave2('legend-dot', both('.case', { title: '.case li' })),
+  wave2('sparkline', both('#stage svg', { title: '#stage svg path' })),
+  wave2('sparkline-ok', both('#stage svg', { title: '#stage svg path' })),
+  // The empty sparkline is one flat dashed line: a path with no height is never "visible" to Playwright, so only the svg is compared.
+  wave2('sparkline-empty', both('#stage svg')),
+  wave2(
+    'app-header',
+    {
+      react: { box: '.case', title: '.case a:nth-of-type(2)', body: '.case a.nish-pill-link' },
+      element: { box: '.case', title: '.nish-app-header-name', body: '.case a.nish-pill-link' },
+    },
+    '',
+    HEADER_PADDING,
+  ),
+  wave2('app-header-nav', both('.case', { title: 'a[aria-current="page"]' }), '', HEADER_PADDING),
+  wave2('copy', {
+    react: { box: '#stage button', title: '#stage button' },
+    element: { box: 'nish-copy-button button', title: 'nish-copy-button button' },
+  }),
+  wave2('copy-icon', { react: { box: '#stage button' }, element: { box: 'nish-copy-button button' } }),
+  wave2(
+    'copy-copied',
+    {
+      react: { box: '#stage button', title: '#stage button' },
+      element: { box: 'nish-copy-button button', title: 'nish-copy-button button' },
+    },
+    '&copied=1',
+  ),
+];
+
+/** Differences that cannot be closed yet: real gaps between the nish-* CSS and the React twin, each with
+ *  its exact values (`prop element vs react`, numbers rounded to whole px). A case must show exactly
+ *  this set at that size and scheme: a difference that is not listed fails, and a listed one that no
+ *  longer shows up fails too, so a gap cannot linger after it is closed. Empty: the nish-* CSS matches
+ *  React, and a new difference is fixed in the CSS. */
 type SizeName = (typeof SIZES)[number]['name'];
 type Scheme = (typeof SCHEMES)[number];
 type Gaps = (size: SizeName, scheme: Scheme) => string[];
 
-// The React toast is 384px wide from sm (max-w-md on a w-96 stack), has a leading icon, 12px radius,
-// 14px side padding and title text in --nish-hi; .nish-toast is 520px, 14px radius, 16/12px padding,
-// no icon and --nish-hi2 text. The tone border differs in opacity and color space.
-const TOAST_BORDER: Record<string, Record<Scheme, string>> = {
-  neutral: { light: '', dark: '' },
-  ok: {
-    light: 'box.borderColor color(srgb 0.0235294 0.372549 0.27451 / 0.3) vs oklab(0.431796 -0.0842069 0.0195867 / 0.35)',
-    dark: 'box.borderColor color(srgb 0.203922 0.827451 0.6 / 0.3) vs oklab(0.772937 -0.14692 0.0443151 / 0.35)',
-  },
-  warn: {
-    light: 'box.borderColor color(srgb 0.572549 0.25098 0.054902 / 0.3) vs oklab(0.473193 0.0863267 0.0900109 / 0.4)',
-    dark: 'box.borderColor color(srgb 0.984314 0.74902 0.141176 / 0.3) vs oklab(0.836863 0.0160027 0.163654 / 0.4)',
-  },
-  loss: {
-    light: 'box.borderColor color(srgb 0.662745 0.105882 0.105882 / 0.3) vs oklab(0.47433 0.156874 0.0809455 / 0.4)',
-    dark: 'box.borderColor color(srgb 0.972549 0.443137 0.443137 / 0.3) vs oklab(0.710632 0.15384 0.0628371 / 0.4)',
-  },
-  info: {
-    light: 'box.borderColor color(srgb 0.027451 0.34902 0.521569 / 0.3) vs rgb(201, 198, 189)',
-    dark: 'box.borderColor color(srgb 0.219608 0.741176 0.972549 / 0.3) vs rgb(58, 62, 77)',
-  },
-};
-const toastGaps =
-  (tone: string): Gaps =>
-  (size, scheme) =>
-    [
-      size === '360' ? 'box.width 328 vs 336' : 'box.width 520 vs 384',
-      size === '360' ? 'box.height 70 vs 54' : 'box.height 50 vs 45',
-      'box.borderRadius 14px vs 12px',
-      'box.paddingRight 12px vs 14px',
-      'box.paddingLeft 16px vs 14px',
-      scheme === 'light' ? 'title.color rgb(79, 81, 92) vs rgb(23, 23, 28)' : 'title.color rgb(168, 170, 183) vs rgb(236, 236, 241)',
-      'title.dx 17 vs 40',
-      'title.dy 16 vs 14',
-      TOAST_BORDER[tone][scheme],
-    ].filter(Boolean);
-
-const KNOWN_GAPS: Record<string, Gaps> = {
-  // .nish-sheet is 32rem wide from 640px, the React Modal is max-w-md (28rem); its header and body
-  // spacing differ and the React Modal draws a grab handle block above the header.
-  'sheet open': (size) =>
-    size === '360'
-      ? ['box.height 208 vs 219', 'title.dy 33 vs 62', 'body.dy 89 vs 110']
-      : ['box.width 512 vs 448', 'box.height 185 vs 155', 'body.dy 73 vs 54'],
-  // The React ConfirmDialog is a Modal with a header row, its title sits lower and the box is taller.
-  'dialog open': (size) =>
-    size === '360'
-      ? ['box.height 158 vs 219', 'title.dy 18 vs 62', 'body.dy 49 vs 110']
-      : ['box.height 151 vs 155', 'title.dy 18 vs 22', 'body.dy 49 vs 54'],
-  'toast neutral': toastGaps('neutral'),
-  'toast ok': toastGaps('ok'),
-  'toast warn': toastGaps('warn'),
-  'toast loss': toastGaps('loss'),
-  'toast info': toastGaps('info'),
-  // The React bar puts its padding on each cell; .nish-bottom-nav pads the bar.
-  'bottom nav, active item': () => [
-    'box.paddingTop 4px vs 0px',
-    'box.paddingRight 4px vs 0px',
-    'box.paddingBottom 4px vs 0px',
-    'box.paddingLeft 4px vs 0px',
-    'title.dx 47 vs 44',
-  ],
-};
+const KNOWN_GAPS: Record<string, Gaps> = {};
 
 interface Measured {
   width: number;
@@ -261,7 +371,7 @@ function matchKnown(diffs: string[], known: string[]): string[] {
   });
 }
 
-for (const c of CASES) {
+for (const c of [...CASES, ...WAVE2_CASES]) {
   for (const size of SIZES) {
     for (const scheme of SCHEMES) {
       test(`${c.name} matches React at ${size.name}px, ${scheme}`, async ({ browser }) => {
@@ -286,7 +396,7 @@ for (const c of CASES) {
           await open(page, 'index.html', c.query);
           const el = await parts(page, c.element);
 
-          const diffs = compare(react, el);
+          const diffs = compare(react, el).filter((d) => !c.ignore?.includes(d.split(' ')[0]!));
           if (process.env.PARITY_VERBOSE) console.log(`DIFF ${c.name} ${size.name} ${scheme}\n  ${diffs.join('\n  ')}`);
           // Exactly the listed gaps: a new difference fails, and so does a listed gap that is gone.
           const known = KNOWN_GAPS[c.name]?.(size.name, scheme) ?? [];

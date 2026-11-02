@@ -290,6 +290,15 @@ export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOpti
 
 export type StaticToastTone = 'neutral' | 'ok' | 'warn' | 'loss' | 'info';
 
+// The React toast's tone icons (CheckCircle, AlertTriangle, Info), 15px: static markup, no user text.
+const TOAST_ICON_PATHS: Record<StaticToastTone, string> = {
+  neutral: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+  loss: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+};
+
 export interface ShowToastOptions {
   /** Border tint: ok, warn, loss or info (the /30 tint border). Default neutral. */
   tone?: StaticToastTone;
@@ -325,6 +334,11 @@ export function showToast(content: string | Node, opts: ShowToastOptions = {}): 
   const region = toastRegion;
   const box = document.createElement('div');
   box.className = 'nish-toast' + (opts.tone && opts.tone !== 'neutral' ? ` nish-toast--${opts.tone}` : '');
+  const icon = document.createElement('span');
+  icon.className = 'nish-toast-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">${TOAST_ICON_PATHS[opts.tone ?? 'neutral']}</svg>`;
+  box.append(icon);
   const body = document.createElement('p');
   body.className = 'nish-toast-body';
   body.append(typeof content === 'string' ? document.createTextNode(content) : content);

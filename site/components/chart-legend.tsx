@@ -27,6 +27,18 @@ export const chartLegend: ComponentDoc = {
   render: (a) => <ChartLegend items={SERIES} marker={a.marker === 'dot' ? 'dot' : 'line'} />,
   code: (a) => jsx('ChartLegend', { items: "{[{ label: 'CPU', tone: 'chart-1' }, …]}", marker: a.marker === 'line' ? undefined : a.marker }),
   api: { functions: [], interfaces: ['ChartLegendItem'] },
+  html: {
+    height: 140,
+    code: `<ul class="nish-legend" aria-label="Legend">
+  <li class="nish-legend-item" style="--c: var(--nish-chart-1)"><i class="nish-legend-swatch" aria-hidden="true"></i>CPU</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-2)"><i class="nish-legend-swatch" aria-hidden="true"></i>Memory</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-3)"><i class="nish-legend-swatch" aria-hidden="true"></i>Disk</li>
+</ul>
+<ul class="nish-legend nish-legend--dot" aria-label="Legend, dots" style="margin-top:16px">
+  <li class="nish-legend-item" style="--c: var(--nish-chart-1)"><i class="nish-legend-swatch" aria-hidden="true"></i>Wins</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-4)"><i class="nish-legend-swatch" aria-hidden="true"></i>Losses</li>
+</ul>`,
+  },
   stories: [
     { id: 'line', name: 'Line markers', render: () => <ChartLegend items={SERIES} /> },
     { id: 'dot', name: 'Dot markers', render: () => <ChartLegend marker="dot" items={[{ label: 'Up', tone: 'ok' }, { label: 'Slow', tone: 'warn' }, { label: 'Down', tone: 'loss' }]} /> },

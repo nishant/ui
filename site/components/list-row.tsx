@@ -65,6 +65,29 @@ export const listRow: ComponentDoc = {
       active: a.active ? true : undefined,
       tone: a.danger ? 'danger' : undefined,
     }),
+  html: {
+    height: 330,
+    code: `<ul class="nish-list" style="max-width:26rem">
+  <li><a class="nish-list-row" href="#" aria-current="true">
+    <span class="nish-list-text">
+      <span class="nish-list-title">Backups</span>
+      <span class="nish-list-subtitle">Last run 2h ago</span>
+    </span>
+    <span class="nish-list-meta">12 GB</span>
+    <svg class="nish-list-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+  </a></li>
+  <li><a class="nish-list-row" href="#">
+    <span class="nish-list-text">
+      <span class="nish-list-title">Mods</span>
+      <span class="nish-list-subtitle">14 installed</span>
+    </span>
+    <svg class="nish-list-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+  </a></li>
+  <li><button type="button" class="nish-list-row nish-list-row--danger nish-list-row--dense">
+    <span class="nish-list-text"><span class="nish-list-title">Delete world</span></span>
+  </button></li>
+</ul>`,
+  },
   stories: [
     { id: 'list', name: 'A list', render: () => <Rows /> },
     { id: 'dense', name: 'Dense', render: () => <Rows dense /> },

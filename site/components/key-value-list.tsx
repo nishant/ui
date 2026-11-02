@@ -55,6 +55,15 @@ export const keyValueList: ComponentDoc = {
   ),
   code: (a) => jsx('KeyValueList', { items: '{items}', dense: a.dense, as: a.as === 'ul' ? undefined : a.as }),
   api: { functions: [], interfaces: ['KeyValueItem'] },
+  html: {
+    height: 260,
+    code: `<dl class="nish-kv">
+  <div class="nish-kv-row"><dt>Name</dt><dd>hosting-pc</dd></div>
+  <div class="nish-kv-row"><dt>OS</dt><dd>Windows 11</dd></div>
+  <div class="nish-kv-row nish-kv-row--wrap"><dt>Database</dt><dd>C:\\Users\\nishant\\AppData\\Local\\trading\\data\\trading-ledger.sqlite3</dd></div>
+  <div class="nish-kv-row"><dt>Uptime</dt><dd>3d 4h</dd></div>
+</dl>`,
+  },
   stories: [
     { id: 'status', name: 'Services and status', render: () => <Card className="w-full"><KeyValueList items={SERVICES} /></Card> },
     { id: 'dl', name: 'Description list (as="dl")', render: () => <Card className="w-full"><KeyValueList as="dl" items={RUNNER} /></Card> },

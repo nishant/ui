@@ -36,6 +36,15 @@ export const statusDot: ComponentDoc = {
       pulse: a.pulse || undefined,
       halo: a.halo || undefined,
     }),
+  html: {
+    height: 140,
+    code: `<div style="display:grid;gap:8px;font-size:14px">
+  <span><span class="nish-dot nish-dot--ok nish-dot--halo" aria-hidden="true"></span> Up</span>
+  <span><span class="nish-dot nish-dot--warn" aria-hidden="true"></span> Slow</span>
+  <span><span class="nish-dot nish-dot--loss nish-dot--pulse" aria-hidden="true"></span> Down</span>
+  <span><span class="nish-dot nish-dot--info" aria-hidden="true"></span> Syncing</span>
+</div>`,
+  },
   stories: [
     {
       id: 'tones',

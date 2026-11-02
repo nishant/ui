@@ -53,6 +53,17 @@ export const disclosure: ComponentDoc = {
       { summary: a.summary, variant: a.variant === 'plain' ? undefined : a.variant, defaultOpen: a.defaultOpen || undefined },
       '…',
     ),
+  html: {
+    height: 240,
+    code: `<details class="nish-disclosure nish-disclosure--card" open>
+  <summary>How is the score computed?</summary>
+  <div>Each signal is weighted, summed and scaled to 0 to 100.</div>
+</details>
+<details class="nish-disclosure" style="margin-top:12px">
+  <summary>Sources</summary>
+  <div>Prices come from the broker API.</div>
+</details>`,
+  },
   stories: [
     {
       id: 'plain',

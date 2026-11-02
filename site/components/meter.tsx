@@ -48,6 +48,14 @@ export const meter: ComponentDoc = {
       showValue: a.showValue || undefined,
     }),
   api: { functions: ['toneFor'], interfaces: [] },
+  html: {
+    height: 180,
+    code: `<div style="display:grid;gap:14px;max-width:24rem">
+  <div class="nish-meter nish-meter--ok" role="meter" aria-label="Durability" aria-valuemin="0" aria-valuemax="100" aria-valuenow="64"><i style="width:64%"></i></div>
+  <div class="nish-meter nish-meter--warn nish-meter--lg" role="meter" aria-label="Disk" aria-valuemin="0" aria-valuemax="100" aria-valuenow="82"><i style="width:82%"></i></div>
+  <div class="nish-meter nish-meter--loss nish-meter--xs" role="meter" aria-label="Memory" aria-valuemin="0" aria-valuemax="100" aria-valuenow="96"><i style="width:96%"></i></div>
+</div>`,
+  },
   stories: [
     {
       id: 'tones',

@@ -9,6 +9,7 @@ import {
   type SVGProps,
 } from 'react';
 import { cn } from '../cn';
+import { sparklineGeometry } from '../sparkline-path';
 import { Skeleton } from './feedback';
 import { AlertTriangleIcon, CheckCircleIcon, ChevronDownIcon, InfoIcon, XIcon } from './icons';
 import { useHeightVar, useStuck } from './layout-vars';
@@ -589,29 +590,7 @@ export function Sparkline({
   max,
   className,
 }: SparklineProps) {
-  const nums = values.filter((v): v is number => v != null && Number.isFinite(v));
-  const empty = nums.length === 0;
-  const lo = min ?? (empty ? 0 : Math.min(...nums));
-  const hi = max ?? (empty ? 1 : Math.max(...nums));
-  const pad = 2; // keep the stroke inside the box at the extremes
-  const x = (i: number) => (values.length <= 1 ? width / 2 : (i / (values.length - 1)) * width);
-  const y = (v: number) => (hi === lo ? height / 2 : pad + (1 - (v - lo) / (hi - lo)) * (height - 2 * pad));
-
-  // One path per unbroken run; a single point becomes a zero-length round-capped dot.
-  const runs: { x: number; y: number }[][] = [];
-  let run: { x: number; y: number }[] = [];
-  values.forEach((v, i) => {
-    if (v == null || !Number.isFinite(v)) {
-      if (run.length) runs.push(run);
-      run = [];
-    } else run.push({ x: x(i), y: y(v) });
-  });
-  if (run.length) runs.push(run);
-
-  const line = (r: { x: number; y: number }[]) =>
-    r.length === 1 ? `M${r[0].x},${r[0].y}h0` : r.map((p, i) => `${i ? 'L' : 'M'}${p.x},${p.y}`).join('');
-  const area = (r: { x: number; y: number }[]) =>
-    r.length < 2 ? '' : `${line(r)}L${r[r.length - 1].x},${height}L${r[0].x},${height}Z`;
+  const { empty, lines, areas, baseline } = sparklineGeometry(values, width, height, min, max);
 
   return (
     <svg
@@ -625,7 +604,7 @@ export function Sparkline({
     >
       {empty ? (
         <path
-          d={`M0,${height / 2}H${width}`}
+          d={baseline}
           stroke="currentColor"
           strokeWidth={1.5}
           strokeDasharray="3 3"
@@ -633,11 +612,11 @@ export function Sparkline({
         />
       ) : (
         <>
-          {fill ? runs.map((r, i) => <path key={`a${i}`} d={area(r)} fill="currentColor" fillOpacity={0.15} />) : null}
-          {runs.map((r, i) => (
+          {fill ? areas.map((d, i) => <path key={`a${i}`} d={d} fill="currentColor" fillOpacity={0.15} />) : null}
+          {lines.map((d, i) => (
             <path
               key={i}
-              d={line(r)}
+              d={d}
               fill="none"
               stroke="currentColor"
               strokeWidth={1.5}

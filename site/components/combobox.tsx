@@ -173,6 +173,20 @@ export const combobox: ComponentDoc = {
       size: a.size === 'md' ? undefined : a.size,
       disabled: a.disabled,
     }),
+  html: {
+    height: 340,
+    code: `<div style="max-width:24rem">
+  <nish-field label="City">
+    <nish-combobox placeholder="Search cities" name="city" empty-text="No matches">
+      <option value="austin" data-hint="TX">Austin</option>
+      <option value="boston" data-hint="MA">Boston</option>
+      <option value="denver" data-hint="CO">Denver</option>
+      <option value="seattle" data-hint="WA">Seattle</option>
+    </nish-combobox>
+  </nish-field>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
+  },
   stories: [
     {
       id: 'ticker',

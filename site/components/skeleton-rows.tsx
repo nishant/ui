@@ -28,6 +28,15 @@ export const skeletonRows: ComponentDoc = {
       height: Number(a.height) === 56 ? undefined : Number(a.height),
       gap: a.gap === 'md' ? undefined : a.gap,
     }),
+  html: {
+    height: 260,
+    code: `<div class="nish-skeleton-group" aria-busy="true" aria-label="Loading" style="display:grid;gap:12px;max-width:28rem">
+  <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>
+  <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>
+  <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>
+  <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>
+</div>`,
+  },
   stories: [
     { id: 'default', name: 'Default (5 rows, 56px)', render: () => <div className="w-full"><SkeletonRows /></div> },
     { id: 'cards', name: 'Card-sized blocks', note: 'rowClassName="h-16" sizes every row with a class.', render: () => <div className="w-full"><SkeletonRows rows={3} rowClassName="h-16" /></div> },

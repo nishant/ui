@@ -29,6 +29,13 @@ export const errorState: ComponentDoc = {
       retrying: a.retrying ? '{isFetching}' : undefined,
       compact: a.compact,
     }),
+  html: {
+    height: 220,
+    code: `<div class="nish-error-state" role="alert">
+  <p>Could not reach the API. Check that the server is running.</p>
+  <button class="nish-btn nish-btn--sm">Retry</button>
+</div>`,
+  },
   stories: [
     { id: 'default', name: 'Default message', render: () => <ErrorState className="w-full" /> },
     {

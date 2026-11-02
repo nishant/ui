@@ -54,6 +54,14 @@ export const stat: ComponentDoc = {
       loading: a.loading || undefined,
     }),
   api: { functions: ['signTone'], interfaces: [] },
+  html: {
+    height: 200,
+    code: `<dl class="nish-stats">
+  <div class="nish-stat"><dt class="nish-stat-label">Day P&amp;L</dt><dd class="nish-stat-value nish-stat-value--ok">+$1,284</dd><dd class="nish-stat-sub">+0.8% today</dd></div>
+  <div class="nish-stat"><dt class="nish-stat-label">Open positions</dt><dd class="nish-stat-value">12</dd></div>
+  <div class="nish-stat"><dt class="nish-stat-label">Drawdown</dt><dd class="nish-stat-value nish-stat-value--loss">-3.2%</dd></div>
+</dl>`,
+  },
   stories: [
     {
       id: 'grid',

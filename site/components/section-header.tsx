@@ -35,6 +35,13 @@ export const sectionHeader: ComponentDoc = {
       meta: a.meta ? 'Updated 2 min ago' : undefined,
       action: a.action ? '{<Button size="sm">Refresh</Button>}' : undefined,
     }),
+  html: {
+    height: 160,
+    code: `<div class="nish-section-header">
+  <h2 class="nish-section-header-title">Services</h2>
+  <div class="nish-section-header-actions"><span>8 of 9 up</span><button class="nish-btn nish-btn--sm">Refresh</button></div>
+</div>`,
+  },
   stories: [
     { id: 'title', name: 'Title only', render: () => <div className="w-full"><SectionHeader title="Runners" /></div> },
     { id: 'meta', name: 'With meta', render: () => <div className="w-full"><SectionHeader title="Services" meta="8 of 9 up" /></div> },

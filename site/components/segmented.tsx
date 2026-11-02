@@ -78,6 +78,22 @@ export const segmented: ComponentDoc = {
   code: (a) =>
     `<Segmented\n  label="Chart range"${a.size !== 'sm' ? `\n  size="${a.size}"` : ''}${a.block ? '\n  block' : ''}\n  value={range}\n  onChange={setRange}\n  options={[{ value: '24h', label: '24h' }, { value: '7d', label: '7d' }, { value: '30d', label: '30d' }${a.disabled ? ", { value: '1y', label: '1y', disabled: true }" : ''}]}\n/>`,
   api: { functions: [], interfaces: ['SegmentedProps', 'SegmentedOption'] },
+  html: {
+    height: 180,
+    code: `<div style="display:grid;gap:12px;justify-items:start">
+  <nish-segmented label="Mode" value="survival">
+    <button value="survival">Survival</button>
+    <button value="creative">Creative</button>
+    <button value="hardcore">Hardcore</button>
+  </nish-segmented>
+  <nish-segmented label="Size" size="xs" value="m">
+    <button value="s">S</button>
+    <button value="m">M</button>
+    <button value="l">L</button>
+  </nish-segmented>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
+  },
   stories: [
     { id: 'range', name: 'Chart range', render: () => <RangeDemo /> },
     { id: 'md', name: 'Medium', render: () => <RangeDemo size="md" /> },

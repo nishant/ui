@@ -117,6 +117,25 @@ export const tabs: ComponentDoc = {
       '<TabPanel value="overview">…</TabPanel>',
     ),
   api: { functions: ['tabClass'], interfaces: ['TabItem'] },
+  html: {
+    height: 260,
+    code: `<nish-tabs label="Sections" value="overview">
+  <button value="overview">Overview</button>
+  <button value="activity">Activity</button>
+  <button value="settings">Settings</button>
+</nish-tabs>
+<div data-tab-panel="overview" style="padding-top:12px">Overview panel</div>
+<div data-tab-panel="activity" style="padding-top:12px">Activity panel</div>
+<div data-tab-panel="settings" style="padding-top:12px">Settings panel</div>
+<!-- Pill variant, no panels -->
+<div style="margin-top:12px">
+  <nish-tabs label="Range" variant="pill" size="sm">
+    <button value="day">Day</button>
+    <button value="week">Week</button>
+  </nish-tabs>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
+  },
   stories: [
     { id: 'underline', name: 'Underline', render: () => <Demo /> },
     { id: 'pill', name: 'Pill', render: () => <Demo variant="pill" /> },

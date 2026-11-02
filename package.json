@@ -48,6 +48,15 @@
       "elements": [
         "./dist/elements.d.ts"
       ],
+      "elements/forms": [
+        "./dist/elements-forms.d.ts"
+      ],
+      "elements/data": [
+        "./dist/elements-data.d.ts"
+      ],
+      "elements/charts": [
+        "./dist/elements-charts.d.ts"
+      ],
       "vite": [
         "./dist/node/vite.d.ts"
       ],
@@ -104,6 +113,21 @@
       "types": "./dist/elements.d.ts",
       "import": "./dist/elements.js",
       "default": "./dist/elements.js"
+    },
+    "./elements/forms": {
+      "types": "./dist/elements-forms.d.ts",
+      "import": "./dist/elements-forms.js",
+      "default": "./dist/elements-forms.js"
+    },
+    "./elements/data": {
+      "types": "./dist/elements-data.d.ts",
+      "import": "./dist/elements-data.js",
+      "default": "./dist/elements-data.js"
+    },
+    "./elements/charts": {
+      "types": "./dist/elements-charts.d.ts",
+      "import": "./dist/elements-charts.js",
+      "default": "./dist/elements-charts.js"
     },
     "./vite": {
       "types": "./dist/node/vite.d.ts",

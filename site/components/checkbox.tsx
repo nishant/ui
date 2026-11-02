@@ -66,6 +66,14 @@ export const checkbox: ComponentDoc = {
       disabled: a.disabled,
       defaultChecked: true,
     }),
+  html: {
+    height: 180,
+    code: `<div style="display:grid;gap:4px">
+  <label class="nish-check-row"><input type="checkbox" class="nish-checkbox" checked> Email me when a price drops</label>
+  <label class="nish-check-row"><input type="checkbox" class="nish-checkbox"> Weekly digest</label>
+  <label class="nish-check-row"><input type="checkbox" class="nish-checkbox" disabled> Unavailable</label>
+</div>`,
+  },
   stories: [
     { id: 'plain', name: 'Plain', render: () => <Checkbox label="Hide YouTube Shorts" /> },
     { id: 'checked', name: 'Checked, with a hint', render: () => <Checkbox label="Only stores with a problem" hint="Hides the 14 stores that read fine." defaultChecked /> },

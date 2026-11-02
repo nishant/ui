@@ -40,6 +40,14 @@ export const copyButton: ComponentDoc = {
       variant: a.variant === 'secondary' ? undefined : a.variant,
     }),
   api: { functions: ['copyText'], interfaces: [] },
+  html: {
+    height: 120,
+    code: `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <code id="install-cmd">npm install nish-ui</code>
+  <nish-copy-button for="install-cmd"></nish-copy-button>
+  <nish-copy-button value="https://jobs.nish.software/j/4821" label="Copy link" icon></nish-copy-button>
+</div>`,
+  },
   stories: [
     {
       id: 'variants',

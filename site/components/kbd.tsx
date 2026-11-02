@@ -24,6 +24,10 @@ export const kbd: ComponentDoc = {
   initial: { key: '⌘K' },
   render: (a) => <Kbd>{String(a.key)}</Kbd>,
   code: (a) => jsx('Kbd', {}, String(a.key)),
+  html: {
+    height: 120,
+    code: `<p>Press <kbd class="nish-kbd">Ctrl</kbd> <kbd class="nish-kbd">K</kbd> to open the palette, or <kbd class="nish-kbd">/</kbd> to search.</p>`,
+  },
   stories: [
     {
       id: 'keys',

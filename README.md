@@ -111,6 +111,17 @@ and Claude artifacts. They use the same `nish-*` classes as above, so link the s
 ```
 
 With a bundler: `import 'nish-ui/elements';` and `import { toast } from 'nish-ui/elements';`.
+
+Each entry file is self-contained (about 20 KB gzipped at most), so load only the ones whose
+tags the page uses:
+
+- `elements.js` (`nish-ui/elements`): `<nish-theme-toggle>`, `<nish-sheet>`, `<nish-dialog>`,
+  `<nish-bottom-nav>` and `toast()`.
+- `elements-forms.js` (`nish-ui/elements/forms`): `<nish-field>`, `<nish-search>`,
+  `<nish-switch>`, `<nish-chip-group>`, `<nish-combobox>`, `<nish-tabs>`, `<nish-segmented>`,
+  `<nish-copy-button>` and `<nish-sparkline>`.
+- `elements-data.js` (`nish-ui/elements/data`): the data elements (coming).
+- `elements-charts.js` (`nish-ui/elements/charts`): the chart elements (coming).
 The button, card, bottom nav, theme toggle, modal, more sheet and toast pages on the docs site have an HTML tab with the markup, running live. More in
 [Static sites](https://design.nish.software/#/static-sites).
 

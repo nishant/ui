@@ -15,6 +15,13 @@ export const label: ComponentDoc = {
   initial: { text: 'Price target' },
   render: (a) => <Label>{String(a.text)}</Label>,
   code: (a) => jsx('Label', {}, String(a.text)),
+  html: {
+    height: 120,
+    code: `<label class="nish-field" style="max-width:24rem">
+  <span class="nish-label">Server name</span>
+  <input class="nish-input" value="Survival">
+</label>`,
+  },
   stories: [
     {
       id: 'field',
