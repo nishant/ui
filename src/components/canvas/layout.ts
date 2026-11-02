@@ -1,5 +1,5 @@
 import type { CanvasEdge, CanvasGroup, CanvasLayoutMode } from "./types";
-import { FIT_PAD, PHONE_K } from "./view";
+import { FIT_PAD, PHONE_K, PHONE_MAX_W } from "./view";
 
 // =====================================================================================
 // Layout
@@ -324,7 +324,7 @@ export function layoutCandidates(
 }
 
 // Only canvases narrower than this are treated as phones (one readable column at the phone zoom).
-// A docs-preview canvas of 480 to 600 px is scored like any other.
+// From 480 to 600 px the best-scoring candidate is used unless it would fit below the phone zoom.
 const PHONE_LAYOUT_W = 480;
 
 /** Picks from `layoutCandidates` for a viewport. Cheap, so it can run on every resize. */
@@ -335,13 +335,6 @@ export function chooseLayout(
   if (c.mode === "columns") return c.columns!;
   const candidates = c.bands;
   if (viewport.w <= 0 || viewport.h <= 0) return candidates[0]!;
-  if (viewport.w < PHONE_LAYOUT_W) {
-    // Phones scroll vertically through readable cards: the widest candidate that still fits at the phone zoom.
-    let pick = candidates[0]!;
-    for (const x of candidates) if (x.width * PHONE_K <= viewport.w) pick = x;
-    return pick;
-  }
-
   const score = (l: CanvasLayout) => {
     if (l.width <= 0 || l.height <= 0) return 1;
     return Math.min(
@@ -356,6 +349,16 @@ export function chooseLayout(
   scores.forEach((s, i) => {
     if (top - s < 0.005) best = i;
   });
+  // fitView keeps the phone zoom (PHONE_K) below PHONE_MAX_W when the fit is smaller, so below
+  // PHONE_MAX_W use the same threshold here: the widest candidate that fits at the phone zoom.
+  if (
+    viewport.w < PHONE_LAYOUT_W ||
+    (viewport.w < PHONE_MAX_W && top < PHONE_K)
+  ) {
+    let pick = candidates[0]!;
+    for (const x of candidates) if (x.width * PHONE_K <= viewport.w) pick = x;
+    return pick;
+  }
   const bands = candidates[best]!;
   if (c.mode === "bands" || !c.columns) return bands;
   return score(c.columns) > scores[best]! ? c.columns : bands;

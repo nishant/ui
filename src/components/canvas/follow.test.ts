@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CanvasGroup } from './types';
 import type { CanvasLayout } from './layout';
-import { followStep, followTargets } from './follow';
+import { followSignature, followStep, followTargets } from './follow';
 
 const box = (x: number, y: number) => ({ x, y, w: 172, h: 56 });
 
@@ -105,5 +105,27 @@ describe('followStep', () => {
     const t = followTargets(groups, layout).filter((x) => x.id === 'b');
     const v = followStep(t, 0, 360, 780, fit).view;
     expect(150 * v.k + v.x).toBeCloseTo(180);
+  });
+});
+
+describe('followSignature', () => {
+  it('ignores order when two active nodes swap activeAt', () => {
+    const { groups, layout } = fixture();
+    const before = followSignature(followTargets(groups, layout));
+    groups[0]!.nodes[0]!.activeAt = 500;
+    groups[0]!.nodes[1]!.activeAt = 50;
+    const after = followTargets(groups, layout);
+    expect(after.map((t) => t.id)).not.toEqual(followTargets(fixture().groups, layout).map((t) => t.id));
+    expect(followSignature(after)).toBe(before);
+  });
+
+  it('changes when a node joins or leaves', () => {
+    const { groups, layout } = fixture();
+    const before = followSignature(followTargets(groups, layout));
+    groups[0]!.nodes[2]!.active = true;
+    expect(followSignature(followTargets(groups, layout))).not.toBe(before);
+    groups[0]!.nodes[2]!.active = false;
+    groups[0]!.nodes[0]!.active = false;
+    expect(followSignature(followTargets(groups, layout))).not.toBe(before);
   });
 });

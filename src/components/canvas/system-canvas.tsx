@@ -227,17 +227,22 @@ export function SystemCanvas({
       };
     }
     let box: Box | undefined;
+    let activeGroup: Box | undefined;
     for (const g of gs) {
       const n = g.nodes.find((node) => node.active);
       if (n) {
         box = lay.nodes[n.id];
+        activeGroup = lay.groups[g.id];
         break;
       }
     }
     box ??= lay.groups[gs[0]!.id];
     if (!box) return { k: PHONE_K, x: FIT_PAD, y: top + lay.titleRoom * PHONE_K };
-    // Keep the box head clear of the overlay row.
+    // Keep the box head clear of the overlay row. A node centers x on its group (as follow does) when
+    // the group fits, so the group's left cards and title are not cut off.
     const v = centerOn(w, h, PHONE_K, box);
+    const gb = activeGroup;
+    if (gb && gb.w * PHONE_K <= w - 24) v.x = w / 2 - (gb.x + gb.w / 2) * PHONE_K;
     return { ...v, y: Math.max(h / 2, top + (box.h * PHONE_K) / 2) - (box.y + box.h / 2) * PHONE_K };
   }, []);
 
@@ -262,6 +267,8 @@ export function SystemCanvas({
         return;
       }
       setPicked({ layout: next, w, h });
+      // Publish the size in the same render as the new layout so follow flies once, for the real size.
+      if (followRef.current) setViewport((old) => (old.w === w && old.h === h ? old : { w, h }));
     },
     [doFit],
   );
@@ -269,9 +276,9 @@ export function SystemCanvas({
   // The first measurement happens before paint; later size changes are throttled to a frame.
   const layoutRaf = useRef(0);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  /** Publishes the measured size to follow's state, only while following (otherwise a resize re-renders nothing). */
+  /** Publishes the measured size to follow's state once a resize settles, also while follow is off, so
+   *  switching follow on never starts from a stale size. */
   const syncViewport = useCallback(() => {
-    if (!followRef.current) return;
     const { w, h } = size.current;
     setViewport((old) => (old.w === w && old.h === h ? old : { w, h }));
   }, []);

@@ -81,7 +81,7 @@ export function followStep(targets: FollowTarget[], i: number, w: number, h: num
 }
 
 // Sorted, so a reorder by activeAt alone (same set of ids) does not count as a change and re-fly.
-const signature = (targets: FollowTarget[]) => targets.map((t) => t.id).sort().join('|');
+export const followSignature = (targets: FollowTarget[]) => targets.map((t) => t.id).sort().join('|');
 const captionKey = (targets: FollowTarget[]) => targets.map((t) => `${t.id}:${t.label}:${t.group}:${t.note ?? ''}`).join('|');
 
 /** While `on`, flies the camera to the active nodes: on switch-on, when the set of active ids
@@ -106,7 +106,7 @@ export function useFollow(o: {
   const [step, setStep] = useState<FollowStep | null>(null);
 
   const targets = on ? followTargets(groups, layout) : [];
-  const sig = signature(targets);
+  const sig = followSignature(targets);
   const caption = captionKey(targets);
 
   // The visiting index restarts only when follow turns on or the active ids change, not on a resize or relayout.

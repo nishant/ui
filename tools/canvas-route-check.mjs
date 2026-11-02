@@ -168,4 +168,31 @@ assert.deepEqual(routeEdges({ ...bands, groups: {}, nodes: {} }, groups, edges),
   assert.equal(r.i3.dir, 'right');
 }
 
+// Links between rows that are not adjacent run in the column gutter, never through a card between.
+{
+  const big = grp('X', 0, 6, 0);
+  const gx = 100;
+  const gy = 100;
+  const nodes = {};
+  big.nodes.forEach((n, i) => {
+    nodes[n.id] = { x: gx + 16 + (i % 2) * 184, y: gy + 52 + Math.floor(i / 2) * 68, w: 172, h: 56 };
+  });
+  const lay = { mode: 'bands', width: 600, height: 500, titleRoom: 0, headers: [], groups: { X: { x: gx, y: gy, w: 32 + 2 * 172 + 12, h: 52 + 16 + 3 * 56 + 2 * 12 } }, nodes };
+  const links = [e('x1', 'X/n0', 'X/n4'), e('x2', 'X/n1', 'X/n5'), e('x3', 'X/n0', 'X/n3'), e('x4', 'X/n0', 'X/n2')];
+  const r = routeEdges(lay, [big], links);
+  for (const link of links) {
+    const route = r[link.id];
+    assert.ok(route, `${link.id} is routed`);
+    assert.deepEqual(route.points[0], [nodes[link.from].x + 86, nodes[link.from].y + 56], `${link.id} starts at the source's bottom`);
+    assert.deepEqual(route.points.at(-1), [nodes[link.to].x + 86, nodes[link.to].y], `${link.id} ends at the target's top`);
+    for (const [p, q] of segs(route.points)) {
+      for (const [id, c] of Object.entries(nodes)) {
+        if (id === link.from || id === link.to) continue;
+        const hit = Math.min(p[0], q[0]) < c.x + c.w && Math.max(p[0], q[0]) > c.x && Math.min(p[1], q[1]) < c.y + c.h && Math.max(p[1], q[1]) > c.y;
+        assert.ok(!hit, `${link.id} segment ${p} to ${q} crosses ${id}`);
+      }
+    }
+  }
+}
+
 console.log('canvas-route-check: ok');

@@ -490,4 +490,25 @@ assert.equal(
 assert.equal(pickLayout(bg, bedges, { w: 0, h: 0 }, "columns").mode, "columns");
 assert.deepEqual(pickLayout([], [], { w: 1000, h: 800 }, "auto").groups, {});
 
+// Canvases of 480 to 600 px (docs previews): the chosen layout must fit at max(fit, phone zoom).
+for (const [w, h] of [
+  [555, 460],
+  [555, 520],
+  [500, 400],
+  [599, 600],
+]) {
+  for (const mode of ["auto", "bands"]) {
+    const chosen = pickLayout(bg, bedges, { w, h }, mode);
+    const fit = Math.min(
+      (w - 2 * 48) / chosen.width,
+      (h - 2 * 48) / (chosen.height + chosen.titleRoom),
+      1,
+    );
+    assert.ok(
+      chosen.width * Math.max(fit, 0.55) <= w + 0.5,
+      `${mode} ${w}x${h}: layout ${chosen.width} wide fits at k >= 0.55`,
+    );
+  }
+}
+
 console.log("canvas-layout-check: ok");

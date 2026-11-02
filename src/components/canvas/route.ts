@@ -1,5 +1,5 @@
 import type { CanvasEdge, CanvasGroup } from './types';
-import { CHANNEL_EDGE, type CanvasLayout } from './layout';
+import { CHANNEL_EDGE, NODE_GAP, type CanvasLayout } from './layout';
 
 export interface Box {
   x: number;
@@ -146,8 +146,20 @@ export function routeEdges(layout: CanvasLayout, groups: CanvasGroup[], edges: C
       // Target below: bottom border to top border, with a bend in the gap when not aligned.
       const ax = a.x + a.w / 2;
       const bx = b.x + b.w / 2;
-      const my = (a.y + a.h + b.y) / 2;
-      points = corners([[ax, a.y + a.h], [ax, my], [bx, my], [bx, b.y]]);
+      if (b.y <= a.y + a.h + NODE_GAP + 1) {
+        const my = (a.y + a.h + b.y) / 2;
+        points = corners([[ax, a.y + a.h], [ax, my], [bx, my], [bx, b.y]]);
+      } else {
+        // Rows are not adjacent: a straight drop would cross the cards in between. Leave a's
+        // bottom, jog into the column gutter in the gap below a, run down it, then jog to b's
+        // center in the gap above b.
+        const gb = layout.groups[groupOf.get(e.from)!];
+        const hasRightColumn = !!gb && gb.x + gb.w - (a.x + a.w) > NODE_GAP + 20;
+        const gx = hasRightColumn ? a.x + a.w + NODE_GAP / 2 : a.x - NODE_GAP / 2;
+        const y1 = a.y + a.h + NODE_GAP / 2;
+        const y2 = b.y - NODE_GAP / 2;
+        points = corners([[ax, a.y + a.h], [ax, y1], [gx, y1], [gx, y2], [bx, y2], [bx, b.y]]);
+      }
       dir = 'down';
     } else if (b.x >= a.x + a.w && Math.abs(b.y - a.y) < 1) {
       // Same row, target to the right: right border to left border.
