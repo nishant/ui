@@ -42,7 +42,7 @@ export const skeleton: ComponentDoc = {
         ? '<div className="flex items-center gap-3">\n  <Skeleton className="size-9 rounded-full" />\n  <Skeleton className="h-3.5 w-2/5" />\n</div>'
         : jsx('SkeletonLines', { lines: a.lines === 3 ? undefined : Number(a.lines) }),
   html: {
-    height: 200,
+    height: 330,
     code: `<div class="nish-skeleton-group" aria-busy="true" aria-label="Loading" style="display:grid;gap:12px;max-width:24rem">
   <span class="nish-skeleton nish-skeleton--text" style="width: 60%"></span>
   <span class="nish-skeleton nish-skeleton--text"></span>

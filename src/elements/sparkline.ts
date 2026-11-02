@@ -3,6 +3,14 @@ import { sparklineGeometry } from '../sparkline-path';
 import { NishElement, define } from './base';
 
 const TONE_COLOR: Record<string, string> = {
+  'chart-1': 'var(--nish-chart-1)',
+  'chart-2': 'var(--nish-chart-2)',
+  'chart-3': 'var(--nish-chart-3)',
+  'chart-4': 'var(--nish-chart-4)',
+  'chart-5': 'var(--nish-chart-5)',
+  'chart-6': 'var(--nish-chart-6)',
+  'chart-7': 'var(--nish-chart-7)',
+  'chart-8': 'var(--nish-chart-8)',
   accent: 'var(--nish-accent)',
   ok: 'var(--nish-ok-fill)',
   warn: 'var(--nish-warn-fill)',
@@ -71,7 +79,7 @@ export class NishSparkline extends NishElement {
     const width = this.width > 0 ? this.width : 120;
     const height = this.height > 0 ? this.height : 28;
     const { empty, lines, areas, baseline } = sparklineGeometry(values, width, height, this.min ?? undefined, this.max ?? undefined);
-    const color = empty ? 'var(--nish-line-strong)' : (TONE_COLOR[this.tone] ?? `var(--nish-${this.tone || 'chart-1'})`);
+    const color = empty ? 'var(--nish-line-strong)' : (Object.hasOwn(TONE_COLOR, this.tone) ? TONE_COLOR[this.tone] : 'var(--nish-chart-1)');
     const name = this.label || 'Trend';
     return html`<svg
       class="nish-sparkline"

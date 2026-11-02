@@ -25,6 +25,7 @@ export class NishChipGroup extends NishElement {
   #group: HTMLElement | null = null;
   #observer: MutationObserver | null = null;
   #pending: string[] | null = null;
+  readonly #onClickBound = (e: Event): void => this.#onClick(e);
 
   constructor() {
     super();
@@ -64,6 +65,7 @@ export class NishChipGroup extends NishElement {
     super.disconnectedCallback();
     this.#observer?.disconnect();
     this.#observer = null;
+    this.#group?.removeEventListener('click', this.#onClickBound);
     this.#group = null;
   }
 
@@ -99,7 +101,7 @@ export class NishChipGroup extends NishElement {
     }
     this.#group = group;
     group.setAttribute('role', 'group');
-    group.addEventListener('click', (e) => this.#onClick(e));
+    group.addEventListener('click', this.#onClickBound);
     this.#sync();
     this.#decorate();
     if (this.#pending) {

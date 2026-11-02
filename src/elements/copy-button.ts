@@ -48,6 +48,7 @@ export class NishCopyButton extends NishElement {
     copiedLabel: { attribute: 'copied-label', reflect: true },
     icon: { type: Boolean, reflect: true },
     copied: { state: true },
+    manual: { state: true },
   };
 
   declare value: string | null;
@@ -56,6 +57,7 @@ export class NishCopyButton extends NishElement {
   declare copiedLabel: string;
   declare icon: boolean;
   declare copied: boolean;
+  declare manual: boolean;
 
   #timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -67,6 +69,7 @@ export class NishCopyButton extends NishElement {
     this.copiedLabel = 'Copied';
     this.icon = false;
     this.copied = false;
+    this.manual = false;
   }
 
   override disconnectedCallback(): void {
@@ -74,6 +77,7 @@ export class NishCopyButton extends NishElement {
     if (this.#timer) clearTimeout(this.#timer);
     this.#timer = null;
     this.copied = false;
+    this.manual = false;
   }
 
   #text(): string {
@@ -84,7 +88,11 @@ export class NishCopyButton extends NishElement {
 
   async #onClick(): Promise<void> {
     const text = this.#text();
-    if (!(await writeText(text))) return;
+    if (!(await writeText(text))) {
+      await this.#manualCopy();
+      return;
+    }
+    this.manual = false;
     this.copied = true;
     this.dispatchEvent(new CustomEvent('nish-copy', { bubbles: true, detail: { text } }));
     if (this.#timer) clearTimeout(this.#timer);
@@ -94,8 +102,32 @@ export class NishCopyButton extends NishElement {
     }, COPIED_MS);
   }
 
+  /** The clipboard is refused (claude.ai frames): select the text and ask for Ctrl+C for 1.5 s. */
+  async #manualCopy(): Promise<void> {
+    this.copied = false;
+    this.manual = true;
+    await this.updateComplete;
+    const source = this.value == null && this.for ? document.getElementById(this.for) : null;
+    if (source) {
+      const range = document.createRange();
+      range.selectNodeContents(source);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    } else {
+      const ta = this.querySelector<HTMLTextAreaElement>('textarea[data-copy-source]');
+      ta?.focus();
+      ta?.select();
+    }
+    if (this.#timer) clearTimeout(this.#timer);
+    this.#timer = setTimeout(() => {
+      this.manual = false;
+      this.#timer = null;
+    }, COPIED_MS);
+  }
+
   protected override render(): TemplateResult {
-    const shown = this.copied ? this.copiedLabel : this.label;
+    const shown = this.copied ? this.copiedLabel : this.manual ? 'Press Ctrl+C' : this.label;
     const icon = this.copied ? CHECK_ICON : COPY_ICON;
     return html`${this.icon
         ? html`<button type="button" class="nish-icon-btn nish-icon-btn--sm nish-copy-btn" aria-label=${shown} title=${shown} ?data-copied=${this.copied} @click=${() => this.#onClick()}>
@@ -103,7 +135,7 @@ export class NishCopyButton extends NishElement {
           </button>`
         : html`<button type="button" class="nish-btn nish-btn--sm nish-copy-btn" ?data-copied=${this.copied} @click=${() => this.#onClick()}>
             ${icon}${shown}
-          </button>`}<span role="status" aria-live="polite" style=${HIDDEN}>${this.copied ? this.copiedLabel : nothing}</span>`;
+          </button>`}<span role="status" aria-live="polite" style=${HIDDEN}>${this.copied ? this.copiedLabel : this.manual ? 'Press Ctrl+C' : nothing}</span>${this.manual && this.value != null ? html`<textarea data-copy-source readonly tabindex="-1" aria-hidden="true" style=${HIDDEN} .value=${this.value}></textarea>` : nothing}`;
   }
 }
 

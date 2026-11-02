@@ -78,7 +78,7 @@ export const chip: ComponentDoc = {
       String(a.label),
     ),
   html: {
-    height: 190,
+    height: 210,
     code: `<nish-chip-group label="Resources">
   <button>Iron</button>
   <button aria-pressed="true">Gold</button>

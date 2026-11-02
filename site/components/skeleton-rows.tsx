@@ -29,7 +29,7 @@ export const skeletonRows: ComponentDoc = {
       gap: a.gap === 'md' ? undefined : a.gap,
     }),
   html: {
-    height: 260,
+    height: 300,
     code: `<div class="nish-skeleton-group" aria-busy="true" aria-label="Loading" style="display:grid;gap:12px;max-width:28rem">
   <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>
   <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>

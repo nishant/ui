@@ -39,7 +39,7 @@ export const emptyState: ComponentDoc = {
       compact: a.compact,
     }),
   html: {
-    height: 220,
+    height: 260,
     code: `<div class="nish-empty">
   <p class="nish-empty-title">No price drops yet</p>
   <p>Trackers check every hour. Changes show up here.</p>

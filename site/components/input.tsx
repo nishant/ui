@@ -71,7 +71,7 @@ export const input: ComponentDoc = {
       'aria-describedby': a.invalid ? 'search-error' : undefined,
     }),
   html: {
-    height: 260,
+    height: 280,
     code: `<div style="display:grid;gap:12px;max-width:24rem">
   <input class="nish-input" type="text" placeholder="Tracker name" aria-label="Tracker name">
   <input class="nish-input" type="email" value="nish@example.com" aria-label="Email">

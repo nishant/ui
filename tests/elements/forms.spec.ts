@@ -77,6 +77,23 @@ test.describe('<nish-field>', () => {
     await expect(input).toHaveAttribute('aria-describedby', (await page.locator('#f-hint small.nish-hint').getAttribute('id'))!);
   });
 
+  test('a reconnect keeps one hint id and drops it once an error shows', async ({ page }) => {
+    await load(page);
+    const input = page.locator('#f-hint input');
+    await page.evaluate(() => {
+      const f = document.getElementById('f-hint')!;
+      const parent = f.parentElement!;
+      const next = f.nextSibling;
+      f.remove();
+      parent.insertBefore(f, next);
+    });
+    const hintId = (await page.locator('#f-hint small.nish-hint').getAttribute('id'))!;
+    await expect(input).toHaveAttribute('aria-describedby', hintId);
+    await page.evaluate(() => document.getElementById('f-hint')?.setAttribute('error', 'Bad'));
+    const errorId = (await page.locator('#f-hint small.nish-error').getAttribute('id'))!;
+    await expect(input).toHaveAttribute('aria-describedby', errorId);
+  });
+
   test('keeps an existing id and describedby, adds Optional and the inline layout', async ({ page }) => {
     await load(page);
     const input = page.locator('#nick');
@@ -109,6 +126,14 @@ test.describe('<nish-field>', () => {
     await expect(cbInput).toHaveAttribute('aria-invalid', 'true');
     await page.locator('#f-cb label.nish-field-label').click();
     await expect(cbInput).toBeFocused();
+  });
+
+  test('a nish-search inside a nish-field is named by the field label', async ({ page }) => {
+    await load(page);
+    const text = (await page.locator('#f-search label.nish-field-label').textContent())!.trim();
+    const input = page.locator('#s-field input').first();
+    await expect(input).not.toHaveAttribute('aria-label', /.*/);
+    expect(await input.evaluate((el) => Array.from((el as HTMLInputElement).labels ?? []).map((l) => l.textContent?.trim()).join(' '))).toContain(text);
   });
 
   test('wires a control that is added after the field is connected', async ({ page }) => {
@@ -707,10 +732,12 @@ test.describe('<nish-copy-button>', () => {
     const btn = page.locator('#cp1 button');
     await btn.click();
     await page.waitForTimeout(200);
-    await expect(btn).toHaveText('Copy');
+    await expect(btn).toHaveText('Press Ctrl+C');
     await expect(btn).not.toHaveAttribute('data-copied', /.*/);
+    expect(await page.evaluate(() => window.getSelection()?.toString() ?? '')).not.toBe('');
     expect(await copied(page)).toEqual([]);
     expect(await events(page, 'nish-copy', 'cp1')).toHaveLength(0);
+    await expect(btn).toHaveText('Copy', { timeout: 3000 });
   });
 });
 
@@ -774,4 +801,82 @@ test('loading the built elements-forms.js a second time does not throw', async (
   // Elements keep working after the second load.
   await page.locator('#sw1 button').click();
   await expect(page.locator('#sw1 button')).toHaveAttribute('aria-checked', 'true');
+});
+
+test.describe('moving an element in the DOM (disconnect, then reconnect)', () => {
+  const move = (page: Page, id: string): Promise<void> =>
+    page.evaluate((i) => {
+      const el = document.getElementById(i) as HTMLElement;
+      const box = document.createElement('div');
+      box.id = `moved-${i}`;
+      document.getElementById('root')!.appendChild(box);
+      box.appendChild(el);
+    }, id);
+
+  test('field keeps one set of ARIA wiring', async ({ page }) => {
+    await load(page);
+    const read = (): Promise<Record<string, string | null>> =>
+      page.evaluate(() => {
+        const input = document.querySelector('#f-hint input') as HTMLInputElement;
+        return {
+          id: input.id,
+          describedby: input.getAttribute('aria-describedby'),
+          labels: String(document.querySelectorAll('#f-hint label').length),
+          hints: String(document.querySelectorAll('#f-hint [id]').length),
+        };
+      });
+    const before = await read();
+    await move(page, 'f-hint');
+    expect(await read()).toEqual(before);
+  });
+
+  test('chip group toggles exactly once per click after a move', async ({ page }) => {
+    await load(page);
+    await move(page, 'cg-multi');
+    await clearEvents(page);
+    const chip = page.locator('#cg-multi button.nish-chip').first();
+    await chip.click();
+    await expect(chip).toHaveAttribute('aria-pressed', 'true');
+    expect(await events(page, 'nish-change', 'cg-multi')).toHaveLength(1);
+  });
+
+  test('combobox still opens and selects after a move', async ({ page }) => {
+    await load(page);
+    await move(page, 'cb1');
+    await clearEvents(page);
+    await page.locator('#cb1 input[role=combobox]').click();
+    await page.locator('#cb1 li[role=option]', { hasText: 'Banana' }).click();
+    await expect(page.locator('#cb1 input[role=combobox]')).toHaveValue('Banana');
+    expect(await events(page, 'nish-change', 'cb1')).toHaveLength(1);
+  });
+
+  test('tabs select once after a move', async ({ page }) => {
+    await load(page);
+    await move(page, 'tb1');
+    await clearEvents(page);
+    const beta = page.locator('#tb1 button', { hasText: 'Beta' });
+    await beta.click();
+    await expect(beta).toHaveAttribute('aria-selected', 'true');
+    expect(await events(page, 'nish-change', 'tb1')).toHaveLength(1);
+  });
+
+  test('segmented selects once after a move', async ({ page }) => {
+    await load(page);
+    await move(page, 'sg1');
+    await clearEvents(page);
+    const large = page.locator('#sg1 button', { hasText: 'Large' });
+    await large.click();
+    await expect(large).toHaveAttribute('aria-checked', 'true');
+    expect(await events(page, 'nish-change', 'sg1')).toHaveLength(1);
+  });
+
+  test('switch toggles once per click after a move', async ({ page }) => {
+    await load(page);
+    await move(page, 'sw1');
+    await clearEvents(page);
+    const btn = page.locator('#sw1 button');
+    await btn.click();
+    await expect(btn).toHaveAttribute('aria-checked', 'true');
+    expect(await events(page, 'nish-change', 'sw1')).toHaveLength(1);
+  });
 });

@@ -51,4 +51,16 @@ for (const name of readdirSync(dist)) {
   if (text.includes('lit-html') || text.includes('LitElement')) fail(`dist/${name} contains Lit; React apps must never load it`);
 }
 
+// A bare side-effect import of an element entry must survive a bundler: package.json "sideEffects"
+// has to list the element files, or the import is dropped and no tag registers.
+{
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+  const listed = Array.isArray(pkg.sideEffects) ? pkg.sideEffects : [];
+  for (const entry of entries) {
+    if (!listed.some((p) => p === `./dist/${entry}` || (p.endsWith('*.js') && entry.startsWith(p.replace(/^\.\/dist\//, '').replace('*.js', ''))))) {
+      fail(`package.json sideEffects does not list dist/${entry}; a bundler would drop 'import "nish-ui/elements..."'`);
+    }
+  }
+}
+
 for (const [entry, gz] of ok) console.log(`elements-check ok: dist/${entry} ${gz} bytes gzipped (budget ${BUDGET})`);

@@ -32,7 +32,11 @@
   ],
   "type": "module",
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./dist/elements.js",
+    "./dist/elements-*.js",
+    "./dist/theme-init.js",
+    "./dist/theme.global.js"
   ],
   "files": [
     "dist",

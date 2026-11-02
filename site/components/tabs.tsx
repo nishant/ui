@@ -119,14 +119,14 @@ export const tabs: ComponentDoc = {
   api: { functions: ['tabClass'], interfaces: ['TabItem'] },
   html: {
     height: 260,
-    code: `<nish-tabs label="Sections" value="overview">
+    code: `<nish-tabs id="sections" label="Sections" value="overview">
   <button value="overview">Overview</button>
   <button value="activity">Activity</button>
   <button value="settings">Settings</button>
 </nish-tabs>
-<div data-tab-panel="overview" style="padding-top:12px">Overview panel</div>
-<div data-tab-panel="activity" style="padding-top:12px">Activity panel</div>
-<div data-tab-panel="settings" style="padding-top:12px">Settings panel</div>
+<div data-tab-panel="overview" data-tabs="sections" style="padding-top:12px">Overview panel</div>
+<div data-tab-panel="activity" data-tabs="sections" style="padding-top:12px">Activity panel</div>
+<div data-tab-panel="settings" data-tabs="sections" style="padding-top:12px">Settings panel</div>
 <!-- Pill variant, no panels -->
 <div style="margin-top:12px">
   <nish-tabs label="Range" variant="pill" size="sm">

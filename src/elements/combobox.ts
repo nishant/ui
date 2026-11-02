@@ -342,7 +342,8 @@ export class NishCombobox extends NishElement {
           const at = sel ? vis.findIndex((o) => o.value === sel.value) : -1;
           this.#active = at >= 0 ? at : this.#edge(dir);
         } else {
-          this.#active = this.#active < 0 ? this.#edge(dir) : this.#step(this.#active, dir);
+          this.#setActive(this.#active < 0 ? this.#edge(dir) : this.#step(this.#active, dir));
+          break;
         }
         this.#refresh();
         break;
@@ -351,8 +352,7 @@ export class NishCombobox extends NishElement {
       case 'End':
         if (this.#open) {
           e.preventDefault();
-          this.#active = this.#edge(e.key === 'Home' ? 1 : -1);
-          this.#refresh();
+          this.#setActive(this.#edge(e.key === 'Home' ? 1 : -1));
         }
         break;
       case 'Enter':
@@ -416,6 +416,29 @@ export class NishCombobox extends NishElement {
     this.#renderList(input, root, this.#status);
   }
 
+  /** Move the active option. When the list is already drawn for these options, only the
+   *  `data-active` mark, `aria-activedescendant` and scroll position change; no rebuild. */
+  #setActive(next: number): void {
+    const prev = this.#active;
+    this.#active = next;
+    const list = this.#list;
+    const input = this.#input;
+    if (!list || !input || !this.#open) {
+      this.#refresh();
+      return;
+    }
+    list.querySelector('[data-active]')?.removeAttribute('data-active');
+    const li = next >= 0 ? list.querySelector<HTMLElement>(`[data-index="${next}"]`) : null;
+    if (!li) {
+      if (prev !== next) this.#refresh();
+      else input.removeAttribute('aria-activedescendant');
+      return;
+    }
+    li.dataset.active = '';
+    input.setAttribute('aria-activedescendant', li.id);
+    li.scrollIntoView?.({ block: 'nearest' });
+  }
+
   #renderList(input: HTMLInputElement, root: HTMLDivElement, status: HTMLSpanElement): void {
     const listId = `nish-cb-list-${this.#uid}`;
     const vis = this.#visible;
@@ -426,6 +449,23 @@ export class NishCombobox extends NishElement {
       list.id = listId;
       list.className = 'nish-combobox-list';
       list.setAttribute('role', 'listbox');
+      // One delegated set of listeners for every row, so a rebuild adds none.
+      const rowOf = (e: Event): { o: NishComboboxOption; i: number } | null => {
+        const li = (e.target as Element | null)?.closest<HTMLElement>('li[data-index]');
+        if (!li || !list!.contains(li)) return null;
+        const i = Number(li.dataset.index);
+        const o = this.#visible[i];
+        return o ? { o, i } : null;
+      };
+      list.addEventListener('mousedown', (e) => e.preventDefault());
+      list.addEventListener('mousemove', (e) => {
+        const row = rowOf(e);
+        if (row && !row.o.disabled && this.#active !== row.i) this.#setActive(row.i);
+      });
+      list.addEventListener('click', (e) => {
+        const row = rowOf(e);
+        if (row) this.#select(row.o);
+      });
       this.#list = list;
       root.append(list);
     }
@@ -458,14 +498,6 @@ export class NishCombobox extends NishElement {
         li.append(hint);
       }
       if (sel?.value === o.value) li.append(icon('M20 6 9 17l-5-5'));
-      li.addEventListener('mousedown', (e) => e.preventDefault());
-      li.addEventListener('mousemove', () => {
-        if (!o.disabled && this.#active !== i) {
-          this.#active = i;
-          this.#refresh();
-        }
-      });
-      li.addEventListener('click', () => this.#select(o));
       return li;
     });
     if (this.loading) {

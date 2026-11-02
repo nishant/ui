@@ -30,7 +30,7 @@ export const errorState: ComponentDoc = {
       compact: a.compact,
     }),
   html: {
-    height: 220,
+    height: 250,
     code: `<div class="nish-error-state" role="alert">
   <p>Could not reach the API. Check that the server is running.</p>
   <button class="nish-btn nish-btn--sm">Retry</button>

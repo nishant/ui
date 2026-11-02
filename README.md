@@ -122,7 +122,8 @@ tags the page uses:
   `<nish-copy-button>` and `<nish-sparkline>`.
 - `elements-data.js` (`nish-ui/elements/data`): the data elements (coming).
 - `elements-charts.js` (`nish-ui/elements/charts`): the chart elements (coming).
-The button, card, bottom nav, theme toggle, modal, more sheet and toast pages on the docs site have an HTML tab with the markup, running live. More in
+
+Most component pages on the docs site, including all the form, feedback and display pages, have an HTML tab with the markup, running live. More in
 [Static sites](https://design.nish.software/#/static-sites).
 
 ## Theming

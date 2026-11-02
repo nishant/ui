@@ -12,8 +12,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 //   - its title or body has equal color and font-size, and its text starts at the same offset
 //     inside the box (the visible padding: React draws it with wrapper divs and the nish-* classes
 //     with padding on the title, so the computed padding of those nodes is not comparable).
-// The box's own color and font-size are not compared: a React box inherits them and its text
-// nodes set them, which the title and body checks cover.
+// The box's own color and font-size are compared too (the element box sets the inherited values React's has); the text
+// nodes' own values are covered by the title and body checks.
 // The test fails when the element version drifts from the React one. KNOWN_GAPS is the mechanism for
 // a difference that cannot be closed yet (exact values, "prop element vs react"); it is empty: a new
 // difference is fixed in the CSS, never listed. Run with PARITY_VERBOSE=1 to print every difference
@@ -275,7 +275,7 @@ interface Measured {
   dy: number;
 }
 
-const BOX_PROPS = ['backgroundColor', 'borderColor', 'borderRadius', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const;
+const BOX_PROPS = ['backgroundColor', 'borderColor', 'borderRadius', 'color', 'fontSize', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const;
 const TEXT_PROPS = ['color', 'fontSize'] as const;
 
 async function measure(page: Page, loc: Locator, boxSel: string): Promise<Measured> {

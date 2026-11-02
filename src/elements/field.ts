@@ -85,7 +85,12 @@ export class NishField extends NishElement {
     this.#control = Array.from(wrap.children).find(
       (c) => !c.matches('label.nish-field-label, small.nish-hint, small.nish-error'),
     ) as HTMLElement | null;
-    this.#authorDescribedBy = this.#target()?.getAttribute('aria-describedby') ?? '';
+    // On a reconnect the attribute already holds this field's own hint/error ids: strip them so
+    // only the author's ids are kept.
+    this.#authorDescribedBy = (this.#target()?.getAttribute('aria-describedby') ?? '')
+      .split(/\s+/)
+      .filter((id) => id && id !== `${this.#uid}-hint` && id !== `${this.#uid}-error`)
+      .join(' ');
     this.#sync();
     // A nested nish-combobox / nish-search renders its input after this element mounts.
     if (this.#control && this.#control.localName.startsWith('nish-')) {

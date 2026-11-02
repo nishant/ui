@@ -642,6 +642,10 @@
   :where(.nish-search, .nish-search--xs) > :where(input:not(:last-child)) {
     padding-right: 44px;
   }
+  /* 16px input text on touch, like React's pointer-coarse:text-base (also stops focus zoom). */
+  :where(.nish-search--sm, .nish-search--xs) > :where(input) {
+    font-size: var(--nish-text-base);
+  }
 }
 
 /* --- Segmented (.nish-seg) ----------------------------------------------------------
@@ -851,7 +855,7 @@
   border: 1px solid var(--nish-line);
   border-radius: var(--nish-radius-card, 12px);
   background: var(--nish-elevated);
-  color: var(--nish-hi2);
+  color: var(--nish-hi);
   font-size: var(--nish-text-sm);
   line-height: 1.375;
 }
@@ -861,6 +865,8 @@
 }
 :where(.nish-callout) :where(p) {
   margin: 0;
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
 }
 :where(.nish-callout) :where(p + p) {
   margin-top: 2px;
@@ -1257,14 +1263,16 @@
   padding: 48px 24px;
   border: 1px dashed var(--nish-line);
   border-radius: var(--nish-radius-card, 12px);
-  color: var(--nish-hi3);
-  font-size: var(--nish-text-xs);
+  color: var(--nish-hi);
+  font-size: var(--nish-text-base);
   line-height: 1rem;
   text-align: center;
 }
 :where(.nish-empty, .nish-error-state) :where(p) {
   max-width: 24rem;
   margin: 0;
+  color: var(--nish-hi3);
+  font-size: var(--nish-text-xs);
 }
 :where(.nish-empty-title) {
   color: var(--nish-hi2);
@@ -1287,6 +1295,8 @@
 }
 :where(.nish-error-state) :where(p) {
   max-width: 28rem;
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
 }
 :where(.nish-error-state) > :where(button, a, .nish-btn) {
   height: 26px;
@@ -1296,8 +1306,8 @@
   padding: 40px 24px;
   border: 1px solid color-mix(in oklab, var(--nish-loss) 30%, transparent);
   background: var(--nish-loss-soft);
-  color: var(--nish-hi2);
-  font-size: var(--nish-text-sm);
+  color: var(--nish-hi);
+  font-size: var(--nish-text-base);
   line-height: 1.25rem;
 }
 
@@ -1326,8 +1336,8 @@
   border-radius: 12px;
   background: var(--nish-elevated);
   box-shadow: var(--nish-shadow-pop);
-  color: var(--nish-hi2);
-  font-size: var(--nish-text-sm);
+  color: var(--nish-hi);
+  font-size: var(--nish-text-base);
   line-height: 1.375;
   animation: nish-rise-in 160ms var(--nish-ease-out, ease-out) both;
 }
@@ -1356,6 +1366,7 @@
   flex: 1;
   min-width: 0;
   margin: 0;
+  font-size: var(--nish-text-sm);
   color: var(--nish-hi);
   font-weight: var(--nish-weight-medium);
   overflow-wrap: anywhere;
@@ -1456,9 +1467,9 @@
   border-radius: 16px 16px 0 0;
   background: var(--nish-surface);
   box-shadow: var(--nish-shadow-modal);
-  color: var(--nish-hi2);
+  color: var(--nish-hi);
   font-family: var(--nish-font-sans, inherit);
-  font-size: var(--nish-text-sm);
+  font-size: var(--nish-text-base);
   line-height: 1.25rem;
   animation: nish-sheet-in 240ms var(--nish-ease-out, ease-out) both;
 }
@@ -1490,6 +1501,8 @@
 }
 :where(.nish-dialog-body) {
   margin: 0;
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
   padding: 0 20px 20px;
   overflow-wrap: anywhere;
 }
@@ -1739,9 +1752,9 @@
   border-radius: 16px 16px 0 0;
   background: var(--nish-surface);
   box-shadow: var(--nish-shadow-modal);
-  color: var(--nish-hi2);
+  color: var(--nish-hi);
   font-family: var(--nish-font-sans, inherit);
-  font-size: var(--nish-text-sm);
+  font-size: var(--nish-text-base);
   line-height: 1.25rem;
   /* The handle and header are drag targets; the body scrolls itself (pan-y below). */
   touch-action: none;
@@ -1799,6 +1812,8 @@
 }
 :where(.nish-sheet-body) {
   min-height: 0;
+  color: var(--nish-hi2);
+  font-size: var(--nish-text-sm);
   flex: 1 1 auto;
   padding: 0 20px 20px;
   overflow-y: auto;
@@ -1868,6 +1883,8 @@
   appearance: none;
   -webkit-appearance: none;
   position: relative;
+  color: inherit;
+  font-size: inherit;
   box-sizing: border-box;
   display: inline-block;
   flex-shrink: 0;
@@ -1921,6 +1938,8 @@
   appearance: none;
   -webkit-appearance: none;
   position: relative;
+  color: var(--nish-hi);
+  font-size: var(--nish-text-base);
   box-sizing: border-box;
   display: inline-block;
   flex-shrink: 0;
@@ -3158,8 +3177,12 @@
     min-width: var(--nish-tap-min);
     min-height: var(--nish-tap-min);
   }
+  :where(.nish-tab, .nish-chip) {
+    min-width: var(--nish-tap-min);
+  }
   :where(span.nish-chip) {
     min-height: 0;
+    min-width: 0;
   }
   :where(.nish-btn--link) {
     min-height: 0;

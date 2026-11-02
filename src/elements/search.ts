@@ -7,7 +7,7 @@ const X_ICON = svg`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 
 /** `<nish-search placeholder="Search jobs">`: a search field with a leading icon and a Clear button
  *  while it has text. Attributes: `value`, `placeholder` (default "Search"), `label` (the input's
- *  aria-label, default "Search"), `size` (xs, sm or md), `variant="bare"` (no border or fill),
+ *  aria-label; default "Search", or none inside a `<nish-field>` so the field's label names it), `size` (xs, sm or md), `variant="bare"` (no border or fill),
  *  `name` (on the input, so a form submits it), `disabled`. Typing fires the input's native `input`
  *  event and `nish-input` (`detail: { value }`). Clear and Escape (while there is text) empty the
  *  field, fire `nish-input` and `nish-clear`, and keep focus in the input. */
@@ -34,7 +34,7 @@ export class NishSearch extends NishElement {
     super();
     this.value = '';
     this.placeholder = 'Search';
-    this.label = 'Search';
+    this.label = '';
     this.size = 'md';
     this.variant = 'field';
     this.disabled = false;
@@ -87,7 +87,7 @@ export class NishSearch extends NishElement {
         type="search"
         enterkeyhint="search"
         autocomplete="off"
-        aria-label=${this.label || 'Search'}
+        aria-label=${this.label || (this.closest('nish-field') ? nothing : 'Search')}
         placeholder=${this.placeholder ?? ''}
         name=${this.name ?? nothing}
         ?disabled=${this.disabled}
