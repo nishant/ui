@@ -46,6 +46,17 @@ export const button: ComponentDoc = {
       },
       String(a.label),
     ),
+  html: {
+    height: 180,
+    code: `<div style="display:flex;flex-wrap:wrap;gap:8px">
+  <button type="button" class="nish-btn nish-btn--primary">Save changes</button>
+  <button type="button" class="nish-btn">Export</button>
+  <button type="button" class="nish-btn nish-btn--ghost">Cancel</button>
+  <button type="button" class="nish-btn nish-btn--danger">Delete tracker</button>
+  <button type="button" class="nish-btn nish-btn--sm">Small</button>
+  <button type="button" class="nish-btn nish-btn--primary" disabled>Saving</button>
+</div>`,
+  },
   stories: [
     {
       id: 'variants',

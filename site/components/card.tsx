@@ -106,6 +106,14 @@ export const card: ComponentDoc = {
       },
       a.content === 'table' ? '…table…' : '…',
     ),
+  html: {
+    height: 200,
+    code: `<section class="nish-card nish-card--padded">
+  <p style="margin:0;font-weight:600">Weekly digest</p>
+  <p style="margin:4px 0 0;font-size:14px;color:var(--nish-hi2)">Every Monday at 8 am: new roles that match your saved searches.</p>
+  <div class="nish-card nish-card--inset" style="margin-top:12px;padding:10px 12px;font-size:14px">Next one: Monday</div>
+</section>`,
+  },
   stories: [
     {
       id: 'default',

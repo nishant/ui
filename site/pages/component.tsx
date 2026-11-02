@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import docgen from 'virtual:nish-docgen';
-import { Card, cn, CopyButton, Input, PRESETS, Select, SectionNav, Switch, tabClass, useTheme, type ThemeName } from '../../src';
+import { Card, cn, CopyButton, Input, PRESETS, Select, SectionNav, Switch, Tabs, tabClass, useTheme, type ThemeName } from '../../src';
 import { COMPONENT_DOCS, RealModalButton, type ComponentDoc, type Control, type Story } from '../components';
 import { CodeBlock } from '../lib/code';
 import { ExternalIcon } from '../lib/icons';
@@ -21,6 +21,102 @@ export function frameUrl(doc: ComponentDoc, opts: { story?: string; theme?: Them
 
 function Frame({ src, height, title, frameRef }: { src: string; height: number; title: string; frameRef?: React.Ref<HTMLIFrameElement> }) {
   return <iframe ref={frameRef} src={src} title={title} className="block w-full border-0 bg-th-bg" style={{ height }} />;
+}
+
+type CodeTab = 'react' | 'html';
+const CODE_TAB_KEY = 'nish-docs-code-tab';
+
+function readCodeTab(): CodeTab {
+  try {
+    return localStorage.getItem(CODE_TAB_KEY) === 'html' ? 'html' : 'react';
+  } catch {
+    return 'react';
+  }
+}
+
+/** The snippets name the jsDelivr copy; the live frame swaps in this site's own dist files. */
+const CDN_DIST = /https:\/\/cdn\.jsdelivr\.net\/npm\/nish-ui@[\w.-]+\/dist\//g;
+
+/** The vendored dist files, resolved against this page (hash routes, so drop the hash). */
+function nishBase(): string {
+  return new URL('static-example/nish/', location.href.split('#')[0]).href;
+}
+
+function frameDocument(code: string): string {
+  const base = nishBase();
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="${base}theme-init.js"></script>
+<link rel="stylesheet" href="${base}nish.css">
+<link rel="stylesheet" href="${base}nish-components.css">
+<script type="module" src="${base}elements.js"></script>
+<style>body{margin:0;padding:16px}</style></head><body>${code.replace(CDN_DIST, base)}</body></html>`;
+}
+
+/** The HTML snippet running in a frame of its own, kept in step with this site's theme. */
+function HtmlFrame({ code, height, title }: { code: string; height: number; title: string }) {
+  const { theme } = useTheme();
+  const ref = useRef<HTMLIFrameElement>(null);
+  const srcDoc = useMemo(() => frameDocument(code), [code]);
+  const sync = () => {
+    const root = ref.current?.contentDocument?.documentElement;
+    const parent = document.documentElement;
+    if (!root) return;
+    for (const a of ['data-theme', 'data-scheme']) {
+      const v = parent.getAttribute(a);
+      if (v) root.setAttribute(a, v);
+    }
+    root.style.colorScheme = parent.style.colorScheme;
+  };
+  useEffect(sync, [theme]);
+  return (
+    <div className="overflow-hidden rounded-lg border border-th-line">
+      <iframe ref={ref} srcDoc={srcDoc} onLoad={sync} title={title} className="mx-auto block w-full border-0 bg-th-bg" style={{ height }} />
+    </div>
+  );
+}
+
+function UsageCode({ doc }: { doc: ComponentDoc }) {
+  const [tab, setTab] = useState<CodeTab>(readCodeTab);
+  const react = <CodeBlock code={doc.usage} title={`${doc.name.toLowerCase()}-example.tsx`} collapseAt={12} />;
+  if (!doc.html) return react;
+  const pick = (v: string) => {
+    setTab(v as CodeTab);
+    try {
+      localStorage.setItem(CODE_TAB_KEY, v);
+    } catch {
+      /* the choice just is not remembered */
+    }
+  };
+  return (
+    <div className="space-y-3">
+      <Tabs
+        variant="pill"
+        label="Code"
+        value={tab}
+        onChange={pick}
+        items={[
+          { value: 'react', label: 'React' },
+          { value: 'html', label: 'HTML' },
+        ]}
+      />
+      {tab === 'react' ? (
+        react
+      ) : (
+        <>
+          <CodeBlock code={doc.html.code.replaceAll('nish-ui@X.Y.Z', `nish-ui@${docgen.version}`)} title={`${doc.id}.html`} collapseAt={16} />
+          <p className="text-sm text-th-hi3">
+            Live, with no React. The page links <code className="inline">nish.css</code>, <code className="inline">nish-components.css</code> and{' '}
+            <code className="inline">elements.js</code>; see{' '}
+            <a className="doc-link" href={href('/static-sites')}>
+              Static sites
+            </a>
+            .
+          </p>
+          <HtmlFrame code={doc.html.code} height={doc.html.height ?? 220} title={`${doc.name} as HTML`} />
+        </>
+      )}
+    </div>
+  );
 }
 
 function ControlInput({ c, value, onChange }: { c: Control; value: Args[string]; onChange: (v: Args[string]) => void }) {
@@ -188,7 +284,7 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
       ) : (
         <>
           <Section id="usage" title="Usage">
-            <CodeBlock code={doc.usage} title={`${doc.name.toLowerCase()}-example.tsx`} collapseAt={12} />
+            <UsageCode doc={doc} />
           </Section>
           <SectionNav items={jumps} updateHash={false} label={`${doc.name} sections`} />
           <Section id="preview" title="Preview" note="Change the controls to re-render it. The snippet below follows along.">
