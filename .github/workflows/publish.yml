@@ -1,0 +1,49 @@
+name: publish
+# Publishes a release tag to npm as @nish-software/ui (docs/RELEASING.md, "npm").
+# scripts/release.mjs --ci dispatches it after every release. By hand:
+#   gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z
+# Auth is npm trusted publishing (OIDC, id-token below). NPM_TOKEN is only for the first publish,
+# since npm sets a trusted publisher only on a package that exists.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (vX.Y.Z)'
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # master for the tooling, the tag (which carries dist/) as the package.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later.
+      - name: Update npm
+        run: npm install -g npm@11
+      - name: Check out the tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "Not a release tag $TAG"; exit 1 ;;
+          esac
+          git worktree add --detach "$RUNNER_TEMP/pkg" "refs/tags/$TAG"
+      - name: Publish
+        env:
+          TAG: ${{ inputs.tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node tools/npm-publish.mjs "$RUNNER_TEMP/pkg" --tag "$TAG"

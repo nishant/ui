@@ -4,6 +4,18 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.1.0] - 2026-11-02
+
+### Added
+
+- Published to npm as **`@nish-software/ui`** (the `@nish` scope on npm belongs to someone else). `npm install @nish/ui@npm:@nish-software/ui` installs it under the usual name, so every import in the docs works as written. The repo, the tags and the codeload pins keep the name `@nish/ui`, so nothing changes for the apps. Every release publishes through `.github/workflows/publish.yml` (npm trusted publishing, with provenance), dispatched by the release job; see `docs/RELEASING.md`.
+- `<html data-nish-domain="example.com">`: shares the theme choice in a `nish-theme` cookie across another site's subdomains, the way nish.software does. It counts only on that domain and its subdomains. Without it nothing changes: nish.software hosts share on `.nish.software`, other hosts use `localStorage`.
+- `LICENSE` (MIT, as `package.json` already said), plus `author`, `homepage`, `repository`, `bugs` and `keywords` in `package.json`.
+
+### Changed
+
+- The README is for people using the package: it starts with install (npm, codeload, git). The list of apps, the release flow, the fan-out and its merge policy moved to `docs/RELEASING.md`.
+
 ## [1.0.2] - 2026-10-31
 
 ### Fixed
