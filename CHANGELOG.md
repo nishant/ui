@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.1.1] - 2026-11-01
+
+### Fixed
+
+- `SystemCanvas`: a recently worked-on node's afterglow is drawn by the rounded card. Before, it was a square-cornered shadow on the card's wrapper, and its border tint never showed.
+
 ## [1.1.0] - 2026-11-01
 
 ### Added

@@ -57,9 +57,12 @@ export const NodeView = memo(
       height: box.h,
       '--nish-canvas-delay': `${delay}ms`,
     } as CSSProperties;
+    // The afterglow is drawn by the card (`.nish-canvas-node[data-heat]` in base.css), whose rounded
+    // corners and border the slot does not have; the slot only carries the values.
     if (!active && heat > 0) {
-      style.borderColor = `color-mix(in srgb, var(--c) ${Math.round(heat * 70)}%, var(--nish-line))`;
-      style.boxShadow = `0 0 ${Math.round(6 + heat * 16)}px color-mix(in srgb, var(--c) ${Math.round(heat * 60)}%, transparent)`;
+      const vars = style as Record<string, string>;
+      vars['--nish-canvas-heat-line'] = `color-mix(in srgb, var(--c) ${Math.round(heat * 70)}%, var(--nish-line))`;
+      vars['--nish-canvas-heat-glow'] = `0 0 ${Math.round(6 + heat * 16)}px color-mix(in srgb, var(--c) ${Math.round(heat * 60)}%, transparent)`;
     }
     const aria = `${node.label}, ${groupTitle}${active ? (node.note ? `, active: ${node.note}` : ', active') : ''}`;
     return (
