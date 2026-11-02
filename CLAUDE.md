@@ -1,7 +1,7 @@
 # CLAUDE.md — @nish/ui
 
 The shared tokens, themes and React components of every *.nish.software app. How the
-package is used: [README.md](README.md). How it is released, reaches the apps and npm (`nish-ui`): [docs/RELEASING.md](docs/RELEASING.md). Every release:
+package is used: [README.md](README.md). Repo layout and dev commands: [docs/DEVELOPING.md](docs/DEVELOPING.md). How it is released, reaches the apps and npm (`nish-ui`): [docs/RELEASING.md](docs/RELEASING.md). Every release:
 [CHANGELOG.md](CHANGELOG.md).
 
 ## Autonomy
@@ -18,6 +18,16 @@ behind. Only taarora/arora-home is moved by hand: `bash scripts/bump-consumers.s
 Work is done only when it is merged, released, adopted by the apps that need it, and confirmed
 live. The rest of the rule (defaults instead of questions; stop only for credentials, account
 signups or anything destructive to production data) is "Autonomy" in [`global/CLAUDE.md`](https://github.com/nishant/skills/blob/master/global/CLAUDE.md) in `nishant/skills`.
+
+## Keeping npm in sync
+
+The package is on npm as `nish-ui`. Every release publishes it through `publish.yml` (trusted
+publishing; no tokens exist or are allowed). After a release, check `npm view nish-ui version`
+equals the newest git tag. Update the README and the docs site in the same PR as any component,
+export or token change: the README is the npm page, so absolute links only, no table wider than
+3 short columns, detail on design.nish.software. A failed publish run: fix it and rerun
+`gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z`. Details: "Keeping npm in sync" in
+[docs/RELEASING.md](docs/RELEASING.md#keeping-npm-in-sync).
 
 ## Target Device
 

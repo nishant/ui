@@ -211,6 +211,7 @@ await inbox.send({
     'Under 480px each open row has one "Actions" menu (44px) with Mark handled and the snooze times; from 480px the two buttons sit inline.',
     'The source chips scroll sideways inside their own row on phones. The page itself never scrolls sideways.',
     'Item actions (up to 3, from the event) show as small buttons under the text in the open and snoozed views when onAction is given. While one runs it spins and the item\'s other actions are disabled; the last result shows in a muted line under them.',
+    'An action\'s id matches /^[a-z0-9][a-z0-9-]{0,31}$/ and is unique in the event; its label is 1-40 characters (longer is cut with an ellipsis); method is POST or left out; target is http://127.0.0.1:<port>/… only, with an explicit port, no credentials, no #hash and at most 2000 characters (isInboxActionTarget). The service follows no redirects; anything but a 2xx leaves the item open, and either way the outcome is stored as item.lastAction. A repeat event with the same dedupeKey replaces the actions.',
     'Pass selectedId from a notification link (#/inbox?item=<id>) so the item is highlighted and scrolled into view.',
     'Colors come only from th-* roles, so every theme works in light and dark.',
   ],

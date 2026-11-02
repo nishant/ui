@@ -1,7 +1,7 @@
 {
   "name": "@nish/ui",
   "version": "1.4.0",
-  "description": "Design tokens, theme switching and React components shared by every *.nish.software app.",
+  "description": "Design tokens, seven themes, flash-free theme switching and accessible React 19 components for Tailwind 4, plain CSS and static HTML. Live docs: https://design.nish.software",
   "license": "MIT",
   "author": "Nishant Arora",
   "homepage": "https://design.nish.software",
@@ -15,13 +15,20 @@
   "keywords": [
     "design-system",
     "design-tokens",
+    "ui",
+    "components",
+    "react",
+    "react-components",
     "tailwindcss",
     "tailwind",
-    "react",
+    "tailwindcss-v4",
     "themes",
+    "theming",
     "dark-mode",
-    "components",
-    "css-variables"
+    "css-variables",
+    "accessibility",
+    "a11y",
+    "vite"
   ],
   "type": "module",
   "sideEffects": [
