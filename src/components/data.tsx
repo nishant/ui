@@ -428,6 +428,8 @@ export interface ListRowProps {
   chevron?: boolean;
   /** A 44px row instead of 52px. */
   dense?: boolean;
+  /** Dense, with an 11px title and 10px subtitle and meta: for small widget tiles. Keeps the 44px target. */
+  compact?: boolean;
   /** Opens the link in a new tab with an external icon. */
   external?: boolean;
   className?: string;
@@ -449,6 +451,7 @@ export function ListRow({
   tone,
   chevron,
   dense = false,
+  compact = false,
   external = false,
   className,
   as: Wrapper = 'li',
@@ -456,10 +459,11 @@ export function ListRow({
   const interactive = !!(href || onClick);
   const showChevron = chevron ?? !!href;
   const rowClass = cn(
-    'flex w-full items-center gap-3 rounded-[var(--nish-radius-sm)] px-3 text-left',
-    dense ? 'min-h-11' : 'min-h-[52px]',
+    'flex w-full items-center rounded-[var(--nish-radius-sm)] px-3 text-left',
+    compact ? 'gap-2.5' : 'gap-3',
+    dense || compact ? 'min-h-11' : 'min-h-[52px]',
     !subtitle && 'py-1',
-    subtitle && 'py-2',
+    subtitle && (compact ? 'py-1.5' : 'py-2'),
     interactive &&
       'transition-colors hover:bg-th-elevated focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-th-accent',
     active && 'bg-th-accent-soft',
@@ -473,6 +477,7 @@ export function ListRow({
           className={cn(
             'block',
             titleLines === 2 ? 'line-clamp-2 break-words' : 'truncate',
+            compact && 'text-2xs font-medium leading-snug',
             tone === 'danger' ? 'text-th-loss' : 'text-th-hi',
           )}
         >
@@ -480,15 +485,15 @@ export function ListRow({
         </span>
         {/* On the active row's accent tint, hi3 falls under 4.5:1 in light themes; hi2 holds it. */}
         {subtitle ? (
-          <span className={cn('line-clamp-2 block text-sm', active ? 'text-th-hi2' : 'text-th-hi3')}>{subtitle}</span>
+          <span className={cn('line-clamp-2 block', compact ? 'mt-0.5 text-3xs' : 'text-sm', active ? 'text-th-hi2' : 'text-th-hi3')}>{subtitle}</span>
         ) : null}
       </span>
       {meta ? (
-        <span className={cn('shrink-0 text-right text-xs tabular-nums', active ? 'text-th-hi2' : 'text-th-hi3')}>{meta}</span>
+        <span className={cn('shrink-0 text-right tabular-nums', compact ? 'text-3xs' : 'text-xs', active ? 'text-th-hi2' : 'text-th-hi3')}>{meta}</span>
       ) : null}
       {trailing ? <span className="flex shrink-0 items-center">{trailing}</span> : null}
       {external ? <ExternalGlyph size={14} className="shrink-0 text-th-hi3" /> : null}
-      {showChevron && !external ? <ChevronRight size={16} className="shrink-0 text-th-ghost" /> : null}
+      {showChevron && !external ? <ChevronRight size={compact ? 13 : 16} className="shrink-0 text-th-ghost" /> : null}
     </>
   );
   let inner: ReactNode;

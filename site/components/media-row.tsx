@@ -70,6 +70,20 @@ function DenseList() {
   );
 }
 
+function CompactList() {
+  return (
+    <div className="w-full max-w-xs rounded-xl border border-th-line bg-th-surface">
+      <div className="border-b border-th-line px-3 py-1.5 text-2xs font-medium text-th-hi2">Widget tile</div>
+      <ul className="m-0 list-none p-0">
+        <MediaRow compact fallback={<Fill />} title="Morning kickoff show" meta="Studio Channel" live onClick={() => undefined} />
+        <MediaRow compact fallback={<Fill hue="warn" />} title={LONG_TITLE} meta="Studio Channel" detail="3h 12m · 2 days ago" onClick={() => undefined} />
+        <MediaRow compact fallback={<Fill hue="info" />} thumbShape="round" title="Studio Channel" meta="Offline" live={false} onClick={() => undefined} />
+        <MediaRow compact fallback={<LayersIcon />} title="Saved streams" meta="14 videos" chevron onClick={() => undefined} />
+      </ul>
+    </div>
+  );
+}
+
 function Chips() {
   const [log, setLog] = useState('Nothing pressed yet');
   return (
@@ -117,9 +131,10 @@ export const mediaRow: ComponentDoc = {
     { key: 'meta', label: 'Meta', type: 'boolean' },
     { key: 'detail', label: 'Detail', type: 'boolean' },
     { key: 'dense', label: 'Dense', type: 'boolean' },
+    { key: 'compact', label: 'Compact', type: 'boolean' },
     { key: 'chevron', label: 'Chevron', type: 'boolean' },
   ],
-  initial: { shape: 'wide', live: 'live', title: 'Morning kickoff show', meta: true, detail: true, dense: false, chevron: false },
+  initial: { shape: 'wide', live: 'live', title: 'Morning kickoff show', meta: true, detail: true, dense: false, compact: false, chevron: false },
   render: (a) => (
     <ul className="m-0 w-full max-w-xl list-none rounded-xl border border-th-line bg-th-surface p-1">
       <MediaRow
@@ -130,6 +145,7 @@ export const mediaRow: ComponentDoc = {
         detail={a.detail ? '12K watching' : undefined}
         live={a.live === 'live' ? true : a.live === 'offline' ? false : undefined}
         dense={!!a.dense}
+        compact={!!a.compact}
         chevron={a.chevron ? true : undefined}
         onClick={() => undefined}
       />
@@ -144,6 +160,7 @@ export const mediaRow: ComponentDoc = {
       detail: a.detail ? '12K watching' : undefined,
       live: a.live === 'live' ? true : a.live === 'offline' ? false : undefined,
       dense: a.dense ? true : undefined,
+      compact: a.compact ? true : undefined,
       chevron: a.chevron ? true : undefined,
       onClick: '{() => add(item)}',
     }),
@@ -159,6 +176,12 @@ export const mediaRow: ComponentDoc = {
       name: 'Dense',
       note: 'For widget tiles: a 44px row with a 64x36 thumbnail and smaller badges.',
       render: () => <DenseList />,
+    },
+    {
+      id: 'compact',
+      name: 'Compact',
+      note: 'For tiles that use small type (11px titles, 10px meta), such as Nishboard widgets: dense, with smaller text. Still a 44px row.',
+      render: () => <CompactList />,
     },
     {
       id: 'chips',
@@ -195,7 +218,7 @@ export const mediaRow: ComponentDoc = {
     'Thumbnails load only from https or relative URLs. Anything else (http, data, javascript) shows the fallback, and so does an image that fails to load.',
     'Titles wrap to two lines. Keep meta to one short line (a channel, an author) and put the date or count in detail.',
     'live is a three-way switch: true shows Live, false shows Offline, and leaving it out shows nothing. Use badges for anything else, such as On screen.',
-    'Use dense in widget tiles; it shrinks the thumbnail and badges and keeps the 44px target.',
+    'Use dense in widget tiles; it shrinks the thumbnail and badges and keeps the 44px target. Use compact where the tile around it uses 11px and 10px text, so the rows match.',
     'Use as="div" when the row is not inside a <ul> or <ol>. A row with no onClick or href is plain, so put no controls in it that need a keyboard.',
     'MediaChip is 44px tall and truncates its label at 14rem. Put a short action word in action rather than lengthening the label.',
   ],
