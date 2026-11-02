@@ -73,7 +73,7 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
   const tipAnchor = useRef<HTMLButtonElement | null>(null);
   const [tipAt, setTipAt] = useState<number | null>(null);
   const tipId = useId();
-  const touch = useRef(touchTracker()).current;
+  const [touch] = useState(touchTracker);
   const showTip = (i: number) => {
     if (options[i]?.tip == null) return;
     tipAnchor.current = refs.current[i];

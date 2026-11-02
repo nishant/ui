@@ -1,18 +1,20 @@
 import {
   Fragment,
-  createElement,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
   type ReactElement,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { cn } from '../cn';
 import { navigateFromLayer } from './command';
 import { chipClass } from './forms';
+import { PanelLeftCloseIcon, PanelLeftOpenIcon } from './icons';
 import { useHeightVar, useScrollEdges } from './layout-vars';
 import { Drawer, Tooltip } from './overlay';
+import { IconButton } from './primitives';
 import { ThemeToggle } from './theme-toggle';
 
 export { useScrollEdges };
@@ -426,6 +428,83 @@ export function NavRail({ items, tools, footer, showFrom = 'md', hideFrom = 'lg'
 }
 
 // ---------------------------------------------------------------------------------
+// NavSidebar (AppShell's lg+ sidebar; internal)
+// ---------------------------------------------------------------------------------
+
+export interface NavSidebarProps {
+  items: NavItem[];
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+  /** Buttons above the nav (search, an assistant). Collapsed, they stack as icons. */
+  tools?: ReactNode;
+  /** Beside the collapse button at the bottom. */
+  footer?: ReactNode;
+  label?: string;
+  renderLink?: RenderLink;
+  className?: string;
+}
+
+/** A 224px sidebar of icon and label rows that collapses to a 64px icon column, where the
+ *  label becomes the tooltip. The collapse button sits at the bottom. Internal: AppShell
+ *  renders it from 1024px when given `sidebar`. */
+export function NavSidebar({ items, collapsed, onCollapsedChange, tools, footer, label = 'Sections', renderLink, className }: NavSidebarProps) {
+  return (
+    <aside
+      aria-label="Sidebar"
+      className={cn(
+        'flex h-full shrink-0 flex-col border-r border-th-line bg-th-surface py-3 pl-[env(safe-area-inset-left)] transition-[width] duration-200 motion-reduce:transition-none',
+        collapsed ? 'w-16' : 'w-56',
+        className,
+      )}
+    >
+      {tools ? (
+        <div className={cn('mb-2 flex gap-1 border-b border-th-line pb-2', collapsed ? 'flex-col items-center' : 'flex-wrap px-3')}>{tools}</div>
+      ) : null}
+      <nav aria-label={label} className={cn('flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto', collapsed ? 'items-center px-2' : 'px-3')}>
+        {items.map((item) => {
+          const node = renderItem(
+            item,
+            cn(
+              'flex min-h-11 items-center gap-3 rounded-lg border-l-2 text-sm transition-colors',
+              FOCUS,
+              collapsed ? 'w-11 justify-center' : 'w-full px-3',
+              item.active
+                ? 'border-th-accent bg-th-accent-soft font-medium text-th-accent'
+                : 'border-transparent text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
+            ),
+            <>
+              <span className="relative inline-flex size-5 shrink-0 items-center justify-center [&>svg]:size-5">
+                {item.icon}
+                <CountBadge value={item.badge} />
+              </span>
+              <span className={collapsed ? 'sr-only' : 'min-w-0 truncate'}>{item.label}</span>
+            </>,
+            renderLink,
+          );
+          // Collapsed, the tooltip names the destination; expanded, it explains it.
+          const tip = collapsed ? item.label : item.hint;
+          return tip ? (
+            <Tooltip key={item.key} tip={tip} side="right" focusable={false} className={collapsed ? 'block' : 'block w-full'}>
+              {node}
+            </Tooltip>
+          ) : (
+            <span key={item.key} className="block w-full">
+              {node}
+            </span>
+          );
+        })}
+      </nav>
+      <div className={cn('mt-3 flex gap-2 border-t border-th-line pt-3', collapsed ? 'flex-col items-center' : 'items-center justify-between px-3')}>
+        {footer}
+        <IconButton label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => onCollapsedChange(!collapsed)}>
+          {collapsed ? <PanelLeftOpenIcon size={18} /> : <PanelLeftCloseIcon size={18} />}
+        </IconButton>
+      </div>
+    </aside>
+  );
+}
+
+// ---------------------------------------------------------------------------------
 // ScrollRow
 // ---------------------------------------------------------------------------------
 
@@ -472,20 +551,21 @@ export function ScrollRow({ children, bleed = false, fade = true, snap = false, 
     lastActive.current = active;
   });
 
-  return createElement(
-    as,
-    {
-      ref,
-      'aria-label': label,
-      className: cn(
+  const Tag = as as 'div';
+  return (
+    <Tag
+      ref={ref as RefObject<HTMLDivElement | null>}
+      aria-label={label}
+      className={cn(
         'flex gap-2 overflow-x-auto nish-no-scrollbar',
         fade && 'nish-scroll-fade',
         bleed && '-mx-[var(--nish-page-gutter)] px-[var(--nish-page-gutter)]',
         snap && 'snap-x snap-mandatory [&>*]:snap-start',
         className,
-      ),
-    },
-    children,
+      )}
+    >
+      {children}
+    </Tag>
   );
 }
 

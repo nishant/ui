@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AppShell } from '../../src';
+import { AppShell, Button, Callout, IconButton } from '../../src';
 import type { NavItem, PageContainerProps } from '../../src';
 import { BellIcon, ChartIcon, InboxIcon, LayersIcon, PinIcon, SettingsIcon } from '../lib/icons';
 import { Device } from './bottom-nav';
@@ -20,12 +20,54 @@ const NAV: Omit<NavItem, 'active' | 'onSelect'>[] = [
 
 type Container = Exclude<PageContainerProps['size'], undefined>;
 
-function ShellDemo({ container = 'default', loading = false }: { container?: Container; loading?: boolean }) {
+interface ShellDemoProps {
+  container?: Container;
+  loading?: boolean;
+  sidebar?: boolean;
+  banner?: boolean;
+  signedOut?: boolean;
+  brand?: boolean;
+}
+
+function ShellDemo({ container = 'default', loading = false, sidebar = false, banner = false, signedOut = false, brand = false }: ShellDemoProps) {
   const [active, setActive] = useState('home');
   const nav = NAV.map((i) => ({ ...i, active: i.key === active, onSelect: () => setActive(i.key) }));
   const current = NAV.find((i) => i.key === active);
+  if (signedOut) {
+    return (
+      <AppShell name="Jobs" icon={<LayersIcon size={20} />} hubHref="#" homeHref="#" container="narrow">
+        <h1 className="text-xl font-semibold text-th-hi">Log in</h1>
+        <p className="mt-1 text-sm text-th-hi3">No nav until you are signed in: the header, banners and page only.</p>
+        <Button className="mt-4">Log in</Button>
+      </AppShell>
+    );
+  }
   return (
-    <AppShell name="Jobs" icon={<LayersIcon size={20} />} hubHref="#" homeHref="#" nav={nav} loading={loading} container={container} resetKey={active}>
+    <AppShell
+      name="Jobs"
+      icon={<LayersIcon size={20} />}
+      brand={
+        brand ? (
+          <Button variant="ghost" size="sm" className="font-semibold">
+            Ana's search
+          </Button>
+        ) : undefined
+      }
+      hubHref="#"
+      homeHref="#"
+      nav={nav}
+      loading={loading}
+      container={container}
+      resetKey={active}
+      sidebar={sidebar ? { storageKey: false, tools: <IconButton label="Search"><InboxIcon size={18} /></IconButton> } : false}
+      banner={
+        banner ? (
+          <Callout variant="bar" tone="info" compact>
+            Markets close at 1 pm today.
+          </Callout>
+        ) : undefined
+      }
+    >
       <h1 className="text-xl font-semibold text-th-hi">{current?.label}</h1>
       <p className="mt-1 text-sm text-th-hi3">The shell stays; this column is the page. Pick another destination to see the active state follow.</p>
       <div className="mt-4 grid gap-2">
@@ -91,6 +133,47 @@ export const appShell: ComponentDoc = {
         </Device>
       ),
     },
+    {
+      id: 'sidebar',
+      name: 'Collapsible sidebar (1440px)',
+      note: 'With sidebar, from 1024px every destination is a row in a left sidebar instead of a header tab. The button at its foot collapses it to icons, where the label becomes the tooltip; the choice is remembered in localStorage.',
+      wide: true,
+      render: () => (
+        <Device doc="app-shell" story="sidebar" width={1440} height={460} title="AppShell with a sidebar at 1440px">
+          <ShellDemo container="wide" sidebar />
+        </Device>
+      ),
+    },
+    {
+      id: 'banner',
+      name: 'Banner slot',
+      note: 'banner sits under the ConnectionBanner in one sticky stack under the header, so the two never overlap. The stack publishes its height as --nish-banners-h.',
+      render: () => (
+        <Device doc="app-shell" story="banner" height={460} title="AppShell with a banner at 360px">
+          <ShellDemo banner />
+        </Device>
+      ),
+    },
+    {
+      id: 'signed-out',
+      name: 'Signed out',
+      note: 'With no nav the shell draws no tabs, rail, sidebar, bottom bar or More sheet: the frame for a sign-in page.',
+      render: () => (
+        <Device doc="app-shell" story="signed-out" height={460} title="AppShell signed out at 360px">
+          <ShellDemo signedOut />
+        </Device>
+      ),
+    },
+    {
+      id: 'brand',
+      name: 'Custom brand',
+      note: 'brand replaces the icon, the name and their home link, for a profile switcher or a wordmark with a subtitle.',
+      render: () => (
+        <Device doc="app-shell" story="brand" height={460} title="AppShell with a custom brand at 360px">
+          <ShellDemo brand />
+        </Device>
+      ),
+    },
   ],
   usage: `import { AppShell } from '@nish/ui';
 import { NavLink, Outlet, useLocation } from 'react-router';
@@ -122,5 +205,8 @@ function Root() {
     'Keep four primary items so the bar fits the Fold\'s cover screen. With five or fewer items they all show and there is no More button.',
     'moreItems (settings, sign out) appear last in the sheet, and from 768px in a More menu in the header. Give them onSelect.',
     'Set container to false for a full-bleed page (a map, a board). The <main id="nish-main"> landmark stays, so the skip link still works.',
+    'Signed out, render the same AppShell with no nav (nav={signedIn ? nav : []}), so the header and banners do not jump when someone logs in.',
+    'Put app banners (a live alert, maintenance) in banner, not above the page: they stay under the header while the page scrolls, below the ConnectionBanner.',
+    'Use sidebar when there are more destinations than fit as header tabs at 1024px, or when the app needs tools beside the nav. Its tools move into the header below 1024px; its footer shows in the sidebar only. Give each item a hint: it is the tooltip in the expanded sidebar and the rail.',
   ],
 };

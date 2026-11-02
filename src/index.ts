@@ -220,7 +220,7 @@ export { INBOX_SOURCE_LABELS, INBOX_DEFAULT_SETTINGS } from './inbox-types';
 export { INBOX_ACTION_HEADER, INBOX_ACTION_TIMEOUT_MS } from './inbox-types';
 export type { InboxItem, InboxView, InboxSeverity, InboxSettings, InboxListResponse, InboxAction, InboxActionResult, InboxActionCall } from './inbox-types';
 export { AppShell } from './components/app-shell';
-export type { AppShellProps } from './components/app-shell';
+export type { AppShellProps, AppShellSidebar } from './components/app-shell';
 export { apiFetch, ApiError, configureApi, useResource } from './components/resource';
 export type { ApiConfig, ApiFetchOptions, UseResourceOptions, Resource } from './components/resource';
 export { AppErrorBoundary } from './components/error-boundary';
