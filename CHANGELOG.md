@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.6.0] - 2026-11-02
+
+### Added
+
+- `nish-ui/elements`: `<nish-theme-toggle>`, `<nish-sheet>`, `<nish-dialog>`, `<nish-bottom-nav>` and `toast()` for pages without React.
+
 ## [1.5.0] - 2026-11-02
 
 ### Added

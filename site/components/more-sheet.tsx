@@ -49,6 +49,27 @@ export const moreSheet: ComponentDoc = {
       ...(a.footer ? [] : ['  footer={<AccountRow />}']),
       '/>',
     ].join('\n'),
+  html: {
+    height: 360,
+    code: `<button type="button" class="nish-btn" data-sheet-open="more">Open the sheet</button>
+
+<nish-sheet id="more" label="More">
+  <header class="nish-sheet-header">
+    <h2 class="nish-sheet-title">More</h2>
+    <button type="button" class="nish-icon-btn" data-sheet-close aria-label="Close">×</button>
+  </header>
+  <div class="nish-sheet-body">
+    <p>A bottom sheet under 640px, a centered panel from 640px. Swipe down, press Escape or tap the backdrop to close it.</p>
+  </div>
+  <footer class="nish-sheet-footer">
+    <button type="button" class="nish-btn nish-btn--primary" data-sheet-close>Done</button>
+  </footer>
+</nish-sheet>
+
+<script>
+  document.getElementById('more').addEventListener('nish-close', () => console.log('closed'));
+</script>`,
+  },
   stories: [
     {
       id: 'default',
