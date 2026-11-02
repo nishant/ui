@@ -81,4 +81,60 @@ describe('LayoutPresetPicker', () => {
     fireEvent.keyDown(screen.getByRole('radiogroup'), { key: 'ArrowRight' });
     expect(onChange).toHaveBeenCalledWith(options[1]!.id);
   });
+
+  it('keeps the first radio tabbable when value is not among the options', () => {
+    const options = presetOptions(3);
+    render(<LayoutPresetPicker options={options} value="nope" onChange={() => {}} />);
+    expect(screen.getAllByRole('radio')[0]!.tabIndex).toBe(0);
+  });
+});
+
+describe('SplitDividers keyboard and hit area', () => {
+  it.each([3, 4] as const)('moves every divider of every %i-pane preset at 356px with gap 4', (n) => {
+    for (const p of presetsFor(n)) {
+      const layout = p.build();
+      const seps = (() => {
+        const { unmount } = render(
+          <div style={{ position: 'relative' }}>
+            <SplitDividers layout={layout} w={356} h={200} gap={4} onResize={() => {}} />
+          </div>,
+        );
+        const c = screen.getAllByRole('separator').length;
+        unmount();
+        return c;
+      })();
+      for (let i = 0; i < seps; i++) {
+        const onResize = vi.fn();
+        const { unmount } = render(
+          <div style={{ position: 'relative' }}>
+            <SplitDividers layout={layout} w={356} h={200} gap={4} onResize={onResize} />
+          </div>,
+        );
+        const sep = screen.getAllByRole('separator')[i]!;
+        const key = sep.getAttribute('aria-orientation') === 'vertical' ? 'ArrowRight' : 'ArrowDown';
+        fireEvent.keyDown(sep, { key });
+        expect(onResize, `${p.id} divider ${i}`).toHaveBeenCalledTimes(1);
+        expect(onResize.mock.calls[0]![0]).not.toEqual(layout);
+        unmount();
+      }
+    }
+  });
+
+  it('offsets the row divider hit area only when barInset is set', () => {
+    const layout = presetsFor(3).find((p) => p.id.startsWith('rows'))!.build();
+    const tops = (barInset: number) => {
+      const { unmount } = render(
+        <div style={{ position: 'relative' }}>
+          <SplitDividers layout={layout} w={800} h={450} gap={4} barInset={barInset} onResize={() => {}} />
+        </div>,
+      );
+      const sep = screen.getAllByRole('separator')[0]!;
+      const out = { top: parseFloat(sep.style.top), height: parseFloat(sep.style.height) };
+      unmount();
+      return out;
+    };
+    const a = tops(0);
+    const b = tops(32);
+    expect(b.top).toBeLessThan(a.top);
+  });
 });

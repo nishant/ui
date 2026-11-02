@@ -130,9 +130,12 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
     const node = nodeAt(layout, d.path);
     const n = node && node.type === 'split' ? Math.max(node.children.length, 1) : 1;
     const len = splitLength(d);
+    // Real pane room (gaps removed); the cap stays strictly below the equal share.
+    const room = Math.max(0, len - gap * (n - 1));
+    const cap = (room / n) * 0.5;
     return d.dir === 'row'
-      ? { w: Math.min(baseMin.w, len / n), h: baseMin.h }
-      : { w: baseMin.w, h: Math.min(baseMin.h, len / n) };
+      ? { w: Math.min(baseMin.w, cap), h: baseMin.h }
+      : { w: baseMin.w, h: Math.min(baseMin.h, cap) };
   };
 
   const fraction = (d: Divider): number => {
@@ -185,7 +188,7 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
         const pad = (hit - (vertical ? d.w : d.h)) / 2;
         const style = vertical
           ? { left: d.x - pad, top: d.y + barInset, width: d.w + pad * 2, height: Math.max(0, d.h - barInset) }
-          : { left: d.x, top: d.y - pad * 2, width: d.w, height: d.h + pad * 2 };
+          : { left: d.x, top: d.y - (barInset > 0 ? pad * 2 : pad), width: d.w, height: d.h + pad * 2 };
         return (
           <div
             key={`${d.path.join('.')}:${d.index}`}
@@ -483,13 +486,14 @@ export function LayoutPresetPicker({
           >
             {options.map((o, i) => {
               const on = value === o.id;
+              const hasValue = options.some((x) => x.id === value);
               return (
                 <Tooltip key={o.id} tip={o.hint} side="bottom" focusable={false}>
                   <button
                     type="button"
                     role="radio"
                     aria-checked={on}
-                    tabIndex={on || (value === null && i === 0) ? 0 : -1}
+                    tabIndex={on || (!hasValue && i === 0) ? 0 : -1}
                     aria-label={`${o.label}: ${o.hint}`}
                     onClick={() => onChange(o.id)}
                     className={cn(

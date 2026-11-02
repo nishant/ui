@@ -214,6 +214,7 @@ function NarrowStage() {
         items={ids}
         slots={ids}
         resizable
+        minPane={{ w: size.w * 0.2, h: size.h * 0.2 }}
         onLayoutChange={(next) => {
           if (next.type === 'split') setSplit(next.sizes[0] ?? 0.5);
         }}
