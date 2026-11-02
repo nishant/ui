@@ -406,8 +406,10 @@ export function ResponsiveTable<T>({
 export interface ListRowProps {
   /** A leading icon or avatar (kept at its size). */
   icon?: ReactNode;
-  /** The main line; truncates. */
+  /** The main line; truncates, or wraps to two lines with `titleLines={2}`. */
   title: ReactNode;
+  /** How many lines the title may use before it is cut off. Default 1 (truncates). */
+  titleLines?: 1 | 2;
   /** A quieter line under the title; up to two lines. */
   subtitle?: ReactNode;
   /** A right-aligned detail: a date, an amount. */
@@ -437,6 +439,7 @@ export interface ListRowProps {
 export function ListRow({
   icon,
   title,
+  titleLines = 1,
   subtitle,
   meta,
   trailing,
@@ -466,10 +469,23 @@ export function ListRow({
     <>
       {icon ? <span className="flex shrink-0 items-center text-th-hi3 [&>svg]:size-5">{icon}</span> : null}
       <span className="min-w-0 flex-1">
-        <span className={cn('block truncate', tone === 'danger' ? 'text-th-loss' : 'text-th-hi')}>{title}</span>
-        {subtitle ? <span className="line-clamp-2 block text-sm text-th-hi3">{subtitle}</span> : null}
+        <span
+          className={cn(
+            'block',
+            titleLines === 2 ? 'line-clamp-2 break-words' : 'truncate',
+            tone === 'danger' ? 'text-th-loss' : 'text-th-hi',
+          )}
+        >
+          {title}
+        </span>
+        {/* On the active row's accent tint, hi3 falls under 4.5:1 in light themes; hi2 holds it. */}
+        {subtitle ? (
+          <span className={cn('line-clamp-2 block text-sm', active ? 'text-th-hi2' : 'text-th-hi3')}>{subtitle}</span>
+        ) : null}
       </span>
-      {meta ? <span className="shrink-0 text-right text-xs tabular-nums text-th-hi3">{meta}</span> : null}
+      {meta ? (
+        <span className={cn('shrink-0 text-right text-xs tabular-nums', active ? 'text-th-hi2' : 'text-th-hi3')}>{meta}</span>
+      ) : null}
       {trailing ? <span className="flex shrink-0 items-center">{trailing}</span> : null}
       {external ? <ExternalGlyph size={14} className="shrink-0 text-th-hi3" /> : null}
       {showChevron && !external ? <ChevronRight size={16} className="shrink-0 text-th-ghost" /> : null}
@@ -496,7 +512,7 @@ export function ListRow({
   } else {
     inner = <div className={rowClass}>{body}</div>;
   }
-  return <Wrapper>{inner}</Wrapper>;
+  return <Wrapper className="min-w-0">{inner}</Wrapper>;
 }
 
 // =====================================================================================

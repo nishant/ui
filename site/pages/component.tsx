@@ -109,6 +109,7 @@ function ApiDocs({ doc }: { doc: ComponentDoc }) {
     <>
       {doc.api.functions.map((name) => {
         const fn = docgen.functions[name];
+        if (!fn) return null;
         return (
           <div key={name} className="space-y-2">
             <h3 className="font-mono text-sm font-semibold text-th-hi">{name}</h3>
@@ -117,12 +118,16 @@ function ApiDocs({ doc }: { doc: ComponentDoc }) {
           </div>
         );
       })}
-      {doc.api.interfaces.map((name) => (
-        <div key={name} className="space-y-2">
-          <h3 className="font-mono text-sm font-semibold text-th-hi">{name}</h3>
-          <PropsTable rows={docgen.interfaces[name].props} />
-        </div>
-      ))}
+      {doc.api.interfaces.map((name) => {
+        const iface = docgen.interfaces[name];
+        if (!iface) return null;
+        return (
+          <div key={name} className="space-y-2">
+            <h3 className="font-mono text-sm font-semibold text-th-hi">{name}</h3>
+            <PropsTable rows={iface.props} />
+          </div>
+        );
+      })}
     </>
   );
 }

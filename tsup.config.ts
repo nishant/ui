@@ -4,9 +4,9 @@ import { defineConfig, type Options } from 'tsup';
 // @nish/ui/chart (src/chart.ts): chart colors and tooltip styles with no chart library
 // and no React. Built whenever the source exists. (The React-free @nish/ui/tokens entry
 // is src/tokens.mjs copied as is by scripts/build.mjs.)
-// format, chart and inbox-client stand alone (no chunk imports): hosting's static pages vendor
+// format, chart, split-layout and inbox-client stand alone (no chunk imports): hosting's static pages vendor
 // dist/format.js as one file, so a shared chunk would 404 there (v1.0.0 shipped that bug).
-const standalone: Record<string, string> = { format: 'src/format.ts', 'inbox-client': 'src/inbox-client.ts' };
+const standalone: Record<string, string> = { format: 'src/format.ts', 'inbox-client': 'src/inbox-client.ts', 'split-layout': 'src/split-layout.ts' };
 if (existsSync('src/chart.ts')) standalone.chart = 'src/chart.ts';
 
 // Node-only entries (Vite plugin, ESLint preset, th-check CLI) build to dist/node/.

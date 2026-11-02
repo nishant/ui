@@ -100,6 +100,13 @@ export const COMPONENTS = [
   'SettingRow',
   'NumberField',
   'Combobox',
+  'SplitStage',
+  'SplitDividers',
+  'LayoutPresetPicker',
+  'LayoutPresetIcon',
+  'MediaRow',
+  'MediaChip',
+  'MediaThumb',
 ];
 const FUNCTIONS = [
   'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
@@ -109,7 +116,7 @@ const FUNCTIONS = [
   'usePrefersReducedMotion', 'useMediaQuery', 'useBreakpoint', 'useDocumentTitle', 'useNow', 'useLocalStorage',
   'money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago', 'date', 'time', 'dateTime', 'dateRange',
   'openSheet', 'mountHeightVar', 'mountStuck', 'mountScrollspy', 'mountChecklist',
-  'apiFetch', 'configureApi', 'useResource', 'useUrlState', 'useSaveStatus', 'usePhone', 'useNarrow', 'nishThemeInit',
+  'apiFetch', 'configureApi', 'useResource', 'useUrlState', 'useSaveStatus', 'usePhone', 'useNarrow', 'nishThemeInit', 'presetOptions',
 ];
 const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem',
   'ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource', 'FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter', 'SaveStatus', 'NishThemeInitOptions',

@@ -80,6 +80,11 @@
       "types": "./dist/format.d.ts",
       "import": "./dist/format.js"
     },
+    "./split-layout": {
+      "types": "./dist/split-layout.d.ts",
+      "import": "./dist/split-layout.js",
+      "default": "./dist/split-layout.js"
+    },
     "./inbox-client": {
       "types": "./dist/inbox-client.d.ts",
       "import": "./dist/inbox-client.js",
