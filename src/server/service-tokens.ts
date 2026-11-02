@@ -121,6 +121,8 @@ export interface RevocationStore {
  *  { "version": 1, "revoked": RevokedToken[] }. */
 export function jsonRevocationStore(file: string): RevocationStore {
   let warned = false;
+  // Records that failed validation are written back unchanged on the next save, never dropped.
+  const kept: unknown[] = [];
   const warn = (why: string) => {
     if (warned) return;
     warned = true;
@@ -132,27 +134,35 @@ export function jsonRevocationStore(file: string): RevocationStore {
       try {
         text = readFileSync(file, 'utf8');
       } catch (err) {
-        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') warn((err as Error).message);
-        return [];
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+        // Fail closed: starting without the revocations would bring revoked tokens back to life.
+        throw err;
       }
+      // Set the unreadable file aside so the next save cannot destroy its old records.
+      const setAside = (why: string): RevokedToken[] => {
+        warn(why);
+        try {
+          renameSync(file, `${file}.bad-${Date.now()}`);
+        } catch {
+          // best effort
+        }
+        return [];
+      };
       let raw: unknown;
       try {
         raw = JSON.parse(text);
       } catch {
-        warn('not valid JSON');
-        return [];
+        return setAside('not valid JSON');
       }
       const list = (raw as { revoked?: unknown } | null)?.revoked;
-      if (!raw || typeof raw !== 'object' || !Array.isArray(list)) {
-        warn('unexpected shape');
-        return [];
-      }
+      if (!raw || typeof raw !== 'object' || !Array.isArray(list)) return setAside('unexpected shape');
       const out: RevokedToken[] = [];
       for (const r of list as Array<Record<string, unknown>>) {
         if (r && typeof r === 'object' && typeof r.sha256 === 'string' && HEX_RE.test(r.sha256) && typeof r.id === 'string' && typeof r.at === 'string') {
           out.push({ sha256: r.sha256, id: r.id, at: r.at });
         } else {
           warn('unexpected shape');
+          kept.push(r);
         }
       }
       return out;
@@ -160,7 +170,7 @@ export function jsonRevocationStore(file: string): RevocationStore {
     save(list) {
       mkdirSync(dirname(file), { recursive: true });
       const tmp = `${file}.tmp`;
-      writeFileSync(tmp, `${JSON.stringify({ version: 1, revoked: list }, null, 2)}\n`, 'utf8');
+      writeFileSync(tmp, `${JSON.stringify({ version: 1, revoked: [...list, ...kept] }, null, 2)}\n`, 'utf8');
       renameSync(tmp, file);
     },
   };
@@ -188,10 +198,11 @@ export function loadManagedServiceTokens(o: {
   const base = createServiceTokens(seed.map((s) => s.entry));
   return {
     verify(authorization, scope) {
-      const r = base.verify(authorization, scope);
-      // A revoked token answers like an unknown one: do not leak that it was ever valid.
-      if (r.ok && revoked.has(r.entry.sha256)) return { ok: false, status: 401 };
-      return r;
+      // A revoked token answers like an unknown one, whatever scope it asks for: do not leak
+      // that it was ever valid. Checked before the scope check so the answer is never 403.
+      const m = /^Bearer ([^\s]+)$/.exec(authorization ?? '');
+      if (m && TOKEN_RE.test(m[1]) && revoked.has(hashServiceToken(m[1]))) return { ok: false, status: 401 };
+      return base.verify(authorization, scope);
     },
     list: base.list,
     views() {
@@ -206,13 +217,16 @@ export function loadManagedServiceTokens(o: {
       const matches = seed.filter((s) => s.entry.id === id);
       if (matches.length === 0) return false;
       const at = now().toISOString();
-      let changed = false;
+      const added: RevokedToken[] = [];
       for (const { entry } of matches) {
-        if (revoked.has(entry.sha256)) continue;
-        revoked.set(entry.sha256, { sha256: entry.sha256, id: entry.id, at });
-        changed = true;
+        if (revoked.has(entry.sha256) || added.some((a) => a.sha256 === entry.sha256)) continue;
+        added.push({ sha256: entry.sha256, id: entry.id, at });
       }
-      if (changed) store.save([...revoked.values()]);
+      if (added.length > 0) {
+        // Save first: a failed save leaves memory and disk in agreement, and a retry saves again.
+        store.save([...revoked.values(), ...added]);
+        for (const a of added) revoked.set(a.sha256, a);
+      }
       return true;
     },
   };

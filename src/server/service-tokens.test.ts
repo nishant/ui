@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Hono } from 'hono';
@@ -108,6 +108,53 @@ describe('loadManagedServiceTokens', () => {
       expect(loadManagedServiceTokens({ file, revocations: bad }).verify(bearer(mcp.token), 'read').ok).toBe(true);
     }
     expect(warn).toHaveBeenCalled();
+  });
+
+  it('answers 401, not 403, for a revoked token asking for a scope it never had', () => {
+    const d = dir();
+    const tokens = loadManagedServiceTokens({ file: seedFile(d, [entry('mcp', 'nish MCP', mcp, ['read'])]), revocations: join(d, 'r.json') });
+    tokens.revoke('mcp');
+    expect(tokens.verify(bearer(mcp.token), 'inbox:handle')).toEqual({ ok: false, status: 401 });
+  });
+
+  it('a failed save leaves the token active, and a retry saves again', () => {
+    const d = dir();
+    let fail = true;
+    const save = vi.fn(() => {
+      if (fail) throw new Error('disk full');
+    });
+    const tokens = loadManagedServiceTokens({
+      file: seedFile(d, [entry('mcp', 'nish MCP', mcp)]),
+      revocations: { load: () => [], save },
+    });
+    expect(() => tokens.revoke('mcp')).toThrow('disk full');
+    expect(tokens.verify(bearer(mcp.token), 'read').ok).toBe(true);
+    expect(tokens.views()[0].revoked).toBe(false);
+    fail = false;
+    expect(tokens.revoke('mcp')).toBe(true);
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(tokens.views()[0].revoked).toBe(true);
+  });
+
+  it('throws on an unreadable revocation file instead of starting without revocations', () => {
+    const d = dir();
+    // A directory where the file should be: readFileSync fails with EISDIR, not ENOENT.
+    expect(() => jsonRevocationStore(d).load()).toThrow();
+  });
+
+  it('sets an invalid file aside and keeps unreadable records on save', () => {
+    const d = dir();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const bad = join(d, 'bad.json');
+    writeFileSync(bad, 'nope');
+    jsonRevocationStore(bad).load();
+    expect(readdirSync(d).some((f) => f.startsWith('bad.json.bad-'))).toBe(true);
+    const odd = join(d, 'odd.json');
+    writeFileSync(odd, JSON.stringify({ version: 1, revoked: [{ nonsense: true }] }));
+    const store = jsonRevocationStore(odd);
+    expect(store.load()).toEqual([]);
+    store.save([{ sha256: 'a'.repeat(64), id: 'x', at: 't' }]);
+    expect(JSON.parse(readFileSync(odd, 'utf8')).revoked).toHaveLength(2);
   });
 
   it('warns once per store', () => {

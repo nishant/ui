@@ -157,6 +157,22 @@ describe("ServiceTokensSection", () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the list and shows the error with Try again when a reload fails", () => {
+    const onRetry = vi.fn();
+    render(
+      <ServiceTokensSection
+        tokens={LIST}
+        error="Offline"
+        onRetry={onRetry}
+        onRevoke={async () => {}}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toContain("Offline");
+    expect(screen.getByText("nish MCP")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it("uses the default title, description and anchor", () => {
     const { container } = render(
       <ServiceTokensSection tokens={[]} onRevoke={async () => {}} />,

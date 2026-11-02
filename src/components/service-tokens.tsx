@@ -175,6 +175,23 @@ export function ServiceTokensSection({
     }
   };
 
+  const errorRow =
+    sorted !== undefined && error ? (
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2">
+        <p
+          role="alert"
+          className="min-w-0 flex-1 break-words text-sm text-th-loss"
+        >
+          {error}
+        </p>
+        {onRetry ? (
+          <Button size="sm" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : null}
+      </div>
+    ) : null;
+
   let content: ReactNode;
   if (sorted === undefined && error) {
     content = (
@@ -202,7 +219,7 @@ export function ServiceTokensSection({
       </p>
     );
   } else {
-    content = sorted.map((t) => {
+    const rows = sorted.map((t) => {
       const parts = [t.id, t.scopes.join(", "), `created ${when(t.created)}`];
       if (t.source === "env") parts.push("from SERVICE_TOKENS");
       return (
@@ -215,7 +232,6 @@ export function ServiceTokensSection({
           }
           description={<span className="break-words">{parts.join(" · ")}</span>}
           inline
-          className={cn(t.revoked && "opacity-80")}
         >
           {t.revoked ? (
             <Badge
@@ -237,6 +253,12 @@ export function ServiceTokensSection({
         </SettingRow>
       );
     });
+    content = (
+      <>
+        {errorRow}
+        {rows}
+      </>
+    );
   }
 
   return (
