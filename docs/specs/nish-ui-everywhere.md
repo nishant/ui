@@ -1,11 +1,12 @@
 # nish-ui everywhere: npm by default, then web components
 
 Status: ready to build · Slug: nish-ui-everywhere · Date: 2026-11-02 · Size: large
-Repos: nishant/ui (spec lives here), nishant/status, nishant/skills
+Repos: nishant/ui (spec lives here), nishant/status, nishant/skills, nishant/artifacts
 ROADMAP: `ROADMAP.md`, "npm is the default install" and "Web components so @nish/ui works everywhere"
 
-Two stages, each its own PR and release. Stage A must be live (every app installs from npm)
-before Stage B starts.
+Three stages, each its own PR(s) and release. Stage A must be live (every app installs from npm)
+before Stage B starts. Stage C (rebuild every artifact on artifacts.nish.software on the design
+system) starts once Stage B is released.
 
 ## Goal
 
@@ -23,6 +24,15 @@ there. Outside React there are only CSS classes and imperative helpers.
 7. Each of those components has an HTML tab on its design.nish.software page, and a parity test
    fails when the element version differs from the React one.
 8. The `artifacts` and `trip-plan` skills can use the elements.
+9. Every artifact on artifacts.nish.software (ballot-2026, hosting-box, kpot, poker,
+   popcorn-roll, sn640-guide) is rebuilt on the design system, on claude.ai and in the hosted
+   copy. All color, type, spacing and radius come from `--nish-*` tokens and `nish-*` classes,
+   and every interactive piece that wave 1 covers uses the elements. No page keeps its own palette
+   or a `theme.css` bridge.
+10. Each rebuilt artifact keeps its content, its behavior and its saved data (storage keys and
+    `window.claude` use) exactly.
+11. The artifacts.nish.software index page and top bar use the design system too: link cards,
+    `<nish-theme-toggle>`, and no hand-rolled copies of `nish-*` styles in `src/wrap.ts`.
 
 ## Out of scope
 
@@ -34,6 +44,10 @@ there. Outside React there are only CSS classes and imperative helpers.
   (table, filters, media, split, nav, settings, command palette, charts). They stay a ROADMAP
   entry with their own spec.
 - Moving taarora/arora-home off its vendored copy.
+- Changing what an artifact says or does: ballot races and candidates, commands in sn640-guide,
+  prices, poker math and the popcorn genre list stay exactly as they are. Stage C is a visual and
+  structural rebuild only.
+- Trip pages on trips.nish.software (B5 covers their theme button only).
 
 ## Decisions
 
@@ -61,6 +75,24 @@ there. Outside React there are only CSS classes and imperative helpers.
   `nish-components.css`, as static pages do now.
 - Tag prefix `nish-`, events prefixed `nish-` (default).
 - Size budget: `dist/elements.js` at most 20 KB gzipped (default).
+- Artifacts are rebuilt on claude.ai and re-imported, never by editing `source.html`
+  (artifacts' CLAUDE.md rule). Each is republished to its own URL, so the link is kept.
+- A rebuilt artifact runs on its own in claude.ai. It inlines `tokens.css` and
+  `nish-components.css` in `<style data-nish-ui>` blocks (claude.ai allows stylesheets only from
+  Google Fonts), loads Inter from Google Fonts, loads `elements.js` from
+  `cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements.js`, and declares
+  `<meta name="nish-ui" content="X.Y.Z">`. With no `data-theme` set, tokens.css follows the OS, so
+  light and dark work in claude.ai without extra code.
+- The hosted copy always uses the site's current design system, not the version the artifact
+  inlined. When `src/wrap.ts` sees `<meta name="nish-ui">`, it drops the `<style data-nish-ui>`
+  blocks and the jsdelivr elements script, and uses the vendored, cache-stamped `/nish/` files
+  instead. That keeps hosted pages first-party (no CDN) and current.
+- One artifact per task, run by the orchestrating session itself, not by Workflow subagents,
+  because each needs the Artifact tool and the `artifact-design` skill. Run them in the order of
+  the C tasks; each is republished and re-imported before the next starts.
+- An element or class missing from wave 1 (a tab strip, a segmented control) is built from
+  `nish-*` classes and tokens inside the artifact, and noted for wave 2. It never gets a private
+  palette.
 
 ## Current state
 
@@ -102,6 +134,26 @@ there. Outside React there are only CSS classes and imperative helpers.
   `skills/artifacts/references/theme-bridge.md` wraps hosted copies with `tokens.css`,
   `fonts.css` and `nish-components.css`. trip-plan injects `nish.css`, `nish-components.css` and
   `mountThemeToggle` (`skills/trip-plan/scripts/encrypt-trip.mjs` line ~44).
+- **artifacts.nish.software** (`C:\Code\artifacts`, push to master deploys).
+  - `pages/<slug>/` holds `page.json` (artifact URL, version, sha256, `protected`),
+    `source.html` (the export, never hand-edited) and an optional `theme.css`.
+  - `src/wrap.ts` adds theme init, the `nish-*` stylesheet links, the top bar and the theme
+    button. It hand-copies `.nish-pill-link` and `.nish-theme-btn` rules into a string (lines
+    9-23) and mounts the button with `window.nishTheme` (line 29).
+  - `src/nish.ts` vendors `STAMPED` files (line 6) into `dist/nish/`.
+  - `src/index-page.ts` and `src/styles/index.css` are the listing.
+  - Tests: `src/*.test.ts` (vitest). Imports go through `npm run import`, wrapped by the
+    `artifacts` skill.
+  - The pages today:
+
+    | Page | Size | Notes |
+    |---|---|---|
+    | ballot-2026 | 72 KB | protected; uses localStorage and `window.claude.use` |
+    | hosting-box | 22 KB | guide |
+    | kpot | 5 KB | guide |
+    | poker | 20 KB | tool; localStorage and `window.claude.use` |
+    | popcorn-roll | 23 KB | tool; localStorage and `window.claude.use` |
+    | sn640-guide | 40 KB | guide with commands |
 
 ## Design
 
@@ -191,6 +243,59 @@ Security: elements never set `innerHTML` from attributes. `toast` keeps showToas
 never parsed as HTML". Performance: 20 KB gzip budget, enforced. Nothing runs until an element
 connects. Ops: `elements.js` is added to `dist/files.json` `static`, so hosting's sync-ui
 vendors it on the next sync.
+
+### Stage C: artifacts rebuilt on the design system
+
+The head of every rebuilt artifact, in this order:
+
+```html
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="nish-ui" content="X.Y.Z">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap">
+<style data-nish-ui="tokens">/* dist/tokens.css of nish-ui X.Y.Z, verbatim */</style>
+<style data-nish-ui="components">/* dist/nish-components.css of nish-ui X.Y.Z, verbatim */</style>
+<style>/* page layout only: grid, max-width, gaps. No colors, fonts or radii that are not var(--nish-*) */</style>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements.js"></script>
+```
+
+Rules for each rebuild:
+- **Colors and type.** Every color is a `--nish-*` role. Text is `--nish-hi`, `--nish-hi2` or
+  `--nish-hi3`; surfaces are `--nish-bg`, `--nish-surface` or `--nish-elevated`; status is
+  `--nish-ok`, `--nish-warn`, `--nish-loss` or `--nish-info`. The font is `--nish-font-sans`,
+  and `--nish-font-mono` for commands and numbers.
+- **Components.** Buttons are `.nish-btn`, cards `.nish-card`, inputs `.nish-input` /
+  `.nish-select` / `.nish-field`, stats `.nish-stats`, callouts `.nish-callout`, tables
+  `.nish-table-wrap`, badges `.nish-badge`, empty states `.nish-empty`.
+- **Interactive pieces.** Modals use `<nish-dialog>` or `<nish-sheet>`, notices use `toast()`, and
+  a theme switch, if the page has one, is `<nish-theme-toggle>`.
+- **Same content and behavior.** Every string, number, list and link of the old version is kept.
+  So are storage keys (diff the localStorage keys and `window.claude.use` calls before and
+  after: they must match) and the protected flag.
+- **Layout.** 360px, ~840px and desktop, light and dark, no horizontal scroll, 44px targets. In
+  claude.ai the page follows the OS theme.
+- **Publish and import.** Publish with the Artifact tool to the URL in `page.json` (read it first).
+  Re-import with `npm run import -- <slug> --html <saved file> --artifact <url> --version <id>`
+  through the `artifacts` skill, then delete `pages/<slug>/theme.css`.
+
+Hosted wrap (`src/wrap.ts`):
+- The top bar becomes `<nav class="artifacts-bar"><a class="nish-pill-link" href="/">← Artifacts</a><nish-theme-toggle pill></nish-theme-toggle></nav>`.
+  The hand-copied `.nish-pill-link` and `.nish-theme-btn` rules and the `window.nishTheme` mount
+  script go. Only the bar's own layout rule (`.artifacts-bar`) stays.
+- `elements.js` joins `STAMPED` in `src/nish.ts` and loads as `<script type="module" src="/nish/elements.js?v=...">`.
+- For a source with `<meta name="nish-ui">`: remove every `<style data-nish-ui>` and any
+  `<script>` whose src matches `cdn.jsdelivr.net/npm/nish-ui@*/dist/elements.js`, and link the
+  vendored `tokens.css`, `fonts.css` and `nish-components.css` instead. No `theme.css` is applied.
+  The Google Fonts link stays harmlessly, or it can be removed since `fonts.css` serves Inter.
+- Old-style sources (no meta) keep today's behavior, so a page that is mid-rebuild still works.
+
+Index (`src/index-page.ts`, `src/styles/index.css`): each page is a `.nish-link-card` (title,
+blurb, kind badge `.nish-badge`), the header has `<nish-theme-toggle pill>`, and `index.css`
+keeps only layout.
+
+Security: protected pages stay encrypted exactly as before, because wrap runs before encryption.
+No secrets are involved. Performance: one fewer stylesheet on hosted pages (no theme bridge), and
+`elements.js` is cached by stamp. Ops: none new, a push to master deploys.
 
 ## Tasks
 
@@ -323,10 +428,47 @@ Checkouts: Stage A at `C:\Code\ui-npm-default` (branch `npm-default`), status at
 - Acceptance: re-encrypt one existing trip with the script and check the toggle works at 360 and
   1440 in light and dark.
 
+### C0 Hosted wrap and index on the design system
+- Repo / checkout: artifacts at `C:\Code\artifacts-ds` (branch `design-system`)
+- Owns: `src/wrap.ts`, `src/wrap.test.ts`, `src/nish.ts`, `src/index-page.ts`, `src/index-page.test.ts`, `src/styles/index.css`, `package.json`, `package-lock.json`
+- Depends on: Stage B released (`@nish/ui` pinned to it by the fan-out)
+- Change: as in the Stage C "Hosted wrap" and "Index" design.
+- Edge cases: a source with the meta but no `data-nish-ui` blocks; a source with both the meta
+  and a `theme.css` (ignore theme.css); a protected page (wrap, then encrypt as today).
+- Acceptance: `npm test`, `npm run lint` and `ARTIFACTS_DEV=1 npm run build` pass. Add tests:
+  meta strips the inline blocks and the CDN script; no meta keeps the current output; the bar
+  has `<nish-theme-toggle pill>`. `npm run preview` checked at 360, 840 and 1440, in light and dark.
+- Ship this PR before C1.
+
+### C1-C6 Rebuild each artifact
+One task per page, in this order (small first, protected last): C1 kpot, C2 hosting-box,
+C3 sn640-guide, C4 poker, C5 popcorn-roll, C6 ballot-2026.
+- Run by: the orchestrating session (Artifact tool, `artifact-design` and `artifacts` skills).
+  Not a Workflow subagent.
+- Owns: the artifact at the `artifact` URL in `pages/<slug>/page.json`, plus
+  `pages/<slug>/source.html`, `page.json` and the deletion of `theme.css`, via the import script.
+- Depends on: C0 live
+- Change: read the artifact, rebuild it per the Stage C rules, publish it to the same URL, then
+  re-import it and open a PR (or one PR per two pages).
+- Acceptance:
+  - Before/after checklist in the PR body: every heading and section present, localStorage keys
+    equal, `window.claude.use` calls equal.
+  - Screenshots at 360, 840 and 1440 in light and dark, both in claude.ai and on
+    `npm run preview`.
+  - `grep -E '#[0-9a-fA-F]{3,8}\b|rgb\(|hsl\(' ` over the page's own `<style>` (not the
+    `data-nish-ui` blocks) finds no color literals.
+  - `npm test` and `ARTIFACTS_DEV=1 npm run build` pass.
+- Edge cases:
+  - **ballot-2026 (protected):** the import keeps `--protected`; check the lock page and that the
+    decrypted page renders.
+  - **poker:** the numbers stay `--nish-font-mono` with tabular figures.
+  - **sn640-guide:** commands stay copyable as plain text.
+
 ## Waves
 
 Stage A: W1: A1, A3, A4 · W2: A2 (needs A1) · then release A.
 Stage B (after A is live): W1: B0 · W2: B1, B2 · W3: B3 · W4: B4 · then release B · then B5.
+Stage C (after B is released and B5 merged): C0 (PR, deploy) · then C1 to C6 one at a time.
 
 ## Review focus
 
@@ -337,6 +479,8 @@ Stage B (after A is live): W1: B0 · W2: B1, B2 · W3: B3 · W4: B4 · then rele
 - Elements: light DOM moves children correctly, there are no leaks on disconnect, and focus
   return and Escape work.
 - Docs at 360px: the React/HTML tabs fit with no horizontal scroll.
+- Artifacts: nothing lost in a rebuild (content, storage keys, the protected flag), no color
+  literals left, and hosted copies serving the vendored files rather than jsdelivr.
 
 ## Release
 
@@ -350,8 +494,16 @@ Stage B (after A is live): W1: B0 · W2: B1, B2 · W3: B3 · W4: B4 · then rele
   - design.nish.software shows the HTML tabs on the seven pages at 360 and 1440, in light and dark;
   - a scratch HTML page with the four tags works.
 
-  Then B5 and its skills PR. The release PR deletes this spec, and the ROADMAP entries are
-  narrowed to waves 2 and 3.
+  Then B5 and its skills PR.
+- **Stage C.** C0 merged and deployed (`deploy.yml` green; https://artifacts.nish.software shows
+  the new bar and index). Then each C page is republished, re-imported, merged and deployed. Live
+  means:
+  - https://artifacts.nish.software/<slug>/ renders on the design system at 360 and 1440, in light
+    and dark, with no requests to jsdelivr (check the network panel);
+  - the claude.ai artifact renders on its own in both OS themes.
+
+  After C6 the last PR deletes this spec (in nishant/ui) and narrows the ROADMAP entries to waves
+  2 and 3.
 
 ## Open questions for the research phase
 
