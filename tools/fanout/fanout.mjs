@@ -23,7 +23,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sections } from './changelog.mjs';
 import { fleetFromCatalog } from './fleet.mjs';
 import { CmdError, api, apiJson, gh, git, isForbidden, isNoAccess, redact, sh, sleep } from './gh.mjs';
-import { compare, lockDirs, lowestPin, npmSpec, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
+import { compare, dropUiLockEntries, lockDirs, lowestPin, npmSpec, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 import { computeChecks, cut, decide, isAdoptedHead, limitFor, updateLabel } from './policy.mjs';
 
 const UI_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -204,6 +204,7 @@ export function bumpTree(entry, dir, tag, { run = sh, at = {} } = {}) {
   const cmd = LOCK_CMD[entry.ui];
   if (cmd) {
     for (const d of lockDirs(entry.ui, dirs, (p) => existsSync(join(dir, p)))) {
+      if (entry.ui === 'npm') clearUiLockEntries(dir, d);
       at.step = d === '.' ? cmd : `${cmd} (in ${d})`;
       run(cmd, { cwd: d === '.' ? dir : join(dir, d), env: NO_TOKEN_ENV });
     }
@@ -214,6 +215,14 @@ export function bumpTree(entry, dir, tag, { run = sh, at = {} } = {}) {
     run(entry.bump, { cwd: dir, env: NO_TOKEN_ENV });
   }
   return moved;
+}
+
+/** Drops the old @nish/ui entries from the package-lock.json in folder `d`, so npm hoists the new one. */
+function clearUiLockEntries(dir, d) {
+  const lock = join(dir, d === '.' ? 'package-lock.json' : `${d}/package-lock.json`);
+  if (!existsSync(lock)) return;
+  const next = dropUiLockEntries(readFileSync(lock, 'utf8'));
+  if (next) writeFileSync(lock, next);
 }
 
 /**
@@ -231,6 +240,7 @@ function bumpVendoredPackage(dir, dirs, tag, { run, at }) {
     at.step = `pin rewrite (${rel})`;
     writeFileSync(join(dir, rel), rewritePin('npm', text, tag, rel));
     if (existsSync(join(dir, d === '.' ? 'package-lock.json' : `${d}/package-lock.json`))) {
+      clearUiLockEntries(dir, d);
       at.step = d === '.' ? LOCK_CMD.npm : `${LOCK_CMD.npm} (in ${d})`;
       run(LOCK_CMD.npm, { cwd: d === '.' ? dir : join(dir, d), env: NO_TOKEN_ENV });
     }
