@@ -1,6 +1,6 @@
 import type { PropertyValues } from 'lit';
 import { mountHeightVar } from '../theme';
-import { NishElement, define } from './base';
+import { NishElement, define, whenParsed } from './base';
 
 /** `<nish-bottom-nav>`: wraps its child links in `<nav class="nish-bottom-nav">`. The link whose
  *  path is the longest prefix of `location.pathname` gets `aria-current="page"` (`/` matches only
@@ -16,6 +16,7 @@ export class NishBottomNav extends NishElement {
   declare lg: boolean;
 
   #nav: HTMLElement | null = null;
+  #auto: HTMLAnchorElement | null = null;
   #stopHeight: (() => void) | null = null;
   #observer: MutationObserver | null = null;
   readonly #onNavigate = (): void => this.#markCurrent();
@@ -28,6 +29,11 @@ export class NishBottomNav extends NishElement {
 
   override connectedCallback(): void {
     super.connectedCallback();
+    whenParsed(() => this.#mount());
+  }
+
+  #mount(): void {
+    if (!this.isConnected || this.#nav) return;
     let nav = this.querySelector<HTMLElement>(':scope > nav.nish-bottom-nav');
     if (!nav) {
       nav = document.createElement('nav');
@@ -50,6 +56,7 @@ export class NishBottomNav extends NishElement {
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.#nav = null;
     window.removeEventListener('popstate', this.#onNavigate);
     this.#observer?.disconnect();
     this.#observer = null;
@@ -78,7 +85,6 @@ export class NishBottomNav extends NishElement {
     let bestLen = -1;
     for (const a of Array.from(this.#nav.querySelectorAll<HTMLAnchorElement>(':scope > a'))) {
       a.classList.add('nish-bottom-nav-item');
-      a.removeAttribute('aria-current');
       if (!a.getAttribute('href')) continue;
       let url: URL;
       try {
@@ -94,7 +100,16 @@ export class NishBottomNav extends NishElement {
         bestLen = base.length;
       }
     }
-    best?.setAttribute('aria-current', 'page');
+    // With no path match (srcdoc frames, hash-routed sites) leave an author-set aria-current alone;
+    // only undo the mark this element set itself.
+    if (!best) {
+      this.#auto?.removeAttribute('aria-current');
+      this.#auto = null;
+      return;
+    }
+    for (const a of Array.from(this.#nav.querySelectorAll<HTMLAnchorElement>(':scope > a'))) a.removeAttribute('aria-current');
+    best.setAttribute('aria-current', 'page');
+    this.#auto = best;
   }
 }
 

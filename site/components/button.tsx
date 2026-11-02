@@ -47,7 +47,7 @@ export const button: ComponentDoc = {
       String(a.label),
     ),
   html: {
-    height: 140,
+    height: 180,
     code: `<div style="display:flex;flex-wrap:wrap;gap:8px">
   <button type="button" class="nish-btn nish-btn--primary">Save changes</button>
   <button type="button" class="nish-btn">Export</button>

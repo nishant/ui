@@ -29,6 +29,10 @@ if (/(^|[;}\s])(import|export)\s*[^;(]*?\bfrom\s*["']/.test(code) || /(^|[;}\s])
   fail('dist/elements.js has an import statement; it must be self-contained');
 }
 
+// The public types must not import lit (a devDependency): consumers would lose HTMLElement typing.
+const dts = readFileSync(join(dist, 'elements.d.ts'), 'utf8');
+if (/from\s*['"](lit|@lit\/|lit-html|lit-element)/.test(dts) || /import\s*['"]lit/.test(dts)) fail("dist/elements.d.ts imports 'lit'; bundle its declarations");
+
 for (const name of readdirSync(dist)) {
   if (name !== 'index.js' && !/^chunk-.*\.js$/.test(name)) continue;
   const text = readFileSync(join(dist, name), 'utf8');

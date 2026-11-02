@@ -115,7 +115,7 @@ toast('Saved', { tone: 'ok' });`}
             <code>{'<nish-theme-toggle>'}</code>, <code>{'<nish-sheet>'}</code>, <code>{'<nish-dialog>'}</code>, <code>{'<nish-bottom-nav>'}</code> and{' '}
             <code>toast()</code> work in plain HTML, in any framework and in Claude artifacts. React apps keep the React components and never load them.
             The elements use light DOM, so your own CSS applies, and they never inject CSS: link <code>nish.css</code> and{' '}
-            <code>nish-components.css</code> as above. Every component page has an HTML tab with the markup, running live.
+            <code>nish-components.css</code> as above. The button, card, bottom nav, theme toggle, modal, more sheet and toast pages have an HTML tab with the markup, running live.
           </p>
           <p>In a Claude artifact, inline the CSS and load elements.js from jsdelivr; artifacts only allow stylesheets from Google Fonts.</p>
         </Prose>

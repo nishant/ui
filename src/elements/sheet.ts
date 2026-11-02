@@ -38,7 +38,11 @@ export class NishSheet extends NishElement {
     super.disconnectedCallback();
     document.removeEventListener('click', this.onTrigger);
     // A removed modal never fires `close` by itself: close it so its listeners and focus clean up.
-    if (this.dialog?.open) this.dialog.close();
+    // Clear `open` too, so a reconnect (a DOM move) does not reopen it and one close fires one event.
+    if (this.dialog?.open) {
+      this.open = false;
+      this.dialog.close();
+    }
   }
 
   show(): void {

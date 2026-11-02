@@ -40,7 +40,12 @@ export class NishDialog extends NishElement {
     super.disconnectedCallback();
     document.removeEventListener('click', this.onTrigger);
     // A removed modal never fires `close` by itself: close it so state and focus clean up.
-    if (this.dialog?.open) this.dialog.close();
+    // Clear `open` too, so a reconnect (a DOM move) does not reopen it and one close fires one event.
+    if (this.dialog?.open) {
+      this.value = '';
+      this.open = false;
+      this.dialog.close();
+    }
   }
 
   show(): void {
@@ -119,6 +124,7 @@ export class NishDialog extends NishElement {
     if (!dialog || !this.isConnected) return;
     if (this.open && !dialog.open) {
       this.opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      dialog.returnValue = '';
       dialog.showModal();
     } else if (!this.open && dialog.open) {
       dialog.close();
@@ -137,7 +143,7 @@ export class NishDialog extends NishElement {
     }
     if (e.target instanceof Element) {
       const btn = e.target.closest('[data-dialog-close]');
-      if (btn && dialog.contains(btn)) this.close(btn.getAttribute('value') ?? '');
+      if (btn && btn.closest('dialog') === dialog) this.close(btn.getAttribute('value') ?? '');
     }
   };
 
@@ -152,7 +158,8 @@ export class NishDialog extends NishElement {
   };
 
   private onDialogClose = (): void => {
-    const value = this.value;
+    // A `<form method="dialog">` submit button closes with the native return value.
+    const value = this.value || this.dialog?.returnValue || '';
     this.value = '';
     if (this.open) this.open = false;
     const opener = this.opener;

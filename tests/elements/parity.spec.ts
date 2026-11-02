@@ -13,8 +13,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 // The box's own color and font-size are not compared: a React box inherits them and its text
 // nodes set them, which the title and body checks cover.
 // The test fails when the element version drifts from the React one. Differences that exist
-// today are listed in KNOWN_GAPS, so any new drift fails while the known ones are tracked until
-// the CSS is aligned. Run with PARITY_VERBOSE=1 to print every difference with its values.
+// today are listed in KNOWN_GAPS with their exact values: a new or changed difference fails, and so
+// does a listed gap that no longer shows up, until the CSS is aligned. Run with PARITY_VERBOSE=1 to print every difference with its values.
 
 const BASE = 'http://localhost:5194';
 const SIZES = [
@@ -75,25 +75,77 @@ const CASES: Case[] = [
   },
 ];
 
-/** Differences that exist today, as `part.prop` per case. Each is a real gap between the nish-*
- *  CSS and the React twin, found by this test. A case fails on any difference that is not listed. */
-const TOAST_GAPS = ['box.width', 'box.height', 'box.borderRadius', 'box.paddingLeft', 'box.paddingRight', 'title.color', 'title.dx', 'title.dy'];
-const KNOWN_GAPS: Record<string, string[]> = {
+/** Differences that exist today: real gaps between the nish-* CSS and the React twin, found by this
+ *  test, each with its exact values (`prop element vs react`, numbers rounded to whole px). A case
+ *  must show exactly this set at that size and scheme: a difference that is not listed fails, and a
+ *  listed one that no longer shows up fails too, so a gap cannot linger after it is closed and
+ *  cannot grow unnoticed. When the CSS is aligned, delete the entry (ROADMAP tracks it). */
+type SizeName = (typeof SIZES)[number]['name'];
+type Scheme = (typeof SCHEMES)[number];
+type Gaps = (size: SizeName, scheme: Scheme) => string[];
+
+// The React toast is 384px wide from sm (max-w-md on a w-96 stack), has a leading icon, 12px radius,
+// 14px side padding and title text in --nish-hi; .nish-toast is 520px, 14px radius, 16/12px padding,
+// no icon and --nish-hi2 text. The tone border differs in opacity and color space.
+const TOAST_BORDER: Record<string, Record<Scheme, string>> = {
+  neutral: { light: '', dark: '' },
+  ok: {
+    light: 'box.borderColor color(srgb 0.0235294 0.372549 0.27451 / 0.3) vs oklab(0.431796 -0.0842069 0.0195867 / 0.35)',
+    dark: 'box.borderColor color(srgb 0.203922 0.827451 0.6 / 0.3) vs oklab(0.772937 -0.14692 0.0443151 / 0.35)',
+  },
+  warn: {
+    light: 'box.borderColor color(srgb 0.572549 0.25098 0.054902 / 0.3) vs oklab(0.473193 0.0863267 0.0900109 / 0.4)',
+    dark: 'box.borderColor color(srgb 0.984314 0.74902 0.141176 / 0.3) vs oklab(0.836863 0.0160027 0.163654 / 0.4)',
+  },
+  loss: {
+    light: 'box.borderColor color(srgb 0.662745 0.105882 0.105882 / 0.3) vs oklab(0.47433 0.156874 0.0809455 / 0.4)',
+    dark: 'box.borderColor color(srgb 0.972549 0.443137 0.443137 / 0.3) vs oklab(0.710632 0.15384 0.0628371 / 0.4)',
+  },
+  info: {
+    light: 'box.borderColor color(srgb 0.027451 0.34902 0.521569 / 0.3) vs rgb(201, 198, 189)',
+    dark: 'box.borderColor color(srgb 0.219608 0.741176 0.972549 / 0.3) vs rgb(58, 62, 77)',
+  },
+};
+const toastGaps =
+  (tone: string): Gaps =>
+  (size, scheme) =>
+    [
+      size === '360' ? 'box.width 328 vs 336' : 'box.width 520 vs 384',
+      size === '360' ? 'box.height 70 vs 54' : 'box.height 50 vs 45',
+      'box.borderRadius 14px vs 12px',
+      'box.paddingRight 12px vs 14px',
+      'box.paddingLeft 16px vs 14px',
+      scheme === 'light' ? 'title.color rgb(79, 81, 92) vs rgb(23, 23, 28)' : 'title.color rgb(168, 170, 183) vs rgb(236, 236, 241)',
+      'title.dx 17 vs 40',
+      'title.dy 16 vs 14',
+      TOAST_BORDER[tone][scheme],
+    ].filter(Boolean);
+
+const KNOWN_GAPS: Record<string, Gaps> = {
   // .nish-sheet is 32rem wide from 640px, the React Modal is max-w-md (28rem); its header and body
   // spacing differ and the React Modal draws a grab handle block above the header.
-  'sheet open': ['box.width', 'box.height', 'title.dy', 'body.dy'],
+  'sheet open': (size) =>
+    size === '360'
+      ? ['box.height 208 vs 219', 'title.dy 33 vs 62', 'body.dy 89 vs 110']
+      : ['box.width 512 vs 448', 'box.height 185 vs 155', 'body.dy 73 vs 54'],
   // The React ConfirmDialog is a Modal with a header row, its title sits lower and the box is taller.
-  'dialog open': ['box.height', 'title.dy', 'body.dy'],
-  // The React toast is 384px wide from sm (max-w-md on a w-96 stack), has a leading icon, 12px radius,
-  // 14px side padding and title text in --nish-hi; .nish-toast is 520px, 14px radius, 16/12px padding,
-  // no icon and --nish-hi2 text. The tone border differs in opacity and color space.
-  'toast neutral': TOAST_GAPS,
-  'toast ok': [...TOAST_GAPS, 'box.borderColor'],
-  'toast warn': [...TOAST_GAPS, 'box.borderColor'],
-  'toast loss': [...TOAST_GAPS, 'box.borderColor'],
-  'toast info': [...TOAST_GAPS, 'box.borderColor'],
+  'dialog open': (size) =>
+    size === '360'
+      ? ['box.height 158 vs 219', 'title.dy 18 vs 62', 'body.dy 49 vs 110']
+      : ['box.height 151 vs 155', 'title.dy 18 vs 22', 'body.dy 49 vs 54'],
+  'toast neutral': toastGaps('neutral'),
+  'toast ok': toastGaps('ok'),
+  'toast warn': toastGaps('warn'),
+  'toast loss': toastGaps('loss'),
+  'toast info': toastGaps('info'),
   // The React bar puts its padding on each cell; .nish-bottom-nav pads the bar.
-  'bottom nav, active item': ['box.paddingTop', 'box.paddingRight', 'box.paddingBottom', 'box.paddingLeft', 'title.dx'],
+  'bottom nav, active item': () => [
+    'box.paddingTop 4px vs 0px',
+    'box.paddingRight 4px vs 0px',
+    'box.paddingBottom 4px vs 0px',
+    'box.paddingLeft 4px vs 0px',
+    'title.dx 47 vs 44',
+  ],
 };
 
 interface Measured {
@@ -167,11 +219,13 @@ async function parts(page: Page, p: Part): Promise<Record<string, Measured>> {
   return out;
 }
 
+const px = (n: number): number => Math.round(n);
+
 function compare(react: Record<string, Measured>, el: Record<string, Measured>): string[] {
   const diffs: string[] = [];
   const box = { r: react.box, e: el.box };
-  if (Math.abs(box.e.width - box.r.width) > 1) diffs.push(`box.width ${box.e.width} vs ${box.r.width}`);
-  if (Math.abs(box.e.height - box.r.height) > 1) diffs.push(`box.height ${box.e.height} vs ${box.r.height}`);
+  if (Math.abs(box.e.width - box.r.width) > 1) diffs.push(`box.width ${px(box.e.width)} vs ${px(box.r.width)}`);
+  if (Math.abs(box.e.height - box.r.height) > 1) diffs.push(`box.height ${px(box.e.height)} vs ${px(box.r.height)}`);
   for (const prop of BOX_PROPS) {
     if (box.e[prop] !== box.r[prop]) diffs.push(`box.${prop} ${box.e[prop]} vs ${box.r[prop]}`);
   }
@@ -181,7 +235,7 @@ function compare(react: Record<string, Measured>, el: Record<string, Measured>):
       if (el[key][prop] !== react[key][prop]) diffs.push(`${key}.${prop} ${el[key][prop]} vs ${react[key][prop]}`);
     }
     for (const prop of ['dx', 'dy'] as const) {
-      if (Math.abs(el[key][prop] - react[key][prop]) > 1) diffs.push(`${key}.${prop} ${el[key][prop]} vs ${react[key][prop]}`);
+      if (Math.abs(el[key][prop] - react[key][prop]) > 1) diffs.push(`${key}.${prop} ${px(el[key][prop])} vs ${px(react[key][prop])}`);
     }
   }
   return diffs;
@@ -214,11 +268,9 @@ for (const c of CASES) {
 
           const diffs = compare(react, el);
           if (process.env.PARITY_VERBOSE) console.log(`DIFF ${c.name} ${size.name} ${scheme}\n  ${diffs.join('\n  ')}`);
-          const known = new Set(KNOWN_GAPS[c.name] ?? []);
-          const keyOf = (d: string) => d.split(' ')[0];
-          const unexpected = diffs.filter((d) => !known.has(keyOf(d)));
-          expect(unexpected, 'the element version differs from the React one').toEqual([]);
-          // A listed gap that shows up at no size or scheme is checked once, in the summary test below.
+          // Exactly the listed gaps: a new difference fails, and so does a listed gap that is gone.
+          const known = KNOWN_GAPS[c.name]?.(size.name, scheme) ?? [];
+          expect(diffs.slice().sort(), 'the element version differs from the React one (or a known gap closed: delete it)').toEqual(known.slice().sort());
         } finally {
           await ctx.close();
         }

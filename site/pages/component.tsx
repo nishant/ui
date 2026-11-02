@@ -70,7 +70,7 @@ function HtmlFrame({ code, height, title }: { code: string; height: number; titl
   useEffect(sync, [theme]);
   return (
     <div className="overflow-hidden rounded-lg border border-th-line">
-      <iframe ref={ref} srcDoc={srcDoc} onLoad={sync} title={title} className="mx-auto block w-full max-w-[480px] border-0 bg-th-bg" style={{ height }} />
+      <iframe ref={ref} srcDoc={srcDoc} onLoad={sync} title={title} className="mx-auto block w-full border-0 bg-th-bg" style={{ height }} />
     </div>
   );
 }
@@ -103,7 +103,7 @@ function UsageCode({ doc }: { doc: ComponentDoc }) {
         react
       ) : (
         <>
-          <CodeBlock code={doc.html.code} title={`${doc.id}.html`} collapseAt={16} />
+          <CodeBlock code={doc.html.code.replaceAll('nish-ui@X.Y.Z', `nish-ui@${docgen.version}`)} title={`${doc.id}.html`} collapseAt={16} />
           <p className="text-sm text-th-hi3">
             Live, with no React. The page links <code className="inline">nish.css</code>, <code className="inline">nish-components.css</code> and{' '}
             <code className="inline">elements.js</code>; see{' '}

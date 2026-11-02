@@ -84,7 +84,12 @@ const configs: Options[] = [
     // and no shared chunks, because static sites vendor single files. Lit is a devDependency.
     entry: { elements: 'src/elements/index.ts' },
     format: ['esm'],
-    dts: true,
+    // Types are hand-written (src/elements/public.d.ts) so dist/elements.d.ts never imports lit.
+    dts: false,
+    onSuccess: async () => {
+      const { copyFileSync } = await import('node:fs');
+      copyFileSync('src/elements/public.d.ts', 'dist/elements.d.ts');
+    },
     sourcemap: true,
     target: 'es2022',
     noExternal: ['lit', /^@lit\//],

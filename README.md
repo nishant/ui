@@ -111,7 +111,7 @@ and Claude artifacts. They use the same `nish-*` classes as above, so link the s
 ```
 
 With a bundler: `import 'nish-ui/elements';` and `import { toast } from 'nish-ui/elements';`.
-Every component page on the docs site has an HTML tab with the markup, running live. More in
+The button, card, bottom nav, theme toggle, modal, more sheet and toast pages on the docs site have an HTML tab with the markup, running live. More in
 [Static sites](https://design.nish.software/#/static-sites).
 
 ## Theming

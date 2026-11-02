@@ -57,6 +57,45 @@ test.describe('<nish-theme-toggle>', () => {
     await expect(btn.locator('[data-theme-word]')).toHaveText('Auto');
   });
 
+  test('attributes set right after append() are applied', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => {
+      const el = document.createElement('nish-theme-toggle');
+      el.id = 'tt4';
+      document.getElementById('root')?.append(el);
+      el.setAttribute('labelled', '');
+      el.setAttribute('pill', '');
+    });
+    const btn = page.locator('#tt4 button');
+    await expect(btn).toHaveCount(1);
+    await expect(btn).toHaveClass(/nish-theme-btn--labelled/);
+    await expect(btn).toHaveClass(/nish-theme-btn--pill/);
+    await expect(btn.locator('[data-theme-word]')).toHaveCount(1);
+  });
+
+  test('a removed toggle stops listening to clicks and theme changes', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => {
+      (window as unknown as { oldBtn: Element }).oldBtn = document.querySelector('#tt button') as Element;
+      document.getElementById('tt')?.remove();
+    });
+    await page.evaluate(() => {
+      const el = document.createElement('nish-theme-toggle');
+      el.id = 'tt5';
+      document.getElementById('root')?.append(el);
+    });
+    await page.locator('#tt5 button').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    // The removed button did not follow the change, and clicking it no longer cycles the theme.
+    const old = await page.evaluate(() => {
+      const b = (window as unknown as { oldBtn: HTMLElement }).oldBtn;
+      const choice = b.dataset.choice;
+      b.click();
+      return { choice, connected: b.isConnected, theme: document.documentElement.dataset.theme };
+    });
+    expect(old).toEqual({ choice: 'system', connected: false, theme: 'light' });
+  });
+
   test('is removed cleanly on disconnect', async ({ page }) => {
     await load(page);
     await page.evaluate(() => document.getElementById('tt')?.remove());
@@ -320,6 +359,30 @@ test.describe('<nish-bottom-nav>', () => {
     expect(h).toBe(`${height}px`);
   });
 
+  test('removing it clears --nish-bottom-nav-h and stops following popstate', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await load(page);
+    const hasVar = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--nish-bottom-nav-h') !== '');
+    expect(await hasVar()).toBe(true);
+    const host = await page.evaluate(() => {
+      const el = document.querySelector('nish-bottom-nav') as HTMLElement;
+      (window as unknown as { oldLinks: Element[] }).oldLinks = [...el.querySelectorAll('a')];
+      el.remove();
+      history.pushState(null, '', '/lists');
+      dispatchEvent(new PopStateEvent('popstate'));
+      return true;
+    });
+    expect(host).toBe(true);
+    expect(await hasVar()).toBe(false);
+    const marked = await page.evaluate(() =>
+      (window as unknown as { oldLinks: Element[] }).oldLinks.filter((a) => a.hasAttribute('aria-current')).map((a) => a.getAttribute('href')),
+    );
+    // Only the link that was current when it was removed keeps its mark; /lists did not get one.
+    expect(marked).not.toContain('/lists');
+    expect(errors).toEqual([]);
+  });
+
   test('label and lg attributes', async ({ page }) => {
     await load(page);
     await page.evaluate(() => {
@@ -354,6 +417,61 @@ test.describe('toast()', () => {
     await expect(toast.locator('img')).toHaveCount(0);
     await expect(toast).toContainText('<img src=x');
     expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+  });
+});
+
+test.describe('upgrade', () => {
+  // Markup that exists before the bundle loads: the parser creates plain HTMLElements and the
+  // bundle upgrades them. The page and the built bundle are served by routes, so nothing in the
+  // harness imports the elements first.
+  const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>upgrade</title>
+<link rel="stylesheet" href="/upgrade.css"></head><body>
+<nish-sheet id="us" open><h2 class="nish-sheet-title">Early sheet</h2><div class="nish-sheet-body"><button id="child" type="button">Child</button></div></nish-sheet>
+<nish-dialog id="ud" open><h2 class="nish-dialog-title">Early dialog</h2><div class="nish-dialog-body">Body</div></nish-dialog>
+<script type="module">
+  window.before = { sheet: customElements.get('nish-sheet') === undefined, dialog: customElements.get('nish-dialog') === undefined };
+  const child = document.getElementById('child');
+  window.child = child;
+  child.expando = 'kept';
+  window.clicks = 0;
+  child.addEventListener('click', () => { window.clicks += 1; });
+  await import('/upgrade.js');
+  await customElements.whenDefined('nish-sheet');
+  await customElements.whenDefined('nish-dialog');
+  document.documentElement.dataset.ready = '1';
+</script></body></html>`;
+
+  async function loadUpgrade(page: Page): Promise<void> {
+    const fs = await import('node:fs');
+    const dist = (f: string) => fs.readFileSync(new URL(`../../dist/${f}`, import.meta.url));
+    await page.route('**/upgrade.html', (r) => r.fulfill({ contentType: 'text/html', body: PAGE }));
+    await page.route('**/upgrade.js', (r) => r.fulfill({ contentType: 'text/javascript', body: dist('elements.js') }));
+    await page.route('**/upgrade.css', (r) =>
+      r.fulfill({ contentType: 'text/css', body: Buffer.concat([dist('nish.css'), Buffer.from('\n'), dist('nish-components.css')]) }),
+    );
+    await page.goto('http://localhost:5194/upgrade.html');
+    await page.locator('html[data-ready="1"]').waitFor({ state: 'attached' });
+  }
+
+  test('elements that exist before the bundle loads upgrade and show their open state', async ({ page }) => {
+    await loadUpgrade(page);
+    expect(await page.evaluate(() => (window as unknown as { before: unknown }).before)).toEqual({ sheet: true, dialog: true });
+    await expect(page.locator('#us > dialog.nish-sheet')).toBeVisible();
+    await expect(page.locator('#ud > dialog.nish-dialog')).toBeVisible();
+    await expect(page.locator('#us > dialog')).toHaveAttribute('aria-labelledby', /.+/);
+    await expect(page.locator('#ud > dialog')).toHaveAttribute('aria-labelledby', /.+/);
+  });
+
+  test('light DOM children are moved into the dialog, not copied', async ({ page }) => {
+    await loadUpgrade(page);
+    const r = await page.evaluate(() => {
+      const w = window as unknown as { child: HTMLElement & { expando?: string }; clicks: number };
+      const now = document.getElementById('child') as HTMLElement & { expando?: string };
+      const inside = now.closest('dialog') !== null && now.parentElement?.closest('nish-sheet')?.id === 'us';
+      now.click();
+      return { same: now === w.child, expando: now.expando, inside, count: document.querySelectorAll('#child').length, clicks: w.clicks };
+    });
+    expect(r).toEqual({ same: true, expando: 'kept', inside: true, count: 1, clicks: 1 });
   });
 });
 

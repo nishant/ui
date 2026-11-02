@@ -57,7 +57,7 @@ export const toastDoc: ComponentDoc = {
 </div>
 
 <script type="module">
-  import { toast } from 'https://cdn.jsdelivr.net/npm/nish-ui@latest/dist/elements.js';
+  import { toast } from 'https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements.js';
 
   document.getElementById('saved').onclick = () => toast('Changes are live.', { tone: 'ok' });
   document.getElementById('warn').onclick = () => toast('Under 20 API calls left today.', { tone: 'warn' });

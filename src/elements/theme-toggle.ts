@@ -39,13 +39,17 @@ export class NishThemeToggle extends NishElement {
     this.#unmount();
   }
 
-  protected override updated(changed: PropertyValues): void {
-    // The first update follows the mount in connectedCallback, which already read the attributes.
-    if (this.#button && changed.size > 0 && this.#mountedOnce) this.#mount();
-    this.#mountedOnce = true;
+  protected override updated(_changed: PropertyValues): void {
+    // Remount only when a value differs from what the button was mounted with. Attributes set after
+    // connect but before the first update land here too, so no update is skipped by count.
+    if (this.#button && this.#mountedWith !== this.#signature()) this.#mount();
   }
 
-  #mountedOnce = false;
+  #mountedWith = '';
+
+  #signature(): string {
+    return JSON.stringify([this.labelled, this.pill, this.labelSystem, this.labelLight, this.labelDark]);
+  }
 
   #unmount(): void {
     this.#cleanup?.();
@@ -56,6 +60,7 @@ export class NishThemeToggle extends NishElement {
 
   #mount(): void {
     this.#unmount();
+    this.#mountedWith = this.#signature();
     const button = document.createElement('button');
     button.className = 'nish-theme-btn';
     button.classList.toggle('nish-theme-btn--labelled', this.labelled);
