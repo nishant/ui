@@ -85,6 +85,44 @@ export const settingsDoc: ComponentDoc = {
         '<NumberField id="drop" value={drop} suffix="%" onCommit={…} />',
       ),
     ].join('\n'),
+  html: {
+    height: 360,
+    code: `<section class="nish-settings-section" aria-labelledby="notify">
+  <div class="nish-settings-section-header">
+    <div>
+      <h2 class="nish-settings-section-title" id="notify">Notifications</h2>
+      <p class="nish-settings-section-description">Where alerts go.</p>
+    </div>
+  </div>
+  <div class="nish-settings-section-body">
+    <div class="nish-setting-row nish-setting-row--inline">
+      <div>
+        <label class="nish-setting-row-label" for="push">Push</label>
+        <p class="nish-setting-row-description">On this phone.</p>
+      </div>
+      <div class="nish-setting-row-control">
+        <button type="button" class="nish-switch" role="switch" aria-checked="true" id="push"></button>
+        <span class="nish-setting-row-status nish-setting-row-status--ok" role="status">Saved</span>
+      </div>
+    </div>
+    <div class="nish-setting-row">
+      <div>
+        <label class="nish-setting-row-label" for="digest">Digest</label>
+        <p class="nish-setting-row-description">How often the summary email arrives.</p>
+      </div>
+      <div class="nish-setting-row-control">
+        <select class="nish-select" id="digest"><option>Daily</option><option>Weekly</option></select>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+  document.getElementById('push').addEventListener('click', (e) => {
+    const on = e.currentTarget.getAttribute('aria-checked') !== 'true';
+    e.currentTarget.setAttribute('aria-checked', String(on));
+  });
+</script>`,
+  },
   stories: [
     {
       id: 'scanner',

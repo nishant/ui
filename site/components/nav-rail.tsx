@@ -59,6 +59,22 @@ export const navRail: ComponentDoc = {
       ...(a.hideFrom === 'xl' ? ['  hideFrom="xl"'] : a.hideFrom === 'none' ? ['  hideFrom={false}'] : []),
       '/>',
     ].join('\n'),
+  html: {
+    height: 320,
+    code: `<div style="display:flex;height:260px;border:1px solid var(--nish-line);border-radius:8px;overflow:hidden">
+  <nish-nav-rail label="Sections">
+    <nav class="nish-nav-rail nish-nav-rail--always" aria-label="Sections" style="height:100%">
+      <a href="#home"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8v10H3z"/></svg><span>Home</span></a>
+      <a href="#trips"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6z"/></svg><span>Trips</span></a>
+      <div data-slot="tools">
+        <a href="#search"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span>Search</span></a>
+      </div>
+    </nav>
+  </nish-nav-rail>
+  <div style="padding:16px">Page content. The rail marks the link that matches the address.</div>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,
+  },
   stories: [
     {
       id: 'unfolded',

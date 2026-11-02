@@ -4,8 +4,10 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 // nish-* class markup (index.html) must look the same. For each wave 1 component and state
 // (theme toggle; sheet open; dialog open; toast in each tone; bottom nav with an active item) and
 // each wave 2 class and element in each state that changes its look (WAVE2_CASES: fields, switch,
-// chip, tabs in every variant, open combobox, list rows, callouts, dots, ...), at 360x780 and
-// 1440x900, in light and dark:
+// chip, tabs in every variant, open combobox, list rows, callouts, dots, ...) and each wave 3 one
+// (WAVE3_CASES: tables and rows, filter bar, media thumb/row/chip, settings, split, nav rail, scroll row,
+// section nav, more sheet, command palette, charts, range bar), at 360x780 and 1440x900 (840x900 too
+// where the component changes there), in light and dark:
 //   - the main box has the same width and height (within 1px);
 //   - the box has equal background-color, border-color (when it has a border), border-radius
 //     and padding;
@@ -22,8 +24,11 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 const BASE = 'http://localhost:5194';
 const SIZES = [
   { name: '360', width: 360, height: 780 },
+  { name: '840', width: 840, height: 900 },
   { name: '1440', width: 1440, height: 900 },
 ] as const;
+/** The sizes every case runs at unless it says otherwise (840 is the unfolded Fold: only the cases that change there ask for it). */
+const DEFAULT_RUN: readonly (typeof SIZES)[number]['name'][] = ['360', '1440'];
 const SCHEMES = ['light', 'dark'] as const;
 
 interface Part {
@@ -41,6 +46,8 @@ interface Case {
   ignore?: readonly string[];
   /** Sizes at which the component is shown (the bottom nav hides from 768px). */
   sizes?: readonly (typeof SIZES)[number]['name'][];
+  /** Sizes the case runs at: 360 and 1440 by default. At a size that is run but not in `sizes`, both versions must be hidden. */
+  run?: readonly (typeof SIZES)[number]['name'][];
 }
 
 const TONES = ['neutral', 'ok', 'warn', 'loss', 'info'] as const;
@@ -247,6 +254,178 @@ const WAVE2_CASES: Case[] = [
   ),
 ];
 
+// --- Wave 3 ---------------------------------------------------------------------------------
+// The same ids in react.tsx's WAVE3 and elements.ts's WAVE3. Tables put className="case" on the wrap.
+
+const T = {
+  react: { box: '.case table', title: '.case th', body: '.case td' },
+  element: { box: '.case table', title: '.case th', body: '.case td' },
+};
+const tableRow = (id: string): Case =>
+  wave2(id, {
+    react: { box: '.case tbody tr:first-child', title: '.case tbody td:first-child', body: '.case tbody td:nth-child(2)' },
+    element: { box: '.case tbody tr:first-child', title: '.case tbody td:first-child', body: '.case tbody td:nth-child(2)' },
+  });
+const settingRowParts = {
+  react: { box: '.case > div:nth-child(2) > div:first-child', title: '.case > div:nth-child(2) > div:first-child label', body: '.case > div:nth-child(2) > div:first-child p' },
+  element: { box: '.nish-settings-section-body > .nish-setting-row:first-child', title: '.nish-setting-row-label', body: '.nish-setting-row-description' },
+};
+const settingRow = (id: string): Case => wave2(id, settingRowParts);
+const sectionParts = {
+  react: { box: '.case', title: '.case h2', body: '.case section > div:first-child p, .case > div:first-child p' },
+  element: { box: '.case', title: '.nish-settings-section-title', body: '.nish-settings-section-description' },
+};
+const mediaRowParts = {
+  react: { box: '.case', title: '.case > span.min-w-0 > span:first-child', body: '.case > span.min-w-0 > span:nth-child(2) > span:first-child' },
+  element: { box: '.case', title: '.nish-media-row-title', body: '.nish-media-row-meta' },
+};
+const mediaRow = (id: string): Case => wave2(id, mediaRowParts);
+const thumbCase = (id: string): Case => wave2(id, both('.case'));
+const chartParts = (title: string, body?: string) => ({
+  react: { box: '.case svg[role="img"], #stage svg[role="img"]', title, ...(body ? { body } : {}) },
+  element: { box: 'svg[role="img"]', title, ...(body ? { body } : {}) },
+});
+
+const WAVE3_CASES: Case[] = [
+  wave2('table', T),
+  wave2('table-dense', T),
+  // Tailwind mixes the stripe in oklab and the nish-* class in srgb: the same tint, written two ways (data.spec.ts checks
+  // that only a zebra table is striped).
+  wave2(
+    'table-zebra',
+    {
+      react: { box: '.case tbody tr:nth-child(even)', title: '.case tbody tr:nth-child(even) td' },
+      element: { box: '.case tbody tr:nth-child(even)', title: '.case tbody tr:nth-child(even) td' },
+    },
+    '',
+    ['box.backgroundColor'],
+  ),
+  // The sort cell: the header with its button and arrows.
+  // A header cell is transparent in React and filled with the surface in .nish-th (the wrap is that surface): same look.
+  { ...wave2('table', both('.case th:nth-child(3)', { title: '.case th:nth-child(3) button' }), '', ['box.backgroundColor']), name: 'table sorted header' },
+  { ...wave2('table', both('.case th:nth-child(2)', { title: '.case th:nth-child(2)' }), '', ['box.backgroundColor']), name: 'table numeric header' },
+  { ...wave2('table', { react: { box: '.case td:nth-child(2)', title: '.case td:nth-child(2)' }, element: { box: '.case td:nth-child(2)', title: '.case td:nth-child(2)' } }), name: 'table numeric cell' },
+  tableRow('table-tr-muted'),
+  tableRow('table-tr-interactive'),
+  tableRow('table-tr-ok'),
+  tableRow('table-tr-warn'),
+  tableRow('table-tr-loss'),
+  wave2('table-wrap-sticky-first', both('.case', { title: '.case tbody td:first-child' })),
+  wave2('table-wrap-sticky-header', both('.case', { title: '.case thead th' })),
+  wave2('filter-bar', {
+    react: { box: '.case', title: '.case input[type="search"]', body: '.case [aria-live="polite"]' },
+    element: { box: 'nish-filter-bar .nish-filter-bar', title: 'nish-filter-bar input[type="search"]', body: '.nish-filter-bar-summary' },
+  }),
+  // Phone: the Filters button with its count. Desktop: the Clear filters button.
+  { ...wave2('filter-bar', { react: { box: 'button[aria-haspopup="dialog"]', title: 'button[aria-haspopup="dialog"]' }, element: { box: '.nish-filter-btn', title: '.nish-filter-btn' } }), name: 'filter bar button', sizes: ['360'] },
+  { ...wave2('filter-bar', { react: { box: '.case > div:first-child > button:not([aria-haspopup])', title: '.case > div:first-child > button:not([aria-haspopup])' }, element: { box: '.nish-filter-bar-clear', title: '.nish-filter-bar-clear' } }), name: 'filter bar clear', sizes: ['1440'] },
+  thumbCase('media-thumb'),
+  thumbCase('media-thumb-sm'),
+  thumbCase('media-thumb-round'),
+  thumbCase('media-thumb-round-sm'),
+  thumbCase('media-thumb-square'),
+  mediaRow('media-row'),
+  mediaRow('media-row-live'),
+  mediaRow('media-row-offline'),
+  mediaRow('media-row-dense'),
+  mediaRow('media-row-compact'),
+  mediaRow('media-row-round'),
+  // The element draws the Live badge from ::before on .nish-media-row-badges, so only the size of the badge is comparable.
+  {
+    ...wave2('media-row-live', { react: { box: '.case span.flex-col > span:first-child' }, element: { box: '.nish-media-row-badges' } }, '', [
+      'box.backgroundColor',
+      'box.borderColor',
+      'box.borderRadius',
+      'box.color',
+      'box.fontSize',
+      'box.paddingTop',
+      'box.paddingRight',
+      'box.paddingBottom',
+      'box.paddingLeft',
+    ]),
+    name: 'media row live badge',
+  },
+  wave2('media-chip', both('.case', { title: '.case > span:nth-child(2)', body: '.case > span:nth-child(3)' })),
+  wave2('media-chip-plain', both('.case', { title: '.case > span:nth-child(2)' })),
+  // SplitStage draws absolute panes and the element flex panes: the pane boxes and the divider must agree.
+  {
+    ...wave2('split-row', { react: { box: '[data-split-pane="a"]' }, element: { box: 'nish-split > .nish-split-pane:first-child' } }),
+    run: ['1440'],
+  },
+  {
+    ...wave2('split-row', { react: { box: '[data-split-pane="b"]' }, element: { box: 'nish-split > .nish-split-pane:last-child' } }),
+    name: 'split second pane',
+    run: ['1440'],
+  },
+  // React's divider is a 24px hit area with a 4px accent bar inside; .nish-split-divider is the 4px gap itself with the
+  // hit area drawn past it, so its own width and its offset from the pane are not compared (its height is).
+  {
+    ...wave2('split-row', { react: { box: '[role="separator"]' }, element: { box: '[role="separator"]' } }, '', ['box.width', 'box.borderRadius']),
+    name: 'split divider',
+    run: ['1440'],
+  },
+  {
+    ...wave2('nav-rail', { react: { box: '.case', title: '.case a[aria-current="page"] span.truncate' }, element: { box: '.case', title: '.case a[aria-current="page"] > span' } }),
+    sizes: ['1440'],
+  },
+  {
+    ...wave2('nav-rail', { react: { box: '.case a[aria-current="page"]' }, element: { box: '.case a[aria-current="page"]' } }),
+    name: 'nav rail item',
+    sizes: ['1440'],
+  },
+  // The default rail shows from 768px and hides from 1024px, in both versions.
+  {
+    ...wave2('nav-rail-default', { react: { box: '.case', title: '.case a[aria-current="page"] span.truncate' }, element: { box: 'nish-nav-rail nav', title: 'nish-nav-rail nav a[aria-current="page"] > span' } }),
+    sizes: ['840'],
+    run: ['360', '840', '1440'],
+  },
+  wave2('scroll-row', {
+    react: { box: '.case', title: '.case button[aria-pressed="true"]' },
+    element: { box: 'nish-scroll-row .nish-scroll-row', title: 'nish-scroll-row button[aria-pressed="true"]' },
+  }),
+  // React keeps the gutter on the bleeding row inside the nav and .nish-subnav on the bar itself (a full-width bar
+  // outside the padded page): the chips sit in the same place on screen, so the nav's own padding and the chip's offset
+  // inside it are not compared. Height is.
+  wave2(
+    'section-nav',
+    {
+      react: { box: '.case', title: '.case [aria-current="true"]' },
+      element: { box: 'nish-section-nav nav', title: 'nish-section-nav [aria-current="true"]' },
+    },
+    '',
+    ['box.paddingLeft', 'box.paddingRight', 'title.dx'],
+  ),
+  // MoreSheet opens from the BottomNav, which is hidden from 768px: the phone width is the one it is drawn at (the Drawer
+  // docks full width there; the element sheet is a centered modal on a desktop).
+  { ...wave2('more-sheet', {
+    react: { box: '[role="dialog"] li:first-child > a', title: '[role="dialog"] li:first-child span.font-medium', body: '[role="dialog"] li:first-child span.text-xs' },
+    element: { box: 'dialog.nish-sheet li:first-child > a', title: 'li:first-child .nish-list-title', body: 'li:first-child .nish-list-subtitle' },
+  }), run: ['360'] },
+  { ...wave2('more-sheet', { react: { box: '[role="dialog"] li:nth-child(2) > a', title: '[role="dialog"] li:nth-child(2) span.font-medium' }, element: { box: 'dialog.nish-sheet li:nth-child(2) > a', title: 'li:nth-child(2) .nish-list-title' } }), name: 'more sheet current row', run: ['360'] },
+  wave2('settings-section', sectionParts),
+  wave2('settings-section-compact', sectionParts),
+  { ...settingRow('settings-section'), name: 'settings section row' },
+  { ...settingRow('settings-section-compact'), name: 'settings section compact row' },
+  settingRow('setting-row-stacked'),
+  settingRow('setting-row-inline'),
+  { ...wave2('setting-row-status', { react: { box: '.case [role="status"]', title: '.case [role="status"]' }, element: { box: '.nish-setting-row-status', title: '.nish-setting-row-status' } }), name: 'setting row status ok' },
+  { ...wave2('setting-row-error', { react: { box: '.case [role="status"]', title: '.case [role="status"]' }, element: { box: '.nish-setting-row-status', title: '.nish-setting-row-status' } }), name: 'setting row status error' },
+  wave2('command', {
+    react: { box: '[role="dialog"]', title: '[role="option"][aria-selected="true"]', body: '[role="group"] > div:first-child' },
+    element: { box: 'dialog[open]', title: '[role="option"][aria-selected="true"]', body: '[role="group"] > div:first-child' },
+  }),
+  wave2('line-chart', chartParts('svg text')),
+  wave2('line-chart-area', chartParts('svg text')),
+  // React draws no legend (the app adds a ChartLegend); the element's own is covered by data.spec.ts.
+  wave2('line-chart-multi', chartParts('svg text')),
+  wave2('bar-chart', chartParts('svg text')),
+  wave2('bar-chart-values', { react: { box: '.case svg[role="img"], #stage svg[role="img"]' }, element: { box: 'svg[role="img"]' } }),
+  wave2('range-bar', {
+    react: { box: '.case', title: '.case > div', body: '.case > span' },
+    element: { box: '.case', title: '.nish-range-bar-fill', body: '.nish-range-bar-current' },
+  }),
+];
+
 /** Differences that cannot be closed yet: real gaps between the nish-* CSS and the React twin, each with
  *  its exact values (`prop element vs react`, numbers rounded to whole px). A case must show exactly
  *  this set at that size and scheme: a difference that is not listed fails, and a listed one that no
@@ -371,8 +550,8 @@ function matchKnown(diffs: string[], known: string[]): string[] {
   });
 }
 
-for (const c of [...CASES, ...WAVE2_CASES]) {
-  for (const size of SIZES) {
+for (const c of [...CASES, ...WAVE2_CASES, ...WAVE3_CASES]) {
+  for (const size of SIZES.filter((z) => (c.run ?? DEFAULT_RUN).includes(z.name))) {
     for (const scheme of SCHEMES) {
       test(`${c.name} matches React at ${size.name}px, ${scheme}`, async ({ browser }) => {
         const ctx = await browser.newContext({

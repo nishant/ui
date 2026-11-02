@@ -89,6 +89,20 @@ export const chartDoc: ComponentDoc = {
 <line stroke={CHART.grid} />
 <Tooltip contentStyle={tooltipStyle} /> // Recharts`,
   api: { functions: ['seriesColor', 'chartTheme', 'useChartTheme'], interfaces: ['ChartTheme'] },
+  html: {
+    height: 180,
+    code: `<!-- The eight categorical series colors -->
+<ul class="nish-legend" style="list-style:none;margin:0;padding:0">
+  <li class="nish-legend-item" style="--c: var(--nish-chart-1)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 1</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-2)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 2</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-3)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 3</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-4)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 4</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-5)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 5</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-6)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 6</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-7)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 7</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-8)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 8</li>
+</ul>`,
+  },
   stories: [
     { id: 'bars', name: 'SVG with var() strings', render: () => <Bars /> },
     { id: 'resolved', name: 'Resolved for canvas (useChartTheme)', note: 'Re-renders on a theme change.', render: () => <Resolved /> },

@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import {
   AppHeader,
+  BarChart,
   BottomNav,
   Button,
   Callout,
@@ -11,6 +12,7 @@ import {
   Chip,
   ChipGroup,
   Combobox,
+  CommandPalette,
   ConfirmDialog,
   CopyButton,
   Disclosure,
@@ -18,29 +20,47 @@ import {
   ErrorState,
   Field,
   FieldGroup,
+  FilterBar,
   IconButton,
   Input,
   Kbd,
   KeyValueList,
   Label,
+  LineChart,
   ListRow,
+  MediaChip,
+  MediaRow,
+  MediaThumb,
   Meter,
   Modal,
+  MoreSheet,
+  NavRail,
   PageHeader,
+  RangeBar,
+  ScrollRow,
   SearchInput,
   Segmented,
   Select,
   SectionHeader,
+  SectionNav,
+  SettingRow,
+  SettingsSection,
   Skeleton,
   Sparkline,
   Spinner,
+  SplitStage,
   Stat,
   StatusDot,
   Switch,
+  Table,
+  TableWrap,
   Tabs,
+  Td,
   Textarea,
+  Th,
   ThemeToggle,
   Toaster,
+  Tr,
   tabClass,
   toast,
 } from '../../src';
@@ -52,6 +72,8 @@ import {
 // Wave 2 (WAVE2 below): one case per nish-* class and element of Stage D, in a 28rem stage. Most
 // render the React component with className="case", which parity.spec.ts uses as the box. A few
 // cases click first, the same way on both sides: ?open=1 opens the combobox, ?copied=1 copies.
+// Wave 3 (WAVE3 below): the same for the Stage E classes and elements (tables, filter bar, media rows, settings,
+// nav rail, scroll row, section nav, split, command palette, charts, range bar).
 // The page sets <html data-ready> when the component is on screen and settled.
 
 const q = new URLSearchParams(location.search);
@@ -327,6 +349,212 @@ const WAVE2: Record<string, () => ReactNode> = {
   'copy-copied': () => <CopyButton text="npm i nish-ui" />,
 };
 
+// --- Wave 3 ---------------------------------------------------------------------------
+
+const ROWS = [
+  ['Cherry', '10'],
+  ['Apple', '2'],
+  ['Banana', '1,500'],
+];
+const table = (props: { dense?: boolean; zebra?: boolean } = {}, rowProps: Partial<Parameters<typeof Tr>[0]> = {}, wrap: Partial<Parameters<typeof TableWrap>[0]> = {}) => (
+  <TableWrap className="case" fade={false} {...wrap}>
+    <Table {...props}>
+      <thead>
+        <tr>
+          <Th>Name</Th>
+          <Th numeric>Qty</Th>
+          <Th sort="asc" onSort={noop}>
+            Sorted
+          </Th>
+        </tr>
+      </thead>
+      <tbody>
+        {ROWS.map(([name, qty], i) => (
+          <Tr key={name} {...(i === 0 ? rowProps : {})}>
+            <Td>{name}</Td>
+            <Td numeric>{qty}</Td>
+            <Td>x</Td>
+          </Tr>
+        ))}
+      </tbody>
+    </Table>
+  </TableWrap>
+);
+const filterBar = () => (
+  <FilterBar
+    className="case"
+    search={{ value: '', onChange: noop, placeholder: 'Search jobs', label: 'Search jobs' }}
+    activeCount={2}
+    onClear={noop}
+    trailing={
+      <Select aria-label="View" defaultValue="list">
+        <option value="list">List</option>
+        <option value="grid">Grid</option>
+      </Select>
+    }
+    summary="42 jobs"
+  >
+    <ChipGroup label="Status">
+      <Chip pressed>Open</Chip>
+      <Chip>Closed</Chip>
+    </ChipGroup>
+    <Select aria-label="Sort" defaultValue="new">
+      <option value="new">Newest</option>
+      <option value="old">Oldest</option>
+    </Select>
+  </FilterBar>
+);
+const mediaRow = (props: Partial<Parameters<typeof MediaRow>[0]> = {}) => (
+  <MediaRow
+    as="div"
+    className="case"
+    fallback={FOLDER}
+    title="A long title that wraps to two lines on a phone because it keeps going"
+    meta="Channel name"
+    detail="12K views"
+    href="/v/1"
+    {...props}
+  />
+);
+const RAIL_ITEMS = [
+  { key: 'home', label: 'Home', icon: ico('M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z', 22), href: '/home', active: true },
+  { key: 'trips', label: 'Trips', icon: ico('M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', 22), href: '/trips' },
+];
+const TOPICS = ['All', 'Guides', 'Builds', 'Redstone', 'Farms', 'Mods', 'Seeds', 'Servers'];
+const HALVES = { type: 'split', dir: 'row', sizes: [0.5, 0.5], children: [{ type: 'leaf', slot: 0 }, { type: 'leaf', slot: 1 }] } as const;
+const LINE_DATA = [
+  { x: 1, y: 3 },
+  { x: 2, y: 5 },
+  { x: 3, y: 4 },
+  { x: 4, y: 8 },
+  { x: 5, y: 6 },
+];
+const BAR_DATA = [
+  { label: 'Mon', value: 3 },
+  { label: 'Tue', value: 9 },
+  { label: 'Wed', value: 5 },
+  { label: 'Thu', value: 7 },
+];
+const settings = (compact: boolean, row: Partial<Parameters<typeof SettingRow>[0]> = {}) => (
+  <SettingsSection className="case" title="Notifications" description="Where alerts go." compact={compact} actions={<Button size="sm">Reset</Button>}>
+    <SettingRow label="Channel" description="Pick one." htmlFor="ch" {...row}>
+      <Select id="ch" defaultValue="a">
+        <option value="a">Email</option>
+        <option value="b">Push</option>
+      </Select>
+    </SettingRow>
+    <SettingRow label="Digest" description="Once a day." htmlFor="dg">
+      <Select id="dg" defaultValue="a">
+        <option value="a">On</option>
+      </Select>
+    </SettingRow>
+  </SettingsSection>
+);
+const PALETTE_ITEMS = [
+  { id: 'jobs', label: 'Jobs', group: 'Pages', hint: '/jobs', href: '/jobs' },
+  { id: 'trips', label: 'Trips', group: 'Pages', hint: '/trips', href: '/trips' },
+  { id: 'theme', label: 'Toggle theme', group: 'Actions' },
+];
+
+const WAVE3: Record<string, () => ReactNode> = {
+  table: () => table(),
+  'table-dense': () => table({ dense: true }),
+  'table-zebra': () => table({ zebra: true }),
+  'table-tr-muted': () => table({}, { muted: true }),
+  'table-tr-interactive': () => table({}, { interactive: true }),
+  'table-tr-ok': () => table({}, { tone: 'ok' }),
+  'table-tr-warn': () => table({}, { tone: 'warn' }),
+  'table-tr-loss': () => table({}, { tone: 'loss' }),
+  'table-wrap-sticky-first': () => table({}, {}, { stickyFirstColumn: true, minWidth: 480 }),
+  'table-wrap-sticky-header': () => table({}, {}, { stickyHeader: true, maxHeight: 120 }),
+  'filter-bar': filterBar,
+  'media-thumb': () => <MediaThumb className="case" fallback={FOLDER} />,
+  'media-thumb-sm': () => <MediaThumb className="case" size="sm" fallback={FOLDER} />,
+  'media-thumb-round': () => <MediaThumb className="case" shape="round" fallback={FOLDER} />,
+  'media-thumb-round-sm': () => <MediaThumb className="case" shape="round" size="sm" fallback={FOLDER} />,
+  'media-thumb-square': () => <MediaThumb className="case" shape="square" fallback={FOLDER} />,
+  'media-row': () => mediaRow(),
+  'media-row-live': () => mediaRow({ live: true }),
+  'media-row-offline': () => mediaRow({ live: false }),
+  'media-row-dense': () => mediaRow({ dense: true, title: 'Short title' }),
+  'media-row-compact': () => mediaRow({ compact: true, title: 'Short title' }),
+  'media-row-round': () => mediaRow({ thumbShape: 'round', title: 'Channel name', meta: '1.2M subscribers', detail: undefined }),
+  'media-chip': () => <MediaChip className="case" label="Backups" action="Bring back" onClick={noop} />,
+  'media-chip-plain': () => <MediaChip className="case" label="A rather long recent item title that truncates" onClick={noop} />,
+  'split-row': () => (
+    <div className="case" style={{ height: 240, position: 'relative', display: 'flex' }}>
+      <SplitStage
+        className="flex-1"
+        layout={HALVES}
+        items={['a', 'b']}
+        slots={['a', 'b']}
+        resizable
+        animate={false}
+        renderPane={(id) => <div className="pane" style={{ height: '100%', background: id === 'a' ? 'var(--nish-surface)' : 'var(--nish-elevated)' }} />}
+      />
+    </div>
+  ),
+  'nav-rail': () => <NavRail className="case" items={RAIL_ITEMS} showFrom="sm" hideFrom={false} />,
+  'nav-rail-default': () => <NavRail className="case" items={RAIL_ITEMS} />,
+  'scroll-row': () => (
+    <ScrollRow label="Topics" className="case">
+      {TOPICS.map((t, i) => (
+        <Chip key={t} pressed={i === 0} className="shrink-0">
+          {t}
+        </Chip>
+      ))}
+    </ScrollRow>
+  ),
+  // The page gutter comes from base.css in an app (this page loads only the Tailwind layer).
+  'section-nav': () => (
+    <div style={{ '--nish-page-gutter': window.innerWidth >= 640 ? '1.5rem' : '1rem' } as CSSProperties}>
+      <SectionNav
+        className="case"
+        sticky={false}
+        updateHash={false}
+        items={[
+          { id: 'sa', label: 'Overview' },
+          { id: 'sb', label: 'Details' },
+          { id: 'sc', label: 'History' },
+        ]}
+      />
+    </div>
+  ),
+  'more-sheet': () => (
+    <MoreSheet
+      open
+      onClose={noop}
+      items={[
+        { key: 's', label: 'Settings', icon: ico('M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', 24), href: '/settings', hint: 'Theme and account' },
+        { key: 'h', label: 'Help', icon: ico('M12 16v-4M12 8h.01', 24), href: '/help', hint: 'Guides and contact', active: true },
+      ]}
+    />
+  ),
+  'settings-section': () => settings(false),
+  'settings-section-compact': () => settings(true),
+  'setting-row-stacked': () => settings(false, { stacked: true }),
+  'setting-row-inline': () => settings(false, { inline: true }),
+  'setting-row-status': () => settings(false, { status: 'Saved', statusTone: 'ok' }),
+  'setting-row-error': () => settings(false, { status: 'Failed', statusTone: 'error' }),
+  command: () => <CommandPalette open onOpenChange={noop} hotkey={false} items={PALETTE_ITEMS} placeholder="Jump to…" />,
+  'line-chart': () => <LineChart className="case" label="Latency" height={160} data={LINE_DATA} />,
+  'line-chart-area': () => <LineChart className="case" label="Latency" height={160} data={LINE_DATA} area />,
+  'line-chart-multi': () => (
+    <LineChart
+      className="case"
+      label="CPU and memory"
+      height={160}
+      series={[
+        { label: 'CPU', points: LINE_DATA },
+        { label: 'Memory', points: LINE_DATA.map((p) => ({ x: p.x, y: (p.y ?? 0) * 2 })) },
+      ]}
+    />
+  ),
+  'bar-chart': () => <BarChart className="case" label="Visits" height={140} data={BAR_DATA} />,
+  'bar-chart-values': () => <BarChart className="case" label="Visits" height={140} data={BAR_DATA} showValues />,
+  'range-bar': () => <RangeBar className="case" min={4} max={22} low={12} high={18} current={15} />,
+};
+
 function App() {
   switch (c) {
     case 'toggle':
@@ -368,7 +596,7 @@ function App() {
         />
       );
     default: {
-      const render = WAVE2[c];
+      const render = WAVE2[c] ?? WAVE3[c];
       return render ? (
         <div id="stage" style={{ padding: 16, maxWidth: '28rem' }}>
           {render()}

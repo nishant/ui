@@ -109,6 +109,32 @@ export const table: ComponentDoc = {
   ${jsx('Table', { dense: a.dense || undefined, zebra: a.zebra || undefined }, '…')}
 </TableWrap>`,
   api: { functions: [], interfaces: [] },
+  html: {
+    height: 360,
+    code: `<nish-table-sort>
+  <div class="nish-table-wrap" style="--nish-table-min:440px">
+    <table class="nish-table nish-table--zebra">
+      <thead>
+        <tr>
+          <th class="nish-th" scope="col" data-sort="name">Symbol</th>
+          <th class="nish-th nish-th--num" scope="col" data-sort="qty">Qty</th>
+          <th class="nish-th nish-th--num" scope="col" data-sort="pnl">P&amp;L</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="nish-tr--interactive nish-tr--ok"><td>AAPL</td><td class="nish-td--num">120</td><td class="nish-td--num" data-value="1240.5">+1,240.50</td></tr>
+        <tr class="nish-tr--interactive nish-tr--loss"><td>TSLA</td><td class="nish-td--num">35</td><td class="nish-td--num" data-value="-310.2">-310.20</td></tr>
+        <tr class="nish-tr--interactive nish-tr--warn"><td>NVDA</td><td class="nish-td--num">18</td><td class="nish-td--num" data-value="95">+95.00</td></tr>
+        <tr class="nish-tr--interactive"><td>MSFT</td><td class="nish-td--num">60</td><td class="nish-td--num" data-value="420.75">+420.75</td></tr>
+      </tbody>
+    </table>
+  </div>
+</nish-table-sort>
+<script>
+  document.querySelector('nish-table-sort').addEventListener('nish-sort', (e) => console.log(e.detail));
+</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,
+  },
   stories: [
     { id: 'default', name: 'Default', wide: true, render: () => <Positions /> },
     { id: 'dense-zebra', name: 'Dense and zebra', wide: true, render: () => <Positions dense zebra /> },

@@ -90,6 +90,27 @@ export const responsiveTable: ComponentDoc = {
       ...(a.mode === 'error' ? ['  error={{ message: "Could not load positions.", onRetry: refetch }}'] : []),
       '/>',
     ].join('\n'),
+  html: {
+    height: 380,
+    code: `<!-- The table form (from 640px up). On a phone, use a list of .nish-list-row cards instead. -->
+<div class="nish-table-wrap nish-table-wrap--sticky-first nish-table-wrap--fade" style="--nish-table-min:520px">
+  <table class="nish-table nish-table--dense">
+    <thead>
+      <tr>
+        <th class="nish-th" scope="col">Name</th>
+        <th class="nish-th nish-th--num" scope="col">Open</th>
+        <th class="nish-th nish-th--num" scope="col">Closed</th>
+        <th class="nish-th" scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="nish-tr--interactive nish-tr--ok"><td>Billing</td><td class="nish-td--num">4</td><td class="nish-td--num">128</td><td>Healthy</td></tr>
+      <tr class="nish-tr--interactive nish-tr--warn"><td>Search</td><td class="nish-td--num">11</td><td class="nish-td--num">96</td><td>Slow</td></tr>
+      <tr class="nish-tr--interactive nish-tr--loss"><td>Exports</td><td class="nish-td--num">23</td><td class="nish-td--num">41</td><td>Failing</td></tr>
+    </tbody>
+  </table>
+</div>`,
+  },
   stories: [
     {
       id: 'phone',

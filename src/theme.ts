@@ -776,6 +776,9 @@ export interface MountScrollspyOptions {
   /** Pixels from the top of the viewport where a section counts as current. Default: the
    *  `--nish-header-h` variable plus the nav's own height plus 8. */
   offset?: number;
+  /** Publish the nav's height as `--nish-sticky-extra`. Default true; a non-sticky nav passes
+   *  false so it does not touch a value another sticky nav publishes. */
+  height?: boolean;
 }
 
 /** Scrollspy for a `.nish-subnav`: each `a[href^="#"]` maps to the element with that id.
@@ -794,7 +797,7 @@ export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}):
       return null;
     }
   };
-  const unheight = mountHeightVar(nav, '--nish-sticky-extra');
+  const unheight = o.height === false ? () => undefined : mountHeightVar(nav, '--nish-sticky-extra');
   let current: HTMLAnchorElement | null = null;
 
   const edges = () => {

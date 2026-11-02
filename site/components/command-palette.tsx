@@ -69,6 +69,23 @@ export const commandPalette: ComponentDoc = {
       ...(a.mode === 'submit' ? ['  onSubmitQuery={(q) => webSearch(q)}'] : []),
       '/>',
     ].join('\n'),
+  html: {
+    height: 260,
+    code: `<button type="button" class="nish-btn" id="open-palette">Search <kbd class="nish-kbd">Ctrl K</kbd></button>
+
+<nish-command-palette hotkey placeholder="Search pages" empty-text="No results">
+  <a href="#jobs" data-group="Pages" data-hint="/jobs">Jobs</a>
+  <a href="#trips" data-group="Pages" data-hint="/trips" data-keywords="travel">Trips</a>
+  <button type="button" data-group="Actions" data-id="theme">Switch theme</button>
+</nish-command-palette>
+
+<script>
+  const palette = document.querySelector('nish-command-palette');
+  document.getElementById('open-palette').addEventListener('click', () => palette.show());
+  palette.addEventListener('nish-select', (e) => console.log(e.detail.id));
+</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,
+  },
   stories: [
     {
       id: 'phone',

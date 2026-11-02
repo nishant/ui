@@ -164,6 +164,43 @@ export const mediaRow: ComponentDoc = {
       chevron: a.chevron ? true : undefined,
       onClick: '{() => add(item)}',
     }),
+  html: {
+    height: 290,
+    code: `<ul class="nish-list">
+  <li>
+    <a class="nish-media-row nish-media-row--live" href="#live">
+      <span class="nish-media-thumb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>
+      </span>
+      <span class="nish-list-text">
+        <span class="nish-media-row-title">Morning build session, part two</span>
+        <span class="nish-media-row-meta">Nish Streams</span>
+        <span class="nish-media-row-detail">1.2K watching</span>
+      </span>
+      <span class="nish-list-trailing"><span class="nish-media-row-badges"></span></span>
+    </a>
+  </li>
+  <li>
+    <button class="nish-media-row nish-media-row--dense" type="button">
+      <span class="nish-media-thumb nish-media-thumb--square nish-media-thumb--sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+      </span>
+      <span class="nish-list-text">
+        <span class="nish-media-row-title">Quiet playlist</span>
+        <span class="nish-media-row-meta">12 tracks</span>
+      </span>
+      <span class="nish-list-trailing"><span class="nish-media-row-badges"><span class="nish-badge">New</span></span></span>
+    </button>
+  </li>
+</ul>
+<p style="margin-top:12px">
+  <button class="nish-media-chip" type="button">
+    <span class="nish-media-chip-thumb"></span>
+    <span class="nish-media-chip-label">Quiet playlist</span>
+    <span class="nish-media-chip-action">Bring back</span>
+  </button>
+</p>`,
+  },
   stories: [
     {
       id: 'variants',

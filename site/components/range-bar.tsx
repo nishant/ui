@@ -38,6 +38,15 @@ export const rangeBar: ComponentDoc = {
       high: Number(a.high),
       current: a.showCurrent ? Number(a.current) : undefined,
     }),
+  html: {
+    height: 150,
+    code: `<div class="nish-range-bar" role="img" aria-label="Range 12 to 18, current 15, within 4 to 22"
+     style="--low: 44%; --high: 78%; --current: 61%">
+  <div class="nish-range-bar-fill"></div>
+  <span class="nish-range-bar-current"></span>
+</div>
+<div class="nish-range-bar-labels"><span>4</span><span>22</span></div>`,
+  },
   stories: [
     {
       id: 'weather',

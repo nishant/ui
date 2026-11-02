@@ -73,6 +73,22 @@ export const lineChart: ComponentDoc = {
       xFormat: '{time}',
       loading: a.state === 'loading' ? true : undefined,
     }),
+  html: {
+    height: 540,
+    code: `<nish-line-chart
+  label="CPU load, last 8 hours"
+  height="180"
+  area
+  y-format="percent"
+  data='[0.22,0.31,0.28,0.45,0.52,0.41,0.38,0.47]'></nish-line-chart>
+
+<nish-line-chart
+  style="display:block;margin-top:16px"
+  label="Requests by region"
+  height="160"
+  series='[{"label":"US","points":[12,18,15,22,26]},{"label":"EU","tone":"chart-2","points":[8,9,14,13,17]}]'></nish-line-chart>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-charts.js"></script>`,
+  },
   stories: [
     { id: 'area', name: 'Price with area and baseline', render: () => <Chart area baseline={PRICE[0].y ?? undefined} /> },
     { id: 'gap', name: 'A gap breaks the line', note: 'A null y leaves a hole instead of joining across it.', render: () => <Chart data={GAPPY} tone="chart-3" /> },
