@@ -18,6 +18,12 @@ a minor adds, and a patch fixes.
 
 - `ListRow`: an active row's subtitle and meta use `text-th-hi2`, so they keep 4.5:1 contrast on the accent tint in light themes.
 
+## [1.2.2] - 2026-11-02
+
+### Changed
+
+- The npm name is now **`nish-ui`** (`npm install nish-ui`) instead of `@nish-software/ui`, which was never published. `npm install @nish/ui@npm:nish-ui` still installs it under the name the docs use. Nothing changes for the apps: the repo, the tags and the codeload pins keep `@nish/ui`.
+
 ## [1.2.1] - 2026-11-02
 
 ### Fixed

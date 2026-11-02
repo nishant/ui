@@ -11,16 +11,20 @@ Every change: [CHANGELOG.md](CHANGELOG.md).
 
 ## Install
 
-From npm, where it is published as `@nish-software/ui`. Install it under the name `@nish/ui`
-(an npm alias) and every import in these docs works as written:
+From npm:
 
 ```bash
-npm install @nish/ui@npm:@nish-software/ui
-pnpm add @nish/ui@npm:@nish-software/ui
+npm install nish-ui
+pnpm add nish-ui
 ```
 
-`npm install @nish-software/ui` works too; then write `@nish-software/ui` wherever these docs
-say `@nish/ui` (`@nish-software/ui/tailwind.css`, `@nish-software/ui/theme`, ...).
+These docs write the package as `@nish/ui`, its name in the nish.software apps. Either read
+`nish-ui` wherever they say `@nish/ui` (`nish-ui/tailwind.css`, `nish-ui/theme`, ...), or install
+it under that name with an npm alias and every import works as written:
+
+```bash
+npm install @nish/ui@npm:nish-ui
+```
 
 Straight from a git tag, whose commit includes the built `dist/`, so there is no build step:
 
@@ -479,7 +483,7 @@ errors, missing focus rings and empty screenshots.
 ## Releasing
 
 Releases run in CI (`release.yml`), go to every nish.software app through the fan-out, and are
-published to npm as `@nish-software/ui`. The whole flow, the merge policy and the npm setup:
+published to npm as `nish-ui`. The whole flow, the merge policy and the npm setup:
 [docs/RELEASING.md](docs/RELEASING.md).
 
 ## The docs site
@@ -511,7 +515,7 @@ stories and controls live in `site/components/<id>.tsx`, one file per component;
 | `src/css/` | `base.css` (page defaults, focus ring, scrollbars, reduced motion, prose, kbd, skip link), `components.css` (the static `nish-*` classes, built to `dist/nish-components.css`) and `fonts.css`. |
 | `scripts/build.mjs` | Builds `dist/`: tokens.css, tailwind.css, nish.css, hashed fonts, theme-init.js, the JS via tsup, and tests theme-init.js and theme.global.js. |
 | `scripts/release.mjs` | `npm run release`: check, version, tag with `dist/`, push. |
-| `.github/workflows/publish.yml`, `tools/npm-publish.mjs` | Publishes a tag to npm as `@nish-software/ui` ([docs/RELEASING.md](docs/RELEASING.md#npm)). |
+| `.github/workflows/publish.yml`, `tools/npm-publish.mjs` | Publishes a tag to npm as `nish-ui` ([docs/RELEASING.md](docs/RELEASING.md#npm)). |
 | `scripts/bump-consumers.sh` | Moves taarora/arora-home only; the fan-out moves every other repo. |
 | `.github/workflows/fanout.yml`, `tools/fanout/` | The fan-out: opens, settles and merges the bump PRs in every repo of `hosting/fleet.yaml`. |
 | `.github/workflows/fold-check.yml`, `tools/fold-diff.mjs`, `tools/fold-comment.mjs` | The Fold check every app's PRs run: [docs/fold-check.md](docs/fold-check.md). |
