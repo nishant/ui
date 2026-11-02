@@ -106,6 +106,39 @@ export function lowestPin(kind, dirs, read) {
 }
 
 /**
+ * A package-lock.json with every installed `@nish/ui` entry removed (`packages` keys ending in
+ * `node_modules/@nish/ui`, and lockfile v1/v2 `dependencies` entries at any depth), or null when it
+ * has none. Run before `npm install --package-lock-only`: with the old root entry still in the
+ * lock, npm 10 nests the new version under each workspace (job-apps on 1.7.0) instead of hoisting
+ * it, and a root config that imports @nish/ui (eslint.config.mjs) can no longer resolve it.
+ */
+export function dropUiLockEntries(text) {
+  let lock;
+  try {
+    lock = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  let dropped = false;
+  for (const key of Object.keys(lock?.packages ?? {})) {
+    if (key === 'node_modules/@nish/ui' || key.endsWith('/node_modules/@nish/ui')) {
+      delete lock.packages[key];
+      dropped = true;
+    }
+  }
+  const walk = (deps) => {
+    if (!deps || typeof deps !== 'object') return;
+    if ('@nish/ui' in deps) {
+      delete deps['@nish/ui'];
+      dropped = true;
+    }
+    for (const d of Object.values(deps)) walk(d?.dependencies);
+  };
+  walk(lock?.dependencies);
+  return dropped ? `${JSON.stringify(lock, null, 2)}\n` : null;
+}
+
+/**
  * The folders to regenerate the lockfile in: for each pin folder, the nearest folder at or above
  * it that has the package manager's lockfile (the repo root for a workspace). With one folder,
  * or none found, the repo root, as before uiExtraDirs.
