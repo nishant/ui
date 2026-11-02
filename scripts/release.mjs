@@ -78,7 +78,7 @@ if (ci || process.env.GH_TOKEN) {
 if (ci) {
   execFileSync('gh', ['workflow', 'run', 'fanout.yml', '--ref', 'master', '-f', `tag=${tag}`], { stdio: 'inherit' });
   console.log('Dispatched the fan-out.');
-  // npm (@nish-software/ui) after the fan-out: the tag is out either way, so a failed dispatch
+  // npm (nish-ui) after the fan-out: the tag is out either way, so a failed dispatch
   // turns the run red without undoing anything; rerun it by hand.
   try {
     execFileSync('gh', ['workflow', 'run', 'publish.yml', '--ref', 'master', '-f', `tag=${tag}`], { stdio: 'inherit' });

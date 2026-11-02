@@ -114,14 +114,14 @@ was edited by hand.
 
 ## npm
 
-Every release is also published to npm as **`@nish-software/ui`** (the `@nish` scope on npm
-belongs to someone else). `scripts/release.mjs --ci` dispatches `.github/workflows/publish.yml`
+Every release is also published to npm as **`nish-ui`** (`@nish` and `nish` on npm
+belong to others). `scripts/release.mjs --ci` dispatches `.github/workflows/publish.yml`
 with the new tag, after the fan-out. The workflow checks out master for its tooling and the tag
 (which carries `dist/`) as the package, then runs `tools/npm-publish.mjs`, which:
 
 1. checks the tag's `package.json` version matches the tag and that `dist/` is there;
 2. skips with a job summary when that version is already on npm (reruns are safe);
-3. renames the manifest to `@nish-software/ui`, fills in `repository`, `homepage`, `bugs`
+3. renames the manifest to `nish-ui`, fills in `repository`, `homepage`, `bugs`
    and `license` when an old tag lacks them, and drops `scripts` and `devDependencies`;
 4. runs `npm publish --access public --provenance --ignore-scripts`. A version older than
    the newest on npm goes out under the `previous` dist-tag so it never takes `latest`.
@@ -131,7 +131,7 @@ publisher be set on a package that exists, so the very first publish used a shor
 granular token in the `NPM_TOKEN` secret. While the package is not on npm and there is no
 token, the job writes a summary saying so and stays green; any other failure (a version that
 does not match its tag, a tag without `dist/`, a refused publish) turns it red. Trusted publisher settings on
-npmjs.com (package `@nish-software/ui` → Settings → Trusted publishing): organization
+npmjs.com (package `nish-ui` → Settings → Trusted publishing): organization
 `nishant`, repository `ui`, workflow `publish.yml`, no environment.
 
 To publish a tag by hand: `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z`.

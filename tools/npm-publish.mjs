@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Publish a release tag to npm as @nish-software/ui: node tools/npm-publish.mjs <tag-checkout> [--tag vX.Y.Z] [--dry-run]
+// Publish a release tag to npm as nish-ui: node tools/npm-publish.mjs <tag-checkout> [--tag vX.Y.Z] [--dry-run]
 //
 // Run by .github/workflows/publish.yml, which checks out the tag (it carries dist/) into its own
 // folder. The repo and every tag keep the name @nish/ui, so the codeload pins and the fan-out
@@ -10,7 +10,7 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const NPM_NAME = '@nish-software/ui';
+export const NPM_NAME = 'nish-ui';
 const REGISTRY = 'https://registry.npmjs.org';
 
 /** -1, 0 or 1 for two x.y.z versions (no prerelease tags here). */
