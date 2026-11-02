@@ -89,27 +89,11 @@ export class NishSectionNav extends NishElement {
   #spySticky: boolean | null = null;
 
   /** Mounts the scrollspy. Like React's SectionNav, a non-sticky nav publishes no
-   *  `--nish-sticky-extra`: mountScrollspy always writes it, so it is cleared again after each
-   *  write (our ResizeObserver is created after the spy's, so it runs after it). */
+   *  `--nish-sticky-extra` (the spy is told `height: false`). */
   #startSpy(nav: HTMLElement): void {
     this.#stopSpy?.();
-    const stop = mountScrollspy(nav);
+    this.#stopSpy = mountScrollspy(nav, { height: this.sticky });
     this.#spySticky = this.sticky;
-    if (this.sticky) {
-      this.#stopSpy = stop;
-      return;
-    }
-    const root = document.documentElement;
-    const clear = (): void => {
-      root.style.removeProperty('--nish-sticky-extra');
-    };
-    clear();
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(clear) : null;
-    ro?.observe(nav);
-    this.#stopSpy = () => {
-      ro?.disconnect();
-      stop();
-    };
   }
 
   #onClick(e: MouseEvent): void {

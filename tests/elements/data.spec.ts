@@ -137,6 +137,18 @@ test.describe('<nish-filter-bar>', () => {
     expect(await events(page, 'nish-clear', 'fb')).toHaveLength(1);
   });
 
+  test('a select among the filters is full width on its own row, like the React Select', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await load(page);
+    await page.evaluate(() => document.getElementById('fb')!.setAttribute('active-count', '2'));
+    const box = await page.evaluate(() => {
+      const r = (s: string) => document.querySelector(s)!.getBoundingClientRect();
+      return { bar: r('#fb .nish-filter-bar').width, sel: r('#fb-select').width, selTop: r('#fb-select').top, clearTop: r('#fb .nish-filter-bar-clear').top };
+    });
+    expect(box.sel).toBeCloseTo(box.bar, 0);
+    expect(box.clearTop).toBeGreaterThan(box.selTop);
+  });
+
   // FIXME(filter-bar.ts): its MutationObserver routes Lit's marker comment nodes and removes them, so
   // the next property change throws "ChildPart has no parentNode" and nothing re-lays out.
   test.fixme('Clear filters is hidden while active-count is 0', async ({ page }) => {
@@ -499,6 +511,27 @@ test.describe('<nish-scroll-row>', () => {
     await expect(row).toHaveClass(/nish-scroll-row--no-fade/);
     expect(await row.evaluate((e) => getComputedStyle(e).maskImage)).toBe('none');
   });
+
+  test('a default overflowing row has a gradient edge mask', async ({ page }) => {
+    await load(page);
+    const row = page.locator('#sr > div.nish-scroll-row');
+    expect(await row.evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(true);
+    expect(await row.evaluate((e) => getComputedStyle(e).maskImage)).toContain('gradient');
+  });
+
+  test('chips keep their width under a coarse pointer at 360px', async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true, reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    try {
+      await load(page);
+      const ok = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('#sr .nish-chip')).every((c) => c.getBoundingClientRect().width >= c.scrollWidth),
+      );
+      expect(ok).toBe(true);
+    } finally {
+      await ctx.close();
+    }
+  });
 });
 
 test.describe('<nish-section-nav>', () => {
@@ -518,6 +551,17 @@ test.describe('<nish-section-nav>', () => {
     expect(await page.evaluate(() => location.hash)).toBe('#sec-b');
     expect(await page.evaluate(() => history.length)).toBe(before);
     expect((await events(page, 'nish-select', 'sn')).map((e) => e.detail)).toEqual([{ id: 'sec-b' }]);
+  });
+
+  test('sticky publishes --nish-sticky-extra; sticky="false" does not', async ({ page }) => {
+    await load(page);
+    const extra = () =>
+      page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--nish-sticky-extra').trim());
+    const h = await page.evaluate(() => document.querySelector<HTMLElement>('#sn > nav')!.offsetHeight);
+    await expect.poll(extra).not.toBe('');
+    expect(parseFloat(await extra())).toBeCloseTo(h, 0);
+    await page.evaluate(() => document.getElementById('sn')!.setAttribute('sticky', 'false'));
+    await expect.poll(extra).toBe('');
   });
 
   test('update-hash="false" leaves the hash alone', async ({ page }) => {
@@ -558,6 +602,7 @@ test.describe('<nish-command-palette>', () => {
     await page.evaluate(() => ((document.getElementById('cp') as HTMLElement & { open: boolean }).open = true));
     await expect(dialog(page)).toBeVisible();
     await expect(page.locator('#cp input[role="combobox"]')).toBeFocused();
+    expect(await page.locator('#cp input').evaluate((e) => getComputedStyle(e).outlineStyle)).toBe('none');
     await expect(page.locator('#cp input')).toHaveAttribute('placeholder', 'Jump to…');
     const heads = await page.locator('#cp [role="group"] > :first-child').allTextContents();
     expect(heads).toEqual(['Pages', 'Actions']);
