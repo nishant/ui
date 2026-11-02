@@ -1,7 +1,13 @@
 // Pin helpers for the ui fan-out: read and rewrite how a repo pins @nish/ui, plus the
 // small semver helpers the merge policy uses.
 
+// Old pins the fan-out still reads so it can migrate them: the codeload tarball and `github:`.
 const TAG_RE = /(?:refs\/tags\/|#)(v\d+\.\d+\.\d+)/;
+// The pin it writes: the npm alias, so every app install is an npm download of nish-ui.
+const NPM_RE = /^npm:nish-ui@[\^~]?(\d+\.\d+\.\d+)$/;
+
+/** The package.json value for `tag` (`v1.5.0` -> `npm:nish-ui@1.5.0`). */
+export const npmSpec = (tag) => `npm:nish-ui@${String(tag).replace(/^v/, '')}`;
 
 /** parse("v0.7.1") -> [0, 7, 1]; anything else -> null. */
 export function parse(v) {
@@ -51,6 +57,9 @@ export function pinOf(kind, text) {
   }
   const spec = json?.dependencies?.['@nish/ui'] ?? json?.devDependencies?.['@nish/ui'];
   if (typeof spec !== 'string') return null;
+  const alias = NPM_RE.exec(spec.trim());
+  if (alias) return `v${alias[1]}`;
+  if (spec.startsWith('npm:')) return null; // an alias to some other package
   const m = TAG_RE.exec(spec);
   return m ? m[1] : null;
 }
@@ -63,7 +72,7 @@ export function rewritePin(kind, text, tag, path = kind === 'vendored' ? 'ui.jso
   const re =
     kind === 'vendored' ? /("tag"\s*:\s*")v\d+\.\d+\.\d+(")/ : /("@nish\/ui"\s*:\s*")[^"]+(")/;
   if (!re.test(text)) throw new Error(`No @nish/ui pin in ${path}`);
-  const value = kind === 'vendored' ? tag : `https://codeload.github.com/nishant/ui/tar.gz/refs/tags/${tag}`;
+  const value = kind === 'vendored' ? tag : npmSpec(tag);
   return text.replace(re, (_m, a, b) => `${a}${value}${b}`);
 }
 

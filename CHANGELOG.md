@@ -10,6 +10,10 @@ a minor adds, and a patch fixes.
 
 - `isCrossSiteWrite()` in `@nish/ui/server` and `crossSiteGuard()` in `@nish/ui/server/hono`: refuse a POST, PUT, PATCH or DELETE that a page on another origin sent, including another *.nish.software subdomain (SameSite=Lax cookies still ride along from those). Fetch metadata decides, with an Origin-against-Host fallback for older browsers; requests without either header (servers, the inbox and MCP callers) pass. `allowedOrigins` lets named origins through. Mount it first: `app.use('*', crossSiteGuard())`.
 
+### Changed
+
+- Fan-out pins apps to npm (`npm:nish-ui@X.Y.Z`); publish runs before the fan-out, and the fan-out waits until npm has the version. A vendored repo's `package.json` pin (hosting's, for `@nish/ui/eslint`) moves with its `ui.json`. The README, docs/RELEASING.md and the Getting started page lead with npm; the codeload tarball is the fallback without the npm registry.
+
 ## [1.4.1] - 2026-11-02
 
 ### Changed

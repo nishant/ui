@@ -9,22 +9,25 @@ Used by:
 
 | App | How it installs | Stack |
 |---|---|---|
-| nish.software (the hub) | codeload tarball | Vite + plain TypeScript and plain CSS (no React, no Tailwind): `nish.css`, `theme.js`; npm |
-| jobs.nish.software (repo job-apps) | codeload tarball | React 19 + Tailwind 4 + Vite in `apps/web`, npm workspaces (`packages/worker` and `packages/api` pin it too) |
-| trading.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite in `apps/web` (`packages/server` pins it too), pnpm |
-| Nishboard (desktop) | codeload tarball | Electron + React 19 + Tailwind 4 + Vite in `apps/renderer`, pnpm |
-| status.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
-| trackers.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
-| workflows.nish.software | codeload tarball | React 19 + Tailwind 4 + Vite, Hono server, npm |
-| start.nish.software (repo nishant.github.io) | codeload tarball | React 19 + Tailwind 4 + Vite, npm |
-| inbox (nishant/inbox, no page of its own) | codeload tarball | Hono server, npm; no UI: it imports the inbox protocol from `@nish/ui/inbox-client` |
-| minecraft, trips and design (nishant/hosting) | vendored dist files | static HTML |
+| nish.software (the hub) | npm alias | Vite + plain TypeScript and plain CSS (no React, no Tailwind): `nish.css`, `theme.js`; npm |
+| jobs.nish.software (repo job-apps) | npm alias | React 19 + Tailwind 4 + Vite in `apps/web`, npm workspaces (`packages/worker` and `packages/api` pin it too) |
+| trading.nish.software | npm alias | React 19 + Tailwind 4 + Vite in `apps/web` (`packages/server` pins it too), pnpm |
+| Nishboard (desktop) | npm alias | Electron + React 19 + Tailwind 4 + Vite in `apps/renderer`, pnpm |
+| status.nish.software | npm alias | React 19 + Tailwind 4 + Vite, Hono server, npm |
+| trackers.nish.software | npm alias | React 19 + Tailwind 4 + Vite, Hono server, npm |
+| workflows.nish.software | npm alias | React 19 + Tailwind 4 + Vite, Hono server, npm |
+| start.nish.software (repo nishant.github.io) | npm alias | React 19 + Tailwind 4 + Vite, npm |
+| inbox (nishant/inbox, no page of its own) | npm alias | Hono server, npm; no UI: it imports the inbox protocol from `@nish/ui/inbox-client` |
+| minecraft, trips and design (nishant/hosting) | vendored dist files (plus the npm alias in `package.json`, for `@nish/ui/eslint`) | static HTML |
+| nishant/mc-packs, nishant/skills | npm alias | no UI: only `@nish/ui/eslint` |
 | taarora/arora-home | vendored dist files with a palette pass | another account's repo, outside the fan-out |
 
-Every npm app pins the codeload tarball (`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`), which needs only HTTPS. The fan-out writes that form. The list of repos is `fleet.yaml` in nishant/hosting.
+Every npm app pins the npm alias to an exact version, `"@nish/ui": "npm:nish-ui@X.Y.Z"`, so every app install is an npm download of `nish-ui`. The fan-out writes that form, and still reads the older codeload tarball and `github:` pins so it can migrate them. The list of repos is `fleet.yaml` in nishant/hosting.
 
-The package keeps the name `@nish/ui` in this repo and in every tag, so the codeload pins above
-and the fan-out never see the npm name. Only the npm copy is renamed (see "npm" below).
+The package keeps the name `@nish/ui` in this repo and in every tag. Only the npm copy is renamed
+`nish-ui` (see "npm" below); the alias installs it under `node_modules/@nish/ui`, so every import
+stays `@nish/ui/...`. Fallback without the npm registry: the tag's codeload tarball,
+`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/vX.Y.Z"`, carries the same built files.
 
 ## Cutting a release
 
@@ -35,17 +38,21 @@ gh workflow run release.yml -R nishant/ui -f bump=patch   # or minor, major, 1.2
 ```
 
 The job refuses unless HEAD equals `origin/master`, pushes master before the tag, creates the GitHub
-Release from the CHANGELOG entry and dispatches `fanout.yml` itself (a tag pushed with `GITHUB_TOKEN` does
-not trigger other workflows). `npm run release patch` is the local fallback with the same order.
+Release from the CHANGELOG entry, then dispatches `publish.yml` (npm) and `fanout.yml` itself, in that order
+(a tag pushed with `GITHUB_TOKEN` does not trigger other workflows). `npm run release patch` is the local fallback with the same order.
 
-The flow is: release, tag, fan-out PRs, Fold check, merge policy, deploy watch and revert.
+The flow is: release, tag, npm publish, fan-out PRs, Fold check, merge policy, deploy watch and revert.
 
 1. **Release.** The release runs `npm run check`, bumps the version on `master` and commits it, then
    makes a detached commit on top that adds the built `dist/` and `site-dist/`, tags it `vX.Y.Z` and
    pushes both. `master` never contains `dist/`; the tag does, so an install needs no build step.
    It then prints the link to the fan-out runs. Add an entry to `CHANGELOG.md` with every change;
    the docs site renders it.
-2. **Fan-out PRs.** The tag push starts `.github/workflows/fanout.yml` ("fan-out"). For every repo in
+2. **npm, then fan-out PRs.** `publish.yml` publishes the tag to npm as `nish-ui` first. The fan-out never
+   points a bump PR at a version npm does not have: before any repo work it runs
+   `npm view nish-ui@X.Y.Z version` and waits up to 15 minutes for it (none on the hourly run). Still
+   missing, the repo's summary line says "nish-ui X.Y.Z is not on npm yet; the next run retries." and
+   nothing is touched. Then `.github/workflows/fanout.yml` ("fan-out"), for every repo in
    `hosting/fleet.yaml` (hosting included) it opens or updates a `ui/vX.Y.Z` PR titled "Move @nish/ui to
    vX.Y.Z" within 5 minutes: it rewrites the pin, regenerates the lockfile, runs the repo's `bump`
    command, and puts the release notes in the PR body. A repo that pins @nish/ui in more than one package lists the
