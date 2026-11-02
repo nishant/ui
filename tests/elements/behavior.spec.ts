@@ -122,7 +122,8 @@ test.describe('<nish-sheet>', () => {
     await expect(dialog).toHaveAttribute('aria-labelledby', /.+/);
     await page.evaluate(() => document.getElementById('s1')?.removeAttribute('open'));
     await expect(dialog).toBeHidden();
-    expect(await events(page)).toEqual([{ type: 'nish-close', detail: null, target: 's1' }]);
+    // nish-close comes from the dialog's close event, a task after it is hidden: poll.
+    await expect.poll(() => events(page)).toEqual([{ type: 'nish-close', detail: null, target: 's1' }]);
   });
 
   test('opens in .show() and closes in .close()', async ({ page }) => {
@@ -162,7 +163,8 @@ test.describe('<nish-sheet>', () => {
     await expect(page.locator('#s1 > dialog')).toBeHidden();
     await expect(opener).toBeFocused();
     await expect(page.locator('#s1')).not.toHaveAttribute('open', '');
-    expect(await events(page)).toEqual([{ type: 'nish-close', detail: null, target: 's1' }]);
+    // nish-close comes from the dialog's close event, a task after it is hidden: poll.
+    await expect.poll(() => events(page)).toEqual([{ type: 'nish-close', detail: null, target: 's1' }]);
   });
 
   test('a backdrop click closes it', async ({ page }) => {
@@ -172,7 +174,7 @@ test.describe('<nish-sheet>', () => {
     await page.mouse.click(5, 5);
     await expect(page.locator('#s1 > dialog')).toBeHidden();
     await expect(page.locator('#open-sheet')).toBeFocused();
-    expect((await events(page)).map((e) => e.target)).toEqual(['s1']);
+    await expect.poll(async () => (await events(page)).map((e) => e.target)).toEqual(['s1']);
   });
 
   test('[data-sheet-close] closes it and a click inside does not', async ({ page }) => {
@@ -193,6 +195,24 @@ test.describe('<nish-sheet>', () => {
     // The page is not left inert or locked.
     await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
   });
+
+  test('moving an open sheet to another parent closes it once', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => {
+      const np = document.createElement('div');
+      np.id = 'newparent';
+      document.body.append(np);
+      document.getElementById('s1')?.setAttribute('open', '');
+    });
+    await expect(page.locator('#s1 > dialog')).toBeVisible();
+    await page.evaluate(() => document.getElementById('newparent')?.append(document.getElementById('s1') as Element));
+    await expect.poll(() => events(page)).toEqual([{ type: 'nish-close', detail: null, target: 's1' }]);
+    const state = await page.evaluate(() => {
+      const h = document.getElementById('s1') as unknown as { open: boolean; dialog: HTMLDialogElement };
+      return { open: h.open, dialogOpen: h.dialog.open };
+    });
+    expect(state).toEqual({ open: false, dialogOpen: false });
+  });
 });
 
 test.describe('<nish-dialog>', () => {
@@ -207,7 +227,7 @@ test.describe('<nish-dialog>', () => {
     await expect(dialog).toHaveAttribute('aria-describedby', /.+/);
     await page.evaluate(() => document.getElementById('d1')?.removeAttribute('open'));
     await expect(dialog).toBeHidden();
-    expect(await events(page)).toEqual([{ type: 'nish-close', detail: { value: '' }, target: 'd1' }]);
+    await expect.poll(() => events(page)).toEqual([{ type: 'nish-close', detail: { value: '' }, target: 'd1' }]);
   });
 
   test('is modal: the page behind it is inert', async ({ page }) => {
@@ -226,7 +246,7 @@ test.describe('<nish-dialog>', () => {
     await expect(page.locator('#d1 > dialog')).toBeHidden();
     await expect(opener).toBeFocused();
     await expect(page.locator('#d1')).not.toHaveAttribute('open', '');
-    expect(await events(page)).toEqual([{ type: 'nish-close', detail: { value: '' }, target: 'd1' }]);
+    await expect.poll(() => events(page)).toEqual([{ type: 'nish-close', detail: { value: '' }, target: 'd1' }]);
   });
 
   test('a backdrop click closes it with an empty value', async ({ page }) => {
@@ -236,7 +256,7 @@ test.describe('<nish-dialog>', () => {
     await page.mouse.click(5, 5);
     await expect(page.locator('#d1 > dialog')).toBeHidden();
     await expect(page.locator('#open-dialog')).toBeFocused();
-    expect(await events(page)).toEqual([{ type: 'nish-close', detail: { value: '' }, target: 'd1' }]);
+    await expect.poll(() => events(page)).toEqual([{ type: 'nish-close', detail: { value: '' }, target: 'd1' }]);
   });
 
   test('a click inside does not close it', async ({ page }) => {
@@ -261,7 +281,7 @@ test.describe('<nish-dialog>', () => {
     await page.locator('#dlg-plain').click();
     await expect(page.locator('#d1 > dialog')).toBeHidden();
 
-    expect((await events(page)).map((e) => e.detail?.value)).toEqual(['discard', 'cancel', '']);
+    await expect.poll(async () => (await events(page)).map((e) => e.detail?.value)).toEqual(['discard', 'cancel', '']);
   });
 
   test('a document that has the open attribute at load shows the dialog', async ({ page }) => {
@@ -277,6 +297,24 @@ test.describe('<nish-dialog>', () => {
     await page.evaluate(() => document.querySelector('nish-dialog')?.remove());
     await expect(page.locator('dialog')).toHaveCount(0);
     expect(await page.evaluate(() => document.querySelector(':modal'))).toBeNull();
+  });
+
+  test('moving an open dialog to another parent closes it once', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => {
+      const np = document.createElement('div');
+      np.id = 'newparent';
+      document.body.append(np);
+      document.getElementById('d1')?.setAttribute('open', '');
+    });
+    await expect(page.locator('#d1 > dialog')).toBeVisible();
+    await page.evaluate(() => document.getElementById('newparent')?.append(document.getElementById('d1') as Element));
+    await expect.poll(() => events(page)).toEqual([{ type: 'nish-close', detail: { value: '' }, target: 'd1' }]);
+    const state = await page.evaluate(() => {
+      const h = document.getElementById('d1') as unknown as { open: boolean; dialog: HTMLDialogElement };
+      return { open: h.open, dialogOpen: h.dialog.open };
+    });
+    expect(state).toEqual({ open: false, dialogOpen: false });
   });
 });
 

@@ -3,6 +3,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 
 const dist = 'dist';
 const BUDGET = 20480;
@@ -32,6 +33,11 @@ if (/(^|[;}\s])(import|export)\s*[^;(]*?\bfrom\s*["']/.test(code) || /(^|[;}\s])
 // The public types must not import lit (a devDependency): consumers would lose HTMLElement typing.
 const dts = readFileSync(join(dist, 'elements.d.ts'), 'utf8');
 if (/from\s*['"](lit|@lit\/|lit-html|lit-element)/.test(dts) || /import\s*['"]lit/.test(dts)) fail("dist/elements.d.ts imports 'lit'; bundle its declarations");
+
+// The shipped declarations must compile on their own, strictly, with no skipLibCheck.
+const tsc = spawnSync(process.execPath, ['node_modules/typescript/bin/tsc', '--noEmit', '--ignoreConfig', '--strict', '--skipLibCheck', 'false', '--lib', 'es2022,dom', join(dist, 'elements.d.ts')], { encoding: 'utf8' });
+if (tsc.status !== 0) fail(`dist/elements.d.ts does not compile on its own:
+${tsc.stdout}${tsc.stderr}`);
 
 for (const name of readdirSync(dist)) {
   if (name !== 'index.js' && !/^chunk-.*\.js$/.test(name)) continue;
