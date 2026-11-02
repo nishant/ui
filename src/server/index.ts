@@ -8,3 +8,4 @@ export * from './spa';
 export * from './inbox/client';
 export * from './inbox/action';
 export * from './service-tokens';
+export * from './cross-site';

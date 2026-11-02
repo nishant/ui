@@ -12,6 +12,7 @@ import { checkbox } from './checkbox';
 import { field } from './field';
 import { fieldGroup } from './field-group';
 import { settingsDoc } from './settings';
+import { serviceTokensDoc } from './service-tokens';
 import { switchDoc } from './switch';
 import { searchInput } from './search-input';
 import { filterBar } from './filter-bar';
@@ -112,6 +113,7 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   field,
   fieldGroup,
   settingsDoc,
+  serviceTokensDoc,
   switchDoc,
   searchInput,
   filterBar,

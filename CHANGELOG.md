@@ -4,7 +4,7 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
-## [Unreleased]
+## [1.6.0] - 2026-11-02
 
 ### Added
 
@@ -18,10 +18,23 @@ a minor adds, and a patch fixes.
 
 ### Changed
 
-- Fan-out pins apps to npm (`npm:nish-ui@X.Y.Z`); publish runs before the fan-out, and the fan-out waits until npm has the version. A vendored repo's `package.json` pin (hosting's, for `@nish/ui/eslint`) moves with its `ui.json`. The README, docs/RELEASING.md and the Getting started page lead with npm; the codeload tarball is the fallback without the npm registry.
 - `useUrlState` keeps a single list value whole, so `?loc=Austin%2C+TX` reads as `['Austin, TX']`. A single comma value used to be split; pass `comma` for the keys whose old links need that.
 - `apiFetch` errors use the wording the apps share: "Could not reach the server.", "The server took too long to answer.", "Log in to continue." (401), "That was not found." (a 404 code), "The server had a problem. Try again." (any other bare code such as `server_error`) and "The server answered 503." when the response has no message. A sentence from the server in `error` or `message` is still shown as it is.
 - ui lints with `react-hooks/refs` as an error: latest-value refs are written in a layout effect instead of during render (overlays, menus, useResource, useLocalStorage, useCommandHotkey, the command palette and the flow components). Behavior is unchanged, except that a `DropdownMenu` open on mount now renders straight into its trigger's layer.
+
+## [1.5.0] - 2026-11-02
+
+### Added
+
+- `isCrossSiteWrite()` in `@nish/ui/server` and `crossSiteGuard()` in `@nish/ui/server/hono`: refuse a POST, PUT, PATCH or DELETE that a page on another origin sent, including another *.nish.software subdomain (SameSite=Lax cookies still ride along from those). Fetch metadata decides, with an Origin-against-Host fallback for older browsers; requests without either header (servers, the inbox and MCP callers) pass. `allowedOrigins` lets named origins through. Mount it first: `app.use('*', crossSiteGuard())`.
+- `ServiceTokensSection` and `useServiceTokens`: the settings block that lists the service tokens an app accepts, with a Revoke button on each (the confirm dialog says a revoked token cannot be restored). It has loading, empty and error states, and a docs page on design.nish.software.
+- `@nish/ui/server`: `loadManagedServiceTokens` and `jsonRevocationStore`. Revocations are kept by the token's sha256 in one small JSON file in the app's data dir, so they take effect at once and survive restarts and deploys; `service-tokens.json` and `SERVICE_TOKENS` stay the seed. A revoked token gets 401 from `checkServiceRequest`.
+- `@nish/ui/server/hono`: `mountServiceTokenRoutes` (GET the list, POST to revoke), for the app's settings page.
+- Types `ServiceTokenView` and `ServiceTokenListResponse`.
+
+### Changed
+
+- Fan-out pins apps to npm (`npm:nish-ui@X.Y.Z`); publish runs before the fan-out, and the fan-out waits until npm has the version. A vendored repo's `package.json` pin (hosting's, for `@nish/ui/eslint`) moves with its `ui.json`. The README, docs/RELEASING.md and the Getting started page lead with npm; the codeload tarball is the fallback without the npm registry.
 
 ## [1.4.1] - 2026-11-02
 

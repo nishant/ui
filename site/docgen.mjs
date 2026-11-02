@@ -98,6 +98,7 @@ export const COMPONENTS = [
   'FilterSheet',
   'SettingsSection',
   'SettingRow',
+  'ServiceTokensSection',
   'NumberField',
   'Combobox',
   'SplitStage',
@@ -116,10 +117,10 @@ const FUNCTIONS = [
   'usePrefersReducedMotion', 'useMediaQuery', 'useBreakpoint', 'useDocumentTitle', 'useNow', 'useLocalStorage',
   'money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago', 'date', 'time', 'dateTime', 'dateRange',
   'openSheet', 'mountHeightVar', 'mountStuck', 'mountScrollspy', 'mountChecklist',
-  'apiFetch', 'configureApi', 'useResource', 'useUrlState', 'useSaveStatus', 'usePhone', 'useNarrow', 'nishThemeInit', 'presetOptions',
+  'apiFetch', 'configureApi', 'useResource', 'useUrlState', 'useSaveStatus', 'usePhone', 'useNarrow', 'nishThemeInit', 'presetOptions', 'useServiceTokens',
 ];
 const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem',
-  'ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource', 'FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter', 'SaveStatus', 'NishThemeInitOptions',
+  'ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource', 'FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter', 'SaveStatus', 'NishThemeInitOptions', 'ServiceTokensSectionProps',
 ];
 
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');

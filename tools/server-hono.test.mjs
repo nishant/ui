@@ -7,9 +7,9 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { createLimiter, createSessionAuth, hashActionToken, newActionToken } from '../dist/server/index.js';
+import { createLimiter, createSessionAuth, hashActionToken, isCrossSiteWrite, newActionToken } from '../dist/server/index.js';
 import {
-  clientIpOf, mountInboxAction, mountSessionRoutes, onErrorHandler, remoteAddressOf, requireSession, serveSpa,
+  clientIpOf, crossSiteGuard, mountInboxAction, mountSessionRoutes, onErrorHandler, remoteAddressOf, requireSession, serveSpa,
 } from '../dist/server/hono.js';
 
 const env = (remoteAddress = '203.0.113.5') => ({ incoming: { socket: { remoteAddress } } });
@@ -182,4 +182,55 @@ test('mountInboxAction: guard, body, token and run result', async () => {
   assert.deepEqual(await ok.json(), { done: 'approve' });
   assert.equal(runs.length, 1);
   assert.match(lines.join('\n'), /inbox action approve on k1: 202/);
+});
+
+test('isCrossSiteWrite: browser writes from another origin, nothing else', () => {
+  const h = (headers) => (name) => headers[name];
+  const host = { host: 'trackers.nish.software' };
+  // Reads always pass.
+  assert.equal(isCrossSiteWrite('GET', h({ 'sec-fetch-site': 'cross-site', origin: 'https://evil.example' })), false);
+  assert.equal(isCrossSiteWrite('head', h({ 'sec-fetch-site': 'cross-site' })), false);
+  // Fetch metadata decides when present.
+  assert.equal(isCrossSiteWrite('POST', h({ ...host, 'sec-fetch-site': 'same-origin', origin: 'https://trackers.nish.software' })), false);
+  assert.equal(isCrossSiteWrite('POST', h({ ...host, 'sec-fetch-site': 'none' })), false);
+  assert.equal(isCrossSiteWrite('POST', h({ ...host, 'sec-fetch-site': 'cross-site', origin: 'https://evil.example' })), true);
+  assert.equal(isCrossSiteWrite('DELETE', h({ ...host, 'sec-fetch-site': 'same-site', origin: 'https://artifacts.nish.software' })), true);
+  assert.equal(isCrossSiteWrite('PUT', h({ ...host, 'sec-fetch-site': 'cross-site' })), true);
+  // An allowed origin passes even cross-site; a lookalike does not.
+  const allow = { allowedOrigins: ['https://start.nish.software'] };
+  assert.equal(isCrossSiteWrite('POST', h({ ...host, 'sec-fetch-site': 'same-site', origin: 'https://start.nish.software' }), allow), false);
+  assert.equal(isCrossSiteWrite('POST', h({ ...host, 'sec-fetch-site': 'same-site', origin: 'https://start.nish.software.evil.example' }), allow), true);
+  // No fetch metadata (older browser): Origin against Host.
+  assert.equal(isCrossSiteWrite('PATCH', h({ ...host, origin: 'https://trackers.nish.software' })), false);
+  assert.equal(isCrossSiteWrite('PATCH', h({ ...host, origin: 'https://evil.example' })), true);
+  assert.equal(isCrossSiteWrite('POST', h({ ...host, origin: 'null' })), true);
+  // Neither header: curl, a server, the inbox caller.
+  assert.equal(isCrossSiteWrite('POST', h(host)), false);
+  assert.equal(isCrossSiteWrite('POST', h({})), false);
+});
+
+test('crossSiteGuard: 403 before the route, other requests reach it', async () => {
+  const app = new Hono();
+  app.use('*', crossSiteGuard({ allowedOrigins: ['https://start.nish.software'] }));
+  let ran = 0;
+  app.post('/api/things', (c) => { ran++; return c.json({ ok: true }); });
+  app.get('/api/things', (c) => c.json({ ok: true }));
+  const post = (headers) => app.request('http://trackers.nish.software/api/things', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: '{}' });
+
+  const refused = await post({ 'sec-fetch-site': 'cross-site', origin: 'https://evil.example' });
+  assert.equal(refused.status, 403);
+  assert.deepEqual(await refused.json(), { error: 'Cross-site request refused.' });
+  assert.equal(ran, 0);
+  assert.equal((await post({ 'sec-fetch-site': 'same-origin', origin: 'http://trackers.nish.software' })).status, 200);
+  assert.equal((await post({ 'sec-fetch-site': 'same-site', origin: 'https://start.nish.software' })).status, 200);
+  assert.equal((await post({})).status, 200);
+  assert.equal(ran, 3);
+  const read = await app.request('http://trackers.nish.software/api/things', { headers: { 'sec-fetch-site': 'cross-site', origin: 'https://evil.example' } });
+  assert.equal(read.status, 200);
+
+  const custom = new Hono();
+  custom.use('*', crossSiteGuard({ message: 'Nope.' }));
+  custom.post('/x', (c) => c.text('ran'));
+  const res = await custom.request('/x', { method: 'POST', headers: { 'sec-fetch-site': 'cross-site', origin: 'https://evil.example' } });
+  assert.deepEqual(await res.json(), { error: 'Nope.' });
 });
