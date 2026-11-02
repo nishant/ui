@@ -217,6 +217,7 @@ describe("useServiceTokens", () => {
     await act(() => result.current.revoke("a/b"));
     expect(fn.mock.calls[1]![0]).toBe("/api/service-tokens/a%2Fb/revoke");
     expect(fn.mock.calls[1]![1]!.method).toBe("POST");
+    expect(new Headers(fn.mock.calls[1]![1]!.headers).get("content-type")).toBe("application/json");
     expect(result.current.tokens).toEqual(after);
   });
 

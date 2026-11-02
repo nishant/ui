@@ -75,7 +75,8 @@ export function useServiceTokens(
     async (id: string) => {
       const r = await apiFetch<ServiceTokenRevokeResponse>(
         `${url}/${encodeURIComponent(id)}/revoke`,
-        { method: "POST" },
+        // A JSON body (and so a JSON content type): some apps refuse non-JSON writes.
+        { method: "POST", body: {} },
       );
       seq.current++;
       setTokens(r.tokens);
