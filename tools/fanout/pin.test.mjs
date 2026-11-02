@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { compare, isPatch, lockDirs, lowestPin, major, npmSpec, parse, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
+import { compare, dropUiLockEntries, isPatch, lockDirs, lowestPin, major, npmSpec, parse, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 
 const pkg = (spec, section = 'dependencies') =>
   `{\n  "name": "app",\n  "${section}": {\n    "@nish/ui": "${spec}",\n    "react": "^19.0.0"\n  }\n}\n`;
@@ -118,4 +118,27 @@ test('lockDirs: per-folder lockfiles, root when none is found, none for vendored
   // A single folder always regenerates at the root, as before uiExtraDirs.
   assert.deepEqual(lockDirs('npm', ['apps/web'], has(['apps/web/package-lock.json'])), ['.']);
   assert.deepEqual(lockDirs('vendored', ['.'], has(['package-lock.json'])), []);
+});
+
+test('dropUiLockEntries: removes root and nested @nish/ui entries, keeps the rest', () => {
+  const lock = {
+    lockfileVersion: 3,
+    packages: {
+      '': {},
+      'node_modules/@nish/ui': { version: '1.6.0' },
+      'apps/web/node_modules/@nish/ui': { version: '1.7.0' },
+      'node_modules/@nish/ui-extra': { version: '1.0.0' },
+      'node_modules/lit': { version: '3.3.1' },
+    },
+  };
+  const out = JSON.parse(dropUiLockEntries(JSON.stringify(lock)));
+  assert.deepEqual(Object.keys(out.packages), ['', 'node_modules/@nish/ui-extra', 'node_modules/lit']);
+});
+
+test('dropUiLockEntries: lockfile v2 dependencies at any depth; null when nothing to drop or not JSON', () => {
+  const v2 = { lockfileVersion: 2, packages: {}, dependencies: { '@nish/ui': { version: '1.6.0' }, a: { version: '1.0.0', dependencies: { '@nish/ui': { version: '1.5.0' } } } } };
+  const out = JSON.parse(dropUiLockEntries(JSON.stringify(v2)));
+  assert.deepEqual(out.dependencies, { a: { version: '1.0.0', dependencies: {} } });
+  assert.equal(dropUiLockEntries(JSON.stringify({ packages: { 'node_modules/lit': {} } })), null);
+  assert.equal(dropUiLockEntries('not json'), null);
 });

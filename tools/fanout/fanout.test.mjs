@@ -80,6 +80,46 @@ test('bumpTree: moves uiDir and every uiExtraDirs folder, one lockfile run at th
   }
 });
 
+test('bumpTree: an npm workspace like job-apps drops the old @nish/ui lock entries before the lockfile run', () => {
+  // Root lock as job-apps had it before the 1.7.0 bump: one hoisted @nish/ui, three workspaces.
+  const lock = {
+    name: 'job-apps',
+    lockfileVersion: 3,
+    packages: {
+      '': { workspaces: ['apps/*', 'packages/*'] },
+      'apps/web': { dependencies: { '@nish/ui': 'npm:nish-ui@1.6.0' } },
+      'packages/api': { dependencies: { '@nish/ui': 'npm:nish-ui@1.6.0' } },
+      'packages/worker': { dependencies: { '@nish/ui': 'npm:nish-ui@1.6.0' } },
+      'node_modules/@nish/ui': { name: 'nish-ui', version: '1.6.0' },
+      'node_modules/lit': { version: '3.3.1' },
+    },
+  };
+  const dir = tree({
+    'package.json': '{\n  "workspaces": ["apps/*", "packages/*"]\n}\n',
+    'package-lock.json': JSON.stringify(lock, null, 2),
+    'apps/web/package.json': pkgWith('v1.6.0'),
+    'packages/api/package.json': pkgWith('v1.6.0'),
+    'packages/worker/package.json': pkgWith('v1.6.0'),
+  });
+  try {
+    const seen = [];
+    const entry = { ui: 'npm', uiDir: 'apps/web', uiExtraDirs: ['packages/worker', 'packages/api'], bump: null };
+    const moved = bumpTree(entry, dir, 'v1.7.0', {
+      run: (cmd, o) => seen.push([cmd, o.cwd, JSON.parse(readFileSync(join(o.cwd, 'package-lock.json'), 'utf8'))]),
+    });
+    assert.deepEqual(moved, ['apps/web', 'packages/worker', 'packages/api']);
+    assert.equal(seen.length, 1, 'one lockfile run, at the workspace root');
+    const [cmd, cwd, atRun] = seen[0];
+    assert.equal(cmd, 'npx -y npm@10 install --package-lock-only --ignore-scripts');
+    assert.equal(cwd, dir);
+    assert.equal(atRun.packages['node_modules/@nish/ui'], undefined, 'the stale root entry is gone when npm runs');
+    assert.deepEqual(atRun.packages['node_modules/lit'], { version: '3.3.1' }, 'other entries stay');
+    assert.equal(atRun.packages['apps/web'].dependencies['@nish/ui'], 'npm:nish-ui@1.6.0', 'workspace manifests in the lock are npm’s to update');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('bumpTree: uiDir already on the tag still moves the extra folder (pnpm, per-folder lockfiles, bump command)', () => {
   const dir = tree({
     'web/pnpm-lock.yaml': '',
