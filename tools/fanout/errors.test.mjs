@@ -104,7 +104,7 @@ async function runMain(fleet, runFor) {
   const saved = { token: process.env.GH_TOKEN, summary: process.env.GITHUB_STEP_SUMMARY, actions: process.env.GITHUB_ACTIONS };
   const log = console.log;
   try {
-    writeFileSync(join(dir, 'fleet.yaml'), fleet);
+    writeFileSync(join(dir, 'catalog.json'), fleet);
     const summary = join(dir, 'summary.md');
     writeFileSync(summary, '');
     process.env.GH_TOKEN = 'test-token';
@@ -112,7 +112,7 @@ async function runMain(fleet, runFor) {
     process.env.GITHUB_ACTIONS = 'true';
     const printed = [];
     console.log = (line) => printed.push(String(line));
-    const code = await main(['--fleet', join(dir, 'fleet.yaml'), '--tag', 'v0.10.0'], { makeRun: runFor });
+    const code = await main(['--catalog', join(dir, 'catalog.json'), '--tag', 'v0.10.0'], { makeRun: runFor });
     return { code, summary: readFileSync(summary, 'utf8'), printed };
   } finally {
     console.log = log;
@@ -125,7 +125,7 @@ async function runMain(fleet, runFor) {
 }
 
 test('main: an unreachable repo writes the token line to the summary, then exits 1', async () => {
-  const fleet = '- repo: nishant/status\n  ui: npm\n- repo: nishant/inbox\n  ui: npm\n';
+  const fleet = JSON.stringify({ repos: [{ repo: 'nishant/status', fleet: true, ui: 'npm' }, { repo: 'nishant/inbox', fleet: true, ui: 'npm' }] });
   const { code, summary, printed } = await runMain(fleet, () => {
     const run = new Run({ dry: false, wait: 0 });
     run.probe = (R) => (R === 'nishant/inbox' ? notFound : ok);
@@ -139,7 +139,7 @@ test('main: an unreachable repo writes the token line to the summary, then exits
 });
 
 test('main: held and current repos exit 0', async () => {
-  const fleet = '- repo: nishant/status\n  ui: npm\n- repo: nishant/trackers\n  ui: npm\n';
+  const fleet = JSON.stringify({ repos: [{ repo: 'nishant/status', fleet: true, ui: 'npm' }, { repo: 'nishant/trackers', fleet: true, ui: 'npm' }] });
   const { code, summary, printed } = await runMain(fleet, () => {
     const run = new Run({ dry: false, wait: 0 });
     run.probe = () => ok;
@@ -156,7 +156,7 @@ test('main: held and current repos exit 0', async () => {
 });
 
 test('main: a tag npm does not have yet touches no repo and says so in the summary, exit 0', async () => {
-  const fleet = '- repo: nishant/status\n  ui: npm\n';
+  const fleet = JSON.stringify({ repos: [{ repo: 'nishant/status', fleet: true, ui: 'npm' }] });
   const asked = [];
   const { code, summary } = await runMain(fleet, () => {
     const run = new Run({ dry: false, wait: 0, npmHas: (tag) => (asked.push(tag), false) });

@@ -28,13 +28,13 @@ jobs:
             {
               echo '### Nothing was fanned out'
               echo
-              echo 'FLEET_TOKEN is not set, so nothing was fanned out. Create a fine-grained token (owner nishant; repositories: the ones in hosting/fleet.yaml and nishant/hosting itself; Contents, Pull requests and Commit statuses read and write, Actions read) and run: `gh secret set FLEET_TOKEN --repo nishant/ui`'
+              echo 'FLEET_TOKEN is not set, so nothing was fanned out. Create a fine-grained token (owner nishant; repositories: the ones in hosting's catalog.json and nishant/hosting itself; Contents, Pull requests and Commit statuses read and write, Actions read) and run: `gh secret set FLEET_TOKEN --repo nishant/ui`'
             } >> "$GITHUB_STEP_SUMMARY"
             echo 'matrix=[]' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          gh api repos/nishant/hosting/contents/fleet.yaml -H "Accept: application/vnd.github.raw" > fleet.yaml
-          node tools/fanout/fleet.mjs fleet.yaml --matrix --repo "$REPO_INPUT" >> "$GITHUB_OUTPUT"
+          gh api repos/nishant/hosting/contents/catalog.json -H "Accept: application/vnd.github.raw" > catalog.json
+          node tools/fanout/fleet.mjs catalog.json --matrix --repo "$REPO_INPUT" >> "$GITHUB_OUTPUT"
   fanout:
     needs: plan
     if: needs.plan.outputs.matrix != '[]'
@@ -62,7 +62,7 @@ jobs:
       - run: corepack enable
       - name: Fetch the fleet list
         run: |
-          gh api repos/nishant/hosting/contents/fleet.yaml -H "Accept: application/vnd.github.raw" > fleet.yaml
+          gh api repos/nishant/hosting/contents/catalog.json -H "Accept: application/vnd.github.raw" > catalog.json
       - name: Git identity
         run: |
           git config --global user.name "ui fan-out"
@@ -70,4 +70,4 @@ jobs:
       - name: Fan out
         env:
           FAN_REPO: ${{ matrix.repo }}
-        run: node tools/fanout/fanout.mjs --fleet fleet.yaml --repo "$FAN_REPO" --tag "$FAN_TAG" --wait "$FAN_WAIT"
+        run: node tools/fanout/fanout.mjs --catalog catalog.json --repo "$FAN_REPO" --tag "$FAN_TAG" --wait "$FAN_WAIT"
