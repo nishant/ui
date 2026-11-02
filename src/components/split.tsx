@@ -70,6 +70,11 @@ export interface SplitDividersProps {
   onDragChange?(dragging: boolean): void;
   /** The smallest a pane may get while resizing, in px (default 160 by 90). */
   minPane?: { w: number; h: number };
+  /**
+   * Px kept free at the top of each column divider (and above a row divider's line) so its hit
+   * area stays off a pane bar shown there. Default 0.
+   */
+  barInset?: number;
 }
 
 interface DragStart {
@@ -85,11 +90,25 @@ interface DragStart {
  * screens; a thin accent bar shows on hover, focus and drag. Place it inside a `relative` box
  * that is `w` by `h` (`SplitStage` does).
  */
-export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPane }: SplitDividersProps) {
+export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPane, barInset = 0 }: SplitDividersProps) {
   const coarse = useMediaQuery('(pointer: coarse)');
   const drag = useRef<DragStart | null>(null);
   const hit = coarse ? 44 : 24;
-  const min = minPane ?? { w: 160, h: 90 };
+  const baseMin = minPane ?? { w: 160, h: 90 };
+  const onDragChangeRef = useRef(onDragChange);
+  useEffect(() => {
+    onDragChangeRef.current = onDragChange;
+  });
+  // Unmounting mid-drag never gets a pointerup, so report the end of the drag here.
+  useEffect(
+    () => () => {
+      if (drag.current) {
+        drag.current = null;
+        onDragChangeRef.current?.(false);
+      }
+    },
+    [],
+  );
 
   const dividers = computeDividers(layout, w, h, gap);
 
@@ -104,6 +123,16 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
     if (own.length === 0) return d.dir === 'row' ? w : h;
     if (d.dir === 'row') return Math.max(...own.map((r) => r.x + r.w)) - Math.min(...own.map((r) => r.x));
     return Math.max(...own.map((r) => r.y + r.h)) - Math.min(...own.map((r) => r.y));
+  };
+
+  /** The minimum pane size, capped to what fits so a divider can always move. */
+  const minFor = (d: Divider): { w: number; h: number } => {
+    const node = nodeAt(layout, d.path);
+    const n = node && node.type === 'split' ? Math.max(node.children.length, 1) : 1;
+    const len = splitLength(d);
+    return d.dir === 'row'
+      ? { w: Math.min(baseMin.w, len / n), h: baseMin.h }
+      : { w: baseMin.w, h: Math.min(baseMin.h, len / n) };
   };
 
   const fraction = (d: Divider): number => {
@@ -123,7 +152,7 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
     if (!start || start.pointerId !== e.pointerId) return;
     const delta = d.dir === 'row' ? e.clientX - start.x : e.clientY - start.y;
     if (delta === 0) return;
-    onResize(resizeAt(start.layout, d.path, d.index, delta, w, h, gap, min));
+    onResize(resizeAt(start.layout, d.path, d.index, delta, w, h, gap, minFor(d)));
   };
   const up = (e: PointerEvent<HTMLDivElement>) => {
     const start = drag.current;
@@ -142,7 +171,7 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
     if (e.key === dec || e.key === inc) {
       e.preventDefault();
       const step = (e.key === inc ? 1 : -1) * 0.02;
-      onResize(resizeAt(layout, d.path, d.index, step * splitLength(d), w, h, gap, min));
+      onResize(resizeAt(layout, d.path, d.index, step * splitLength(d), w, h, gap, minFor(d)));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       reset(d);
@@ -155,8 +184,8 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
         const vertical = d.dir === 'row';
         const pad = (hit - (vertical ? d.w : d.h)) / 2;
         const style = vertical
-          ? { left: d.x - pad, top: d.y, width: d.w + pad * 2, height: d.h }
-          : { left: d.x, top: d.y - pad, width: d.w, height: d.h + pad * 2 };
+          ? { left: d.x - pad, top: d.y + barInset, width: d.w + pad * 2, height: Math.max(0, d.h - barInset) }
+          : { left: d.x, top: d.y - pad * 2, width: d.w, height: d.h + pad * 2 };
         return (
           <div
             key={`${d.path.join('.')}:${d.index}`}
@@ -215,6 +244,10 @@ export interface SplitStageProps {
   dragging?: boolean;
   /** Animate position changes (default true; off under prefers-reduced-motion and while dragging). */
   animate?: boolean;
+  /** The smallest a pane may get while resizing, in px (default 160 by 90). Passed to the dividers. */
+  minPane?: { w: number; h: number };
+  /** Px kept free at the top of column dividers so handles stay off pane bars (see SplitDividers). */
+  barInset?: number;
   /** Extra elements over the stage (an overlay preset bar, a drag ghost). */
   children?: ReactNode;
   className?: string;
@@ -237,6 +270,8 @@ export function SplitStage({
   onSize,
   dragging = false,
   animate = true,
+  minPane,
+  barInset,
   children,
   className,
 }: SplitStageProps) {
@@ -244,6 +279,9 @@ export function SplitStage({
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [resizing, setResizing] = useState(false);
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const showDividers = resizable && !!layout && slots.length > 1;
+  // The dividers unmount when they are no longer shown; a drag then never ends on its own.
+  if (!showDividers && resizing) setResizing(false);
   const onSizeRef = useRef(onSize);
   useEffect(() => {
     onSizeRef.current = onSize;
@@ -301,7 +339,7 @@ export function SplitStage({
             </div>
           );
         })}
-      {resizable && layout && measured && slots.length > 1 && (
+      {showDividers && measured && layout && (
         <SplitDividers
           layout={layout}
           w={size.w}
@@ -309,6 +347,8 @@ export function SplitStage({
           gap={gap}
           onResize={(next) => onLayoutChange?.(next)}
           onDragChange={setResizing}
+          {...(minPane ? { minPane } : {})}
+          {...(barInset ? { barInset } : {})}
         />
       )}
       {children}
@@ -407,6 +447,23 @@ export function LayoutPresetPicker({
   className,
   label = 'Layout presets',
 }: LayoutPresetPickerProps) {
+  const group = useRef<HTMLDivElement>(null);
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const n = options.length;
+    if (n === 0) return;
+    let to = -1;
+    const cur = Math.max(0, options.findIndex((o) => o.id === value));
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') to = (cur + 1) % n;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') to = (cur - 1 + n) % n;
+    else if (e.key === 'Home') to = 0;
+    else if (e.key === 'End') to = n - 1;
+    if (to < 0) return;
+    e.preventDefault();
+    const next = options[to];
+    if (!next) return;
+    onChange(next.id);
+    group.current?.querySelectorAll<HTMLElement>('[role="radio"]')[to]?.focus();
+  };
   return (
     <div
       className={cn(
@@ -417,8 +474,14 @@ export function LayoutPresetPicker({
     >
       <div className="min-w-0 flex-1">
         <ScrollRow label={label}>
-          <div role="radiogroup" aria-label={label} className="flex items-start gap-1">
-            {options.map((o) => {
+          <div
+            ref={group}
+            role="radiogroup"
+            aria-label={label}
+            onKeyDown={onKeyDown}
+            className="flex items-start gap-1"
+          >
+            {options.map((o, i) => {
               const on = value === o.id;
               return (
                 <Tooltip key={o.id} tip={o.hint} side="bottom" focusable={false}>
@@ -426,6 +489,7 @@ export function LayoutPresetPicker({
                     type="button"
                     role="radio"
                     aria-checked={on}
+                    tabIndex={on || (value === null && i === 0) ? 0 : -1}
                     aria-label={`${o.label}: ${o.hint}`}
                     onClick={() => onChange(o.id)}
                     className={cn(

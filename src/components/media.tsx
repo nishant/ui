@@ -12,8 +12,9 @@ export type MediaThumbSize = 'sm' | 'md';
 /** Only https and relative sources load. Anything else (http, data, javascript, protocol-relative) shows the fallback. */
 function safeSrc(src: string | undefined): string | null {
   if (!src) return null;
-  const s = src.trim();
-  if (!s || s.startsWith('//') || s.startsWith('\\')) return null;
+  // Browsers drop tabs and newlines and read a backslash as a slash, so normalize before checking.
+  const s = src.trim().replace(/[\t\n\r]/g, '').replace(/\\/g, '/');
+  if (!s || s.startsWith('//')) return null;
   if (/^https:\/\//i.test(s)) return s;
   if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return null;
   return s;
@@ -131,7 +132,7 @@ export function MediaRow({
     meta || detail ? (
       <>
         {meta ? <span className="block truncate">{meta}</span> : null}
-        {detail ? <span className="block truncate text-xs text-th-ghost">{detail}</span> : null}
+        {detail ? <span className="block truncate text-xs text-th-hi3">{detail}</span> : null}
       </>
     ) : undefined;
   return (

@@ -507,7 +507,7 @@ export function ListRow({
   } else {
     inner = <div className={rowClass}>{body}</div>;
   }
-  return <Wrapper>{inner}</Wrapper>;
+  return <Wrapper className="min-w-0">{inner}</Wrapper>;
 }
 
 // =====================================================================================

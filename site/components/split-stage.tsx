@@ -9,6 +9,7 @@ import {
 import {
   addSlot,
   defaultPreset,
+  equalize,
   narrowLayout,
   presetsFor,
   removeSlot,
@@ -64,7 +65,6 @@ function LiveStage({ initial = 3, resizable = true, gap = 4 }: { initial?: Count
   const [b, setB] = useState('1');
 
   const count = slots.length;
-  const aspect = size.h > 0 ? size.w / size.h : 16 / 9;
 
   const add = () => {
     if (count >= MAX_PANES) return;
@@ -120,7 +120,7 @@ function LiveStage({ initial = 3, resizable = true, gap = 4 }: { initial?: Count
                   variant="secondary"
                   onClick={() => {
                     setPresetId(null);
-                    setLayout(build(count as Count, presetId ?? defaultPreset(count as Count, aspect)));
+                    setLayout(layout ? equalize(layout) : layout);
                   }}
                 >
                   Equal sizes
