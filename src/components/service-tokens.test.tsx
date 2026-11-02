@@ -173,6 +173,21 @@ describe("ServiceTokensSection", () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
+  it("shows the error with Try again when an empty list fails to reload", () => {
+    const onRetry = vi.fn();
+    render(
+      <ServiceTokensSection
+        tokens={[]}
+        error="Offline"
+        onRetry={onRetry}
+        onRevoke={async () => {}}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toContain("Offline");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it("uses the default title, description and anchor", () => {
     const { container } = render(
       <ServiceTokensSection tokens={[]} onRevoke={async () => {}} />,

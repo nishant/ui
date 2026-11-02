@@ -214,9 +214,12 @@ export function ServiceTokensSection({
     );
   } else if (sorted.length === 0) {
     content = (
-      <p className="px-4 py-6 text-sm text-th-hi3">
-        No service tokens. No machine client can read this app.
-      </p>
+      <>
+        {errorRow}
+        <p className="px-4 py-6 text-sm text-th-hi3">
+          No service tokens. No machine client can read this app.
+        </p>
+      </>
     );
   } else {
     const rows = sorted.map((t) => {

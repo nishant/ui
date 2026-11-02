@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Hono } from 'hono';
@@ -155,6 +155,19 @@ describe('loadManagedServiceTokens', () => {
     expect(store.load()).toEqual([]);
     store.save([{ sha256: 'a'.repeat(64), id: 'x', at: 't' }]);
     expect(JSON.parse(readFileSync(odd, 'utf8')).revoked).toHaveLength(2);
+  });
+
+  it('throws and leaves the invalid file in place when it cannot be set aside', () => {
+    const d = dir();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const bad = join(d, 'bad.json');
+    writeFileSync(bad, 'nope');
+    // A non-empty directory at the set-aside name makes the rename fail.
+    vi.spyOn(Date, 'now').mockReturnValue(123);
+    mkdirSync(join(d, 'bad.json.bad-123'));
+    writeFileSync(join(d, 'bad.json.bad-123', 'x'), 'x');
+    expect(() => jsonRevocationStore(bad).load()).toThrow();
+    expect(readFileSync(bad, 'utf8')).toBe('nope');
   });
 
   it('warns once per store', () => {

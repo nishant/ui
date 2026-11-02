@@ -116,7 +116,9 @@ export interface RevocationStore {
   save(list: RevokedToken[]): void;
 }
 
-/** JSON file store: missing file = []; invalid JSON or shape = console.warn once + [];
+/** JSON file store: missing file = []; any other read error throws (fail closed); invalid JSON or
+ *  shape = warn once, file renamed to `<file>.bad-<timestamp>`, [] (if that rename fails it throws);
+ *  invalid records are kept and written back unchanged on save.
  *  save writes `<file>.tmp` then renames, creating the directory. File shape:
  *  { "version": 1, "revoked": RevokedToken[] }. */
 export function jsonRevocationStore(file: string): RevocationStore {
@@ -141,11 +143,9 @@ export function jsonRevocationStore(file: string): RevocationStore {
       // Set the unreadable file aside so the next save cannot destroy its old records.
       const setAside = (why: string): RevokedToken[] => {
         warn(why);
-        try {
-          renameSync(file, `${file}.bad-${Date.now()}`);
-        } catch {
-          // best effort
-        }
+        // Not best effort: if the rename fails (EBUSY, EPERM, EACCES) let it throw so startup fails
+        // closed, rather than a later save overwriting the invalid file and destroying its records.
+        renameSync(file, `${file}.bad-${Date.now()}`);
         return [];
       };
       let raw: unknown;
