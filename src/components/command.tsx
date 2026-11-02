@@ -10,6 +10,7 @@ import {
 import { cn } from '../cn';
 import { XIcon } from './icons';
 import { Modal, whenHistorySettled } from './overlay';
+import { useLatest } from './latest';
 
 // ---------------------------------------------------------------------------------
 // CommandPalette: a search-and-jump dialog (Ctrl/Cmd+K) over a list of items.
@@ -223,8 +224,7 @@ function isTypingTarget(t: EventTarget | null): boolean {
  * @param enabled - Set false to listen to nothing (default true).
  */
 export function useCommandHotkey(open: () => void, enabled = true): void {
-  const ref = useRef(open);
-  ref.current = open;
+  const ref = useLatest(open);
   useEffect(() => {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
@@ -239,7 +239,7 @@ export function useCommandHotkey(open: () => void, enabled = true): void {
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [enabled]);
+  }, [enabled, ref]);
 }
 
 /** Search-and-jump dialog. A full-height sheet with the field on top under 640px, a
@@ -292,8 +292,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const isFn = typeof items === 'function';
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
+  const itemsRef = useLatest(items);
 
   // Dynamic results: the latest response for the latest query wins.
   const [dynamic, setDynamic] = useState<CommandItem[]>([]);
@@ -329,7 +328,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
     return () => {
       stale = true;
     };
-  }, [query, isFn]);
+  }, [query, isFn, itemsRef]);
 
   const rows = useMemo<Ranked[]>(() => {
     if (isFn) return dynamic.map((item) => ({ item, marks: matchText(item.label.toLowerCase(), query.trim().toLowerCase())?.idx ?? [] }));

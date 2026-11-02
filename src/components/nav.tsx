@@ -1,12 +1,12 @@
 import {
   Fragment,
-  createElement,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
   type ReactElement,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { cn } from '../cn';
 import { navigateFromLayer } from './command';
@@ -472,20 +472,21 @@ export function ScrollRow({ children, bleed = false, fade = true, snap = false, 
     lastActive.current = active;
   });
 
-  return createElement(
-    as,
-    {
-      ref,
-      'aria-label': label,
-      className: cn(
+  const Tag = as as 'div';
+  return (
+    <Tag
+      ref={ref as RefObject<HTMLDivElement | null>}
+      aria-label={label}
+      className={cn(
         'flex gap-2 overflow-x-auto nish-no-scrollbar',
         fade && 'nish-scroll-fade',
         bleed && '-mx-[var(--nish-page-gutter)] px-[var(--nish-page-gutter)]',
         snap && 'snap-x snap-mandatory [&>*]:snap-start',
         className,
-      ),
-    },
-    children,
+      )}
+    >
+      {children}
+    </Tag>
   );
 }
 

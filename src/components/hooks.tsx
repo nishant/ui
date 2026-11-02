@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { cn } from '../cn';
 import { ago, dateTime } from '../format';
+import { useLatest } from './latest';
 
 /** True while the CSS media query matches. False on the server and before hydration. */
 export function useMediaQuery(query: string): boolean {
@@ -127,13 +128,11 @@ export function useLocalStorage<T>(
   o: { raw?: boolean } = {},
 ): [T, (next: T | ((prev: T) => T)) => void] {
   const raw = !!o.raw;
-  const initialRef = useRef(initial);
-  initialRef.current = initial;
+  const initialRef = useLatest(initial);
   const [value, setValueState] = useState<T>(() =>
     typeof window === 'undefined' ? initial : readStored(key, initial, raw),
   );
-  const valueRef = useRef(value);
-  valueRef.current = value;
+  const valueRef = useLatest(value);
   const instanceRef = useRef<object>({});
 
   useEffect(() => {
@@ -152,7 +151,7 @@ export function useLocalStorage<T>(
       window.removeEventListener('storage', onStorage);
       window.removeEventListener(LOCAL_EVENT, onLocal);
     };
-  }, [key, raw]);
+  }, [initialRef, key, raw]);
 
   const setValue = useCallback(
     (next: T | ((prev: T) => T)) => {
@@ -170,7 +169,7 @@ export function useLocalStorage<T>(
         // No window events.
       }
     },
-    [key, raw],
+    [key, raw, valueRef],
   );
 
   return [value, setValue];

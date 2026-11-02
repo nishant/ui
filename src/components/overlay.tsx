@@ -21,6 +21,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../cn';
 import { XIcon } from './icons';
 import { Button, IconButton } from './primitives';
+import { useLatest } from './latest';
 
 // ---------------------------------------------------------------------------------
 // Shared layer plumbing: one stack for everything that answers Escape (dialogs,
@@ -184,8 +185,7 @@ if (typeof window !== 'undefined') {
 function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void, closeOnBackProp = false) {
   // Inside an iframe (the docs previews) pushState would add to the top-level history.
   const closeOnBack = closeOnBackProp && (typeof window === 'undefined' || window.self === window.top);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const onCloseRef = useLatest(onClose);
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -287,7 +287,7 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
         history.back();
       }
     };
-  }, [panelRef, closeOnBack]);
+  }, [panelRef, closeOnBack, onCloseRef]);
 }
 
 /** Keeps a sheet mounted while it plays its exit animation. Modal and Drawer have no
@@ -297,10 +297,8 @@ function useSheetExit(onClose: () => void, canClose?: () => boolean) {
   const [closing, setClosing] = useState(false);
   const closingRef = useRef(false);
   const timer = useRef(0);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  const canCloseRef = useRef(canClose);
-  canCloseRef.current = canClose;
+  const onCloseRef = useLatest(onClose);
+  const canCloseRef = useLatest(canClose);
   useEffect(() => () => window.clearTimeout(timer.current), []);
   /** Plays the exit animation, then calls `onClose`. */
   const requestClose = useCallback(() => {
@@ -319,14 +317,14 @@ function useSheetExit(onClose: () => void, canClose?: () => boolean) {
       closingRef.current = false;
       setClosing(false);
     }, SHEET_EXIT_MS);
-  }, []);
+  }, [canCloseRef, onCloseRef]);
   /** Calls `onClose` at once, for a swipe that already animated the sheet away. */
   const closeNow = useCallback(() => {
     onCloseRef.current();
-  }, []);
+  }, [onCloseRef]);
   const isClosing = useCallback(() => closingRef.current, []);
   /** False when the app's canClose refuses: a swipe springs back instead of dismissing. */
-  const allowClose = useCallback(() => !canCloseRef.current || canCloseRef.current(), []);
+  const allowClose = useCallback(() => !canCloseRef.current || canCloseRef.current(), [canCloseRef]);
   return { closing, requestClose, closeNow, isClosing, allowClose };
 }
 
@@ -342,12 +340,9 @@ function useSheetSwipe(
 ) {
   const drag = useRef<{ startY: number; dy: number; lastY: number; lastT: number; v: number } | null>(null);
   const timer = useRef(0);
-  const enabledRef = useRef(enabled);
-  enabledRef.current = enabled;
-  const dismissRef = useRef(onDismiss);
-  dismissRef.current = onDismiss;
-  const allowRef = useRef(allow);
-  allowRef.current = allow;
+  const enabledRef = useLatest(enabled);
+  const dismissRef = useLatest(onDismiss);
+  const allowRef = useLatest(allow);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const onPointerDown = useCallback(
@@ -364,7 +359,7 @@ function useSheetSwipe(
       if (scrimRef.current) scrimRef.current.style.transition = 'none';
       drag.current = { startY: e.clientY, dy: 0, lastY: e.clientY, lastT: e.timeStamp, v: 0 };
     },
-    [panelRef, scrimRef],
+    [enabledRef, panelRef, scrimRef],
   );
 
   const onPointerMove = useCallback(
@@ -416,7 +411,7 @@ function useSheetSwipe(
         }, ms);
       }
     },
-    [panelRef, scrimRef],
+    [allowRef, dismissRef, panelRef, scrimRef],
   );
 
   return {
@@ -814,12 +809,16 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const pendingRef = useRef(pending);
-  pendingRef.current = pending;
+  const pendingRef = useLatest(pending);
   const cancel = useCallback(() => {
     if (!pendingRef.current) onCancel();
-  }, [onCancel]);
-  closeVetoes.set(cancel, () => pendingRef.current);
+  }, [onCancel, pendingRef]);
+  useEffect(() => {
+    closeVetoes.set(cancel, () => pendingRef.current);
+    return () => {
+      closeVetoes.delete(cancel);
+    };
+  }, [cancel, pendingRef]);
   const danger = tone === 'danger';
   return (
     <Modal
@@ -1132,8 +1131,7 @@ function useDismiss(
   anchor: RefObject<HTMLElement | null>,
   close: (reason: 'escape' | 'outside') => void,
 ) {
-  const closeRef = useRef(close);
-  closeRef.current = close;
+  const closeRef = useLatest(close);
   useEffect(() => {
     if (!open) return;
     const self = {};
@@ -1159,7 +1157,7 @@ function useDismiss(
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onDown, true);
     };
-  }, [open, panel, anchor]);
+  }, [open, panel, anchor, closeRef]);
 }
 
 /** Puts focus back on the anchor when a panel closes while focus was inside it (or
@@ -1239,10 +1237,8 @@ export function Popover({
 }: PopoverProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const pos = useAnchoredPosition(anchor, panelRef, open, side, align);
-  const onOpenChangeRef = useRef(onOpenChange);
-  onOpenChangeRef.current = onOpenChange;
-  const outsideRef = useRef(dismissOnOutside);
-  outsideRef.current = dismissOnOutside;
+  const onOpenChangeRef = useLatest(onOpenChange);
+  const outsideRef = useLatest(dismissOnOutside);
   useDismiss(open, panelRef, anchor, (reason) => {
     if (reason === 'outside' && !outsideRef.current) return;
     onOpenChangeRef.current(false, reason);
@@ -1364,6 +1360,13 @@ function usePhoneViewport(enabled: boolean): boolean {
   return phone;
 }
 
+
+/** Renders `element` with `props` merged over its own. A component rather than a
+ *  cloneElement call in the parent's render, so the handlers passed in stay event
+ *  handlers (react-hooks/refs treats a function handed to a call in render as run there). */
+function Cloned({ element, ...props }: { element: ReactNode } & Record<string, unknown>) {
+  return cloneElement(element as ReactElement<Record<string, unknown>>, props);
+}
 /** A menu of actions behind a button: role="menu" with arrow keys, Home and End,
  *  Escape, Tab to leave, and focus back on the trigger when it closes. */
 export function DropdownMenu({
@@ -1381,7 +1384,18 @@ export function DropdownMenu({
 }: DropdownMenuProps) {
   const [openState, setOpenState] = useState(defaultOpen);
   const open = openProp ?? openState;
-  const triggerRef = useRef<HTMLElement | null>(null);
+  // The trigger node is state, since render reads it to pick the portal host; the
+  // positioning and focus hooks read it through a ref.
+  const [triggerNode, setTriggerNode] = useState<HTMLElement | null>(null);
+  const triggerRef = useLatest(triggerNode);
+  const triggerPropRef = (trigger.props as { ref?: Ref<HTMLElement> }).ref;
+  const attachTrigger = useCallback(
+    (node: HTMLElement | null) => {
+      setTriggerNode(node);
+      setRef(triggerPropRef, node);
+    },
+    [triggerPropRef],
+  );
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const triggerId = useId();
@@ -1390,14 +1404,13 @@ export function DropdownMenu({
   const asSheet = usePhoneViewport(sheetBelow === 'sm');
   const pos = useAnchoredPosition(triggerRef, menuRef, open && !asSheet, side, align, 4);
 
-  const onOpenChangeRef = useRef(onOpenChange);
-  onOpenChangeRef.current = onOpenChange;
+  const onOpenChangeRef = useLatest(onOpenChange);
   const setOpen = useCallback(
     (next: boolean, reason?: PopoverCloseReason) => {
       if (openProp === undefined) setOpenState(next);
       onOpenChangeRef.current?.(next, reason);
     },
-    [openProp],
+    [onOpenChangeRef, openProp],
   );
   const close = useCallback(() => setOpen(false), [setOpen]);
   const dismiss = useCallback((reason: PopoverCloseReason) => setOpen(false, reason), [setOpen]);
@@ -1475,31 +1488,31 @@ export function DropdownMenu({
     onClick?: (e: ReactMouseEvent<HTMLElement>) => void;
     onKeyDown?: (e: ReactKeyboardEvent<HTMLElement>) => void;
   };
-  const triggerEl = cloneElement(trigger as ReactElement<Record<string, unknown>>, {
-    ref: (node: HTMLElement | null) => {
-      triggerRef.current = node;
-      setRef(tp.ref, node);
-    },
-    id: tp.id ?? triggerId,
-    'aria-haspopup': 'menu',
-    'aria-expanded': open,
-    'aria-controls': open ? menuId : undefined,
-    onClick: (e: ReactMouseEvent<HTMLElement>) => {
-      tp.onClick?.(e);
-      if (e.defaultPrevented) return;
-      if (open) close();
-      // A pointer click focuses the menu itself, so arrow keys start from the top.
-      else openWith(e.detail === 0 ? 'first' : 'menu');
-    },
-    onKeyDown: (e: ReactKeyboardEvent<HTMLElement>) => {
-      tp.onKeyDown?.(e);
-      if (e.defaultPrevented) return;
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        openWith(e.key === 'ArrowDown' ? 'first' : 'last');
-      }
-    },
-  });
+  const triggerEl = (
+    <Cloned
+      element={trigger}
+      ref={attachTrigger}
+      id={tp.id ?? triggerId}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-controls={open ? menuId : undefined}
+      onClick={(e: ReactMouseEvent<HTMLElement>) => {
+        tp.onClick?.(e);
+        if (e.defaultPrevented) return;
+        if (open) close();
+        // A pointer click focuses the menu itself, so arrow keys start from the top.
+        else openWith(e.detail === 0 ? 'first' : 'menu');
+      }}
+      onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => {
+        tp.onKeyDown?.(e);
+        if (e.defaultPrevented) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          openWith(e.key === 'ArrowDown' ? 'first' : 'last');
+        }
+      }}
+    />
+  );
 
   const menuProps = {
     ref: menuRef,
@@ -1548,7 +1561,7 @@ export function DropdownMenu({
               {children}
             </div>
           </MenuContext.Provider>,
-          layerHost(triggerRef.current),
+          layerHost(triggerNode),
         )
       ) : null}
     </>

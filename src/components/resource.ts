@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLatest } from './latest';
 
 export class ApiError extends Error {
   /** HTTP status; 0 = network failure or abort-by-timeout. */
@@ -189,14 +190,10 @@ export function useResource<T>(
     fetching: false,
   }));
 
-  const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
-  const keyRef = useRef(key);
-  keyRef.current = key;
-  const keepPrevRef = useRef(keepPrevious);
-  keepPrevRef.current = keepPrevious;
-  const initialRef = useRef(o.initialData);
-  initialRef.current = o.initialData;
+  const fetcherRef = useLatest(fetcher);
+  const keyRef = useLatest(key);
+  const keepPrevRef = useLatest(keepPrevious);
+  const initialRef = useLatest(o.initialData);
   const ctlRef = useRef<AbortController | null>(null);
   const runRef = useRef(0);
   const pollSkippedRef = useRef(false);
@@ -231,7 +228,7 @@ export function useResource<T>(
       const error = e instanceof Error ? e : new Error(String(e));
       setState((s) => ({ ...s, key: k, error, fetching: false }));
     }
-  }, []);
+  }, [fetcherRef, initialRef, keepPrevRef, keyRef]);
 
   // Fetch on key change or enable. Aborts on change and on unmount.
   useEffect(() => {

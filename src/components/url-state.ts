@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 /** Where useUrlState reads and writes the query string. */
 export interface UrlStateAdapter {
@@ -80,20 +80,20 @@ export function useUrlState<S extends UrlStateShape>(
 ): [S, (patch: Partial<S> | ((prev: S) => Partial<S>)) => void, () => void] {
   const adapter = o.adapter ?? locationAdapter;
   const prefix = o.prefix ? `${o.prefix}.` : '';
-  const defaultsRef = useRef(defaults);
-  defaultsRef.current = defaults;
+  // Keyed on the JSON, so an inline defaults object does not re-parse on every render.
   const defaultsKey = JSON.stringify(defaults);
+  const stableDefaults = useMemo(() => JSON.parse(defaultsKey) as S, [defaultsKey]);
 
   const search = useSyncExternalStore(
     adapter.subscribe,
     () => adapter.get().toString(),
     () => '',
   );
-  const state = useMemo(() => parse(new URLSearchParams(search), defaultsRef.current, prefix), [search, prefix, defaultsKey]);
+  const state = useMemo(() => parse(new URLSearchParams(search), stableDefaults, prefix), [search, prefix, stableDefaults]);
 
   const write = useCallback(
     (next: Partial<S>) => {
-      const d = defaultsRef.current;
+      const d = stableDefaults;
       const params = adapter.get();
       for (const key of Object.keys(next)) {
         if (!(key in d)) continue;
@@ -113,22 +113,22 @@ export function useUrlState<S extends UrlStateShape>(
       }
       adapter.set(params);
     },
-    [adapter, prefix],
+    [adapter, stableDefaults, prefix],
   );
 
   const patch = useCallback(
     (p: Partial<S> | ((prev: S) => Partial<S>)) => {
-      const prev = parse(adapter.get(), defaultsRef.current, prefix);
+      const prev = parse(adapter.get(), stableDefaults, prefix);
       write(typeof p === 'function' ? p(prev) : p);
     },
-    [adapter, prefix, write],
+    [adapter, stableDefaults, prefix, write],
   );
 
   const reset = useCallback(() => {
     const params = adapter.get();
-    for (const key of Object.keys(defaultsRef.current)) params.delete(prefix + key);
+    for (const key of Object.keys(stableDefaults)) params.delete(prefix + key);
     adapter.set(params);
-  }, [adapter, prefix]);
+  }, [adapter, stableDefaults, prefix]);
 
   return [state, patch, reset];
 }

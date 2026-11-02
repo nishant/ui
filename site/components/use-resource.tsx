@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError, Button, ErrorState, RelativeTime, Skeleton, useResource } from '../../src';
 import type { ComponentDoc } from './types';
 
@@ -12,7 +12,9 @@ interface Quote {
 function ResourceDemo({ intervalMs, mode = 'normal' }: { intervalMs?: number; mode?: 'normal' | 'loading' | 'error' }) {
   const [fail, setFail] = useState(mode === 'error');
   const failRef = useRef(fail);
-  failRef.current = fail;
+  useEffect(() => {
+    failRef.current = fail;
+  }, [fail]);
   const calls = useRef(0);
 
   const res = useResource<Quote>(
