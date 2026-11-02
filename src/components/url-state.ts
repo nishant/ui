@@ -36,12 +36,13 @@ export const locationAdapter: UrlStateAdapter = {
 
 export type UrlStateShape = Record<string, string | string[] | number | boolean>;
 
-function parseValue(params: URLSearchParams, key: string, fallback: string | string[] | number | boolean) {
+function parseValue(params: URLSearchParams, key: string, fallback: string | string[] | number | boolean, comma: boolean) {
   if (!params.has(key)) return fallback;
   if (Array.isArray(fallback)) {
-    // A single value may be the legacy comma form (a,b); repeated keys are taken as written.
+    // Repeated keys are taken as written, so a value may hold a comma ("Austin, TX"). With
+    // `comma`, a single value is read as the older comma form (a,b).
     const all = params.getAll(key);
-    return (all.length === 1 ? all[0].split(',') : all).filter(Boolean);
+    return (comma && all.length === 1 ? all[0].split(',') : all).filter(Boolean);
   }
   const raw = params.get(key) ?? '';
   if (typeof fallback === 'number') {
@@ -62,24 +63,32 @@ function same(a: unknown, b: unknown): boolean {
   return a === b;
 }
 
-function parse<S extends UrlStateShape>(params: URLSearchParams, defaults: S, prefix: string): S {
+function parse<S extends UrlStateShape>(params: URLSearchParams, defaults: S, prefix: string, comma: CommaKeys): S {
   const out: Record<string, unknown> = {};
-  for (const key of Object.keys(defaults)) out[key] = parseValue(params, prefix + key, defaults[key]);
+  for (const key of Object.keys(defaults)) out[key] = parseValue(params, prefix + key, defaults[key], isComma(comma, key));
   return out as S;
 }
+
+type CommaKeys = boolean | readonly string[];
+const isComma = (comma: CommaKeys, key: string) => (Array.isArray(comma) ? comma.includes(key) : comma === true);
 
 /**
  * Typed URL query state. Values equal to the default are left out of the URL, other keys in
  * the URL are kept. Strings, numbers, booleans (written as 1/0) and string arrays (repeated
- * keys) are supported; the type of each default decides how its key is parsed.
- * `prefix: 'j'` stores `q` as `j.q`. Returns [state, patch, reset].
+ * keys, so a value may contain a comma) are supported; the type of each default decides how
+ * its key is parsed. `prefix: 'j'` stores `q` as `j.q`. `comma: true` (or a list of keys)
+ * also reads a single `?k=a,b` as ['a', 'b'], for links written before repeated keys.
+ * Returns [state, patch, reset].
  */
 export function useUrlState<S extends UrlStateShape>(
   defaults: S,
-  o: { adapter?: UrlStateAdapter; prefix?: string } = {},
+  o: { adapter?: UrlStateAdapter; prefix?: string; comma?: boolean | readonly (keyof S & string)[] } = {},
 ): [S, (patch: Partial<S> | ((prev: S) => Partial<S>)) => void, () => void] {
   const adapter = o.adapter ?? locationAdapter;
   const prefix = o.prefix ? `${o.prefix}.` : '';
+  // Keyed on the JSON, like the defaults, so an inline list does not change identity.
+  const commaKey = JSON.stringify(o.comma ?? false);
+  const comma = useMemo(() => JSON.parse(commaKey) as CommaKeys, [commaKey]);
   // Keyed on the JSON, so an inline defaults object does not re-parse on every render.
   const defaultsKey = JSON.stringify(defaults);
   const stableDefaults = useMemo(() => JSON.parse(defaultsKey) as S, [defaultsKey]);
@@ -89,7 +98,7 @@ export function useUrlState<S extends UrlStateShape>(
     () => adapter.get().toString(),
     () => '',
   );
-  const state = useMemo(() => parse(new URLSearchParams(search), stableDefaults, prefix), [search, prefix, stableDefaults]);
+  const state = useMemo(() => parse(new URLSearchParams(search), stableDefaults, prefix, comma), [search, prefix, stableDefaults, comma]);
 
   const write = useCallback(
     (next: Partial<S>) => {
@@ -105,23 +114,23 @@ export function useUrlState<S extends UrlStateShape>(
           if (value.length === 0) params.append(name, '');
           else {
             for (const v of value) params.append(name, v);
-            // A lone value with a comma would be read back as the legacy comma form: add an empty key.
-            if (value.length === 1 && value[0].includes(',')) params.append(name, '');
+            // A lone value with a comma would be read back as the comma form: add an empty key.
+            if (isComma(comma, key) && value.length === 1 && value[0].includes(',')) params.append(name, '');
           }
         } else if (typeof value === 'boolean') params.set(name, value ? '1' : '0');
         else params.set(name, String(value));
       }
       adapter.set(params);
     },
-    [adapter, stableDefaults, prefix],
+    [adapter, stableDefaults, prefix, comma],
   );
 
   const patch = useCallback(
     (p: Partial<S> | ((prev: S) => Partial<S>)) => {
-      const prev = parse(adapter.get(), stableDefaults, prefix);
+      const prev = parse(adapter.get(), stableDefaults, prefix, comma);
       write(typeof p === 'function' ? p(prev) : p);
     },
-    [adapter, stableDefaults, prefix, write],
+    [adapter, stableDefaults, prefix, comma, write],
   );
 
   const reset = useCallback(() => {

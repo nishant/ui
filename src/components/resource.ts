@@ -23,7 +23,7 @@ export class ApiError extends Error {
 export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   /** Serialized as JSON with content-type application/json. A string/FormData/Blob is sent as is. */
   body?: unknown;
-  /** Aborts and throws ApiError(status 0, message "Request timed out") after this many ms (covers the body read too). Default 15000. */
+  /** Aborts and throws ApiError(status 0, message "The server took too long to answer.") after this many ms (covers the body read too). Default 15000. */
   timeoutMs?: number;
   /** Resolve null instead of throwing on 404. */
   nullOn404?: boolean;
@@ -56,14 +56,23 @@ function isRawBody(b: unknown): boolean {
   );
 }
 
-function errorMessage(body: unknown, res: Response): string {
+/** A machine code such as "not_found" or "server_error", as opposed to a sentence. */
+const ERROR_CODE = /^[a-z0-9_]+$/;
+
+/** The message for a failed response, in the wording the apps share: the server's own
+ *  `error` or `message` sentence when it sent one; otherwise a plain sentence for the status. */
+function errorMessage(body: unknown, status: number): string {
+  let raw = '';
   if (body && typeof body === 'object') {
     const o = body as Record<string, unknown>;
-    if (typeof o.error === 'string' && o.error) return o.error;
-    if (typeof o.message === 'string' && o.message) return o.message;
+    if (typeof o.error === 'string' && o.error) raw = o.error;
+    else if (typeof o.message === 'string' && o.message) raw = o.message;
   }
-  const line = `${res.status} ${res.statusText}`.trim();
-  return line || 'Request failed';
+  if (raw && !ERROR_CODE.test(raw)) return raw;
+  if (status === 401) return 'Log in to continue.';
+  if (raw && status === 404) return 'That was not found.';
+  if (raw) return 'The server had a problem. Try again.';
+  return `The server answered ${status}.`;
 }
 
 /** fetch with JSON in and out, a timeout, and a typed ApiError for every failure. */
@@ -103,9 +112,9 @@ export async function apiFetch<T = unknown>(path: string, o: ApiFetchOptions = {
       res = await fetch(url, { credentials: 'same-origin', ...init, headers, body: payload, signal: ctl.signal });
       text = await res.text();
     } catch (e) {
-      if (timedOut) throw new ApiError('Request timed out', { status: 0, url });
+      if (timedOut) throw new ApiError('The server took too long to answer.', { status: 0, url });
       if (e instanceof Error && e.name === 'AbortError') throw e;
-      throw new ApiError("Can't reach the server", { status: 0, url });
+      throw new ApiError('Could not reach the server.', { status: 0, url });
     }
 
     const type = res.headers.get('content-type') ?? '';
@@ -120,7 +129,7 @@ export async function apiFetch<T = unknown>(path: string, o: ApiFetchOptions = {
 
     if (!res.ok) {
       if (res.status === 404 && nullOn404) return null as T;
-      const err = new ApiError(errorMessage(parsed, res), { status: res.status, body: parsed, url });
+      const err = new ApiError(errorMessage(parsed, res.status), { status: res.status, body: parsed, url });
       if (res.status === 401) config.onUnauthorized?.(err);
       throw err;
     }

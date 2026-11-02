@@ -125,3 +125,21 @@ export const SettingsIcon = (p: IconProps) => (
     <circle cx="12" cy="12" r="3" />
   </Svg>
 );
+
+/** A panel with its left column and an arrow pointing in: collapse a sidebar. */
+export const PanelLeftCloseIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+    <path d="m16 15-3-3 3-3" />
+  </Svg>
+);
+
+/** A panel with its left column and an arrow pointing out: expand a sidebar. */
+export const PanelLeftOpenIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+    <path d="m14 9 3 3-3 3" />
+  </Svg>
+);

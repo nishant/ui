@@ -1,6 +1,8 @@
 import {
+  createContext,
   forwardRef,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useRef,
@@ -22,28 +24,40 @@ export interface SettingsSectionProps {
   id?: string;
   /** Right side of the heading (a Reset button). */
   actions?: ReactNode;
+  /** The dense form for modals, sheets and side panels: a small heading and the rows
+   *  divided by lines with no Card around them. Its SettingRows are compact too. */
+  compact?: boolean;
   children: ReactNode;
   className?: string;
 }
 
+/** True inside a compact SettingsSection, so its rows follow without a prop each. */
+const CompactSettings = createContext(false);
+
 /** A titled group of setting rows in one unpadded Card, rows divided by a line. */
-export function SettingsSection({ title, description, id, actions, children, className }: SettingsSectionProps) {
+export function SettingsSection({ title, description, id, actions, compact = false, children, className }: SettingsSectionProps) {
   const auto = useId();
   const headingId = `${id ?? auto}-heading`;
   return (
     <section id={id} aria-labelledby={headingId} className={cn('min-w-0', className)}>
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+      <div className={cn('flex flex-wrap items-end justify-between gap-x-4 gap-y-2', compact ? 'mb-1' : 'mb-3')}>
         <div className="min-w-0">
-          <h2 id={headingId} className="text-base font-semibold text-th-hi">
+          <h2 id={headingId} className={compact ? 'text-sm font-semibold text-th-hi2' : 'text-base font-semibold text-th-hi'}>
             {title}
           </h2>
-          {description != null ? <p className="mt-0.5 text-sm text-th-hi3">{description}</p> : null}
+          {description != null ? <p className={cn('mt-0.5 text-th-hi3', compact ? 'text-xs' : 'text-sm')}>{description}</p> : null}
         </div>
         {actions != null ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
-      <Card padding="none" className="divide-y divide-th-line">
-        {children}
-      </Card>
+      <CompactSettings.Provider value={compact}>
+        {compact ? (
+          <div className="divide-y divide-th-line">{children}</div>
+        ) : (
+          <Card padding="none" className="divide-y divide-th-line">
+            {children}
+          </Card>
+        )}
+      </CompactSettings.Provider>
     </section>
   );
 }
@@ -61,6 +75,9 @@ export interface SettingRowProps {
   stacked?: boolean;
   /** Keep the control at the end of the label row at every width (Switch, Checkbox). */
   inline?: boolean;
+  /** Tighter row (44px tall, no side padding, label beside the control at every width).
+   *  Default: on inside a compact SettingsSection. */
+  compact?: boolean;
   /** A muted status after the control: "Saved", "Saving…", or an error (tone="error" → text-th-loss). */
   status?: ReactNode;
   statusTone?: 'muted' | 'error' | 'ok';
@@ -77,21 +94,25 @@ export function SettingRow({
   htmlFor,
   stacked = false,
   inline = false,
+  compact: compactProp,
   status,
   statusTone = 'muted',
   className,
 }: SettingRowProps) {
+  const inCompactSection = useContext(CompactSettings);
+  const compact = compactProp ?? inCompactSection;
   const labelClass = 'block text-sm font-medium text-th-hi';
   const auto = useId();
   const labelId = `${auto}-label`;
   const descId = `${auto}-desc`;
+  const side = inline || (compact && !stacked);
   const layout = stacked
     ? 'flex flex-col gap-2'
-    : inline
+    : side
       ? 'grid grid-cols-[1fr_auto] items-center gap-4'
       : 'flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4';
   return (
-    <div className={cn('min-h-[56px] px-4 py-3', layout, className)}>
+    <div className={cn(compact ? cn('min-h-11 py-2', !inCompactSection && 'px-4') : 'min-h-[56px] px-4 py-3', layout, className)}>
       <div className="min-w-0">
         {htmlFor ? (
           <label htmlFor={htmlFor} className={labelClass}>
@@ -103,14 +124,14 @@ export function SettingRow({
           </span>
         )}
         {description != null ? (
-          <p id={descId} className="mt-0.5 text-sm text-th-hi3">
+          <p id={descId} className={cn('mt-0.5 text-th-hi3', compact ? 'text-xs' : 'text-sm')}>
             {description}
           </p>
         ) : null}
       </div>
       <div
         {...(htmlFor ? {} : { role: 'group', 'aria-labelledby': labelId, 'aria-describedby': description != null ? descId : undefined })}
-        className={cn('flex min-w-0 items-center gap-2', stacked ? 'w-full' : inline ? 'justify-end' : 'w-full sm:w-auto sm:justify-end')}
+        className={cn('flex min-w-0 items-center gap-2', stacked ? 'w-full' : side ? 'justify-end' : 'w-full sm:w-auto sm:justify-end')}
       >
         {children}
         <span role="status" aria-live="polite" className={cn('shrink-0 text-sm empty:hidden', STATUS_TONE[statusTone])}>
@@ -198,6 +219,9 @@ export interface NumberFieldProps extends Omit<InputProps, 'value' | 'onChange' 
   precision?: number;
 }
 
+/** The number in a draft, or NaN. Accepts thousands commas and a typographic minus. */
+const parseDraft = (text: string) => Number(text.trim().replace(/,/g, '').replace(/\u2212/g, '-'));
+
 const fmt = (v: number | null) => (v == null ? '' : String(v));
 const decimals = (n: number) => String(n).split('.')[1]?.length ?? 0;
 
@@ -257,7 +281,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
       }
       next = null;
     } else {
-      const n = Number(text.replace(/,/g, ''));
+      const n = parseDraft(text);
       if (Number.isNaN(n)) {
         setDraft(fmt(value));
         setError('Enter a number');
@@ -295,7 +319,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
   };
 
   const nudge = (dir: 1 | -1) => {
-    const base = Number(draftRef.current.replace(/,/g, ''));
+    const base = parseDraft(draftRef.current);
     const from = Number.isNaN(base) || draftRef.current.trim() === '' ? (value ?? min ?? 0) : base;
     const n = Number(clamp(from + dir * step).toFixed(Math.max(precision ?? 0, decimals(step), decimals(from))));
     setDraft(String(n));
@@ -321,15 +345,27 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
     }
   };
 
+  // A spinbutton announces its range and value. While a draft is not a number yet ("", "-"),
+  // the last committed value stands.
+  const shown = parseDraft(draft);
+  const now = draft.trim() !== '' && !Number.isNaN(shown) ? shown : (value ?? undefined);
+  // The decimal keypad on phones has no minus key, so a field that takes negatives asks for
+  // the full keyboard.
+  const negatives = min == null || min < 0;
+
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <div className="flex items-center gap-2">
         <Input
+          inputMode={negatives ? 'text' : 'decimal'}
           {...rest}
           ref={ref}
           id={id}
           type="text"
-          inputMode="decimal"
+          role="spinbutton"
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={now}
           autoComplete="off"
           value={draft}
           invalid={invalid || error != null}
