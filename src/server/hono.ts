@@ -7,6 +7,7 @@ import { INBOX_ACTION_PATH, isInboxCall, parseInboxActionCall } from './inbox/ac
 import type { InboxActionCall, InboxData } from './inbox/types';
 import type { Limiter } from './limiter';
 import { errorResponse } from './process';
+import type { ManagedServiceTokens } from './service-tokens';
 import type { SessionAuth } from './session';
 import { passwordMatches } from './session';
 import { createSpaHandler, type SpaOptions } from './spa';
@@ -165,5 +166,31 @@ export function mountInboxAction<E extends Env>(app: Hono<E>, o: InboxActionRout
     const result = await o.run(call);
     o.log(`inbox action ${call.actionId} on ${call.dedupeKey}: ${result.status}`);
     return c.json(result.body as never, result.status as never);
+  });
+}
+
+export interface ServiceTokenRouteOptions {
+  tokens: ManagedServiceTokens;
+  base?: string; // '/api/service-tokens'
+  log?: (line: string) => void; // console.log
+}
+
+/** GET <base> -> 200 { tokens: views() } with Cache-Control: no-store.
+ *  POST <base>/:id/revoke -> 200 { tokens: views() } after revoke, logs
+ *  `service token <id> revoked`; 404 { error: 'No service token with that id.' } when unknown.
+ *  Mount behind the app's login (requireSession) and its cross-site write guard. */
+export function mountServiceTokenRoutes<E extends Env>(app: Hono<E>, o: ServiceTokenRouteOptions): void {
+  const base = (o.base ?? '/api/service-tokens').replace(/\/+$/, '');
+  const log = o.log ?? ((line: string) => console.log(line));
+  app.get(base, (c) => {
+    c.header('Cache-Control', 'no-store');
+    return c.json({ tokens: o.tokens.views() });
+  });
+  app.post(`${base}/:id/revoke`, (c) => {
+    const id = c.req.param('id');
+    c.header('Cache-Control', 'no-store');
+    if (!o.tokens.revoke(id)) return c.json({ error: 'No service token with that id.' }, 404);
+    log(`service token ${id} revoked`);
+    return c.json({ tokens: o.tokens.views() });
   });
 }
