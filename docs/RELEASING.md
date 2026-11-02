@@ -126,13 +126,33 @@ with the new tag, after the fan-out. The workflow checks out master for its tool
 4. runs `npm publish --access public --provenance --ignore-scripts`. A version older than
    the newest on npm goes out under the `previous` dist-tag so it never takes `latest`.
 
-Auth is npm **trusted publishing** (GitHub OIDC; no stored token). npm only lets a trusted
-publisher be set on a package that exists, so the very first publish used a short-lived
-granular token in the `NPM_TOKEN` secret. While the package is not on npm and there is no
-token, the job writes a summary saying so and stays green; any other failure (a version that
-does not match its tag, a tag without `dist/`, a refused publish) turns it red. Trusted publisher settings on
-npmjs.com (package `nish-ui` → Settings → Trusted publishing): organization
-`nishant`, repository `ui`, workflow `publish.yml`, no environment.
+Auth is npm **trusted publishing** only (GitHub OIDC). There is no `NPM_TOKEN` secret, and the
+package is set to require 2FA and disallow tokens, so a token could not publish anyway. The very
+first publish (1.4.0) used a short-lived token, because npm sets a trusted publisher only on a
+package that exists. Trusted publisher settings on npmjs.com (package `nish-ui` → Settings →
+Trusted publishing): organization `nishant`, repository `ui`, workflow `publish.yml`, no
+environment. Any failure (a version that does not match its tag, a tag without `dist/`, the
+package missing from npm, a refused publish) turns the job red.
+
+### Keeping npm in sync
+
+- **Every release publishes.** `release.yml` dispatches `publish.yml` with the new tag; nothing
+  is published by hand or from a laptop.
+- **Check it.** After a release, `npm view nish-ui version` equals the newest tag
+  (`git ls-remote --tags origin 'v*' | sort -t/ -k3 -V | tail -1`), and
+  `npm view nish-ui dist.attestations` shows a provenance attestation. The package page is
+  https://www.npmjs.com/package/nish-ui.
+- **The README is the npm page.** npm shows the README of the published tag, so the README and the
+  docs site change in the same PR as any component, export or token change. Keep the README short:
+  absolute links only (npm does not resolve relative ones), no table wider than 3 short columns,
+  detail on design.nish.software. `files` in `package.json` ships `dist` and `tsconfig`; check
+  with `npm pack --dry-run` after `npm run build`.
+- **A publish run fails.** Read the job summary and log
+  (`gh run list -R nishant/ui -w publish.yml`, then `gh run view <id> --log-failed`). Fix the
+  cause on master, then rerun for the same tag: `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z`
+  (a version already on npm is skipped, so reruns are safe). An OIDC or 403 error means the trusted
+  publisher on npmjs.com no longer matches (`nishant` / `ui` / `publish.yml`, no environment): that
+  is a step for Nish (`MANUAL-STEPS.md` in nishant/skills), never a token.
 
 To publish a tag by hand: `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z`.
 To see what would be published without publishing: `node tools/npm-publish.mjs <tag-checkout> --dry-run`.

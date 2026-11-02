@@ -117,6 +117,7 @@ function Root() {
 }`,
   guidelines: [
     'One AppShell per app, at the root inside the router. Do not nest it or add your own AppHeader, BottomNav or Toaster beside it.',
+    'Use <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"> and no static <meta name="theme-color">: theme-init.js creates and updates its own from the active theme, and removes a static one at load.',
     'Pass resetKey={location.pathname}: it clears the error fallback and closes the More sheet on navigation.',
     'Keep four primary items so the bar fits the Fold\'s cover screen. With five or fewer items they all show and there is no More button.',
     'moreItems (settings, sign out) appear last in the sheet, and from 768px in a More menu in the header. Give them onSelect.',

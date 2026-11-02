@@ -15,22 +15,23 @@ export function GettingStartedPage() {
       <PageHeader
         eyebrow="Start"
         title="Getting started"
-        lead="Install a release tag, import the CSS, put theme-init.js first in <head>, and use the components. Pick your kind of app."
+        lead="Install the package, import the CSS, put theme-init.js first in <head>, and use the components. Pick your kind of app."
       />
 
-      <Section title="Install" note="Releases are git tags with the built dist/ committed, so there is no build step on install.">
+      <Section title="Install" note="The package ships built files, so there is no build step on install. React is an optional peer.">
         <div className="grid gap-3">
-          <CodeBlock title="npm" code={`npm install github:nishant/ui#${v}`} />
-          <CodeBlock title="pnpm" code={`pnpm add github:nishant/ui#${v}`} />
-          <CodeBlock
-            title="package.json, without SSH (CI runners, the hosting PC)"
-            code={`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/${v}"`}
-          />
+          <CodeBlock title="npm, as @nish/ui" code={`npm install @nish/ui@npm:nish-ui`} />
+          <CodeBlock title="npm, as nish-ui" code={`npm install nish-ui`} />
+          <CodeBlock title="package.json, from a git tag" code={`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/${v}"`} />
         </div>
         <Prose>
           <p>
-            <code>github:</code> installs clone over SSH when a key is set up and fall back to HTTPS otherwise. If a machine has an SSH key GitHub does not
-            accept, the install fails; the tarball URL above needs only HTTPS.
+            On npm the package is <code>nish-ui</code>, published from every release tag. Installed with the alias, every import on this site works as
+            written; installed as <code>nish-ui</code>, read <code>nish-ui</code> wherever it says <code>@nish/ui</code>.
+          </p>
+          <p>
+            The nish.software apps pin the git tag, and the release fan-out keeps that pin current. The tarball URL needs only HTTPS;{' '}
+            <code>github:nishant/ui#{v}</code> also works but clones over SSH when the machine has a key, and fails where GitHub does not accept it.
           </p>
         </Prose>
       </Section>
@@ -263,6 +264,46 @@ ipcMain.on('theme', (_e, scheme: 'dark' | 'light') => {
           </Section>
         </div>
       )}
+
+      <Section id="troubleshooting" title="Troubleshooting">
+        <Prose>
+          <p>
+            <strong>Component classes are missing (unstyled buttons).</strong> <code>tailwind.css</code> has <code>@source "./"</code>, which tells Tailwind
+            to scan the package's <code>dist/</code>. If your setup resolves the package somewhere Tailwind does not follow (some pnpm or monorepo layouts),
+            add <code>@source '../node_modules/@nish/ui/dist';</code> (or <code>nish-ui/dist</code>) yourself.
+          </p>
+          <p>
+            <strong>The page flashes the wrong theme on load.</strong> theme-init.js must run before any stylesheet and must not be <code>async</code>,{' '}
+            <code>defer</code> or a module. Inline it at the top of <code>&lt;head&gt;</code>. An app's own themes need{' '}
+            <code>window.__nishExtraThemes</code> set before it.
+          </p>
+          <p>
+            <strong>A preset chosen on another site shows as dark or light here.</strong> The page limits itself with <code>data-nish-themes</code>; that is
+            the intended fallback.
+          </p>
+          <p>
+            <strong>Fonts 404 on a static site after an upgrade.</strong> Font names carry a content hash. Copy every file in <code>dist/files.json</code>,
+            not a fixed list.
+          </p>
+          <p>
+            <strong>
+              <code>npm install</code> fails with "Permission denied (publickey)".
+            </strong>{' '}
+            A <code>github:</code> install met an SSH key GitHub does not accept. Install from npm or use the codeload tarball URL above.
+          </p>
+        </Prose>
+      </Section>
+
+      <Section id="versioning" title="Versioning">
+        <Prose>
+          <p>
+            Semver on the release tags, and the same version on npm. A change is <strong>breaking</strong> when an app has to edit its code or markup to keep
+            working or keep its look: removing or renaming a token, role, class, export, prop or file; changing a component's default; changing the cookie or
+            storage key. A major means app code must change, a minor adds (new roles, components, props, files), a patch fixes. Color adjustments that keep
+            every contrast check passing are minor or patch. Every release is in the <a href={href('/changelog')}>changelog</a>.
+          </p>
+        </Prose>
+      </Section>
     </div>
   );
 }

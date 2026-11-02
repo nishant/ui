@@ -221,6 +221,10 @@ export function ThemesPage() {
             theme-init.js reads the cookie first, then localStorage (the only store on localhost and in Electron), then follows the OS. Pick Mocha on
             jobs.nish.software and trading.nish.software opens in Mocha.
           </p>
+          <p>
+            Another site shares the choice across its own subdomains with <code>&lt;html data-nish-domain="example.com"&gt;</code>; it applies only on that
+            domain and its subdomains. Without it, hosts outside nish.software keep the choice in <code>localStorage</code> only.
+          </p>
         </Prose>
         <CodeBlock
           title="the cookie"

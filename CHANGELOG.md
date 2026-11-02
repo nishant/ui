@@ -4,6 +4,14 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.4.1] - 2026-11-02
+
+### Changed
+
+- The README is rewritten for GitHub and npm: `npm install nish-ui` first, short React, Tailwind, plain CSS and theming examples, an entry-point overview, and links to design.nish.software for the detail. Every link is absolute, so the npm page works too. The repo layout and dev commands moved to `docs/DEVELOPING.md`.
+- The docs site's Getting started page installs from npm (as `nish-ui`, or as `@nish/ui` through an npm alias) and gains Troubleshooting and Versioning sections. The Themes page covers `data-nish-domain`, the Inbox page the item action rules, and the AppShell page the viewport and theme-color meta.
+- npm publishing uses trusted publishing only: `publish.yml` no longer reads an `NPM_TOKEN`, and `tools/npm-publish.mjs` fails (instead of skipping) when the package is not on npm. The package description and keywords are written for npm search.
+
 ## [1.4.0] - 2026-11-02
 
 ### Added

@@ -48,21 +48,17 @@ export function publishManifest(pkg, name = NPM_NAME) {
  * @param {string} p.version         package.json version in the tag checkout
  * @param {boolean} p.distOk         dist/ is in the checkout
  * @param {string[]|null} p.published  versions on npm, or null when the package is not on npm yet
- * @param {boolean} p.hasToken       NODE_AUTH_TOKEN is set
  * @returns {{action:'publish'|'skip'|'fail', reason:string, distTag?:string}}
  */
-export function plan({ tag, version, distOk, published, hasToken }) {
+export function plan({ tag, version, distOk, published }) {
   if (tag !== null && tag !== `v${version}`) return { action: 'fail', reason: `${tag} has package.json version ${version}` };
   if (!distOk) return { action: 'fail', reason: `the checkout of v${version} has no dist/ (is it a release tag?)` };
   if (published?.includes(version)) return { action: 'skip', reason: `${NPM_NAME}@${version} is already on npm` };
-  // npm sets a trusted publisher only on a package that exists, so the first publish needs a token.
-  if (published === null && !hasToken) {
-    return {
-      action: 'skip',
-      reason: `${NPM_NAME} is not on npm yet and NPM_TOKEN is not set: the first publish needs a token (docs/RELEASING.md, "npm")`,
-    };
+  // Trusted publishing (the only auth; npm disallows tokens for nish-ui) works only on a package that exists.
+  if (published === null) {
+    return { action: 'fail', reason: `${NPM_NAME} is not on npm: trusted publishing needs the package to exist (docs/RELEASING.md, "npm")` };
   }
-  const newest = (published ?? []).reduce((m, v) => (m === null || compareVersions(v, m) > 0 ? v : m), null);
+  const newest = published.reduce((m, v) => (m === null || compareVersions(v, m) > 0 ? v : m), null);
   // An older version (a backfill) must not take `latest` from a newer one.
   const distTag = newest !== null && compareVersions(version, newest) < 0 ? 'previous' : 'latest';
   return { action: 'publish', reason: `publish ${NPM_NAME}@${version} as ${distTag}`, distTag };
@@ -98,7 +94,6 @@ export async function main(argv) {
     version: pkg.version,
     distOk: existsSync(join(dir, 'dist', 'index.js')),
     published: await publishedVersions(NPM_NAME),
-    hasToken: Boolean(process.env.NODE_AUTH_TOKEN),
   });
   if (decision.action === 'fail') {
     summary(`### npm: not published\n\n${decision.reason}`);
@@ -110,7 +105,7 @@ export async function main(argv) {
   }
   writeFileSync(file, JSON.stringify(publishManifest(pkg), null, 2) + '\n');
   const args = ['publish', '--access', 'public', '--ignore-scripts', '--tag', decision.distTag];
-  // Provenance needs a CI identity; trusted publishing adds it anyway, a token run needs the flag.
+  // Provenance needs a CI identity, so a local dry run leaves the flag off.
   if (process.env.GITHUB_ACTIONS === 'true') args.push('--provenance');
   if (dryRun) args.push('--dry-run');
   execFileSync('npm', args, { cwd: dir, stdio: 'inherit' });

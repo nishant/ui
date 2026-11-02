@@ -2,8 +2,7 @@ name: publish
 # Publishes a release tag to npm as nish-ui (docs/RELEASING.md, "npm").
 # scripts/release.mjs --ci dispatches it after every release. By hand:
 #   gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z
-# Auth is npm trusted publishing (OIDC, id-token below). NPM_TOKEN is only for the first publish,
-# since npm sets a trusted publisher only on a package that exists.
+# Auth is npm trusted publishing only (OIDC, id-token below): no NPM_TOKEN, and nish-ui disallows tokens.
 on:
   workflow_dispatch:
     inputs:
@@ -45,5 +44,4 @@ jobs:
       - name: Publish
         env:
           TAG: ${{ inputs.tag }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: node tools/npm-publish.mjs "$RUNNER_TEMP/pkg" --tag "$TAG"
