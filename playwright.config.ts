@@ -16,10 +16,19 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } }],
-  webServer: {
-    command: 'npx vite --config tests/overlay/vite.config.ts --port 5193 --strictPort',
-    url: 'http://localhost:5193/harness.html',
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  webServer: [
+    {
+      command: 'npx vite --config tests/overlay/vite.config.ts --port 5193 --strictPort',
+      url: 'http://localhost:5193/harness.html',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    // Elements specs (tests/elements): the custom elements and their React twins, on port 5194.
+    {
+      command: 'npx vite --config tests/elements/vite.config.ts --port 5194 --strictPort',
+      url: 'http://localhost:5194/index.html',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
 });

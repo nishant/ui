@@ -80,6 +80,47 @@ export function StaticSitesPage() {
         </Prose>
       </Section>
 
+      <Section
+        id="elements"
+        title="Elements"
+        note="nish-ui/elements: custom elements for pages without React. They render the nish-* classes above, so the look is the same."
+      >
+        <CodeBlock
+          title="<head>, from jsDelivr"
+          code={`<script src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/theme-init.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/nish.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/nish-components.css">
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/elements.js"></script>`}
+        />
+        <div className="grid gap-3 lg:grid-cols-2">
+          <CodeBlock
+            title="with a bundler"
+            code={`import 'nish-ui/elements';
+// in a fleet app: import '@nish/ui/elements';
+import { toast } from 'nish-ui/elements';
+
+toast('Saved', { tone: 'ok' });`}
+          />
+          <CodeBlock
+            title="in the page"
+            code={`<nish-theme-toggle pill></nish-theme-toggle>
+<button class="nish-btn" data-sheet-open="filters">Filters</button>
+<nish-sheet id="filters" label="Filters">…</nish-sheet>
+<nish-dialog id="confirm">…</nish-dialog>
+<nish-bottom-nav><a href="/">Home</a>…</nish-bottom-nav>`}
+          />
+        </div>
+        <Prose>
+          <p>
+            <code>{'<nish-theme-toggle>'}</code>, <code>{'<nish-sheet>'}</code>, <code>{'<nish-dialog>'}</code>, <code>{'<nish-bottom-nav>'}</code> and{' '}
+            <code>toast()</code> work in plain HTML, in any framework and in Claude artifacts. React apps keep the React components and never load them.
+            The elements use light DOM, so your own CSS applies, and they never inject CSS: link <code>nish.css</code> and{' '}
+            <code>nish-components.css</code> as above. The button, card, bottom nav, theme toggle, modal, more sheet and toast pages have an HTML tab with the markup, running live.
+          </p>
+          <p>In a Claude artifact, inline the CSS and load elements.js from jsdelivr; artifacts only allow stylesheets from Google Fonts.</p>
+        </Prose>
+      </Section>
+
       <ComponentClasses />
 
       <Section

@@ -45,6 +45,9 @@
       "inbox-client": [
         "./dist/inbox-client.d.ts"
       ],
+      "elements": [
+        "./dist/elements.d.ts"
+      ],
       "vite": [
         "./dist/node/vite.d.ts"
       ],
@@ -97,6 +100,11 @@
       "import": "./dist/inbox-client.js",
       "default": "./dist/inbox-client.js"
     },
+    "./elements": {
+      "types": "./dist/elements.d.ts",
+      "import": "./dist/elements.js",
+      "default": "./dist/elements.js"
+    },
     "./vite": {
       "types": "./dist/node/vite.d.ts",
       "import": "./dist/node/vite.js",
@@ -139,7 +147,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "contrast": "node tools/contrast.mjs",
-    "check": "npm run typecheck && npm run contrast && npm run build && node tools/format-check.mjs && node tools/inbox-client-check.mjs && node tools/canvas-layout-check.mjs && node tools/canvas-route-check.mjs && npm run th-check && npm run lint",
+    "check": "npm run typecheck && npm run contrast && npm run build && node tools/format-check.mjs && node tools/elements-check.mjs && node tools/inbox-client-check.mjs &&node tools/canvas-layout-check.mjs && node tools/canvas-route-check.mjs && npm run th-check && npm run lint",
     "visual": "node tools/visual-check.mjs",
     "release": "node scripts/release.mjs",
     "test:tools": "node --test tools/*.test.mjs tools/fanout/*.test.mjs",
@@ -187,6 +195,7 @@
     "happy-dom": "^21.0.4",
     "hono": "^4.13.14",
     "jiti": "^2.7.0",
+    "lit": "^3.3.3",
     "pixelmatch": "^7.2.0",
     "playwright": "^1.64.1",
     "pngjs": "^7.0.0",

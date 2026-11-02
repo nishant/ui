@@ -36,6 +36,10 @@ export interface ComponentDoc {
   framed?: { height: number };
   /** The source file the page links to when it documents no component (CSS, a function). */
   source?: string;
+  /** The same component without React: the element or nish-* class markup. Shown as an
+   *  "HTML" tab next to the React code, and rendered live in an iframe that loads
+   *  nish.css, nish-components.css and elements.js. */
+  html?: { code: string; height?: number };
   /** Extra API to document below the props (functions, hooks, types). */
   api?: { functions: string[]; interfaces: string[] };
 }

@@ -4,7 +4,7 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
-## [1.6.0] - 2026-11-02
+## [1.7.0] - 2026-11-02
 
 ### Added
 
@@ -21,6 +21,12 @@ a minor adds, and a patch fixes.
 - `useUrlState` keeps a single list value whole, so `?loc=Austin%2C+TX` reads as `['Austin, TX']`. A single comma value used to be split; pass `comma` for the keys whose old links need that.
 - `apiFetch` errors use the wording the apps share: "Could not reach the server.", "The server took too long to answer.", "Log in to continue." (401), "That was not found." (a 404 code), "The server had a problem. Try again." (any other bare code such as `server_error`) and "The server answered 503." when the response has no message. A sentence from the server in `error` or `message` is still shown as it is.
 - ui lints with `react-hooks/refs` as an error: latest-value refs are written in a layout effect instead of during render (overlays, menus, useResource, useLocalStorage, useCommandHotkey, the command palette and the flow components). Behavior is unchanged, except that a `DropdownMenu` open on mount now renders straight into its trigger's layer.
+
+## [1.6.0] - 2026-11-02
+
+### Added
+
+- `nish-ui/elements`: `<nish-theme-toggle>`, `<nish-sheet>`, `<nish-dialog>`, `<nish-bottom-nav>` and `toast()` for pages without React.
 
 ## [1.5.0] - 2026-11-02
 

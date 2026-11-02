@@ -48,6 +48,23 @@ export const toastDoc: ComponentDoc = {
     return `toast.${a.tone}(${q(a.title)}, { ${body}action: { label: ${q(a.action)}, onClick: undo }, id: 'undo' });`;
   },
   framed: { height: 220 },
+  html: {
+    height: 240,
+    code: `<div style="display:flex;flex-wrap:wrap;gap:8px">
+  <button type="button" class="nish-btn" id="saved">Saved</button>
+  <button type="button" class="nish-btn" id="warn">Running low</button>
+  <button type="button" class="nish-btn" id="archive">Archive</button>
+</div>
+
+<script type="module">
+  import { toast } from 'https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements.js';
+
+  document.getElementById('saved').onclick = () => toast('Changes are live.', { tone: 'ok' });
+  document.getElementById('warn').onclick = () => toast('Under 20 API calls left today.', { tone: 'warn' });
+  document.getElementById('archive').onclick = () =>
+    toast('Archived', { action: { label: 'Undo', onClick: () => toast('Restored') } });
+</script>`,
+  },
   api: { functions: ['toast', 'dismissToast', 'useToast'], interfaces: ['ToastOptions', 'ToastItem'] },
   stories: [
     {

@@ -79,6 +79,25 @@ const configs: Options[] = [
     outDir: 'dist',
     clean: false,
   },
+  {
+    // @nish/ui/elements (nish-ui/elements): web components. One self-contained ESM file with Lit bundled in
+    // and no shared chunks, because static sites vendor single files. Lit is a devDependency.
+    entry: { elements: 'src/elements/index.ts' },
+    format: ['esm'],
+    // Types are hand-written (src/elements/public.d.ts) so dist/elements.d.ts never imports lit.
+    dts: false,
+    onSuccess: async () => {
+      const { copyFileSync } = await import('node:fs');
+      copyFileSync('src/elements/public.d.ts', 'dist/elements.d.ts');
+    },
+    sourcemap: true,
+    target: 'es2022',
+    noExternal: ['lit', /^@lit\//],
+    minify: true,
+    outDir: 'dist',
+    clean: false,
+    splitting: false,
+  },
   { entry: { 'server/index': 'src/server/index.ts', 'server/hono': 'src/server/hono.ts' }, format: ['esm'], dts: true, sourcemap: true, target: 'node22', platform: 'node', outDir: 'dist', clean: false, splitting: false, external: ['hono', /^hono\//] },
 ];
 if (Object.keys(nodeEntry).length) configs.push({ ...nodeBase, entry: nodeEntry });

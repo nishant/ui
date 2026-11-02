@@ -94,6 +94,26 @@ then:
 A classic-script build (`theme.global.js`, `window.nishTheme`) covers pages that cannot use
 modules. See [Static sites](https://design.nish.software/#/static-sites).
 
+### Without React
+
+`nish-ui/elements` is one self-contained file (about 20 KB gzipped at most) with custom
+elements for pages that have no React: `<nish-theme-toggle>`, `<nish-sheet>`,
+`<nish-dialog>`, `<nish-bottom-nav>` and `toast()`. They work in plain HTML, any framework
+and Claude artifacts. They use the same `nish-*` classes as above, so link the stylesheets too.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/theme-init.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/nish.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/nish-components.css">
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements.js"></script>
+
+<nish-theme-toggle pill></nish-theme-toggle>
+```
+
+With a bundler: `import 'nish-ui/elements';` and `import { toast } from 'nish-ui/elements';`.
+The button, card, bottom nav, theme toggle, modal, more sheet and toast pages on the docs site have an HTML tab with the markup, running live. More in
+[Static sites](https://design.nish.software/#/static-sites).
+
 ## Theming
 
 Seven themes: `dark` (the default), `light`, and the presets `slate`, `terminal`, `mocha`,
