@@ -234,3 +234,8 @@ export type { SettingsSectionProps, SettingRowProps, NumberFieldProps, SaveStatu
 export { Combobox } from './components/combobox';
 export type { ComboboxProps, ComboboxOption } from './components/combobox';
 export { CheckIcon, ClockIcon, MoreIcon, BellIcon, SettingsIcon } from './components/icons';
+export { SplitStage, SplitDividers, LayoutPresetPicker, LayoutPresetIcon, presetOptions } from './components/split';
+export type { SplitStageProps, SplitDividersProps, LayoutPresetPickerProps, LayoutPresetIconProps, LayoutPresetOption } from './components/split';
+export * from './split-layout';
+export { MediaThumb, MediaRow, MediaChip } from './components/media';
+export type { MediaThumbProps, MediaRowProps, MediaChipProps, MediaThumbShape, MediaThumbSize } from './components/media';

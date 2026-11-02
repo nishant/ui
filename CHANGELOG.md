@@ -4,6 +4,16 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [1.3.0] - 2026-11-02
+
+### Added
+
+- `SplitStage`, `SplitDividers`, `LayoutPresetPicker`, `LayoutPresetIcon` and `presetOptions()`: up to four panes in a split layout. The stage renders panes in the order you give, positions each one from its slot's rectangle, and never wraps them, so reordering slots never moves a DOM node or reloads an iframe. Dividers resize by pointer or arrow keys, and Enter or a double click equalizes that split.
+- `@nish/ui/split-layout` (also re-exported from the root): the React-free split-tree math (presets, rectangles, dividers, resize, add and remove, narrow layouts, validation), safe to import from Node.
+- `MediaRow`, `MediaChip` and `MediaThumb`: a row with a thumbnail, a two-line title, meta and detail lines and Live/Offline badges; a pill chip; and the thumbnail alone. Thumbnails load only from https or relative URLs.
+- `ListRow` `titleLines={2}` lets the title wrap to two lines. The default stays one line.
+- `[data-dragging] iframe` turns off pointer events on frames while a split drag is active.
+
 ## [1.2.1] - 2026-11-02
 
 ### Fixed

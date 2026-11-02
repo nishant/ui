@@ -69,6 +69,8 @@ import { appShell } from './app-shell';
 import { connectionBanner } from './connection-banner';
 import { responsiveTable } from './responsive-table';
 import { listRow } from './list-row';
+import { mediaRow } from './media-row';
+import { splitStage } from './split-stage';
 import { linkCard } from './link-card';
 import { favicon } from './favicon';
 import { asyncPanel } from './async-panel';
@@ -167,6 +169,8 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   connectionBanner,
   responsiveTable,
   listRow,
+  mediaRow,
+  splitStage,
   linkCard,
   favicon,
   asyncPanel,

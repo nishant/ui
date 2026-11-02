@@ -80,6 +80,23 @@ export const listRow: ComponentDoc = {
       ),
     },
     {
+      id: 'title-lines',
+      name: 'Two-line titles',
+      note: 'titleLines={2} lets a long title wrap to two lines before it is cut off. The default, 1, truncates.',
+      render: () => (
+        <ul className="m-0 w-full list-none rounded-xl border border-th-line bg-th-surface p-1">
+          <ListRow icon={<ChartIcon size={20} />} title="A long title that would otherwise be cut off after a single line of text, however wide the row" subtitle="titleLines 1 (default)" onClick={() => undefined} />
+          <ListRow
+            icon={<ChartIcon size={20} />}
+            title="A long title that would otherwise be cut off after a single line of text, however wide the row"
+            titleLines={2}
+            subtitle="titleLines 2"
+            onClick={() => undefined}
+          />
+        </ul>
+      ),
+    },
+    {
       id: 'external',
       name: 'External link',
       render: () => (
@@ -100,6 +117,6 @@ export const listRow: ComponentDoc = {
     'Use as="div" when the row is not inside a <ul> or <ol>.',
     'With a client-side router, pass onClick that navigates instead of href, so the row stays one control and the router handles the transition.',
     'Do not put a second button inside a row that is itself a link or button. Trailing is for non-interactive badges or a Switch in a plain row.',
-    'Titles truncate; subtitles clamp to two lines. Keep meta to a short value such as a date or an amount.',
+    'Titles truncate (or wrap to two lines with titleLines={2}, as MediaRow does); subtitles clamp to two lines. Keep meta to a short value such as a date or an amount.',
   ],
 };

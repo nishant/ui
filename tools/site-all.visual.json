@@ -261,6 +261,21 @@
       "settle": 1000
     },
     {
+      "name": "list-row",
+      "url": "http://localhost:5191/#/components/list-row",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "media-row",
+      "url": "http://localhost:5191/#/components/media-row",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "split-stage",
+      "url": "http://localhost:5191/#/components/split-stage",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "segmented",
       "url": "http://localhost:5191/#/components/segmented",
       "waitFor": "[data-page]"

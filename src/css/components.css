@@ -2235,3 +2235,8 @@
     min-height: 0;
   }
 }
+
+/* --- Split stage: a cross-origin frame swallows pointer events, so a divider or pane drag turns them off --- */
+:where([data-dragging] iframe) {
+  pointer-events: none;
+}

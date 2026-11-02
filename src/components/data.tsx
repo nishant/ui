@@ -406,8 +406,10 @@ export function ResponsiveTable<T>({
 export interface ListRowProps {
   /** A leading icon or avatar (kept at its size). */
   icon?: ReactNode;
-  /** The main line; truncates. */
+  /** The main line; truncates, or wraps to two lines with `titleLines={2}`. */
   title: ReactNode;
+  /** How many lines the title may use before it is cut off. Default 1 (truncates). */
+  titleLines?: 1 | 2;
   /** A quieter line under the title; up to two lines. */
   subtitle?: ReactNode;
   /** A right-aligned detail: a date, an amount. */
@@ -437,6 +439,7 @@ export interface ListRowProps {
 export function ListRow({
   icon,
   title,
+  titleLines = 1,
   subtitle,
   meta,
   trailing,
@@ -466,7 +469,15 @@ export function ListRow({
     <>
       {icon ? <span className="flex shrink-0 items-center text-th-hi3 [&>svg]:size-5">{icon}</span> : null}
       <span className="min-w-0 flex-1">
-        <span className={cn('block truncate', tone === 'danger' ? 'text-th-loss' : 'text-th-hi')}>{title}</span>
+        <span
+          className={cn(
+            'block',
+            titleLines === 2 ? 'line-clamp-2 break-words' : 'truncate',
+            tone === 'danger' ? 'text-th-loss' : 'text-th-hi',
+          )}
+        >
+          {title}
+        </span>
         {subtitle ? <span className="line-clamp-2 block text-sm text-th-hi3">{subtitle}</span> : null}
       </span>
       {meta ? <span className="shrink-0 text-right text-xs tabular-nums text-th-hi3">{meta}</span> : null}
