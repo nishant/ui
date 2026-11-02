@@ -241,6 +241,26 @@ function compare(react: Record<string, Measured>, el: Record<string, Measured>):
   return diffs;
 }
 
+/** "title.dx 47 vs 44" -> ["title.dx", 47, 44]; null for a non-numeric diff (a color, a padding string). */
+function numericGap(d: string): [string, number, number] | null {
+  const m = /^(\S+) (-?\d+(?:\.\d+)?) vs (-?\d+(?:\.\d+)?)$/.exec(d);
+  return m ? [m[1]!, Number(m[2]), Number(m[3])] : null;
+}
+
+/** Each measured diff, written as its listed gap when a numeric gap lands within 1px of it (text metrics
+ *  differ by a pixel between the Windows and Linux fonts, the same "within 1px" the box check allows). */
+function matchKnown(diffs: string[], known: string[]): string[] {
+  return diffs.map((d) => {
+    const g = numericGap(d);
+    if (!g) return d;
+    const hit = known.find((k) => {
+      const n = numericGap(k);
+      return n && n[0] === g[0] && Math.abs(n[1] - g[1]) <= 1 && Math.abs(n[2] - g[2]) <= 1;
+    });
+    return hit ?? d;
+  });
+}
+
 for (const c of CASES) {
   for (const size of SIZES) {
     for (const scheme of SCHEMES) {
@@ -270,7 +290,7 @@ for (const c of CASES) {
           if (process.env.PARITY_VERBOSE) console.log(`DIFF ${c.name} ${size.name} ${scheme}\n  ${diffs.join('\n  ')}`);
           // Exactly the listed gaps: a new difference fails, and so does a listed gap that is gone.
           const known = KNOWN_GAPS[c.name]?.(size.name, scheme) ?? [];
-          expect(diffs.slice().sort(), 'the element version differs from the React one (or a known gap closed: delete it)').toEqual(known.slice().sort());
+          expect(matchKnown(diffs, known).sort(), 'the element version differs from the React one (or a known gap closed: delete it)').toEqual(known.slice().sort());
         } finally {
           await ctx.close();
         }
