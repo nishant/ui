@@ -1,6 +1,6 @@
 {
   "name": "@nish/ui",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Design tokens, theme switching and React components shared by every *.nish.software app.",
   "license": "MIT",
   "author": "Nishant Arora",
