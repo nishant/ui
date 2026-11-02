@@ -9,6 +9,25 @@ a minor adds, and a patch fixes.
 ### Added
 
 - `nish-ui/elements/forms`: `<nish-field>`, `<nish-search>`, `<nish-switch>`, `<nish-chip-group>`, `<nish-combobox>`, `<nish-tabs>`, `<nish-segmented>`, `<nish-copy-button>` and `<nish-sparkline>`; new classes for tabs, list rows, headers, key-value lists and legends; the toast, sheet, dialog and bottom nav classes now match React.
+- `.nish-callout--text` (running text in one block), `.nish-stats--4` (two, then four columns from 640px), and `.nish-pill-link` in nish-components.css, so pages without nish.css get it.
+
+## [1.7.0] - 2026-11-02
+
+### Added
+
+- `AppShell` `sidebar`: from 1024px the nav is a left sidebar of icon and label rows instead of header tabs. It collapses to icons (the label becomes the tooltip) from a button at its foot, remembers the choice in localStorage (`storageKey`), can be controlled (`collapsed`, `onCollapsedChange`) and takes `tools` above the nav (shown in the header below 1024px) and a `footer`.
+- `AppShell` `banner`: app banners in one sticky stack under the header, below the ConnectionBanner, so the two never overlap. The stack publishes its height as `--nish-banners-h`, and the rail and sidebar stick below it.
+- `AppShell` without `nav` (now optional) is the signed-out frame: no tabs, rail, sidebar, bottom bar or More sheet. Its `moreItems` stay in the header menu at every width.
+- `AppShell` and `AppHeader` `brand`: your own node in place of the icon, the name and their home link (a profile switcher, a wordmark with a subtitle). The name stays for screen readers.
+- `NumberField` is a spinbutton (`role="spinbutton"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and `aria-valuetext` with a text `suffix`, "10 min"). When `min` is below zero it asks phones for the full keyboard, since the iOS decimal keypad has no minus key, and it reads a typographic minus (−).
+- `SettingsSection` and `SettingRow` `compact`: no Card, a small heading and 44px rows with the label beside the control at every width, for modals, sheets and side panels. Rows in a compact section are compact by default.
+- `useUrlState` `comma`: `true` or a list of keys also reads a single `?tags=a,b` as two values, for links written in the older comma form.
+
+### Changed
+
+- `useUrlState` keeps a single list value whole, so `?loc=Austin%2C+TX` reads as `['Austin, TX']`. A single comma value used to be split; pass `comma` for the keys whose old links need that.
+- `apiFetch` errors use the wording the apps share: "Could not reach the server.", "The server took too long to answer.", "Log in to continue." (401), "That was not found." (a 404 code), "The server had a problem. Try again." (any other bare code such as `server_error`) and "The server answered 503." when the response has no message. A sentence from the server in `error` or `message` is still shown as it is.
+- ui lints with `react-hooks/refs` as an error: latest-value refs are written in a layout effect instead of during render (overlays, menus, useResource, useLocalStorage, useCommandHotkey, the command palette and the flow components). Behavior is unchanged, except that a `DropdownMenu` open on mount now renders straight into its trigger's layer.
 
 ## [1.6.0] - 2026-11-02
 

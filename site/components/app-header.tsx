@@ -153,5 +153,6 @@ import { NavLink } from 'react-router';
     'Every app shows the hub pill at every width; do not hide it on phones.',
     'Keep actions to icon buttons; the wordmark truncates first when space runs out.',
     'Nav links use tabClass and aria-current="page", not Tabs: they navigate.',
+    'brand replaces the icon, the name and their home link with your own node (a profile switcher). It is not wrapped in a link, so a button or a link inside it is fine.',
   ],
 };

@@ -79,15 +79,19 @@ function useTransitionFx<S extends string>(
  *  an item's enter animation is not cut off by the next render. With `skipFirst` the ids
  *  of the first render are never fresh. */
 function useFreshIds(ids: string[], skipFirst: boolean): Set<string> {
-  const known = useRef<Set<string> | null>(skipFirst ? null : new Set());
-  const fresh = useRef(new Set<string>());
-  if (known.current) for (const id of ids) if (!known.current.has(id)) fresh.current.add(id);
-  useEffect(() => {
-    const current = new Set(ids);
-    known.current = current;
-    for (const id of fresh.current) if (!current.has(id)) fresh.current.delete(id);
-  });
-  return fresh.current;
+  const key = ids.join('\n');
+  const [seen, setSeen] = useState(() => ({
+    key,
+    known: new Set(ids),
+    fresh: new Set(skipFirst ? [] : ids),
+  }));
+  if (seen.key === key) return seen.fresh;
+  // The ids changed: derive the next sets during render (React's "adjust state on a prop
+  // change" pattern), so a new item is flagged on the very render that adds it.
+  const fresh = new Set([...seen.fresh].filter((id) => ids.includes(id)));
+  for (const id of ids) if (!seen.known.has(id)) fresh.add(id);
+  setSeen({ key, known: new Set(ids), fresh });
+  return fresh;
 }
 
 function CheckSvg({ size, className }: { size: number; className?: string }) {
@@ -844,7 +848,6 @@ export function AnimatedList<T>({
   const els = useRef(new Map<string, HTMLElement>());
   const rects = useRef(new Map<string, { x: number; y: number }>());
   const anims = useRef(new Map<string, Animation>());
-  const refCbs = useRef(new Map<string, (el: HTMLElement | null) => void>());
   const lastKeys = useRef<string | null>(null);
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
@@ -908,9 +911,6 @@ export function AnimatedList<T>({
         anims.current.delete(k);
       }
     });
-    refCbs.current.forEach((_, k) => {
-      if (!live.has(k)) refCbs.current.delete(k);
-    });
     // Focus inside an exiting item moves to a staying neighbour.
     const active = typeof document !== 'undefined' ? document.activeElement : null;
     if (active) {
@@ -956,17 +956,6 @@ export function AnimatedList<T>({
     rects.current = next;
   }, [entries, reduced]);
 
-  const refFor = (key: string) => {
-    let cb = refCbs.current.get(key);
-    if (!cb) {
-      cb = (el: HTMLElement | null) => {
-        if (el) els.current.set(key, el);
-        else els.current.delete(key);
-      };
-      refCbs.current.set(key, cb);
-    }
-    return cb;
-  };
   const Root = as;
   const Item = as === 'div' ? 'div' : 'li';
   return (
@@ -974,7 +963,13 @@ export function AnimatedList<T>({
       {entries.map((e) => (
         <Item
           key={e.key}
-          ref={refFor(e.key)}
+          ref={(el: HTMLElement | null) => {
+            if (!el) return;
+            els.current.set(e.key, el);
+            return () => {
+              if (els.current.get(e.key) === el) els.current.delete(e.key);
+            };
+          }}
           className={cn('nish-flow-item', itemClassName)}
           data-phase={e.phase}
           aria-hidden={e.phase === 'exit' || undefined}

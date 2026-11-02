@@ -35,14 +35,36 @@ describe('useUrlState with a memory adapter', () => {
     expect(result.current[0]).toEqual({ q: 'rust', page: 3, onlyOpen: true, tags: ['a', 'b'] });
   });
 
-  it('accepts a comma-separated array, true/false booleans and falls back on bad numbers', () => {
-    const a = memoryAdapter('tags=a,b,c&onlyOpen=true&page=abc');
+  it('keeps a single comma value whole, accepts true/false booleans and falls back on bad numbers', () => {
+    const a = memoryAdapter('tags=Austin%2C+TX&onlyOpen=true&page=abc');
     const { result } = renderHook(() => useUrlState(DEFAULTS, { adapter: a }));
-    expect(result.current[0]).toEqual({ q: '', page: 1, onlyOpen: true, tags: ['a', 'b', 'c'] });
+    expect(result.current[0]).toEqual({ q: '', page: 1, onlyOpen: true, tags: ['Austin, TX'] });
     const b = memoryAdapter('onlyOpen=maybe&page=');
     const r2 = renderHook(() => useUrlState(DEFAULTS, { adapter: b }));
     expect(r2.result.current[0].onlyOpen).toBe(false);
     expect(r2.result.current[0].page).toBe(1);
+  });
+
+  it('reads the comma form only for the keys given in `comma`', () => {
+    const a = memoryAdapter('tags=a,b,c');
+    expect(renderHook(() => useUrlState(DEFAULTS, { adapter: a, comma: true })).result.current[0].tags).toEqual(['a', 'b', 'c']);
+    expect(renderHook(() => useUrlState(DEFAULTS, { adapter: a, comma: ['tags'] })).result.current[0].tags).toEqual(['a', 'b', 'c']);
+    expect(renderHook(() => useUrlState(DEFAULTS, { adapter: a, comma: [] })).result.current[0].tags).toEqual(['a,b,c']);
+  });
+
+  it('writes a lone comma value as a single key without the comma marker', () => {
+    const a = memoryAdapter();
+    const { result } = renderHook(() => useUrlState(DEFAULTS, { adapter: a }));
+    act(() => result.current[1]({ tags: ['Austin, TX'] }));
+    expect(a.search()).toBe('tags=Austin%2C+TX');
+    expect(result.current[0].tags).toEqual(['Austin, TX']);
+  });
+
+  it('round-trips a lone comma value in comma mode', () => {
+    const a = memoryAdapter();
+    const { result } = renderHook(() => useUrlState(DEFAULTS, { adapter: a, comma: true }));
+    act(() => result.current[1]({ tags: ['Austin, TX'] }));
+    expect(result.current[0].tags).toEqual(['Austin, TX']);
   });
 
   it('round-trips array values that contain a comma', () => {

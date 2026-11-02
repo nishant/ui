@@ -145,6 +145,42 @@ describe('NumberField', () => {
     expect(b.input.value).toBe('10');
   });
 
+  it('is a spinbutton with its range and current value', () => {
+    const { input } = setup({ min: 0, max: 50 });
+    expect(input.getAttribute('role')).toBe('spinbutton');
+    expect(input.getAttribute('aria-valuemin')).toBe('0');
+    expect(input.getAttribute('aria-valuemax')).toBe('50');
+    expect(input.getAttribute('aria-valuenow')).toBe('10');
+    expect(input.getAttribute('inputmode')).toBe('decimal');
+    fireEvent.keyDown(input, { key: 'ArrowUp' });
+    expect(input.getAttribute('aria-valuenow')).toBe('11');
+    fireEvent.change(input, { target: { value: '' } });
+    expect(input.getAttribute('aria-valuenow')).toBe('10');
+  });
+
+  it('takes negatives when min allows them, with a minus key on phones', () => {
+    const { input, onCommit } = setup({ min: -20 });
+    expect(input.getAttribute('inputmode')).toBe('text');
+    fireEvent.change(input, { target: { value: '\u22125' } });
+    fireEvent.blur(input);
+    expect(onCommit).toHaveBeenCalledWith(-5);
+    fireEvent.change(input, { target: { value: '-50' } });
+    fireEvent.blur(input);
+    expect(onCommit).toHaveBeenLastCalledWith(-20);
+  });
+
+  it('steps below zero without a min, keeping the number pad', () => {
+    const { input } = setup({ value: 0 });
+    expect(input.getAttribute('inputmode')).toBe('decimal');
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    expect(input.value).toBe('-1');
+  });
+
+  it('reads the suffix with the value', () => {
+    const { input } = setup({ suffix: 'min' });
+    expect(input.getAttribute('aria-valuetext')).toBe('10 min');
+  });
+
   it('renders the suffix and follows an external value change', () => {
     const { rerender } = render(<NumberField aria-label="Pct" value={5} onCommit={() => {}} suffix="%" />);
     expect(screen.getByText('%')).toBeTruthy();
@@ -165,6 +201,36 @@ describe('SettingsSection and SettingRow', () => {
     expect(screen.getByRole('region', { name: 'Scanner' })).toBeTruthy();
     expect(screen.getByLabelText('Interval').id).toBe('iv');
     expect(screen.getByText('Saved').className).toContain('text-th-ok');
+  });
+});
+
+describe('compact settings', () => {
+  it('drops the card and tightens the rows inside a compact section', () => {
+    const { container } = render(
+      <SettingsSection title="Alerts" compact>
+        <SettingRow label="Sound" htmlFor="snd">
+          <input id="snd" />
+        </SettingRow>
+      </SettingsSection>,
+    );
+    expect(screen.getByRole('heading', { name: 'Alerts' }).className).toContain('text-sm');
+    const row = screen.getByLabelText('Sound').closest('.min-h-11') as HTMLElement;
+    expect(row).toBeTruthy();
+    expect(row.className).toContain('grid-cols-[1fr_auto]');
+    expect(row.className).not.toContain('px-4');
+    expect(container.querySelector('.nish-card')).toBeNull();
+  });
+
+  it('a compact row in a normal section keeps its side padding', () => {
+    render(
+      <SettingsSection title="General">
+        <SettingRow label="Sound" htmlFor="snd" compact>
+          <input id="snd" />
+        </SettingRow>
+      </SettingsSection>,
+    );
+    const row = screen.getByLabelText('Sound').closest('.min-h-11') as HTMLElement;
+    expect(row.className).toContain('px-4');
   });
 });
 

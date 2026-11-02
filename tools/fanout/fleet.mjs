@@ -1,61 +1,42 @@
 #!/usr/bin/env node
-// Parser for hosting/fleet.yaml (flat `- key: value` entries) and the --matrix CLI the
+// Reads the fleet from hosting's generated catalog.json and runs the --matrix CLI the
 // fan-out workflow uses.
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const UI_KINDS = ['npm', 'pnpm', 'vendored', 'none'];
 
-function stripComment(line) {
-  const m = /(^|\s)#/.exec(line);
-  return m ? line.slice(0, m.index) : line;
-}
+const str = (v) => (typeof v === 'string' ? v : '');
 
-const list = (v) =>
-  (v || '')
-    .split(',')
-    .map((x) => x.trim())
-    .filter(Boolean);
+const strList = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : []);
 
-function unquote(v) {
-  return v.length >= 2 && /^(["']).*\1$/.test(v) ? v.slice(1, -1) : v;
-}
-
-/** @returns {Array<{repo:string,name:string,base:string,ui:string,uiDir:string,uiExtraDirs:string[],bump:string|null,live:string|null,checkout:string,hosts:string[],deploy:string,fold:boolean}>} */
-export function parseFleet(text) {
-  const raw = [];
-  let cur = null;
-  for (const rawLine of String(text).split(/\r?\n/)) {
-    const line = stripComment(rawLine).trimEnd();
-    if (!line.trim()) continue;
-    const start = /^\s*-\s+([A-Za-z][\w-]*)\s*:\s*(.*)$/.exec(line);
-    if (start) {
-      cur = { [start[1]]: unquote(start[2].trim()) };
-      raw.push(cur);
-      continue;
-    }
-    const kv = /^\s+([A-Za-z][\w-]*)\s*:\s*(.*)$/.exec(line);
-    if (kv && cur) cur[kv[1]] = unquote(kv[2].trim());
-  }
-  return raw
-    .filter((e) => e.repo)
+/**
+ * The fleet from hosting's generated catalog.json: every repo with `fleet: true`.
+ * @param {unknown} json the parsed catalog (or its text)
+ * @returns {Array<{repo:string,name:string,base:string,ui:string,uiDir:string,uiExtraDirs:string[],bump:string|null,live:string|null,checkout:string,hosts:string[],deploy:string,fold:boolean}>}
+ */
+export function fleetFromCatalog(json) {
+  const catalog = typeof json === 'string' ? JSON.parse(json) : json;
+  const repos = Array.isArray(catalog?.repos) ? catalog.repos : [];
+  return repos
+    .filter((e) => e && e.fleet === true && typeof e.repo === 'string' && e.repo)
     .map((e) => {
-      const live = e.live && e.live.toLowerCase() !== 'none' ? e.live : null;
-      const ui = UI_KINDS.includes(e.ui) ? e.ui : 'none';
+      const short = e.repo.split('/').pop();
+      const live = typeof e.live === 'string' && e.live && e.live.toLowerCase() !== 'none' ? e.live : null;
       return {
         repo: e.repo,
-        name: e.name || e.repo.split('/').pop(),
-        base: e.base || 'master',
-        ui,
-        uiDir: e.uiDir || '.',
+        name: str(e.name) || short,
+        base: str(e.base) || 'master',
+        ui: UI_KINDS.includes(e.ui) ? e.ui : 'none',
+        uiDir: str(e.uiDir) || '.',
         // More folders that pin @nish/ui the same way (a worker or server package in the same repo).
-        uiExtraDirs: list(e.uiExtraDirs),
-        bump: e.bump || null,
+        uiExtraDirs: strList(e.uiExtraDirs),
+        bump: str(e.bump) || null,
         live,
-        checkout: e.checkout || e.repo.split('/').pop(),
-        hosts: list(e.hosts),
-        deploy: e.deploy || 'deploy.yml',
-        fold: (e.fold || '').toLowerCase() === 'yes',
+        checkout: str(e.id) || short,
+        hosts: strList(e.hosts),
+        deploy: str(e.deploy) || 'deploy.yml',
+        fold: e.fold === true,
       };
     });
 }
@@ -64,11 +45,11 @@ function main(argv) {
   const ri = argv.indexOf('--repo');
   const file = argv.find((a, i) => !a.startsWith('--') && !(ri >= 0 && i === ri + 1));
   if (!file) {
-    console.error('usage: fleet.mjs <fleet.yaml> [--matrix] [--repo owner/name|all]');
+    console.error('usage: fleet.mjs <catalog.json> [--matrix] [--repo owner/name|all]');
     return 2;
   }
   const repo = ri >= 0 ? argv[ri + 1] || 'all' : 'all';
-  const fleet = parseFleet(readFileSync(file, 'utf8'));
+  const fleet = fleetFromCatalog(readFileSync(file, 'utf8'));
   const picked = repo === 'all' ? fleet : fleet.filter((e) => e.repo === repo);
   if (repo !== 'all' && picked.length === 0) console.error(`Unknown repo ${repo}: not in ${file}`);
   if (argv.includes('--matrix')) {

@@ -1,6 +1,6 @@
 {
   "name": "@nish/ui",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Design tokens, seven themes, flash-free theme switching and accessible React 19 components for Tailwind 4, plain CSS and static HTML. Live docs: https://design.nish.software",
   "license": "MIT",
   "author": "Nishant Arora",
@@ -236,5 +236,9 @@
     "vite": "^8.3.5",
     "vitest": "^4.1.12",
     "wait-on": "^9.5.1"
+  },
+  "overrides": {
+    "minimatch": "^11.0.4",
+    "follow-redirects": "^1.16.2"
   }
 }

@@ -155,7 +155,7 @@ More than 60 components, each with live stories, props and guidelines on the
 - **Overlays:** Modal, Drawer, ConfirmDialog, Popover, DropdownMenu, Tooltip
 - **Settings:** SettingsSection, SettingRow, NumberField, ServiceTokensSection (list and revoke
   service tokens)
-- **Layout and navigation:** AppShell, AppHeader, BottomNav, NavRail, MoreSheet, Tabs,
+- **Layout and navigation:** AppShell (bottom bar, rail and a collapsible sidebar), AppHeader, BottomNav, NavRail, MoreSheet, Tabs,
   PageHeader, Card, Table, FilterBar, SplitStage
 - **Data and motion:** Stat, Sparkline, MediaRow, ActivityFeed, WorkflowBoard, SystemCanvas,
   AnimatedList

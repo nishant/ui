@@ -48,10 +48,9 @@ export default tseslint.config(
   ...scoped(nish.configs.react, REACT_FILES, globals.browser),
   ...scoped(nish.configs.node, NODE_FILES, globals.node),
   {
-    // TODO(standards): 36 hits at adoption (flow, overlay, resource, url-state, hooks, ...): refs read in render
-    // for latest-value patterns. Fixing each means restructuring hooks in a published library.
+    // Latest-value refs are written in a layout effect (src/components/latest.ts), never during render.
     files: REACT_FILES,
-    rules: { 'react-hooks/refs': 'warn' },
+    rules: { 'react-hooks/refs': 'error' },
   },
   {
     // theme-init.js is a template the build fills in (__THEMES__, __BG__, __DEFAULT__) and inlines as

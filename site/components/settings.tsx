@@ -104,6 +104,18 @@ export const settingsDoc: ComponentDoc = {
       ),
     },
     {
+      id: 'compact',
+      name: 'Compact, for a modal or a sheet',
+      note: 'compact drops the Card and tightens the rows: a small heading, 44px rows with the label beside the control at every width.',
+      render: () => <CompactDemo />,
+    },
+    {
+      id: 'negative',
+      name: 'NumberField with negatives',
+      note: 'A field whose min is below zero opens the full keyboard on phones, since the iOS decimal keypad has no minus key. It is a spinbutton: screen readers hear its range and its value with the suffix.',
+      render: () => <NegativeDemo />,
+    },
+    {
       id: 'actions',
       name: 'Section with actions',
       render: () => (
@@ -151,6 +163,8 @@ function Alerts({ settings, patch }) {
     'Pass htmlFor so the label is a real label for the control. A Switch with no visible label of its own needs aria-label.',
     'Use inline for Switch and Checkbox rows so the control stays at the end of the label row on a phone; use stacked for textareas and other wide controls.',
     'NumberField saves on blur and Enter, so there is no Save button. Return the promise from onCommit so the field shows a spinner and restores the old value if the save fails.',
+    'NumberField clamps to min and max. Give a field that can go negative a min below zero, so phones show a keyboard with a minus key. Arrow keys step by step.',
+    'Use compact inside a Modal, Drawer or side panel, where a Card inside the surface would be a box in a box.',
     'Feed useSaveStatus().label and .tone into a row status, so the result is announced politely and not only shown.',
   ],
   api: { functions: ['useSaveStatus'], interfaces: ['SaveStatus'] },
@@ -172,5 +186,33 @@ function FailingRow() {
         }}
       />
     </SettingRow>
+  );
+}
+
+function CompactDemo() {
+  const [sound, setSound] = useState(true);
+  const [snooze, setSnooze] = useState<number | null>(10);
+  return (
+    <div className="w-full max-w-sm rounded-xl border border-th-line bg-th-elevated p-4">
+      <SettingsSection title="Alerts" description="On this device." compact>
+        <SettingRow label="Sound" htmlFor="compact-sound">
+          <Switch id="compact-sound" aria-label="Sound" checked={sound} onChange={setSound} />
+        </SettingRow>
+        <SettingRow label="Snooze for" htmlFor="compact-snooze">
+          <NumberField id="compact-snooze" value={snooze} min={1} max={120} suffix="min" onCommit={setSnooze} />
+        </SettingRow>
+      </SettingsSection>
+    </div>
+  );
+}
+
+function NegativeDemo() {
+  const [offset, setOffset] = useState<number | null>(-2);
+  return (
+    <SettingsSection title="Clock" className="w-full">
+      <SettingRow label="Offset from market time" description="Between -12 and 12 hours." htmlFor="neg-offset">
+        <NumberField id="neg-offset" value={offset} min={-12} max={12} suffix="h" onCommit={setOffset} />
+      </SettingRow>
+    </SettingsSection>
   );
 }

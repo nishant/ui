@@ -47,12 +47,26 @@ describe('apiFetch', () => {
     expect(err.retryable).toBe(false);
   });
 
-  it('falls back to status text and marks 5xx retryable', async () => {
+  it('says which status the server answered and marks 5xx retryable', async () => {
     fetchMock.mockResolvedValue(new Response('oops', { status: 503, statusText: 'Service Unavailable' }));
     const err = await apiFetch('/x').then(() => { throw new Error("expected a rejection"); }, (e: unknown) => e as ApiError);
-    expect(err.message).toBe('503 Service Unavailable');
+    expect(err.message).toBe('The server answered 503.');
     expect(err.body).toBe('oops');
     expect(err.retryable).toBe(true);
+  });
+
+  it.each([
+    [401, {}, 'Log in to continue.'],
+    [401, { error: 'unauthorized' }, 'Log in to continue.'],
+    [401, { error: 'Wrong password.' }, 'Wrong password.'],
+    [404, { error: 'not_found' }, 'That was not found.'],
+    [500, { error: 'server_error' }, 'The server had a problem. Try again.'],
+    [400, { message: 'Pick a date first.' }, 'Pick a date first.'],
+    [502, {}, 'The server answered 502.'],
+  ])('words a %i with %j as %j', async (status, body, message) => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }));
+    const err = await apiFetch('/x').then(() => { throw new Error("expected a rejection"); }, (e: unknown) => e as ApiError);
+    expect(err.message).toBe(message);
   });
 
   it('maps a network failure to status 0', async () => {
@@ -60,7 +74,7 @@ describe('apiFetch', () => {
     const err = await apiFetch('/x').then(() => { throw new Error("expected a rejection"); }, (e: unknown) => e as ApiError);
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(0);
-    expect(err.message).toBe("Can't reach the server");
+    expect(err.message).toBe('Could not reach the server.');
     expect(err.retryable).toBe(true);
   });
 
@@ -72,7 +86,7 @@ describe('apiFetch', () => {
     const err = await p;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(0);
-    expect(err.message).toBe('Request timed out');
+    expect(err.message).toBe('The server took too long to answer.');
   });
 
   it('rethrows the caller abort unchanged', async () => {
