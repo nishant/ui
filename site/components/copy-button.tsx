@@ -6,7 +6,7 @@ import { Row } from './shared';
 
 // --- CopyButton ---------------------------------------------------------------------
 
-const CMD = 'npm install https://codeload.github.com/nishant/ui/tar.gz/refs/tags/v0.3.0';
+const CMD = 'npm install nish-ui';
 
 export const copyButton: ComponentDoc = {
   id: 'copy-button',

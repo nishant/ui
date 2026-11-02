@@ -22,7 +22,7 @@ export function GettingStartedPage() {
         <div className="grid gap-3">
           <CodeBlock title="npm, as @nish/ui" code={`npm install @nish/ui@npm:nish-ui`} />
           <CodeBlock title="npm, as nish-ui" code={`npm install nish-ui`} />
-          <CodeBlock title="package.json, from a git tag" code={`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/${v}"`} />
+          <CodeBlock title="package.json, as the nish.software apps pin it" code={`"@nish/ui": "npm:nish-ui@${v.replace(/^v/, '')}"`} />
         </div>
         <Prose>
           <p>
@@ -30,8 +30,14 @@ export function GettingStartedPage() {
             written; installed as <code>nish-ui</code>, read <code>nish-ui</code> wherever it says <code>@nish/ui</code>.
           </p>
           <p>
-            The nish.software apps pin the git tag, and the release fan-out keeps that pin current. The tarball URL needs only HTTPS;{' '}
-            <code>github:nishant/ui#{v}</code> also works but clones over SSH when the machine has a key, and fails where GitHub does not accept it.
+            The nish.software apps pin the alias to an exact version, and the release fan-out keeps that pin current.
+          </p>
+        </Prose>
+        <CodeBlock title="Fallback: without the npm registry, from a git tag" code={`"@nish/ui": "https://codeload.github.com/nishant/ui/tar.gz/refs/tags/${v}"`} />
+        <Prose>
+          <p>
+            Every tag carries the same built files. The tarball URL needs only HTTPS; <code>github:nishant/ui#{v}</code> also works but clones over
+            SSH when the machine has a key, and fails where GitHub does not accept it.
           </p>
         </Prose>
       </Section>
@@ -289,7 +295,7 @@ ipcMain.on('theme', (_e, scheme: 'dark' | 'light') => {
             <strong>
               <code>npm install</code> fails with "Permission denied (publickey)".
             </strong>{' '}
-            A <code>github:</code> install met an SSH key GitHub does not accept. Install from npm or use the codeload tarball URL above.
+            A <code>github:</code> install met an SSH key GitHub does not accept. Install from npm, or use the fallback tarball URL above.
           </p>
         </Prose>
       </Section>
