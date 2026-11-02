@@ -9,10 +9,11 @@
 // installs ready to use with no build step, and site-dist/ (the docs site).
 // Order: all local work (bump, site build, tag commit, tag) happens before any push, then master
 // is pushed before the tag, so a failed build pushes nothing and a failed push leaves no orphan tag.
-// Then the tag, a GitHub Release with the CHANGELOG section, and (in CI) the fan-out:
-// a tag pushed with GITHUB_TOKEN does not trigger other workflows, so --ci dispatches
-// .github/workflows/fanout.yml itself. A local tag push triggers it on its own. Then (in CI) the
-// npm publish, .github/workflows/publish.yml.
+// Then the tag, a GitHub Release with the CHANGELOG section, and (in CI) the npm publish,
+// .github/workflows/publish.yml, then the fan-out: a tag pushed with GITHUB_TOKEN does not
+// trigger other workflows, so --ci dispatches .github/workflows/fanout.yml itself. A local tag
+// push triggers it on its own. Apps pin npm:nish-ui@X.Y.Z, so the fan-out waits until npm has
+// the version (up to 15 minutes; the hourly run retries after that).
 import { execFileSync, execSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -76,10 +77,9 @@ if (ci || process.env.GH_TOKEN) {
   execFileSync('gh', ['release', 'create', tag, '--title', tag, '--notes-file', file, '--verify-tag'], { stdio: 'inherit' });
 }
 if (ci) {
-  execFileSync('gh', ['workflow', 'run', 'fanout.yml', '--ref', 'master', '-f', `tag=${tag}`], { stdio: 'inherit' });
-  console.log('Dispatched the fan-out.');
-  // npm (nish-ui) after the fan-out: the tag is out either way, so a failed dispatch
-  // turns the run red without undoing anything; rerun it by hand.
+  // npm (nish-ui) before the fan-out: apps pin npm:nish-ui@X.Y.Z, and the fan-out waits for npm
+  // to have the version. The tag is out either way, so a failed dispatch turns the run red
+  // without undoing anything; rerun it by hand.
   try {
     execFileSync('gh', ['workflow', 'run', 'publish.yml', '--ref', 'master', '-f', `tag=${tag}`], { stdio: 'inherit' });
     console.log('Dispatched the npm publish.');
@@ -87,6 +87,8 @@ if (ci) {
     console.error(`Could not dispatch the npm publish: gh workflow run publish.yml -R nishant/ui -f tag=${tag}`);
     process.exitCode = 1;
   }
+  execFileSync('gh', ['workflow', 'run', 'fanout.yml', '--ref', 'master', '-f', `tag=${tag}`], { stdio: 'inherit' });
+  console.log('Dispatched the fan-out (it waits for npm to have the version).');
 } else {
   console.log(`Publish it to npm: gh workflow run publish.yml -R nishant/ui -f tag=${tag}`);
 }
