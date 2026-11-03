@@ -23,6 +23,15 @@ function sortMark(): SVGSVGElement {
   return svg;
 }
 
+/** Does a mutation concern the header (inside a `<thead>`, or adding a table or head)? */
+function touchesHead(rec: MutationRecord): boolean {
+  const target = rec.target instanceof Element ? rec.target : rec.target.parentElement;
+  if (target?.closest('thead')) return true;
+  return Array.from(rec.addedNodes).some(
+    (n) => n instanceof Element && (n.localName === 'thead' || n.localName === 'table' || n.localName === 'tr' || n.localName === 'th' || n.querySelector('thead') !== null),
+  );
+}
+
 function parseNumber(key: string): number | null {
   const cleaned = key.replace(/[\s,$€£%]/g, '');
   if (cleaned === '' || cleaned === '-' || cleaned === '+') return null;
@@ -35,7 +44,8 @@ function parseNumber(key: string): number | null {
  *  is `nish-th--num` or every key parses as a number, else `localeCompare`), cycles `aria-sort`
  *  none, ascending, descending, and fires `nish-sort` (`detail: { column, direction }`). `column`
  *  is the `data-sort` value, else the header text. `manual` only fires the event (server sorting).
- *  A cell's key is its `data-value`, else its text; blank keys sort last in both directions. */
+ *  A cell's key is its `data-value`, else its text; blank keys sort last in both directions.
+ *  A table, `<thead>` or header cell added after mount is decorated too. */
 export class NishTableSort extends NishElement {
   static override properties = {
     manual: { type: Boolean, reflect: true },
@@ -67,7 +77,8 @@ export class NishTableSort extends NishElement {
   #mount(): void {
     if (!this.isConnected || this.#observer) return;
     this.#decorate();
-    this.#observer = new MutationObserver(() => {
+    this.#observer = new MutationObserver((records) => {
+      if (!records.some(touchesHead)) return; // sorting reorders body rows: not worth a pass
       this.#observer?.disconnect();
       this.#decorate();
       this.#observe();
@@ -75,8 +86,10 @@ export class NishTableSort extends NishElement {
     this.#observe();
   }
 
+  /** Watch the whole element, so a header row, a `<thead>` or a `<table>` a framework renders after
+   *  mount is decorated too. `touchesHead` filters out the body-row churn. */
   #observe(): void {
-    for (const thead of Array.from(this.querySelectorAll('thead'))) this.#observer?.observe(thead, { childList: true, subtree: true });
+    this.#observer?.observe(this, { childList: true, subtree: true });
   }
 
   #headers(): HTMLTableCellElement[] {

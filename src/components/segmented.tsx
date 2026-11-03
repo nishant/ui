@@ -1,17 +1,13 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+'use client';
+import { useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode, type Ref } from 'react';
 import { cn } from '../cn';
 import { useScrollEdges } from './layout-vars';
 import { revealInRow } from './nav';
 import { FloatingTip, keyboardFocused, touchTracker } from './overlay';
+import { isRtl } from './client';
+import { SEGMENTED_SELECTED, SEGMENTED_SIZE, setRef, type SegmentedTone } from './forms-classes';
 
-export type SegmentedTone = 'accent' | 'warn' | 'loss';
-
-// Full literal class names, so Tailwind's scanner finds every one.
-const SELECTED: Record<SegmentedTone, string> = {
-  accent: 'bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40',
-  warn: 'bg-th-warn-soft text-th-warn ring-1 ring-th-warn/40',
-  loss: 'bg-th-loss-soft text-th-loss ring-1 ring-th-loss/40',
-};
+export type { SegmentedTone };
 
 export interface SegmentedOption<T extends string> {
   value: T;
@@ -33,19 +29,28 @@ export interface SegmentedOption<T extends string> {
   disabled?: boolean;
 }
 
-const SIZE = {
-  xs: 'h-6 px-2 text-2xs',
-  sm: 'h-7 px-2.5 text-xs',
-  md: 'h-8 px-3 text-sm',
-} as const;
-
-export interface SegmentedProps<T extends string> {
+export interface SegmentedProps<T extends string> extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'defaultValue' | 'children' | 'role' | 'dir'> {
+  /** The radiogroup element. */
+  ref?: Ref<HTMLDivElement>;
   /** Name of the whole group for screen readers: "Chart range". */
   label: string;
   options: SegmentedOption<T>[];
-  /** The selected value; a value not among the options leaves none selected. */
-  value: T | (string & {});
-  onChange: (value: T) => void;
+  /** The selected value, when you keep the state yourself; a value not among the options
+   *  leaves none selected. Leave it out and use `defaultValue` for an uncontrolled control. */
+  value?: T | (string & {});
+  /** The starting value of an uncontrolled control. */
+  defaultValue?: T | (string & {});
+  /** Called with the new value. Same as onValueChange; kept for existing code. */
+  onChange?: (value: T) => void;
+  /** Called with the new value (the form-library friendly name). */
+  onValueChange?: (value: T) => void;
+  /** Field name for a native form. Hidden radio inputs carry the selection, so FormData
+   *  and `<form action>` see it. */
+  name?: string;
+  /** The id of the `<form>` the hidden inputs belong to, when it is not an ancestor. */
+  form?: string;
+  /** Marks the group required (aria-required, and the hidden radios block an empty submit). */
+  required?: boolean;
   /** xs: 24px for dense widget headers. sm: 28px (default). md: 32px. All grow to 44px
    *  on touch screens. */
   size?: 'xs' | 'sm' | 'md';
@@ -64,7 +69,28 @@ export interface SegmentedProps<T extends string> {
  *  radio group. The selected option gets the accent tint and ring, so it reads at a
  *  glance in light themes too. Arrow keys, Home and End move the choice and the focus,
  *  like a native radio group. For multi-select toggles use ChipGroup and Chip. */
-export function Segmented<T extends string>({ label, options, value, onChange, size = 'sm', block = false, overflow = 'scroll', fullWidth = false, className }: SegmentedProps<T>) {
+export function Segmented<T extends string>({
+  ref,
+  label,
+  options,
+  value: valueProp,
+  defaultValue,
+  onChange,
+  onValueChange,
+  name,
+  form,
+  required,
+  size = 'sm',
+  block = false,
+  overflow = 'scroll',
+  fullWidth = false,
+  className,
+  onKeyDown,
+  ...rest
+}: SegmentedProps<T>) {
+  const [own, setOwn] = useState<string | undefined>(defaultValue);
+  const controlled = valueProp !== undefined;
+  const value = controlled ? valueProp : own;
   const fill = block || fullWidth;
   const scroll = overflow === 'scroll';
   const groupRef = useRef<HTMLDivElement>(null);
@@ -91,7 +117,9 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
   const pick = (i: number) => {
     const o = options[i];
     if (!o || o.disabled) return;
-    onChange(o.value);
+    if (!controlled) setOwn(o.value);
+    onChange?.(o.value);
+    onValueChange?.(o.value);
     refs.current[i]?.focus();
   };
   const move = (from: number, dir: 1 | -1) => {
@@ -106,9 +134,14 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
 
   return (
     <div
-      ref={groupRef}
+      {...rest}
+      ref={(node) => {
+        groupRef.current = node;
+        setRef(ref, node);
+      }}
       role="radiogroup"
       aria-label={label}
+      aria-required={required || undefined}
       className={cn(
         'rounded-lg border border-th-line bg-th-elevated p-0.5',
         fill ? 'flex w-full' : 'inline-flex',
@@ -116,11 +149,14 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
         className,
       )}
       onKeyDown={(e) => {
+        onKeyDown?.(e);
+        if (e.defaultPrevented) return;
+        const rtl = isRtl(groupRef.current);
         const from = refs.current.findIndex((el) => el === document.activeElement);
         const at = from >= 0 ? from : selected;
         if (e.key === 'Escape' && tipAt != null) { setTipAt(null); return; }
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); move(at, 1); }
-        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); move(at, -1); }
+        if (e.key === (rtl ? 'ArrowLeft' : 'ArrowRight') || e.key === 'ArrowDown') { e.preventDefault(); move(at, 1); }
+        else if (e.key === (rtl ? 'ArrowRight' : 'ArrowLeft') || e.key === 'ArrowUp') { e.preventDefault(); move(at, -1); }
         else if (e.key === 'Home') { e.preventDefault(); if (enabled.length) pick(enabled[0]); }
         else if (e.key === 'End') { e.preventDefault(); if (enabled.length) pick(enabled[enabled.length - 1]); }
       }}
@@ -139,6 +175,8 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
             aria-checked={on}
             aria-label={o.ariaLabel}
             aria-describedby={tipShown ? tipId : undefined}
+            data-state={on ? 'checked' : 'unchecked'}
+            data-disabled={o.disabled ? '' : undefined}
             title={o.tip != null ? undefined : o.title}
             disabled={o.disabled}
             tabIndex={i === tabStop ? 0 : -1}
@@ -156,17 +194,34 @@ export function Segmented<T extends string>({ label, options, value, onChange, s
             onBlur={o.tip != null ? () => hideTip(i) : undefined}
             className={cn(
               'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium tabular-nums transition-colors pointer-coarse:min-h-11 pointer-coarse:min-w-11',
-              'disabled:cursor-not-allowed disabled:text-th-ghost',
+              'disabled:cursor-not-allowed disabled:text-th-ghost forced-colors:disabled:text-[color:GrayText]',
               fill && (scroll ? 'flex-1 shrink-0' : 'min-w-0 flex-1'),
               scroll && !fill && 'shrink-0',
-              SIZE[size],
-              on ? SELECTED[o.tone ?? 'accent'] : 'text-th-hi2 hover:text-th-hi disabled:hover:text-th-ghost',
+              SEGMENTED_SIZE[size],
+              on ? SEGMENTED_SELECTED[o.tone ?? 'accent'] : 'text-th-hi2 hover:text-th-hi disabled:hover:text-th-ghost',
             )}
           >
             {o.label}
           </button>
         );
       })}
+      {name != null
+        ? options.map((o) => (
+            <input
+              key={o.value}
+              type="radio"
+              aria-hidden="true"
+              tabIndex={-1}
+              className="sr-only pointer-events-none"
+              name={name}
+              value={o.value}
+              form={form}
+              required={required}
+              checked={o.value === value}
+              onChange={() => {}}
+            />
+          ))
+        : null}
       {tipAt != null && options[tipAt]?.tip != null ? <FloatingTip key={tipAt} anchor={tipAnchor} id={tipId} tip={options[tipAt].tip} /> : null}
     </div>
   );

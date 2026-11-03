@@ -172,5 +172,6 @@ export const cardHeader: ComponentDoc = {
     'Use divided on unpadded cards so the header gets its own padding and a line under it.',
     'Pick the heading level (as) that fits the page outline: h2 under the page\'s h1, h3 inside a titled section.',
     'Keep actions small: an xs or sm button, a couple of xs IconButtons, a Badge or a small Segmented.',
+    'The action slot sits at the end edge, so it moves to the left in right-to-left layouts. ref goes on the header row.',
   ],
 };

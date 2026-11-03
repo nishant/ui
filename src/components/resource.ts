@@ -1,148 +1,14 @@
+'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLatest } from './latest';
+import { apiFetch, type ApiError } from './resource-classes';
 
-export class ApiError extends Error {
-  /** HTTP status; 0 = network failure or abort-by-timeout. */
-  readonly status: number;
-  /** Parsed JSON body when the response had one, else the text, else null. */
-  readonly body: unknown;
-  readonly url: string;
-  constructor(message: string, o: { status: number; body?: unknown; url: string }) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = o.status;
-    this.body = o.body ?? null;
-    this.url = o.url;
-  }
-  /** True for 0 (network) and 5xx: worth retrying. */
-  get retryable(): boolean {
-    return this.status === 0 || this.status >= 500;
-  }
-}
-
-export interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
-  /** Serialized as JSON with content-type application/json. A string/FormData/Blob is sent as is. */
-  body?: unknown;
-  /** Aborts and throws ApiError(status 0, message "The server took too long to answer.") after this many ms (covers the body read too). Default 15000. */
-  timeoutMs?: number;
-  /** Resolve null instead of throwing on 404. */
-  nullOn404?: boolean;
-}
-
-export interface ApiConfig {
-  /** Prefixed to relative paths that start with "/". Default "". */
-  baseUrl?: string;
-  /** Called (once per response) for any 401 before the error is thrown. */
-  onUnauthorized?: (err: ApiError) => void;
-  /** Extra headers on every request (an auth token for an Electron app). */
-  headers?: () => Record<string, string>;
-}
-
-let config: ApiConfig = {};
-
-/** Merges into the module-level config used by every apiFetch call. */
-export function configureApi(c: ApiConfig): void {
-  config = { ...config, ...c };
-}
-
-function isRawBody(b: unknown): boolean {
-  return (
-    typeof b === 'string' ||
-    (typeof FormData !== 'undefined' && b instanceof FormData) ||
-    (typeof Blob !== 'undefined' && b instanceof Blob) ||
-    (typeof URLSearchParams !== 'undefined' && b instanceof URLSearchParams) ||
-    b instanceof ArrayBuffer ||
-    ArrayBuffer.isView(b)
-  );
-}
-
-/** A machine code such as "not_found" or "server_error", as opposed to a sentence. */
-const ERROR_CODE = /^[a-z0-9_]+$/;
-
-/** The message for a failed response, in the wording the apps share: the server's own
- *  `error` or `message` sentence when it sent one; otherwise a plain sentence for the status. */
-function errorMessage(body: unknown, status: number): string {
-  let raw = '';
-  if (body && typeof body === 'object') {
-    const o = body as Record<string, unknown>;
-    if (typeof o.error === 'string' && o.error) raw = o.error;
-    else if (typeof o.message === 'string' && o.message) raw = o.message;
-  }
-  if (raw && !ERROR_CODE.test(raw)) return raw;
-  if (status === 401) return 'Log in to continue.';
-  if (raw && status === 404) return 'That was not found.';
-  if (raw) return 'The server had a problem. Try again.';
-  return `The server answered ${status}.`;
-}
-
-/** fetch with JSON in and out, a timeout, and a typed ApiError for every failure. */
-export async function apiFetch<T = unknown>(path: string, o: ApiFetchOptions = {}): Promise<T> {
-  const { body, timeoutMs = 15000, nullOn404, signal: callerSignal, headers: extraHeaders, ...init } = o;
-  const url = path.startsWith('/') && config.baseUrl ? config.baseUrl + path : path;
-
-  const headers = new Headers({ accept: 'application/json' });
-  if (config.headers) for (const [k, v] of Object.entries(config.headers())) headers.set(k, v);
-  if (extraHeaders) new Headers(extraHeaders).forEach((v, k) => headers.set(k, v));
-
-  let payload: BodyInit | undefined;
-  if (body !== undefined) {
-    if (isRawBody(body)) payload = body as BodyInit;
-    else {
-      payload = JSON.stringify(body);
-      if (!headers.has('content-type')) headers.set('content-type', 'application/json');
-    }
-  }
-
-  const ctl = new AbortController();
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    ctl.abort();
-  }, timeoutMs);
-  const onCallerAbort = () => ctl.abort();
-  if (callerSignal) {
-    if (callerSignal.aborted) ctl.abort();
-    else callerSignal.addEventListener('abort', onCallerAbort, { once: true });
-  }
-
-  try {
-    let res: Response;
-    let text: string;
-    try {
-      res = await fetch(url, { credentials: 'same-origin', ...init, headers, body: payload, signal: ctl.signal });
-      text = await res.text();
-    } catch (e) {
-      if (timedOut) throw new ApiError('The server took too long to answer.', { status: 0, url });
-      if (e instanceof Error && e.name === 'AbortError') throw e;
-      throw new ApiError('Could not reach the server.', { status: 0, url });
-    }
-
-    const type = res.headers.get('content-type') ?? '';
-    let parsed: unknown = text === '' ? null : text;
-    if (text !== '' && /json/i.test(type)) {
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = text;
-      }
-    }
-
-    if (!res.ok) {
-      if (res.status === 404 && nullOn404) return null as T;
-      const err = new ApiError(errorMessage(parsed, res.status), { status: res.status, body: parsed, url });
-      if (res.status === 401) config.onUnauthorized?.(err);
-      throw err;
-    }
-    if (res.status === 204 || text === '') return undefined as T;
-    return parsed as T;
-  } finally {
-    clearTimeout(timer);
-    callerSignal?.removeEventListener('abort', onCallerAbort);
-  }
-}
+export { ApiError, apiFetch, configureApi } from './resource-classes';
+export type { ApiConfig, ApiFetchOptions } from './resource-classes';
 
 export interface UseResourceOptions<T> {
-  /** Poll every N ms while the tab is visible. Off by default. */
+  /** Poll every N ms while the tab is visible. Off by default. After a failed load the wait doubles per
+   *  failure (with up to 10% jitter) up to 5 minutes, and returns to N ms after the next success. */
   intervalMs?: number;
   /** false skips fetching (dependent queries). Default true. */
   enabled?: boolean;
@@ -168,9 +34,10 @@ export interface Resource<T> {
   updatedAt: number | undefined;
   /** With intervalMs: true when the last success is older than 3 intervals. Always false without intervalMs. */
   stale: boolean;
-  /** Refetch now. Resolves when done; never rejects. */
+  /** Refetch now (never joins a request that is already running). Resolves when done; never rejects. */
   reload: () => Promise<void>;
-  /** Replace data locally (optimistic update). A function gets the previous data. */
+  /** Replace data locally (optimistic update). A function gets the previous data. A response that was
+   *  requested before the mutate and arrives after it does not overwrite it. */
   mutate: (next: T | ((prev: T | undefined) => T)) => void;
 }
 
@@ -180,6 +47,76 @@ interface State<T> {
   error: ApiError | Error | undefined;
   updatedAt: number | undefined;
   fetching: boolean;
+  /** How many loads have settled: the polling timer restarts on each, even when React batched
+   *  the start and the end of a fast load into one render. */
+  settled: number;
+}
+
+/** The longest wait between polls after failures. */
+const MAX_BACKOFF_MS = 300_000;
+
+interface Inflight {
+  fetcher: unknown;
+  promise: Promise<unknown>;
+  ctl: AbortController;
+  refs: number;
+}
+
+/** Requests running now, by key. Two hooks that ask for the same key (with the default fetcher, or
+ *  the same fetcher function) share one request; it is aborted when the last of them lets go. */
+const inflight = new Map<string, Inflight>();
+
+function sharedFetch<T>(key: string, fetcher: ((signal: AbortSignal) => Promise<T>) | undefined, signal: AbortSignal): Promise<T> {
+  let entry = inflight.get(key);
+  if (!entry || entry.fetcher !== fetcher) {
+    const ctl = new AbortController();
+    const made: Inflight = {
+      fetcher,
+      ctl,
+      refs: 0,
+      promise: fetcher ? fetcher(ctl.signal) : apiFetch<T>(key, { signal: ctl.signal }),
+    };
+    const forget = () => {
+      if (inflight.get(key) === made) inflight.delete(key);
+    };
+    made.promise.then(forget, forget);
+    inflight.set(key, made);
+    entry = made;
+  }
+  const shared = entry;
+  shared.refs++;
+  return new Promise<T>((resolve, reject) => {
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      signal.removeEventListener('abort', onAbort);
+      shared.refs--;
+      if (shared.refs <= 0) {
+        shared.ctl.abort();
+        if (inflight.get(key) === shared) inflight.delete(key);
+      }
+    };
+    function onAbort() {
+      release();
+      reject(new DOMException('The request was aborted.', 'AbortError'));
+    }
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+    // The abort listener stays after the request settles, so a key change or an unmount still
+    // aborts the signal the fetcher was given, as it does without sharing.
+    (shared.promise as Promise<T>).then(
+      (v) => {
+        if (!released) resolve(v);
+      },
+      (e: unknown) => {
+        if (!released) reject(e);
+      },
+    );
+  });
 }
 
 /** key: a string identifying the request (the URL); null disables. fetcher defaults to apiFetch(key, { signal }). */
@@ -197,6 +134,7 @@ export function useResource<T>(
     error: undefined,
     updatedAt: undefined,
     fetching: false,
+    settled: 0,
   }));
 
   const fetcherRef = useLatest(fetcher);
@@ -206,44 +144,62 @@ export function useResource<T>(
   const ctlRef = useRef<AbortController | null>(null);
   const runRef = useRef(0);
   const pollSkippedRef = useRef(false);
+  const failuresRef = useRef(0);
+  const mutatedRef = useRef(0);
   const [now, setNow] = useState(() => Date.now());
 
-  const load = useCallback(async (): Promise<void> => {
-    const k = keyRef.current;
-    if (k === null) return;
-    ctlRef.current?.abort();
-    const ctl = new AbortController();
-    ctlRef.current = ctl;
-    const run = ++runRef.current;
-    pollSkippedRef.current = false;
-    setState((s) =>
-      s.key === k
-        ? { ...s, fetching: true }
-        : {
-            key: k,
-            data: keepPrevRef.current ? s.data : initialRef.current,
-            error: undefined,
-            updatedAt: keepPrevRef.current ? s.updatedAt : undefined,
-            fetching: true,
-          },
-    );
-    try {
-      const fn = fetcherRef.current;
-      const data = await (fn ? fn(ctl.signal) : apiFetch<T>(k, { signal: ctl.signal }));
-      if (run !== runRef.current || ctl.signal.aborted) return;
-      setState({ key: k, data, error: undefined, updatedAt: Date.now(), fetching: false });
-    } catch (e) {
-      if (run !== runRef.current || ctl.signal.aborted) return;
-      const error = e instanceof Error ? e : new Error(String(e));
-      setState((s) => ({ ...s, key: k, error, fetching: false }));
-    }
-  }, [fetcherRef, initialRef, keepPrevRef, keyRef]);
+  /** `fresh`: start a request of its own even when another hook is fetching the same key. */
+  const load = useCallback(
+    async (fresh = false): Promise<void> => {
+      const k = keyRef.current;
+      if (k === null) return;
+      ctlRef.current?.abort();
+      const ctl = new AbortController();
+      ctlRef.current = ctl;
+      const run = ++runRef.current;
+      const mutatedAtStart = mutatedRef.current;
+      pollSkippedRef.current = false;
+      setState((s) =>
+        s.key === k
+          ? { ...s, fetching: true }
+          : {
+              key: k,
+              data: keepPrevRef.current ? s.data : initialRef.current,
+              error: undefined,
+              updatedAt: keepPrevRef.current ? s.updatedAt : undefined,
+              fetching: true,
+              settled: s.settled,
+            },
+      );
+      try {
+        const fn = fetcherRef.current;
+        const data = await (fresh ? (fn ? fn(ctl.signal) : apiFetch<T>(k, { signal: ctl.signal })) : sharedFetch<T>(k, fn, ctl.signal));
+        if (run !== runRef.current || ctl.signal.aborted) return;
+        failuresRef.current = 0;
+        if (mutatedRef.current !== mutatedAtStart) {
+          // The data was asked for before a local mutate: keep the mutated data.
+          setState((s) => ({ ...s, key: k, error: undefined, fetching: false, settled: s.settled + 1 }));
+          return;
+        }
+        setState((s) => ({ key: k, data, error: undefined, updatedAt: Date.now(), fetching: false, settled: s.settled + 1 }));
+      } catch (e) {
+        if (run !== runRef.current || ctl.signal.aborted) return;
+        failuresRef.current++;
+        const error = e instanceof Error ? e : new Error(String(e));
+        setState((s) => ({ ...s, key: k, error, fetching: false, settled: s.settled + 1 }));
+      }
+    },
+    [fetcherRef, initialRef, keepPrevRef, keyRef],
+  );
 
   // Fetch on key change or enable. Aborts on change and on unmount.
   useEffect(() => {
     if (!active) return;
+    failuresRef.current = 0;
     void load();
     return () => {
+      // A counter, not a DOM node: bumping it makes any response still in flight stale.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       runRef.current++;
       ctlRef.current?.abort();
       ctlRef.current = null;
@@ -254,17 +210,25 @@ export function useResource<T>(
   // Polling: a timeout chain that schedules the next tick after the previous fetch settles.
   const fetching = state.fetching;
   const updatedAt = state.updatedAt;
+  const settled = state.settled;
   useEffect(() => {
     if (!active || !intervalMs || fetching) return;
+    const failures = failuresRef.current;
+    let wait = intervalMs;
+    if (failures > 0) {
+      const cap = Math.max(intervalMs, MAX_BACKOFF_MS);
+      const base = Math.min(intervalMs * 2 ** Math.min(failures, 20), cap);
+      wait = Math.min(cap, Math.round(base * (0.9 + Math.random() * 0.2)));
+    }
     const id = setTimeout(() => {
       if (typeof document !== 'undefined' && document.hidden) {
         pollSkippedRef.current = true;
         return;
       }
       void load();
-    }, intervalMs);
+    }, wait);
     return () => clearTimeout(id);
-  }, [active, intervalMs, fetching, load]);
+  }, [active, intervalMs, fetching, settled, load]);
 
   // Becoming visible again, and coming back online.
   useEffect(() => {
@@ -300,13 +264,14 @@ export function useResource<T>(
   }, [intervalMs, updatedAt]);
 
   const mutate = useCallback((next: T | ((prev: T | undefined) => T)) => {
+    mutatedRef.current++;
     setState((s) => ({
       ...s,
       data: typeof next === 'function' ? (next as (prev: T | undefined) => T)(s.data) : next,
     }));
   }, []);
 
-  const reload = useCallback(() => load(), [load]);
+  const reload = useCallback(() => load(true), [load]);
 
   const sameKey = state.key === key;
   const data = sameKey || keepPrevious ? state.data : o.initialData;

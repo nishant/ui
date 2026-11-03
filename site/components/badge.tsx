@@ -229,5 +229,6 @@ const TONE = { up: 'ok', slow: 'warn', down: 'loss' } as const;
     'Hue is for colors with no meaning (stores, categories). Do not use a hue to say "good" or "bad".',
     'Do not rely on color alone. The text should say the state ("Down"), not just be red; the dot is decoration.',
     'Use size="xs" in dense table cells, and variant="tag" for short uppercase labels.',
+    'Badge takes ref, className and any span attribute. In forced colors the tag variant still draws an edge.',
   ],
 };

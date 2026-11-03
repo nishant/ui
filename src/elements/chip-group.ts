@@ -1,8 +1,7 @@
 import type { PropertyValues } from 'lit';
 import { NishElement, define, whenParsed } from './base';
-
-const X_ICON =
-  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12"></path></svg>';
+import { xIcon } from './icons';
+import { getStrings } from './strings';
 
 /** `<nish-chip-group label="Filter by status" single>` with child `<button>`s: wraps them in
  *  `<div role="group" class="nish-chips">`; each button gets `nish-chip`, `type="button"` and an
@@ -71,6 +70,19 @@ export class NishChipGroup extends NishElement {
 
   protected override updated(_changed: PropertyValues): void {
     this.#sync();
+    this.#relabel();
+  }
+
+  /** Remove buttons this element added take their label from the current strings. */
+  #relabel(): void {
+    if (!this.#group) return;
+    const s = getStrings();
+    for (const chip of this.#chips()) {
+      const remove = chip.querySelector<HTMLElement>(':scope > [data-nish-remove]');
+      if (!remove) continue;
+      const name = this.#textOf(chip);
+      remove.setAttribute('aria-label', name ? s.removeNamed(name) : s.remove);
+    }
   }
 
   #chips(): HTMLElement[] {
@@ -139,8 +151,8 @@ export class NishChipGroup extends NishElement {
         remove.type = 'button';
         remove.className = 'nish-icon-btn nish-icon-btn--xs';
         remove.setAttribute('data-nish-remove', '');
-        remove.setAttribute('aria-label', name ? `Remove ${name}` : 'Remove');
-        remove.innerHTML = X_ICON;
+        remove.setAttribute('aria-label', name ? getStrings().removeNamed(name) : getStrings().remove);
+        remove.appendChild(xIcon(12));
         chip.appendChild(remove);
       }
     }

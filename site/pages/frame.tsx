@@ -44,9 +44,9 @@ export function FramePage({ route }: { route: Route }) {
   if (!doc) return null;
   const story = doc.stories.find((s) => s.id === route.query.get('story'));
   return (
-    <main className="doc-canvas flex min-h-dvh items-center justify-center p-6">
+    <div className="doc-canvas flex min-h-dvh items-center justify-center p-6">
       {story ? story.render() : doc.render(args)}
       {doc.id === 'toast' ? <Toaster /> : null}
-    </main>
+    </div>
   );
 }

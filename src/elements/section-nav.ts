@@ -1,6 +1,7 @@
 import type { PropertyValues } from 'lit';
 import { mountScrollspy } from '../theme';
 import { NishElement, define, whenParsed } from './base';
+import { getStrings } from './strings';
 
 const onByDefault = {
   fromAttribute: (v: string | null): boolean => v !== 'false',
@@ -11,7 +12,7 @@ const onByDefault = {
  *  `<nav class="nish-subnav">` and runs `mountScrollspy`, so the link of the section being read
  *  carries `aria-current="true"`. A click scrolls to the section (smoothly, instantly under reduced
  *  motion), writes `#id` with `history.replaceState` unless `update-hash="false"`, and fires
- *  `nish-select` (`detail: { id }`). Attributes: `label` (aria-label, default "Sections"), `sticky`
+ *  `nish-select` (`detail: { id }`). Attributes: `label` (aria-label, default the `sections` string), `sticky`
  *  (stick under the app header; on by default, `sticky="false"` turns it off) and `update-hash`
  *  (on by default). Give the sections the `nish-scroll-target` class so a jump stops below the bars. */
 export class NishSectionNav extends NishElement {
@@ -28,11 +29,12 @@ export class NishSectionNav extends NishElement {
   #nav: HTMLElement | null = null;
   #stopSpy: (() => void) | null = null;
   #observer: MutationObserver | null = null;
+  #late: MutationObserver | null = null;
   readonly #onClickBound = (e: Event): void => this.#onClick(e as MouseEvent);
 
   constructor() {
     super();
-    this.label = 'Sections';
+    this.label = '';
     this.sticky = true;
     this.updateHash = true;
   }
@@ -49,6 +51,8 @@ export class NishSectionNav extends NishElement {
     this.#spySticky = null;
     this.#observer?.disconnect();
     this.#observer = null;
+    this.#late?.disconnect();
+    this.#late = null;
     this.#nav?.removeEventListener('click', this.#onClickBound);
     this.#nav = null;
   }
@@ -76,12 +80,19 @@ export class NishSectionNav extends NishElement {
       this.#startSpy(nav);
     });
     this.#observer.observe(nav, { childList: true });
+    // Links a framework renders into the host after mount join the nav (which restarts the spy).
+    this.#late = new MutationObserver(() => {
+      const n = this.#nav;
+      if (!n) return;
+      for (const node of Array.from(this.childNodes)) if (node !== n && node.nodeType === 1) n.appendChild(node);
+    });
+    this.#late.observe(this, { childList: true });
   }
 
   #sync(): void {
     const nav = this.#nav;
     if (!nav) return;
-    nav.setAttribute('aria-label', this.label || 'Sections');
+    nav.setAttribute('aria-label', this.label || getStrings().sections);
     nav.style.position = this.sticky ? '' : 'static';
     if (this.#spySticky !== null && this.#spySticky !== this.sticky) this.#startSpy(nav);
   }

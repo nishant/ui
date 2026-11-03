@@ -95,7 +95,7 @@ export const table: ComponentDoc = {
   name: 'Table',
   exports: ['TableWrap', 'Table', 'Th', 'Td', 'Tr'],
   summary:
-    'Plain <table> markup with the shared look: a scroll box, uppercase headers, tabular numbers, sortable columns with aria-sort, and status edges. tableClass has the same recipes as strings for TanStack Table.',
+    'Plain <table> markup with the shared look: a scroll box, uppercase headers, tabular numbers, sortable columns with aria-sort, and status edges. tableClass has the same recipes as strings for TanStack Table. Alignment and the status edge use logical sides, so they mirror in right-to-left layouts; when the table overflows, the scroll box takes focus.',
   importLine: "import { TableWrap, Table, Th, Td, Tr, tableClass } from '@nish/ui';",
   controls: [
     { key: 'dense', label: 'Dense', type: 'boolean' },
@@ -263,5 +263,8 @@ export const table: ComponentDoc = {
     'Number columns use numeric: right-aligned with tabular figures, header included.',
     'Row tones are an extra cue; say the status in a cell as well.',
     'An interactive row still needs a real link or button inside it for keyboard users.',
+    'Pass label to TableWrap (or aria-label): while the table overflows, the box becomes a focusable region with that name, so keyboard users can scroll it.',
+    "Every part takes ref and its element's attributes. align=\"left\" and \"right\" mean the start and end edge, so they flip under dir=\"rtl\".",
+    'In forced-colors mode the status edge becomes a real border, so tones survive high-contrast settings.',
   ],
 };

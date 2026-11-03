@@ -84,6 +84,7 @@ export const connectionBanner: ComponentDoc = {
 // Elsewhere: disable actions while offline.
 const online = useOnline();`,
   guidelines: [
+    'Texts come from the provider: offline (offlineMessage) and retry (retryLabel). The probe-failed message has no provider string; pass message to translate it.',
     'Put it right under AppHeader. It is sticky and opaque, so it stays in view while content scrolls beneath.',
     'Point healthUrl at a cheap same-origin endpoint that returns 2xx. Any non-2xx or network error counts as unreachable.',
     'Probes slow down after failures (30s, 60s, then 120s) and restart as soon as the device is back online.',

@@ -1,9 +1,11 @@
+"use client";
 import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ComponentPropsWithRef,
   type ReactNode,
 } from "react";
 import { cn } from "../cn";
@@ -17,6 +19,7 @@ import { ErrorState, SkeletonRows } from "./feedback";
 import { ConfirmDialog } from "./overlay";
 import { Badge, Button } from "./primitives";
 import { apiFetch } from "./resource";
+import { useNishStrings } from "./provider";
 import { SettingRow, SettingsSection } from "./settings";
 
 // --- useServiceTokens ---------------------------------------------------------------
@@ -36,6 +39,7 @@ export interface UseServiceTokens {
 export function useServiceTokens(
   url = "/api/service-tokens",
 ): UseServiceTokens {
+  const strings = useNishStrings();
   const [tokens, setTokens] = useState<ServiceTokenView[] | undefined>(
     undefined,
   );
@@ -59,10 +63,11 @@ export function useServiceTokens(
           (e instanceof Error && e.name === "AbortError")
         )
           return;
-        setError(e instanceof Error ? e.message : "Failed to load");
+        setError(e instanceof Error ? e.message : strings.failedToLoad);
         setLoading(false);
       });
     return () => ctl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the fallback text is read when a load fails; a new string must not refetch
   }, [url, nonce]);
 
   const reload = useCallback(() => {
@@ -91,23 +96,30 @@ export function useServiceTokens(
 
 // --- ServiceTokensSection -----------------------------------------------------------
 
-export interface ServiceTokensSectionProps {
+export interface ServiceTokensSectionProps
+  extends Omit<ComponentPropsWithRef<"section">, "title" | "children"> {
   /** undefined = loading. */
   tokens: ServiceTokenView[] | undefined;
   error?: string | null;
   onRetry?: () => void;
   /** Revokes the token. Reject to keep the dialog open with the error. */
   onRevoke: (id: string) => Promise<void>;
-  /** Default "Service tokens". */
+  /** Default: the `serviceTokens` string ("Service tokens"). */
   title?: ReactNode;
+  /** Default: the `serviceTokensIntro` string. */
   description?: ReactNode;
   /** Anchor id on the section. Default "service-tokens". */
   id?: string;
   className?: string;
+  /** Shown when the list is empty. Default "No service tokens. No machine client can read this app." */
+  emptyMessage?: ReactNode;
+  /** The body of the revoke confirmation. Default explains that the token stops working and cannot be restored. */
+  revokeBody?: ReactNode;
+  /** The "created <date>" part of a token's description. Default `created ${when}`. */
+  createdLabel?: (when: string) => string;
+  /** Added to the description of a token that comes from the SERVICE_TOKENS environment variable. Default "from SERVICE_TOKENS". */
+  envSourceLabel?: string;
 }
-
-const DEFAULT_DESCRIPTION =
-  "Machine clients, like the nish MCP server, use these tokens to read this app. Revoking one stops it at once.";
 
 /** A calendar date for a committed `created` value (a date or a datetime); the raw string when it does not parse. */
 function when(raw: string | undefined): string {
@@ -133,11 +145,19 @@ export function ServiceTokensSection({
   error,
   onRetry,
   onRevoke,
-  title = "Service tokens",
-  description = DEFAULT_DESCRIPTION,
+  title: titleProp,
+  description: descriptionProp,
   id = "service-tokens",
   className,
+  emptyMessage = "No service tokens. No machine client can read this app.",
+  revokeBody,
+  createdLabel = (when: string) => `created ${when}`,
+  envSourceLabel = "from SERVICE_TOKENS",
+  ...rest
 }: ServiceTokensSectionProps) {
+  const strings = useNishStrings();
+  const title = titleProp ?? strings.serviceTokens;
+  const description = descriptionProp ?? strings.serviceTokensIntro;
   const [target, setTarget] = useState<ServiceTokenView | null>(null);
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -169,7 +189,7 @@ export function ServiceTokensSection({
     } catch (e) {
       if (mounted.current)
         setFailure(
-          e instanceof Error ? e.message : "Could not revoke the token.",
+          e instanceof Error ? e.message : strings.tokenRevokeFailed,
         );
     } finally {
       if (mounted.current) setPending(false);
@@ -187,7 +207,7 @@ export function ServiceTokensSection({
         </p>
         {onRetry ? (
           <Button size="sm" onClick={onRetry}>
-            Try again
+            {strings.errorTryAgain}
           </Button>
         ) : null}
       </div>
@@ -201,7 +221,7 @@ export function ServiceTokensSection({
         {onRetry ? (
           <div className="flex justify-center">
             <Button size="sm" onClick={onRetry}>
-              Try again
+              {strings.errorTryAgain}
             </Button>
           </div>
         ) : null}
@@ -210,22 +230,20 @@ export function ServiceTokensSection({
   } else if (sorted === undefined) {
     content = (
       <div className="p-4">
-        <SkeletonRows rows={3} height={48} label="Loading service tokens" />
+        <SkeletonRows rows={3} height={48} label={strings.loadingServiceTokens} />
       </div>
     );
   } else if (sorted.length === 0) {
     content = (
       <>
         {errorRow}
-        <p className="px-4 py-6 text-sm text-th-hi3">
-          No service tokens. No machine client can read this app.
-        </p>
+        <p className="px-4 py-6 text-sm text-th-hi3">{emptyMessage}</p>
       </>
     );
   } else {
     const rows = sorted.map((t) => {
-      const parts = [t.id, t.scopes.join(", "), `created ${when(t.created)}`];
-      if (t.source === "env") parts.push("from SERVICE_TOKENS");
+      const parts = [t.id, t.scopes.join(", "), createdLabel(when(t.created))];
+      if (t.source === "env") parts.push(envSourceLabel);
       return (
         <SettingRow
           key={`${t.id}:${t.name}:${t.created}`}
@@ -240,18 +258,22 @@ export function ServiceTokensSection({
           {t.revoked ? (
             <Badge
               tone="neutral"
-              title={t.revokedAt ? `Revoked ${when(t.revokedAt)}` : "Revoked"}
+              title={
+                t.revokedAt
+                  ? strings.tokenRevokedAt(when(t.revokedAt))
+                  : strings.tokenRevoked
+              }
             >
-              Revoked
+              {strings.tokenRevoked}
             </Badge>
           ) : (
             <Button
               variant="danger"
               size="sm"
-              aria-label={`Revoke ${t.name}`}
+              aria-label={strings.tokenRevokeNamed(t.name)}
               onClick={() => setTarget(t)}
             >
-              Revoke
+              {strings.tokenRevoke}
             </Button>
           )}
         </SettingRow>
@@ -268,6 +290,7 @@ export function ServiceTokensSection({
   return (
     <>
       <SettingsSection
+        {...rest}
         title={title}
         description={description}
         id={id}
@@ -277,14 +300,16 @@ export function ServiceTokensSection({
       </SettingsSection>
       {target ? (
         <ConfirmDialog
-          title={`Revoke ${target.name}?`}
+          title={strings.tokenRevokeTitle(target.name)}
           body={
             <>
-              <p>
-                Anything using this token gets &quot;Unauthorized&quot; from now
-                on. This cannot be undone: to restore access, issue a new token
-                with npm run tokens in nishant/mcp.
-              </p>
+              {revokeBody ?? (
+                <p>
+                  Anything using this token gets &quot;Unauthorized&quot; from
+                  now on. This cannot be undone: to restore access, issue a new
+                  token with npm run tokens in nishant/mcp.
+                </p>
+              )}
               {failure ? (
                 <p role="alert" className="mt-3 text-th-loss">
                   {failure}
@@ -292,8 +317,8 @@ export function ServiceTokensSection({
               ) : null}
             </>
           }
-          confirmLabel="Revoke"
-          cancelLabel="Cancel"
+          confirmLabel={strings.tokenRevoke}
+          cancelLabel={strings.cancel}
           tone="danger"
           pending={pending}
           onConfirm={() => void confirm()}

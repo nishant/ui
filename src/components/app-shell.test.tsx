@@ -1,8 +1,9 @@
 import { createElement } from 'react';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './app-shell';
-import type { NavItem } from './nav';
+import { SectionNav, type NavItem } from './nav';
+import { NishProvider } from './provider';
 
 const icon = createElement('svg', { 'aria-hidden': 'true' });
 const item = (key: string, label: string, active = false): NavItem => ({ key, label, icon, href: `/${key}`, active });
@@ -22,7 +23,10 @@ beforeEach(() => {
   })) as unknown as typeof window.matchMedia;
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 // The BottomNav is the nav landmark that is a direct child of the fragment's root and has a More button.
 function bottomNav(): HTMLElement {
@@ -83,7 +87,7 @@ describe('AppShell', () => {
     const side = toggle.parentElement?.parentElement as HTMLElement;
     expect(within(side).getAllByRole('link', { hidden: true }).map((a) => a.textContent)).toEqual(SIX.map((i) => i.label));
     fireEvent.click(toggle);
-    expect(screen.getByRole('button', { name: 'Expand sidebar', hidden: true })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Expand sidebar', hidden: true }).getAttribute('aria-label')).toBe('Expand sidebar');
     expect(localStorage.getItem('nish-sidebar-collapsed')).toBe('true');
     unmount();
     render(<AppShell name="Jobs" nav={SIX} sidebar>x</AppShell>);
@@ -146,5 +150,154 @@ describe('AppShell', () => {
     } finally {
       console.error = err;
     }
+  });
+});
+
+describe('AppShell: hub pill', () => {
+  it('shows no hub pill by default', () => {
+    render(<AppShell name="Jobs" nav={FIVE}>x</AppShell>);
+    expect(within(screen.getByRole('banner')).queryByRole('link', { name: /nish\.software/ })).toBeNull();
+    expect(document.querySelector('.nish-pill-link')).toBeNull();
+  });
+
+  it('renders the pill in the compact form when hub is given', () => {
+    render(<AppShell name="Jobs" nav={FIVE} hub={{ href: 'https://nish.software', label: 'nish.software' }}>x</AppShell>);
+    const pill = within(screen.getByRole('banner')).getByRole('link', { name: /nish\.software/ });
+    expect(pill.getAttribute('href')).toBe('https://nish.software');
+    expect(pill.className).toContain('nish-pill-link--compact');
+    expect(pill.getAttribute('title')).toBe('Back to nish.software');
+  });
+
+  it('accepts a custom label and title for an outside hub', () => {
+    render(<AppShell name="Jobs" hub={{ href: 'https://acme.example', label: 'Acme home', title: 'Back to Acme' }}>x</AppShell>);
+    const pill = screen.getByRole('link', { name: /Acme home/ });
+    expect(pill.getAttribute('title')).toBe('Back to Acme');
+  });
+});
+
+describe('AppShell: landmarks', () => {
+  const navNames = () => screen.getAllByRole('navigation', { hidden: true }).map((n) => n.getAttribute('aria-label'));
+
+  it('names every app navigation "Sections" by default, and the sidebar "Sidebar"', () => {
+    const { unmount } = render(<AppShell name="Jobs" nav={FIVE}>x</AppShell>);
+    expect(navNames()).toEqual(['Sections', 'Sections', 'Sections']);
+    unmount();
+    render(<AppShell name="Jobs" nav={FIVE} sidebar>x</AppShell>);
+    expect(navNames()).toEqual(['Sections', 'Sections', 'Sections']);
+    expect(screen.getByRole('complementary', { name: 'Sidebar', hidden: true })).toBeTruthy();
+  });
+
+  it('uses navLabel for the header tabs, rail, sidebar nav and BottomNav', () => {
+    const { unmount } = render(<AppShell name="Jobs" nav={FIVE} navLabel="Main">x</AppShell>);
+    expect(navNames()).toEqual(['Main', 'Main', 'Main']);
+    unmount();
+    render(<AppShell name="Jobs" nav={FIVE} navLabel="Main" sidebar>x</AppShell>);
+    expect(navNames()).toEqual(['Main', 'Main', 'Main']);
+  });
+
+  it('takes the landmark names from a provider', () => {
+    render(
+      <NishProvider strings={{ sections: 'Rubriques', sidebar: 'Barre' }}>
+        <AppShell name="Jobs" nav={FIVE} sidebar>x</AppShell>
+      </NishProvider>,
+    );
+    expect(navNames()).toEqual(['Rubriques', 'Rubriques', 'Rubriques']);
+    expect(screen.getByRole('complementary', { name: 'Barre', hidden: true })).toBeTruthy();
+  });
+
+  it('keeps a SectionNav on the page distinct from the app navigation', () => {
+    render(
+      <AppShell name="Jobs" nav={FIVE}>
+        <SectionNav items={[{ id: 'a', label: 'A' }]} />
+      </AppShell>,
+    );
+    const names = navNames();
+    expect(names.filter((n) => n === 'On this page')).toHaveLength(1);
+    expect(names.filter((n) => n === 'Sections')).toHaveLength(3);
+  });
+});
+
+describe('AppShell: skip link and main', () => {
+  it('takes the skip link text from a provider', () => {
+    render(
+      <NishProvider strings={{ skipToContent: 'Aller au contenu' }}>
+        <AppShell name="Jobs">x</AppShell>
+      </NishProvider>,
+    );
+    expect(screen.getByRole('link', { name: 'Aller au contenu' })).toBeTruthy();
+  });
+
+  it('focuses the main element when the skip link is clicked, without changing the hash', () => {
+    render(<AppShell name="Jobs">x</AppShell>);
+    const before = location.hash;
+    fireEvent.click(screen.getByRole('link', { name: 'Skip to content' }));
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+    expect(location.hash).toBe(before);
+  });
+
+  it('supports another mainId for a second shell on the page', () => {
+    render(<AppShell name="Jobs" mainId="app-two">x</AppShell>);
+    expect(screen.getByRole('link', { name: 'Skip to content' }).getAttribute('href')).toBe('#app-two');
+    expect(screen.getByRole('main').id).toBe('app-two');
+  });
+});
+
+describe('AppShell: moreItems', () => {
+  it('does not render a moreItem with an unsafe href, in the header menu or the sheet', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const bad: NavItem = { key: 'evil-shell', label: 'Evil', icon, href: 'javascript:alert(1)//shell' };
+    const good: NavItem = { key: 'help', label: 'Help', icon, href: '/help' };
+    render(<AppShell name="Jobs" nav={FIVE} moreItems={[bad, good]}>x</AppShell>);
+    fireEvent.click(screen.getAllByRole('button', { name: 'More' }).find((b) => b.getAttribute('aria-haspopup') === 'menu') as HTMLElement);
+    expect(screen.queryByText('Evil')).toBeNull();
+    expect(screen.getByRole('menuitem', { name: /Help/ })).toBeTruthy();
+    expect(warn.mock.calls.some((c) => String(c[0]).includes('"evil-shell"'))).toBe(true);
+  });
+
+  it('follows a safe href with a full page load when there is no onSelect', () => {
+    const assign = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...original, assign } });
+    try {
+      render(<AppShell name="Jobs" moreItems={[{ key: 'help', label: 'Help', icon, href: '/help' }]}>x</AppShell>);
+      fireEvent.click(screen.getByRole('button', { name: 'More' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: /Help/ }));
+      expect(assign).toHaveBeenCalledWith('/help');
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: original });
+    }
+  });
+
+  it('runs onSelect instead of navigating when both are given', () => {
+    const assign = vi.fn();
+    const onSelect = vi.fn();
+    const original = window.location;
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...original, assign } });
+    try {
+      render(<AppShell name="Jobs" moreItems={[{ key: 'out', label: 'Sign out', icon, href: '/out', onSelect }]}>x</AppShell>);
+      fireEvent.click(screen.getByRole('button', { name: 'More' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: /Sign out/ }));
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(assign).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: original });
+    }
+  });
+
+  it('names the header menu button from the more string', () => {
+    render(
+      <NishProvider strings={{ more: 'Plus' }}>
+        <AppShell name="Jobs" moreItems={[{ key: 'help', label: 'Help', icon, onSelect: () => {} }]}>x</AppShell>
+      </NishProvider>,
+    );
+    expect(screen.getByRole('button', { name: 'Plus' })).toBeTruthy();
+  });
+
+  it('drops a nav item with an unsafe href from every nav', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const nav = [item('home', 'Home', true), { ...item('bad', 'Bad'), href: 'data:text/html,x' }];
+    render(<AppShell name="Jobs" nav={nav}>x</AppShell>);
+    expect(screen.queryByText('Bad')).toBeNull();
+    expect(screen.getAllByText('Home').length).toBeGreaterThan(0);
   });
 });

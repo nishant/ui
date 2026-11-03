@@ -1,13 +1,15 @@
+'use client';
 import {
   cloneElement,
   createContext,
+  isValidElement,
   useCallback,
   useContext,
   useEffect,
   useId,
-  useLayoutEffect,
   useRef,
   useState,
+  type ComponentPropsWithoutRef,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -19,80 +21,177 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../cn';
+import { shared } from '../runtime';
+import { isRtl, useIsClient, useIsoLayoutEffect } from './client';
+import { useMediaQuery } from './hooks';
 import { XIcon } from './icons';
 import { Button, IconButton } from './primitives';
 import { useLatest } from './latest';
+import { Portal } from './portal';
+import { useNishConfig, useNishStrings } from './provider';
+import {
+  CLOSE_BUTTON,
+  DRAWER_SHEET_HEIGHT,
+  DRAWER_WIDTH,
+  MENU_ROW,
+  MODAL_SIZE,
+  PHONE_QUERY,
+  SHEET_EXIT_MS,
+  SHEET_HEIGHT_CLASS,
+  keyboardFocused,
+  menuItemClass,
+  touchTracker,
+  type MenuItemClassOptions,
+} from './overlay-classes';
+
+// The pure helpers live in overlay-classes.ts; these re-exports keep the old import paths.
+export { keyboardFocused, menuItemClass, touchTracker };
+export type { MenuItemClassOptions };
 
 // ---------------------------------------------------------------------------------
 // Shared layer plumbing: one stack for everything that answers Escape (dialogs,
 // drawers, popovers, menus), one scroll lock for <html> and <body>, one focus trap.
+// All of it lives in shared('overlay'), so every entry and every copy of the package on a
+// page uses the same stack, lock and inert bookkeeping.
 // ---------------------------------------------------------------------------------
 
-// Open layers, oldest first. Only the top one answers Escape and traps Tab, so a
-// confirm dialog over an editor (or a menu inside a drawer) closes alone.
-const layerStack: object[] = [];
-const isTop = (self: object) => layerStack[layerStack.length - 1] === self;
+interface OverlayState {
+  /** Open layers, oldest first. Only the top one answers Escape and traps Tab, so a
+   *  confirm dialog over an editor (or a menu inside a drawer) closes alone. */
+  layerStack: object[];
+  /** Dialog layers (Modal, Drawer, ConfirmDialog; not popovers or menus) mark <html> with
+   *  data-nish-layer-open, so CSS elsewhere (the Toaster moving to the top of a phone) can
+   *  react without React state. */
+  dialogCount: number;
+  /** Dialog scrims, oldest first. While any is open, everything else on <body> is inert so
+   *  focus, clicks and screen readers stay in the top dialog. Toasts opt out with
+   *  data-nish-keep-active. */
+  dialogPortals: HTMLElement[];
+  inerted: Set<HTMLElement>;
+  /** Scroll lock, counted so stacked dialogs restore the page only when the last closes. */
+  lockCount: number;
+  savedOverflow: { html: string; body: string } | null;
+  /** history.back() calls this module issued whose popstate has not landed yet. */
+  pendingBacks: number;
+  queuedPushes: Array<() => void>;
+  layerSeq: number;
+  /** Open dialogs that use closeOnBack: the popstate guard is installed while there are any
+   *  (or a back is still pending). */
+  backDialogs: number;
+  guardOn: boolean;
+  guard: (e: PopStateEvent) => void;
+}
 
-// Dialog layers (Modal, Drawer, ConfirmDialog; not popovers or menus) mark <html> with
-// data-nish-layer-open, so CSS elsewhere (the Toaster moving to the top of a phone) can
-// react without React state.
-let dialogCount = 0;
+function createState(): OverlayState {
+  const s: OverlayState = {
+    layerStack: [],
+    dialogCount: 0,
+    dialogPortals: [],
+    inerted: new Set<HTMLElement>(),
+    lockCount: 0,
+    savedOverflow: null,
+    pendingBacks: 0,
+    queuedPushes: [],
+    layerSeq: 0,
+    backDialogs: 0,
+    guardOn: false,
+    guard: () => {},
+  };
+  s.guard = (e) => {
+    if (s.pendingBacks <= 0) return;
+    s.pendingBacks--;
+    e.stopImmediatePropagation();
+    if (s.pendingBacks === 0) {
+      for (const push of s.queuedPushes.splice(0)) push();
+      removeGuardIfIdle(s);
+    }
+  };
+  return s;
+}
+
+let cachedState: OverlayState | undefined;
+function ov(): OverlayState {
+  return (cachedState ??= shared('overlay', createState));
+}
+
+function removeGuardIfIdle(s: OverlayState): void {
+  if (s.guardOn && s.backDialogs === 0 && s.pendingBacks === 0) {
+    window.removeEventListener('popstate', s.guard, true);
+    s.guardOn = false;
+  }
+}
+
+/** Installs the popstate guard when the first closeOnBack dialog opens. Capture phase, so it
+ *  runs before listeners (a router's) that were added earlier. */
+function acquireGuard(): void {
+  const s = ov();
+  s.backDialogs++;
+  if (!s.guardOn) {
+    window.addEventListener('popstate', s.guard, true);
+    s.guardOn = true;
+  }
+}
+
+function releaseGuard(): void {
+  const s = ov();
+  s.backDialogs--;
+  removeGuardIfIdle(s);
+}
+
+const isTop = (self: object) => {
+  const stack = ov().layerStack;
+  return stack[stack.length - 1] === self;
+};
 
 function syncLayerAttr() {
   if (typeof document === 'undefined') return;
   const html = document.documentElement;
-  if (dialogCount > 0) html.setAttribute('data-nish-layer-open', '');
+  if (ov().dialogCount > 0) html.setAttribute('data-nish-layer-open', '');
   else html.removeAttribute('data-nish-layer-open');
 }
 
-// Dialog scrims, oldest first. While any is open, everything else on <body> is inert so
-// focus, clicks and screen readers stay in the top dialog. Toasts opt out with
-// data-nish-keep-active.
-const dialogPortals: HTMLElement[] = [];
-const inertedBySync = new Set<HTMLElement>();
-
 function syncInert() {
   if (typeof document === 'undefined') return;
+  const { dialogPortals, inerted } = ov();
   // React removes the DOM before passive cleanups run, so a scrim may already be detached.
   for (let i = dialogPortals.length - 1; i >= 0; i--) if (!dialogPortals[i].isConnected) dialogPortals.splice(i, 1);
   const top = dialogPortals[dialogPortals.length - 1];
   if (!top) {
-    inertedBySync.forEach((el) => {
+    inerted.forEach((el) => {
       el.inert = false;
       el.removeAttribute('inert');
     });
-    inertedBySync.clear();
+    inerted.clear();
     return;
   }
   for (const el of Array.from(document.body.children) as HTMLElement[]) {
     const skip = el === top || el.contains(top) || el.hasAttribute('data-nish-keep-active');
     if (skip) {
-      if (inertedBySync.has(el)) {
+      if (inerted.has(el)) {
         el.inert = false;
         el.removeAttribute('inert');
-        inertedBySync.delete(el);
+        inerted.delete(el);
       }
     } else if (!el.inert) {
       el.inert = true;
       el.setAttribute('inert', '');
-      inertedBySync.add(el);
+      inerted.add(el);
     }
   }
 }
 
 function pushInert(scrim: HTMLElement) {
+  const { dialogPortals } = ov();
   if (!dialogPortals.includes(scrim)) dialogPortals.push(scrim);
   syncInert();
 }
 
 function popInert(scrim: HTMLElement) {
+  const { dialogPortals } = ov();
   const i = dialogPortals.indexOf(scrim);
   if (i >= 0) dialogPortals.splice(i, 1);
   syncInert();
 }
-
-const SHEET_EXIT_MS = 200;
-const PHONE_QUERY = '(max-width: 639px)';
 
 function isPhoneViewport(): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches;
@@ -104,9 +203,7 @@ function prefersReducedMotion(): boolean {
 
 // Close handlers that can refuse to close (ConfirmDialog while its action runs), so
 // the exit animation is not played for a close that is then ignored.
-const closeVetoes = new WeakMap<() => void, () => boolean>();
-
-let layerSeq = 0;
+const closeVetoes = /* @__PURE__ */ new WeakMap<() => void, () => boolean>();
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -117,13 +214,14 @@ function focusables(root: HTMLElement): HTMLElement[] {
 
 // Scroll lock, counted so stacked dialogs restore the page only when the last closes.
 // Both <html> and <body>: some apps scroll the root element, some the body.
-let lockCount = 0;
-let savedOverflow: { html: string; body: string } | null = null;
-
 function lockScroll(): () => void {
-  if (lockCount++ === 0) {
+  const s = ov();
+  if (s.lockCount++ === 0) {
     const html = document.documentElement;
-    savedOverflow = { html: html.style.overflow, body: document.body.style.overflow };
+    s.savedOverflow = {
+      html: html.style.overflow,
+      body: document.body.style.overflow,
+    };
     html.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
   }
@@ -131,30 +229,29 @@ function lockScroll(): () => void {
   return () => {
     if (released) return;
     released = true;
-    if (--lockCount === 0 && savedOverflow) {
-      document.documentElement.style.overflow = savedOverflow.html;
-      document.body.style.overflow = savedOverflow.body;
-      savedOverflow = null;
+    if (--s.lockCount === 0 && s.savedOverflow) {
+      document.documentElement.style.overflow = s.savedOverflow.html;
+      document.body.style.overflow = s.savedOverflow.body;
+      s.savedOverflow = null;
     }
   };
 }
 
 /** Floating panels opened from inside a dialog portal into that dialog's layer, so
- *  they stack above it instead of under its scrim. */
-function layerHost(anchor: HTMLElement | null | undefined): HTMLElement {
-  return anchor?.closest<HTMLElement>('[data-nish-layer]') ?? document.body;
+ *  they stack above it instead of under its scrim; otherwise into the configured
+ *  container (the provider's portalContainer, default document.body). */
+function layerHost(anchor: HTMLElement | null | undefined, container?: HTMLElement | null): HTMLElement {
+  return anchor?.closest<HTMLElement>('[data-nish-layer]') ?? container ?? document.body;
 }
 
 // history.back() is asynchronous. A layer that closes while another opens in the same
 // tick must not push its entry before that traversal lands, or the pending back would pop
 // the new entry and close the new layer at once. So: count the backs this module issued,
-// swallow their popstate events (the first listener on window), and hold pushes until the
-// count is back to zero.
-let pendingBacks = 0;
-const queuedPushes: Array<() => void> = [];
-
+// swallow their popstate events (the guard, a capture listener on window), and hold pushes
+// until the count is back to zero.
 function queueHistoryPush(push: () => void) {
-  if (pendingBacks > 0) queuedPushes.push(push);
+  const s = ov();
+  if (s.pendingBacks > 0) s.queuedPushes.push(push);
   else push();
 }
 
@@ -165,19 +262,64 @@ export function whenHistorySettled(cb: () => void): void {
 }
 
 function cancelHistoryPush(push: () => void) {
-  const i = queuedPushes.indexOf(push);
-  if (i >= 0) queuedPushes.splice(i, 1);
+  const q = ov().queuedPushes;
+  const i = q.indexOf(push);
+  if (i >= 0) q.splice(i, 1);
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('popstate', (e) => {
-    if (pendingBacks <= 0) return;
-    pendingBacks--;
-    e.stopImmediatePropagation();
-    if (pendingBacks === 0) {
-      for (const push of queuedPushes.splice(0)) push();
+const warnedDev = /* @__PURE__ */ new Set<string>();
+
+/** Dev-only console warning, once per message. Bundlers replace `process.env.NODE_ENV`;
+ *  where nothing does, the ReferenceError is caught and nothing is printed. */
+function warnDev(message: string): void {
+  if (warnedDev.has(message)) return;
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      warnedDev.add(message);
+      console.warn(message);
     }
-  });
+  } catch {
+    // No process or no console.
+  }
+}
+
+function setRef<T>(ref: Ref<T> | undefined, value: T) {
+  if (typeof ref === 'function') ref(value);
+  else if (ref) (ref as { current: T }).current = value;
+}
+
+/** An internal ref object plus a callback ref that fills it and the `ref` prop a caller passed. */
+function useMergedRef<T>(external: Ref<T> | undefined) {
+  const internalRef = useRef<T | null>(null);
+  const callbackRef = useCallback(
+    (node: T | null) => {
+      internalRef.current = node;
+      setRef(external, node);
+    },
+    [external],
+  );
+  return [internalRef, callbackRef] as const;
+}
+
+/** True when the element's content is taller than the element (so a keyboard user needs to
+ *  be able to focus it to scroll). Re-checked when it resizes or its content changes. */
+function useScrollable(ref: RefObject<HTMLElement | null>): boolean {
+  const [scrollable, setScrollable] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setScrollable(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(check);
+    ro?.observe(el);
+    const mo = typeof MutationObserver === 'undefined' ? null : new MutationObserver(check);
+    mo?.observe(el, { childList: true, subtree: true, characterData: true });
+    return () => {
+      ro?.disconnect();
+      mo?.disconnect();
+    };
+  }, [ref]);
+  return scrollable;
 }
 
 /** The internals every modal surface shares (Modal, Drawer, ConfirmDialog): stack
@@ -188,11 +330,12 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
   const onCloseRef = useLatest(onClose);
 
   useEffect(() => {
+    const s = ov();
     const opener = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
     const self = {};
-    layerStack.push(self);
-    dialogCount++;
+    s.layerStack.push(self);
+    s.dialogCount++;
     syncLayerAttr();
     const scrim = panel?.closest<HTMLElement>('[data-nish-layer]') ?? null;
     if (scrim) pushInert(scrim);
@@ -200,7 +343,7 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
     // Android back / browser back closes the top layer: the layer owns one history
     // entry. The push is deferred a tick so a Strict Mode mount-unmount-mount does not
     // push and pop an entry.
-    const layerId = `nish-layer-${++layerSeq}`;
+    const layerId = `nish-layer-${++s.layerSeq}`;
     let pushed = false;
     let rePushTimer = 0;
     const pushEntry = () => {
@@ -210,6 +353,9 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
     };
     // pushState waits until every history.back() this module issued has landed.
     const queuedPush = () => queueHistoryPush(pushEntry);
+    // The guard goes on before this layer's own popstate listener, so swallowed events
+    // never reach it.
+    if (closeOnBack) acquireGuard();
     const pushTimer = closeOnBack ? window.setTimeout(queuedPush, 0) : 0;
     function onPop() {
       if (!pushed) return;
@@ -274,8 +420,9 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
       window.clearTimeout(rePushTimer);
       cancelHistoryPush(pushEntry);
       window.removeEventListener('popstate', onPop);
-      layerStack.splice(layerStack.indexOf(self), 1);
-      dialogCount--;
+      const at = s.layerStack.indexOf(self);
+      if (at >= 0) s.layerStack.splice(at, 1);
+      s.dialogCount--;
       syncLayerAttr();
       if (scrim) popInert(scrim);
       document.removeEventListener('keydown', onKey);
@@ -283,45 +430,53 @@ function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () => void,
       opener?.focus?.();
       // Closed by anything but back: drop the entry this layer pushed.
       if (pushed && (history.state as { nishLayer?: string } | null)?.nishLayer === layerId) {
-        pendingBacks++;
+        s.pendingBacks++;
         history.back();
       }
+      // After the back above, so the guard stays until its popstate has landed.
+      if (closeOnBack) releaseGuard();
     };
   }, [panelRef, closeOnBack, onCloseRef]);
 }
 
-/** Keeps a sheet mounted while it plays its exit animation. Modal and Drawer have no
- *  `open` prop (the parent unmounts them in `onClose`), so the exit runs between the
- *  close request and the `onClose` call. */
-function useSheetExit(onClose: () => void, canClose?: () => boolean) {
+/** Keeps a sheet mounted while it plays its exit animation. The parent unmounts it (or
+ *  sets `open` to false) in `onClose` / `onOpenChange`, so the exit runs between the close
+ *  request and those calls. */
+function useSheetExit(onClose: (() => void) | undefined, canClose?: () => boolean, onOpenChange?: (open: boolean) => void) {
   const [closing, setClosing] = useState(false);
   const closingRef = useRef(false);
   const timer = useRef(0);
   const onCloseRef = useLatest(onClose);
+  const openChangeRef = useLatest(onOpenChange);
   const canCloseRef = useLatest(canClose);
   useEffect(() => () => window.clearTimeout(timer.current), []);
-  /** Plays the exit animation, then calls `onClose`. */
+  const fire = useCallback(() => {
+    onCloseRef.current?.();
+    openChangeRef.current?.(false);
+  }, [onCloseRef, openChangeRef]);
+  /** Plays the exit animation, then calls `onClose` and `onOpenChange(false)`. */
   const requestClose = useCallback(() => {
     if (closingRef.current) return;
-    if (closeVetoes.get(onCloseRef.current)?.()) return;
+    const handler = onCloseRef.current;
+    if (handler && closeVetoes.get(handler)?.()) return;
     if (canCloseRef.current && !canCloseRef.current()) return;
     if (prefersReducedMotion()) {
-      onCloseRef.current();
+      fire();
       return;
     }
     closingRef.current = true;
     setClosing(true);
     timer.current = window.setTimeout(() => {
-      onCloseRef.current();
+      fire();
       // Still mounted (the parent kept it): show it again.
       closingRef.current = false;
       setClosing(false);
     }, SHEET_EXIT_MS);
-  }, [canCloseRef, onCloseRef]);
-  /** Calls `onClose` at once, for a swipe that already animated the sheet away. */
+  }, [canCloseRef, fire, onCloseRef]);
+  /** Calls the close callbacks at once, for a swipe that already animated the sheet away. */
   const closeNow = useCallback(() => {
-    onCloseRef.current();
-  }, [onCloseRef]);
+    fire();
+  }, [fire]);
   const isClosing = useCallback(() => closingRef.current, []);
   /** False when the app's canClose refuses: a swipe springs back instead of dismissing. */
   const allowClose = useCallback(() => !canCloseRef.current || canCloseRef.current(), [canCloseRef]);
@@ -338,7 +493,13 @@ function useSheetSwipe(
   onDismiss: () => void,
   allow: () => boolean = () => true,
 ) {
-  const drag = useRef<{ startY: number; dy: number; lastY: number; lastT: number; v: number } | null>(null);
+  const drag = useRef<{
+    startY: number;
+    dy: number;
+    lastY: number;
+    lastT: number;
+    v: number;
+  } | null>(null);
   const timer = useRef(0);
   const enabledRef = useLatest(enabled);
   const dismissRef = useLatest(onDismiss);
@@ -357,7 +518,13 @@ function useSheetSwipe(
       e.currentTarget.setPointerCapture?.(e.pointerId);
       panel.style.transition = 'none';
       if (scrimRef.current) scrimRef.current.style.transition = 'none';
-      drag.current = { startY: e.clientY, dy: 0, lastY: e.clientY, lastT: e.timeStamp, v: 0 };
+      drag.current = {
+        startY: e.clientY,
+        dy: 0,
+        lastY: e.clientY,
+        lastT: e.timeStamp,
+        v: 0,
+      };
     },
     [enabledRef, panelRef, scrimRef],
   );
@@ -427,11 +594,12 @@ type SheetSwipe = ReturnType<typeof useSheetSwipe>;
 /** The grab bar on top of a bottom sheet: drag it down to dismiss, or press Enter or
  *  Space when it has focus. */
 function SheetHandle({ onClose, swipe, className }: { onClose: () => void; swipe: SheetSwipe; className?: string }) {
+  const strings = useNishStrings();
   return (
     <div
       role="button"
       tabIndex={0}
-      aria-label="Close"
+      aria-label={strings.close}
       {...swipe}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -440,28 +608,33 @@ function SheetHandle({ onClose, swipe, className }: { onClose: () => void; swipe
         }
       }}
       className={cn(
-        'flex h-5 min-h-11 w-full shrink-0 cursor-grab touch-none items-center justify-center rounded-t-2xl outline-none focus-visible:bg-th-overlay',
+        'flex h-5 min-h-11 w-full shrink-0 cursor-grab touch-none items-center justify-center rounded-t-2xl outline-none focus-visible:bg-th-overlay forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-2',
         className,
       )}
     >
-      <span className="h-1 w-10 rounded-full bg-th-line-strong" aria-hidden="true" />
+      <span className="h-1 w-10 rounded-full bg-th-line-strong forced-colors:bg-[ButtonText]" aria-hidden="true" />
     </div>
   );
 }
-
-const CLOSE_BUTTON =
-  '-mr-1.5 inline-flex shrink-0 items-center justify-center rounded-lg p-1.5 text-th-hi3 transition-colors hover:bg-th-elevated hover:text-th-hi pointer-coarse:min-h-11 pointer-coarse:min-w-11';
 
 // ---------------------------------------------------------------------------------
 // Modal
 // ---------------------------------------------------------------------------------
 
-export interface ModalProps {
+export interface ModalProps extends Omit<ComponentPropsWithoutRef<'div'>, 'title' | 'children' | 'className'> {
   /** Heading of the dialog; also its accessible name. Optional only when `header`
    *  replaces the title row (then pass `aria-label`). */
   title?: ReactNode;
-  /** Called on Escape, a backdrop click and the close button. Unmount the modal here. */
-  onClose: () => void;
+  /** Called on Escape, a backdrop click and the close button. Unmount the modal here
+   *  (or set `open` to false). Optional when `onOpenChange` is used. */
+  onClose?: () => void;
+  /** Controlled open state. When given, the modal renders only while it is true and
+   *  `onOpenChange(false)` asks you to close it. When omitted, a mounted Modal is open
+   *  (the parent unmounts it in `onClose`). */
+  open?: boolean;
+  /** Called with false on Escape, a backdrop click and the close button, together with
+   *  `onClose`. */
+  onOpenChange?: (open: boolean) => void;
   /** The body. It scrolls when taller than the screen. */
   children: ReactNode;
   /** md: compact dialogs (default). lg / xl: wide content like guides and editors.
@@ -495,29 +668,29 @@ export interface ModalProps {
    *  dialog open with no exit animation, e.g. while a form holds invalid input; show
    *  the reason yourself. */
   canClose?: () => boolean;
+  /** Classes for the dialog panel. */
   className?: string;
+  /** The dialog panel (role="dialog"). */
+  ref?: Ref<HTMLDivElement>;
 }
-
-const SHEET_HEIGHT_CLASS = {
-  auto: 'max-h-[92dvh]',
-  tall: 'max-h-[92dvh] max-sm:h-[92dvh]',
-  full: 'max-h-dvh max-sm:h-dvh max-sm:rounded-t-none max-sm:pt-[env(safe-area-inset-top)]',
-};
-
-const SIZE = {
-  md: 'sm:max-w-md',
-  lg: 'sm:max-w-xl',
-  xl: 'sm:max-w-3xl',
-  '2xl': 'sm:max-w-6xl',
-  full: 'sm:max-w-[calc(100vw-2rem)] sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)]',
-};
 
 /** Dialog: centered panel on wide screens, bottom sheet under 640px. Closes on
  *  Escape and backdrop click, traps Tab inside, returns focus to the opener, and
- *  locks page scroll (on both <html> and <body>) while open. */
-export function Modal({
+ *  locks page scroll (on both <html> and <body>) while open. Renders through a Portal:
+ *  nothing on the server. */
+export function Modal({ open, ...props }: ModalProps) {
+  if (open === false) return null;
+  return (
+    <Portal>
+      <ModalPanel {...props} />
+    </Portal>
+  );
+}
+
+function ModalPanel({
   title,
   onClose,
+  onOpenChange,
   children,
   size = 'md',
   footer,
@@ -526,26 +699,40 @@ export function Modal({
   header,
   hideClose = false,
   'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
   sheetHeight = 'auto',
   dismissible = true,
   closeOnBack = true,
   canClose,
   className,
-}: ModalProps) {
+  role,
+  ref,
+  ...rest
+}: Omit<ModalProps, 'open'>) {
+  const strings = useNishStrings();
   const titleId = useId();
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelRef, setPanelRef] = useMergedRef<HTMLDivElement>(ref);
   const scrimRef = useRef<HTMLDivElement>(null);
-  const { closing, requestClose, closeNow, isClosing, allowClose } = useSheetExit(onClose, canClose);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const { closing, requestClose, closeNow, isClosing, allowClose } = useSheetExit(onClose, canClose, onOpenChange);
   useDialog(panelRef, requestClose, closeOnBack);
   const swipe = useSheetSwipe(panelRef, scrimRef, () => dismissible && !isClosing() && isPhoneViewport(), closeNow, allowClose);
   const showTitle = header === undefined && title !== undefined && title !== null;
+  const named = showTitle || !!ariaLabel || !!ariaLabelledBy;
+  const scrollable = useScrollable(bodyRef);
+  const bodyLabel = typeof title === 'string' ? title : ariaLabel;
 
-  return createPortal(
+  useEffect(() => {
+    if (!named) warnDev('nish-ui: <Modal> has no accessible name. Pass `title`, `aria-label` or `aria-labelledby`.');
+  }, [named]);
+
+  return (
     <div
       ref={scrimRef}
       data-nish-layer=""
+      data-state={closing ? 'closed' : 'open'}
       className={cn(
-        'fixed inset-0 z-50 flex items-end justify-center bg-th-scrim/60 sm:p-4',
+        'fixed inset-0 z-[var(--nish-z-modal,50)] flex items-end justify-center bg-th-scrim/60 sm:p-4',
         closing ? 'pointer-events-none animate-[nish-fade-out_200ms_ease-in_forwards]' : 'animate-[nish-fade-in_160ms_ease-out]',
         placement === 'top' ? 'sm:items-start sm:pt-[12vh]' : 'sm:items-center',
       )}
@@ -554,11 +741,13 @@ export function Modal({
       }}
     >
       <div
-        ref={panelRef}
-        role="dialog"
+        {...rest}
+        ref={setPanelRef}
+        role={role ?? 'dialog'}
         aria-modal="true"
-        aria-labelledby={showTitle && !ariaLabel ? titleId : undefined}
+        aria-labelledby={ariaLabelledBy ?? (showTitle && !ariaLabel ? titleId : undefined)}
         aria-label={ariaLabel}
+        data-state={closing ? 'closed' : 'open'}
         tabIndex={-1}
         className={cn(
           'flex w-full flex-col border border-th-line bg-th-surface shadow-modal outline-none',
@@ -569,7 +758,7 @@ export function Modal({
           'sm:max-h-[85dvh] sm:rounded-2xl sm:pb-0',
           placement === 'top' && 'sm:max-h-[76dvh]',
           SHEET_HEIGHT_CLASS[sheetHeight],
-          SIZE[size],
+          MODAL_SIZE[size],
           className,
         )}
       >
@@ -588,7 +777,7 @@ export function Modal({
               {title}
             </h2>
             {hideClose ? null : (
-              <button type="button" onClick={requestClose} aria-label="Close" className={CLOSE_BUTTON}>
+              <button type="button" onClick={requestClose} aria-label={strings.close} className={CLOSE_BUTTON}>
                 <XIcon size={16} />
               </button>
             )}
@@ -596,21 +785,17 @@ export function Modal({
         )}
         {subtitle ? <div className="shrink-0 border-b border-th-line px-5 pb-3 text-sm text-th-hi2">{subtitle}</div> : null}
         <div
-          className={cn(
-            'min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 text-sm text-th-hi2',
-            header !== undefined && 'pt-3',
-          )}
+          ref={bodyRef}
+          tabIndex={scrollable ? 0 : undefined}
+          role={scrollable && bodyLabel ? 'region' : undefined}
+          aria-label={scrollable ? bodyLabel : undefined}
+          className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 text-sm text-th-hi2', header !== undefined && 'pt-3')}
         >
           {children}
         </div>
-        {footer ? (
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-th-line px-5 py-3">
-            {footer}
-          </div>
-        ) : null}
+        {footer ? <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-th-line px-5 py-3">{footer}</div> : null}
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }
 
@@ -618,13 +803,20 @@ export function Modal({
 // Drawer
 // ---------------------------------------------------------------------------------
 
-export interface DrawerProps {
-  /** Heading of the drawer; also its accessible name unless `aria-label` is set. */
-  title: ReactNode;
+export interface DrawerProps extends Omit<ComponentPropsWithoutRef<'div'>, 'title' | 'children' | 'className'> {
+  /** Heading of the drawer; also its accessible name unless `aria-label` is set. Optional
+   *  only when you pass `aria-label` or `aria-labelledby`. */
+  title?: ReactNode;
   /** A line under the title (counts, status, timestamps). */
   subtitle?: ReactNode;
-  /** Called on Escape, a scrim click and the close button. Unmount the drawer here. */
-  onClose: () => void;
+  /** Called on Escape, a scrim click and the close button. Unmount the drawer here (or set
+   *  `open` to false). Optional when `onOpenChange` is used. */
+  onClose?: () => void;
+  /** Controlled open state. When given, the drawer renders only while it is true and
+   *  `onOpenChange(false)` asks you to close it. When omitted, a mounted Drawer is open. */
+  open?: boolean;
+  /** Called with false on Escape, a scrim click and the close button, together with `onClose`. */
+  onOpenChange?: (open: boolean) => void;
   /** right (default) and left: a full-height panel from that edge. bottom: a sheet
    *  from the bottom edge at every width. */
   side?: 'right' | 'left' | 'bottom';
@@ -654,18 +846,28 @@ export interface DrawerProps {
   children: ReactNode;
   /** Classes for the panel. */
   className?: string;
+  /** The drawer panel (role="dialog"). */
+  ref?: Ref<HTMLDivElement>;
 }
-
-const DRAWER_WIDTH = { sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-2xl' };
-const SHEET_HEIGHT = { sm: 'max-h-[50dvh]', md: 'max-h-[70dvh]', lg: 'max-h-[92dvh]' };
 
 /** A panel that slides in from an edge: notifications, an assistant, filters, a phone
  *  "More" sheet. It is a modal dialog: it traps Tab, closes on Escape and a scrim
- *  click, returns focus to the opener and locks page scroll. */
-export function Drawer({
+ *  click, returns focus to the opener and locks page scroll. Renders through a Portal:
+ *  nothing on the server. */
+export function Drawer({ open, ...props }: DrawerProps) {
+  if (open === false) return null;
+  return (
+    <Portal>
+      <DrawerPanel {...props} />
+    </Portal>
+  );
+}
+
+function DrawerPanel({
   title,
   subtitle,
   onClose,
+  onOpenChange,
   side = 'right',
   size = 'md',
   actions,
@@ -675,24 +877,38 @@ export function Drawer({
   closeOnBack = true,
   canClose,
   'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
   children,
   className,
-}: DrawerProps) {
+  ref,
+  ...rest
+}: Omit<DrawerProps, 'open'>) {
+  const strings = useNishStrings();
   const titleId = useId();
-  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelRef, setPanelRef] = useMergedRef<HTMLDivElement>(ref);
   const scrimRef = useRef<HTMLDivElement>(null);
-  const { closing, requestClose, closeNow, isClosing, allowClose } = useSheetExit(onClose, canClose);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const { closing, requestClose, closeNow, isClosing, allowClose } = useSheetExit(onClose, canClose, onOpenChange);
   useDialog(panelRef, requestClose, closeOnBack);
   const bottom = side === 'bottom';
   const swipe = useSheetSwipe(panelRef, scrimRef, () => bottom && dismissible && !isClosing(), closeNow, allowClose);
   const swipeHeader = bottom && dismissible;
+  const hasTitle = title !== undefined && title !== null;
+  const named = hasTitle || !!ariaLabel || !!ariaLabelledBy;
+  const scrollable = useScrollable(bodyRef);
+  const bodyLabel = typeof title === 'string' ? title : ariaLabel;
 
-  return createPortal(
+  useEffect(() => {
+    if (!named) warnDev('nish-ui: <Drawer> has no accessible name. Pass `title`, `aria-label` or `aria-labelledby`.');
+  }, [named]);
+
+  return (
     <div
       ref={scrimRef}
       data-nish-layer=""
+      data-state={closing ? 'closed' : 'open'}
       className={cn(
-        'fixed inset-0 z-50 bg-th-scrim/50',
+        'fixed inset-0 z-[var(--nish-z-modal,50)] bg-th-scrim/50',
         closing ? 'pointer-events-none animate-[nish-fade-out_200ms_ease-in_forwards]' : 'animate-[nish-fade-in_160ms_ease-out]',
       )}
       style={bottom && bottomOffset ? { bottom: bottomOffset } : undefined}
@@ -701,22 +917,22 @@ export function Drawer({
       }}
     >
       <div
-        ref={panelRef}
+        {...rest}
+        ref={setPanelRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={ariaLabel ? undefined : titleId}
+        aria-labelledby={ariaLabelledBy ?? (ariaLabel || !hasTitle ? undefined : titleId)}
         aria-label={ariaLabel}
+        data-state={closing ? 'closed' : 'open'}
         tabIndex={-1}
         className={cn(
           'absolute flex flex-col border-th-line bg-th-surface shadow-modal outline-none',
           bottom
             ? cn(
                 'inset-x-0 bottom-0 rounded-t-2xl border-t',
-                closing
-                  ? 'animate-[nish-sheet-out_200ms_ease-in_forwards]'
-                  : 'animate-[nish-sheet-in_240ms_var(--nish-ease-out)]',
+                closing ? 'animate-[nish-sheet-out_200ms_ease-in_forwards]' : 'animate-[nish-sheet-in_240ms_var(--nish-ease-out)]',
                 bottomOffset ? '' : 'pb-[env(safe-area-inset-bottom)]',
-                SHEET_HEIGHT[size],
+                DRAWER_SHEET_HEIGHT[size],
               )
             : cn(
                 'inset-y-0 w-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
@@ -738,37 +954,38 @@ export function Drawer({
           className,
         )}
       >
-        {swipeHeader ? (
-          <SheetHandle onClose={requestClose} swipe={swipe} />
-        ) : bottom ? (
-          <div className="h-3 shrink-0" aria-hidden="true" />
-        ) : null}
+        {swipeHeader ? <SheetHandle onClose={requestClose} swipe={swipe} /> : bottom ? <div className="h-3 shrink-0" aria-hidden="true" /> : null}
         <div
           className={cn('flex shrink-0 items-start justify-between gap-3 border-b border-th-line px-5 py-3', swipeHeader && 'touch-pan-x')}
           {...(swipeHeader ? swipe : {})}
         >
           <div className="min-w-0 pt-1">
-            <h2 id={titleId} className="line-clamp-2 break-words text-base font-semibold leading-snug text-th-hi">
-              {title}
-            </h2>
+            {hasTitle ? (
+              <h2 id={titleId} className="line-clamp-2 break-words text-base font-semibold leading-snug text-th-hi">
+                {title}
+              </h2>
+            ) : null}
             {subtitle ? <div className="mt-0.5 text-xs text-th-hi3">{subtitle}</div> : null}
           </div>
-          <div className="-mr-1.5 flex shrink-0 items-center gap-1">
+          <div className="-me-1.5 flex shrink-0 items-center gap-1">
             {actions}
-            <IconButton label="Close" onClick={requestClose}>
+            <IconButton label={strings.close} onClick={requestClose}>
               <XIcon size={16} />
             </IconButton>
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 text-sm text-th-hi2">{children}</div>
-        {footer ? (
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-th-line px-5 py-3">
-            {footer}
-          </div>
-        ) : null}
+        <div
+          ref={bodyRef}
+          tabIndex={scrollable ? 0 : undefined}
+          role={scrollable && bodyLabel ? 'region' : undefined}
+          aria-label={scrollable ? bodyLabel : undefined}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 text-sm text-th-hi2"
+        >
+          {children}
+        </div>
+        {footer ? <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-th-line px-5 py-3">{footer}</div> : null}
       </div>
-    </div>,
-    document.body,
+    </div>
   );
 }
 
@@ -779,11 +996,11 @@ export function Drawer({
 export interface ConfirmDialogProps {
   /** The question, e.g. "Delete this tracker?". Also the dialog's name. */
   title: ReactNode;
-  /** What happens if they confirm. Keep it to a sentence or two. */
+  /** What happens if they confirm. Keep it to a sentence or two. The dialog's description. */
   body?: ReactNode;
   /** The confirm button's label: a verb that names the action ("Delete", "Archive"). */
   confirmLabel: string;
-  /** The cancel button's label. Default "Cancel". */
+  /** The cancel button's label. Default "Cancel" (or the provider's `cancel` string). */
   cancelLabel?: string;
   /** danger (default): a red confirm button, and focus starts on Cancel. primary: an
    *  accent confirm button that takes the first focus. */
@@ -793,26 +1010,41 @@ export interface ConfirmDialogProps {
   pending?: boolean;
   /** Runs the action. Close the dialog (unmount it) when it is done. */
   onConfirm: () => void;
-  /** Called on Cancel, Escape and a backdrop click. Unmount the dialog here. */
-  onCancel: () => void;
+  /** Called on Cancel, Escape and a backdrop click. Unmount the dialog here (or set
+   *  `open` to false). Optional when `onOpenChange` is used. */
+  onCancel?: () => void;
+  /** Controlled open state. When given, the dialog renders only while it is true. When
+   *  omitted, a mounted ConfirmDialog is open. */
+  open?: boolean;
+  /** Called with false on Cancel, Escape and a backdrop click, together with `onCancel`. */
+  onOpenChange?: (open: boolean) => void;
 }
 
 /** A yes-or-no question before an action, in place of `window.confirm`: a small
- *  Modal with Cancel and a confirm button. */
+ *  Modal (role="alertdialog") with Cancel and a confirm button. */
 export function ConfirmDialog({
   title,
   body,
   confirmLabel,
-  cancelLabel = 'Cancel',
+  cancelLabel,
   tone = 'danger',
   pending = false,
   onConfirm,
   onCancel,
+  open,
+  onOpenChange,
 }: ConfirmDialogProps) {
+  const strings = useNishStrings();
+  const bodyId = useId();
   const pendingRef = useLatest(pending);
+  const onOpenChangeRef = useLatest(onOpenChange);
+  const onCancelRef = useLatest(onCancel);
+  // One stable handler: Modal looks it up in closeVetoes to refuse a close while pending.
   const cancel = useCallback(() => {
-    if (!pendingRef.current) onCancel();
-  }, [onCancel, pendingRef]);
+    if (pendingRef.current) return;
+    onCancelRef.current?.();
+    onOpenChangeRef.current?.(false);
+  }, [onCancelRef, onOpenChangeRef, pendingRef]);
   useEffect(() => {
     closeVetoes.set(cancel, () => pendingRef.current);
     return () => {
@@ -820,28 +1052,27 @@ export function ConfirmDialog({
     };
   }, [cancel, pendingRef]);
   const danger = tone === 'danger';
+  const hasBody = body !== undefined && body !== null && body !== false;
   return (
     <Modal
+      open={open}
       title={title}
       onClose={cancel}
       size="md"
+      role="alertdialog"
+      aria-describedby={hasBody ? bodyId : undefined}
       footer={
         <>
           <Button onClick={cancel} disabled={pending} data-autofocus={danger ? '' : undefined}>
-            {cancelLabel}
+            {cancelLabel ?? strings.cancel}
           </Button>
-          <Button
-            variant={danger ? 'danger' : 'primary'}
-            loading={pending}
-            onClick={onConfirm}
-            data-autofocus={danger ? undefined : ''}
-          >
+          <Button variant={danger ? 'danger' : 'primary'} loading={pending} onClick={onConfirm} data-autofocus={danger ? undefined : ''}>
             {confirmLabel}
           </Button>
         </>
       }
     >
-      {body ?? null}
+      {hasBody ? <div id={bodyId}>{body}</div> : null}
     </Modal>
   );
 }
@@ -864,7 +1095,12 @@ interface AnchoredPosition {
 const GAP = 8;
 const EDGE = 8;
 
-const OPPOSITE: Record<Side, Side> = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
+const OPPOSITE: Record<Side, Side> = {
+  top: 'bottom',
+  bottom: 'top',
+  left: 'right',
+  right: 'left',
+};
 
 function viewport() {
   return {
@@ -879,16 +1115,23 @@ function clamp(v: number, size: number, limit: number): number {
 }
 
 /** Where a floating panel of size w × h goes next to rect r: on `side` if it fits,
- *  else on the opposite side when that has more room, then clamped into the viewport. */
-function place(r: DOMRect, w: number, h: number, side: Side, align: Align, gap: number): AnchoredPosition {
+ *  else on the opposite side when that has more room, then clamped into the viewport.
+ *  In a right-to-left layout `start` and `end` swap for top and bottom panels. */
+function place(r: DOMRect, w: number, h: number, side: Side, align: Align, gap: number, rtl = false): AnchoredPosition {
   const { vw, vh } = viewport();
-  const room: Record<Side, number> = { top: r.top, bottom: vh - r.bottom, left: r.left, right: vw - r.right };
+  const room: Record<Side, number> = {
+    top: r.top,
+    bottom: vh - r.bottom,
+    left: r.left,
+    right: vw - r.right,
+  };
   const need = side === 'top' || side === 'bottom' ? h + gap + EDGE : w + gap + EDGE;
   const chosen = room[side] < need && room[OPPOSITE[side]] > room[side] ? OPPOSITE[side] : side;
 
   if (chosen === 'top' || chosen === 'bottom') {
     const top = chosen === 'top' ? r.top - gap - h : r.bottom + gap;
-    const left = align === 'start' ? r.left : align === 'end' ? r.right - w : r.left + r.width / 2 - w / 2;
+    const edge = rtl && align !== 'center' ? (align === 'start' ? 'end' : 'start') : align;
+    const left = edge === 'start' ? r.left : edge === 'end' ? r.right - w : r.left + r.width / 2 - w / 2;
     return {
       side: chosen,
       top: clamp(top, h, vh),
@@ -898,7 +1141,12 @@ function place(r: DOMRect, w: number, h: number, side: Side, align: Align, gap: 
   }
   const left = chosen === 'left' ? r.left - gap - w : r.right + gap;
   const top = align === 'start' ? r.top : align === 'end' ? r.bottom - h : r.top + r.height / 2 - h / 2;
-  return { side: chosen, top: clamp(top, h, vh), left: clamp(left, w, vw), maxHeight: Math.max(0, vh - 2 * EDGE) };
+  return {
+    side: chosen,
+    top: clamp(top, h, vh),
+    left: clamp(left, w, vw),
+    maxHeight: Math.max(0, vh - 2 * EDGE),
+  };
 }
 
 /** Positions `floating` next to `anchor` while `open`: measured before paint, flipped
@@ -914,9 +1162,8 @@ function useAnchoredPosition(
 ): AnchoredPosition | null {
   const [pos, setPos] = useState<AnchoredPosition | null>(null);
 
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     if (!open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
       setPos(null);
       return;
     }
@@ -927,11 +1174,9 @@ function useAnchoredPosition(
       // The natural height, not the clamped one, so the flip decision does not change
       // once the panel has been given a max-height.
       const naturalH = f.scrollHeight + (f.offsetHeight - f.clientHeight);
-      const next = place(a.getBoundingClientRect(), f.offsetWidth, Math.max(f.offsetHeight, naturalH), side, align, gap);
+      const next = place(a.getBoundingClientRect(), f.offsetWidth, Math.max(f.offsetHeight, naturalH), side, align, gap, isRtl(a));
       setPos((prev) =>
-        prev && prev.top === next.top && prev.left === next.left && prev.side === next.side && prev.maxHeight === next.maxHeight
-          ? prev
-          : next,
+        prev && prev.top === next.top && prev.left === next.left && prev.side === next.side && prev.maxHeight === next.maxHeight ? prev : next,
       );
     };
     update();
@@ -964,11 +1209,12 @@ function floatingStyle(pos: AnchoredPosition | null, extra?: CSSProperties): CSS
 // Tooltip
 // ---------------------------------------------------------------------------------
 
-export interface TooltipProps {
+export interface TooltipProps extends Omit<ComponentPropsWithoutRef<'span'>, 'children' | 'className'> {
   /** What the tooltip says. Keep it to a sentence or two. */
   tip: ReactNode;
-  /** The trigger. It becomes focusable (unless `focusable` is false), so keyboard
-   *  users can read the tip. */
+  /** The trigger. When it is a single focusable element (a button, a link, an IconButton)
+   *  it gets `aria-describedby` and no extra Tab stop; any other content is wrapped in a
+   *  focusable span so keyboard users can read the tip. */
   children: ReactNode;
   className?: string;
   /** Preferred side; flips to the opposite one when there is no room. `right` suits
@@ -977,56 +1223,61 @@ export interface TooltipProps {
   /** Element used for the trigger. Pass `tr` inside tables, where a span would be
    *  invalid markup and get hoisted out of the table by the parser. */
   as?: 'span' | 'tr';
-  /** Adds the trigger to the Tab order (default true). Set false for dense marks such
+  /** Adds the wrapper to the Tab order. Default: true, except when the child is a single
+   *  focusable element (that element is the tab stop). Set false for dense marks such
    *  as 60 chart bars, and make the value reachable another way. */
   focusable?: boolean;
   /** default: the trigger keeps its own look. hint: a dotted underline and a help
    *  cursor, for a term whose meaning the tip explains. */
   variant?: 'default' | 'hint';
+  /** The trigger wrapper. */
+  ref?: Ref<HTMLElement>;
 }
 
 const TIP_MAX_WIDTH = 320;
+const TIP_GRACE_MS = 100;
+const FOCUSABLE_HOST_TAGS = new Set(['button', 'a', 'input', 'select', 'textarea', 'summary']);
 
-/** True when focus on `el` came from the keyboard (`:focus-visible`), false when a
- *  pointer put it there. A focus event on an element that is not actually focused
- *  (a synthetic event in a test) counts as keyboard. Internal to the package. */
-export function keyboardFocused(el: Element): boolean {
-  if (typeof document !== 'undefined' && document.activeElement !== el) return true;
-  try {
-    return el.matches(':focus-visible');
-  } catch {
-    return true;
-  }
-}
-
-/** Phones fire mouseenter after a tap, which would pin a hover tip open with no
- *  mouseleave ever coming. Feed pointerenter/pointerdown to `onPointer`; `recent()`
- *  says whether the last pointer was a finger. Internal to the package. */
-export function touchTracker(): { onPointer: (e: { pointerType: string }) => void; recent: () => boolean } {
-  let touch = false;
-  return {
-    onPointer: (e) => {
-      touch = e.pointerType === 'touch';
-    },
-    recent: () => touch,
-  };
-}
-
-/** Hover/focus tooltip rendered through a portal to <body>, so `overflow:hidden`
- *  ancestors (truncated labels, scrolling tables) can never clip it. Positioned
- *  from the trigger's viewport rect, flipped and clamped to stay on screen. */
-export function Tooltip({ tip, children, className, side = 'top', as = 'span', focusable = true, variant = 'default' }: TooltipProps) {
-  const triggerRef = useRef<HTMLElement>(null);
+/** Hover/focus tooltip rendered through a portal (into the dialog it sits in, else the
+ *  configured container, else <body>), so `overflow:hidden` ancestors (truncated labels,
+ *  scrolling tables) can never clip it. Positioned from the trigger's viewport rect,
+ *  flipped and clamped to stay on screen. Escape dismisses it, and the pointer can move
+ *  onto it (WCAG 1.4.13). */
+export function Tooltip({ tip, children, className, side = 'top', as = 'span', focusable, variant = 'default', ref, ...rest }: TooltipProps) {
+  const [triggerRef, setTriggerRef] = useMergedRef<HTMLElement>(ref);
   const [open, setOpen] = useState(false);
   const id = useId();
+  const graceTimer = useRef(0);
+
+  // A single element child may already be the tab stop: a native control, or (measured
+  // before paint) a component that renders one.
+  const only = isValidElement(children) ? (children as ReactElement<Record<string, unknown>>) : null;
+  const staticInner = only !== null && typeof only.type === 'string' && FOCUSABLE_HOST_TAGS.has(only.type);
+  const [measuredInner, setMeasuredInner] = useState(false);
+  useIsoLayoutEffect(() => {
+    const el = triggerRef.current;
+    const found = only !== null && !!el && el.querySelector(FOCUSABLE) !== null;
+    setMeasuredInner(found);
+  });
+  const inner = only !== null && (staticInner || measuredInner);
 
   // Native listeners: React's synthetic onMouseEnter never fires for a `tr` trigger.
   useEffect(() => {
     const el = triggerRef.current;
     if (!el) return;
     const touch = touchTracker();
-    const show = () => setOpen(true);
-    const hide = () => setOpen(false);
+    const show = () => {
+      window.clearTimeout(graceTimer.current);
+      setOpen(true);
+    };
+    const hide = () => {
+      window.clearTimeout(graceTimer.current);
+      setOpen(false);
+    };
+    const hideSoon = () => {
+      window.clearTimeout(graceTimer.current);
+      graceTimer.current = window.setTimeout(() => setOpen(false), TIP_GRACE_MS);
+    };
     const onMouseEnter = () => {
       if (!touch.recent()) show();
     };
@@ -1039,67 +1290,111 @@ export function Tooltip({ tip, children, className, side = 'top', as = 'span', f
     const onPointerDown = (e: PointerEvent) => {
       if (e.target !== el) hide();
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
     el.addEventListener('pointerenter', touch.onPointer);
     el.addEventListener('pointerdown', touch.onPointer);
     el.addEventListener('pointerdown', onPointerDown);
     el.addEventListener('mouseenter', onMouseEnter);
-    el.addEventListener('mouseleave', hide);
+    el.addEventListener('mouseleave', hideSoon);
     el.addEventListener('focusin', onFocusIn);
     el.addEventListener('focusout', hide);
-    el.addEventListener('keydown', onKey);
     return () => {
+      window.clearTimeout(graceTimer.current);
       el.removeEventListener('pointerenter', touch.onPointer);
       el.removeEventListener('pointerdown', touch.onPointer);
       el.removeEventListener('pointerdown', onPointerDown);
       el.removeEventListener('mouseenter', onMouseEnter);
-      el.removeEventListener('mouseleave', hide);
+      el.removeEventListener('mouseleave', hideSoon);
       el.removeEventListener('focusin', onFocusIn);
       el.removeEventListener('focusout', hide);
-      el.removeEventListener('keydown', onKey);
     };
+  }, [triggerRef]);
+
+  // Escape dismisses a tip however it opened (WCAG 1.4.13), without also closing a dialog.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      setOpen(false);
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [open]);
+
+  const onTipPointer = useCallback((over: boolean) => {
+    window.clearTimeout(graceTimer.current);
+    if (!over) graceTimer.current = window.setTimeout(() => setOpen(false), TIP_GRACE_MS);
   }, []);
 
-  const a11y = { tabIndex: focusable ? 0 : undefined, 'aria-describedby': open ? id : undefined };
+  const wrapperFocusable = focusable ?? !inner;
+  const a11y = {
+    tabIndex: wrapperFocusable ? 0 : undefined,
+    'aria-describedby': open && !inner ? id : undefined,
+    'data-state': open ? 'open' : 'closed',
+  };
   const hint = variant === 'hint' && 'cursor-help underline decoration-th-hi3 decoration-dotted underline-offset-2';
+
+  let content = children;
+  if (inner && only) {
+    const existing = only.props['aria-describedby'];
+    const describedby = open ? [typeof existing === 'string' ? existing : '', id].filter(Boolean).join(' ') : existing;
+    content = cloneElement(only, {
+      'aria-describedby': describedby || undefined,
+    });
+  }
 
   return (
     <>
       {as === 'tr' ? (
-        <tr ref={triggerRef as Ref<HTMLTableRowElement>} className={cn(hint, className)} {...a11y}>
-          {children}
+        <tr {...(rest as ComponentPropsWithoutRef<'tr'>)} ref={setTriggerRef as Ref<HTMLTableRowElement>} className={cn(hint, className)} {...a11y}>
+          {content}
         </tr>
       ) : (
         <span
-          ref={triggerRef as Ref<HTMLSpanElement>}
+          {...rest}
+          ref={setTriggerRef as Ref<HTMLSpanElement>}
           // inline-flex would stop the hint underline reaching the text, so hints stay inline.
           className={cn(hint ? 'inline' : 'inline-flex items-center', hint, className)}
           {...a11y}
         >
-          {children}
+          {content}
         </span>
       )}
-      {open ? <FloatingTip anchor={triggerRef} id={id} tip={tip} side={side} /> : null}
+      {open ? (
+        <FloatingTip
+          anchor={triggerRef}
+          id={id}
+          tip={tip}
+          side={side}
+          onPointerEnter={() => onTipPointer(true)}
+          onPointerLeave={() => onTipPointer(false)}
+        />
+      ) : null}
     </>
   );
 }
 
 /** The tooltip bubble on its own, for components that are their own trigger (a
- *  Segmented option): portaled to <body>, placed next to `anchor` while mounted.
- *  Internal to the package; mount it only while the tip shows, keyed by the anchor. */
+ *  Segmented option): portaled next to the anchor's dialog or the configured container,
+ *  placed next to `anchor` while mounted. Internal to the package; mount it only while
+ *  the tip shows, keyed by the anchor. `onPointerEnter` / `onPointerLeave` let the
+ *  trigger keep the tip open while the pointer is on it. */
 export function FloatingTip({
   anchor,
   id,
   tip,
   side = 'top',
+  onPointerEnter,
+  onPointerLeave,
 }: {
   anchor: RefObject<HTMLElement | null>;
   id: string;
   tip: ReactNode;
   side?: Side;
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
 }) {
+  const config = useNishConfig();
   const tipRef = useRef<HTMLSpanElement>(null);
   const pos = useAnchoredPosition(anchor, tipRef, true, side, 'center');
   return createPortal(
@@ -1108,15 +1403,18 @@ export function FloatingTip({
       id={id}
       role="tooltip"
       data-side={pos?.side}
+      data-state="open"
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       style={floatingStyle(pos, {
         maxWidth: Math.min(TIP_MAX_WIDTH, (window.innerWidth || TIP_MAX_WIDTH) - 2 * EDGE),
         zIndex: 'var(--nish-z-tooltip, 100)',
       })}
-      className="pointer-events-none block w-max rounded-lg border border-th-line-strong bg-th-elevated px-3 py-2 text-xs font-normal normal-case leading-snug tracking-normal text-th-hi shadow-pop"
+      className="block w-max rounded-lg border border-th-line-strong bg-th-elevated px-3 py-2 text-xs font-normal normal-case leading-snug tracking-normal text-th-hi shadow-pop"
     >
       {tip}
     </span>,
-    document.body,
+    layerHost(anchor.current, config.portalContainer),
   );
 }
 
@@ -1134,6 +1432,7 @@ function useDismiss(
   const closeRef = useLatest(close);
   useEffect(() => {
     if (!open) return;
+    const { layerStack } = ov();
     const self = {};
     layerStack.push(self);
     const onKey = (e: KeyboardEvent) => {
@@ -1153,7 +1452,8 @@ function useDismiss(
     document.addEventListener('keydown', onKey);
     document.addEventListener('pointerdown', onDown, true);
     return () => {
-      layerStack.splice(layerStack.indexOf(self), 1);
+      const at = layerStack.indexOf(self);
+      if (at >= 0) layerStack.splice(at, 1);
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerdown', onDown, true);
     };
@@ -1178,7 +1478,7 @@ function useReturnFocus(open: boolean, panel: RefObject<HTMLElement | null>, anc
       p?.removeEventListener('focusout', track);
     };
   }, [open, panel]);
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     if (open) {
       wasOpen.current = true;
       return;
@@ -1194,7 +1494,7 @@ function useReturnFocus(open: boolean, panel: RefObject<HTMLElement | null>, anc
 /** Why a Popover or DropdownMenu closed itself: Escape, a press outside, or Tab out. */
 export type PopoverCloseReason = 'escape' | 'outside' | 'tab';
 
-export interface PopoverProps {
+export interface PopoverProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'className'> {
   /** Whether the panel shows. The popover is controlled: pair it with `onOpenChange`. */
   open: boolean;
   /** Called with false on Escape, a press outside, and Tab out of the panel. The second
@@ -1209,7 +1509,8 @@ export interface PopoverProps {
   anchor: RefObject<HTMLElement | null>;
   /** Preferred side; flips when there is no room. Default bottom. */
   side?: 'top' | 'bottom';
-  /** Which edge of the anchor the panel lines up with. Default start. */
+  /** Which edge of the anchor the panel lines up with (mirrored in right-to-left
+   *  layouts). Default start. */
   align?: 'start' | 'center' | 'end';
   /** Panel width: a number of pixels or any CSS length. Default: fits the content. */
   width?: number | string;
@@ -1218,11 +1519,14 @@ export interface PopoverProps {
   /** Classes for the panel (e.g. `p-0`, or `app-region-no-drag` in Electron apps). */
   className?: string;
   children: ReactNode;
+  /** The popover panel (role="dialog"). */
+  ref?: Ref<HTMLDivElement>;
 }
 
 /** A non-modal floating panel anchored to an element: filters, a color picker, a
  *  details card. Portaled (so no parent clips it), flipped and clamped to the screen.
- *  Escape and a press outside close it; focus returns to the anchor. */
+ *  Escape and a press outside close it; focus returns to the anchor. Renders nothing on
+ *  the server. */
 export function Popover({
   open,
   onOpenChange,
@@ -1234,8 +1538,14 @@ export function Popover({
   'aria-label': ariaLabel,
   className,
   children,
+  ref,
+  style,
+  onKeyDown: userKeyDown,
+  ...rest
 }: PopoverProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+  const config = useNishConfig();
+  const isClient = useIsClient();
+  const [panelRef, setPanelRef] = useMergedRef<HTMLDivElement>(ref);
   const pos = useAnchoredPosition(anchor, panelRef, open, side, align);
   const onOpenChangeRef = useLatest(onOpenChange);
   const outsideRef = useLatest(dismissOnOutside);
@@ -1253,11 +1563,12 @@ export function Popover({
       if (p && !p.contains(document.activeElement)) (p.querySelector<HTMLElement>('[data-autofocus],[autofocus]') ?? p).focus();
     }, 0);
     return () => window.clearTimeout(t);
-  }, [open]);
+  }, [open, panelRef]);
 
-  if (!open) return null;
+  if (!open || !isClient) return null;
 
   function onKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+    userKeyDown?.(e);
     if (e.key !== 'Tab' || !panelRef.current) return;
     // The panel lives at the end of <body>, far from its anchor in the Tab order, so
     // tabbing past either end closes it and lands back on the anchor.
@@ -1273,13 +1584,20 @@ export function Popover({
 
   return createPortal(
     <div
-      ref={panelRef}
+      {...rest}
+      ref={setPanelRef}
       role="dialog"
       aria-label={ariaLabel}
       tabIndex={-1}
       data-side={pos?.side}
+      data-state="open"
       onKeyDown={onKeyDown}
-      style={floatingStyle(pos, { width, maxHeight: pos?.maxHeight, zIndex: 'var(--nish-z-dropdown, 40)' })}
+      style={floatingStyle(pos, {
+        ...style,
+        width,
+        maxHeight: pos?.maxHeight,
+        zIndex: 'var(--nish-z-dropdown, 40)',
+      })}
       className={cn(
         'max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-lg border border-th-line bg-th-elevated p-3 text-sm text-th-hi2 shadow-pop outline-none',
         'animate-[nish-fade-in_120ms_ease-out]',
@@ -1288,7 +1606,7 @@ export function Popover({
     >
       {children}
     </div>,
-    layerHost(anchor.current),
+    layerHost(anchor.current, config.portalContainer),
   );
 }
 
@@ -1300,7 +1618,7 @@ interface MenuContextValue {
   close: () => void;
 }
 
-const MenuContext = createContext<MenuContextValue | null>(null);
+const MenuContext = /* @__PURE__ */ createContext<MenuContextValue | null>(null);
 
 const ITEM_SELECTOR = '[role="menuitem"]:not([aria-disabled="true"])';
 
@@ -1308,16 +1626,12 @@ function menuItems(menu: HTMLElement | null): HTMLElement[] {
   return menu ? Array.from(menu.querySelectorAll<HTMLElement>(ITEM_SELECTOR)) : [];
 }
 
-function setRef<T>(ref: Ref<T> | undefined, value: T) {
-  if (typeof ref === 'function') ref(value);
-  else if (ref) (ref as { current: T }).current = value;
-}
-
-export interface DropdownMenuProps {
+export interface DropdownMenuProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'className' | 'onChange'> {
   /** The button that opens the menu (a Button or IconButton). It gets aria-haspopup,
    *  aria-expanded and aria-controls, opens on click, and on ArrowDown / ArrowUp. */
   trigger: ReactElement;
-  /** Which edge of the trigger the menu lines up with. Default start. */
+  /** Which edge of the trigger the menu lines up with (mirrored in right-to-left
+   *  layouts). Default start. */
   align?: 'start' | 'center' | 'end';
   /** Preferred side; flips when there is no room. Default bottom. */
   side?: 'top' | 'bottom';
@@ -1336,30 +1650,20 @@ export interface DropdownMenuProps {
   /** `'sm'`: under 640px the menu opens as a bottom sheet with 48px rows instead of a
    *  floating panel. Default false (always a floating panel). */
   sheetBelow?: 'sm' | false;
-  /** Title of the bottom sheet when `sheetBelow` is set. Default "Menu". */
+  /** Title of the bottom sheet when `sheetBelow` is set. Default "Menu" (the provider's
+   *  `menu` string). */
   sheetTitle?: string;
   /** Classes for the menu panel (e.g. a width, or `app-region-no-drag`). */
   className?: string;
+  /** The menu panel (role="menu"). */
+  ref?: Ref<HTMLDivElement>;
 }
 
-/** True while the viewport is under 640px (live). */
+/** True while the viewport is under 640px (live). False on the server and during hydration. */
 function usePhoneViewport(enabled: boolean): boolean {
-  const [phone, setPhone] = useState(() => enabled && isPhoneViewport());
-  useEffect(() => {
-    if (!enabled || typeof window.matchMedia !== 'function') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
-      setPhone(false);
-      return;
-    }
-    const mq = window.matchMedia(PHONE_QUERY);
-    const update = () => setPhone(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, [enabled]);
-  return phone;
+  const phone = useMediaQuery(PHONE_QUERY);
+  return enabled && phone;
 }
-
 
 /** Renders `element` with `props` merged over its own. A component rather than a
  *  cloneElement call in the parent's render, so the handlers passed in stay event
@@ -1367,6 +1671,7 @@ function usePhoneViewport(enabled: boolean): boolean {
 function Cloned({ element, ...props }: { element: ReactNode } & Record<string, unknown>) {
   return cloneElement(element as ReactElement<Record<string, unknown>>, props);
 }
+
 /** A menu of actions behind a button: role="menu" with arrow keys, Home and End,
  *  Escape, Tab to leave, and focus back on the trigger when it closes. */
 export function DropdownMenu({
@@ -1381,7 +1686,13 @@ export function DropdownMenu({
   sheetBelow = false,
   sheetTitle,
   className,
+  ref,
+  style,
+  onKeyDown: userKeyDown,
+  ...rest
 }: DropdownMenuProps) {
+  const strings = useNishStrings();
+  const config = useNishConfig();
   const [openState, setOpenState] = useState(defaultOpen);
   const open = openProp ?? openState;
   // The trigger node is a ref for the positioning and focus hooks (set before their layout
@@ -1400,7 +1711,7 @@ export function DropdownMenu({
   // The menu renders once the trigger is known, so a menu open on mount portals straight
   // into the trigger's layer instead of moving there (and remounting) a render later.
   const shown = open && triggerNode != null;
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuRef, setMenuRef] = useMergedRef<HTMLDivElement>(ref);
   const menuId = useId();
   const triggerId = useId();
   // Which item takes focus when the menu opens.
@@ -1445,7 +1756,7 @@ export function DropdownMenu({
       window.clearTimeout(t);
       mo.disconnect();
     };
-  }, [shown, asSheet]);
+  }, [shown, asSheet, menuRef]);
 
   function openWith(where: 'first' | 'last' | 'menu') {
     initial.current = where;
@@ -1453,6 +1764,7 @@ export function DropdownMenu({
   }
 
   function onMenuKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+    userKeyDown?.(e);
     const items = menuItems(menuRef.current);
     const i = items.indexOf(document.activeElement as HTMLElement);
     const go = (n: number) => {
@@ -1519,12 +1831,14 @@ export function DropdownMenu({
   );
 
   const menuProps = {
-    ref: menuRef,
+    ...rest,
+    ref: setMenuRef,
     id: menuId,
     role: 'menu',
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabel ? undefined : (tp.id ?? triggerId),
     'aria-orientation': 'vertical' as const,
+    'data-state': 'open',
     tabIndex: -1,
     onKeyDown: onMenuKeyDown,
   };
@@ -1534,9 +1848,10 @@ export function DropdownMenu({
       {triggerEl}
       {open && asSheet ? (
         <MenuContext.Provider value={{ close }}>
-          <Drawer side="bottom" size="md" title={sheetTitle ?? 'Menu'} onClose={close}>
+          <Drawer side="bottom" size="md" title={sheetTitle ?? strings.menu} onClose={close}>
             <div
               {...menuProps}
+              style={style}
               className={cn(
                 '-mx-5 -my-4 py-2 outline-none [&_[role=menuitem]]:min-h-12 [&_[role=menuitem]]:px-5 [&_[role=menuitem]]:text-sm',
                 className,
@@ -1553,6 +1868,7 @@ export function DropdownMenu({
               {...menuProps}
               data-side={pos?.side}
               style={floatingStyle(pos, {
+                ...style,
                 maxHeight: pos ? Math.min(pos.maxHeight, 384) : undefined,
                 zIndex: 'var(--nish-z-dropdown, 40)',
               })}
@@ -1565,45 +1881,14 @@ export function DropdownMenu({
               {children}
             </div>
           </MenuContext.Provider>,
-          layerHost(triggerNode),
+          layerHost(triggerNode, config.portalContainer),
         )
       ) : null}
     </>
   );
 }
 
-const ROW =
-  'flex w-full select-none items-center gap-2 px-3 py-1.5 text-left text-xs outline-none transition-colors pointer-coarse:min-h-11 pointer-coarse:gap-3 pointer-coarse:text-sm';
-
-export interface MenuItemClassOptions {
-  /** The current choice: the highlighted look (set aria-current on the row too). */
-  active?: boolean;
-  /** A destructive action: loss-colored text and hover. */
-  danger?: boolean;
-  /** The disabled look (set disabled or aria-disabled on the row too). */
-  disabled?: boolean;
-  /** Extra classes, merged last. */
-  className?: string;
-}
-
-/** The classes `<MenuItem>` renders, for menu-looking rows that are not in a
- *  DropdownMenu: tabbable buttons in a Popover panel that also holds IconButtons,
- *  inputs or color pickers. The rows keep their own roles (plain buttons, Tab order);
- *  hover and keyboard focus get the same highlight as MenuItem. */
-export function menuItemClass({ active = false, danger = false, disabled = false, className }: MenuItemClassOptions = {}): string {
-  return cn(
-    ROW,
-    disabled
-      ? 'cursor-default text-th-ghost'
-      : danger
-        ? 'text-th-loss hover:bg-th-loss-soft focus-visible:bg-th-loss-soft'
-        : 'text-th-hi2 hover:bg-th-overlay hover:text-th-hi focus-visible:bg-th-overlay focus-visible:text-th-hi',
-    active && !disabled && !danger && 'bg-th-overlay font-medium text-th-hi',
-    className,
-  );
-}
-
-export interface MenuItemProps {
+export interface MenuItemProps extends Omit<ComponentPropsWithoutRef<'button'>, 'onSelect' | 'children' | 'className' | 'type' | 'role'> {
   /** Leading icon (14px reads best). */
   icon?: ReactNode;
   /** Right-aligned extra: a shortcut (Kbd), a count or a chevron. */
@@ -1621,10 +1906,25 @@ export interface MenuItemProps {
   /** Classes for the row. */
   className?: string;
   children: ReactNode;
+  /** The row's button. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /** One action in a DropdownMenu. */
-export function MenuItem({ icon, trailing, danger = false, active = false, disabled = false, onSelect, className, children }: MenuItemProps) {
+export function MenuItem({
+  icon,
+  trailing,
+  danger = false,
+  active = false,
+  disabled = false,
+  onSelect,
+  className,
+  children,
+  ref,
+  onClick,
+  onMouseMove,
+  ...rest
+}: MenuItemProps) {
   const ctx = useContext(MenuContext);
   function select() {
     if (disabled) return;
@@ -1634,13 +1934,20 @@ export function MenuItem({ icon, trailing, danger = false, active = false, disab
   }
   return (
     <button
+      {...rest}
+      ref={ref}
       type="button"
       role="menuitem"
       tabIndex={-1}
       aria-disabled={disabled || undefined}
       aria-current={active || undefined}
-      onClick={select}
+      data-disabled={disabled ? '' : undefined}
+      onClick={(e) => {
+        onClick?.(e);
+        if (!e.defaultPrevented) select();
+      }}
       onMouseMove={(e) => {
+        onMouseMove?.(e);
         // Hover moves the keyboard position too, as in native menus.
         if (!disabled && document.activeElement !== e.currentTarget) e.currentTarget.focus();
       }}
@@ -1655,59 +1962,92 @@ export function MenuItem({ icon, trailing, danger = false, active = false, disab
     >
       {icon ? <span className={cn('inline-flex shrink-0', danger || disabled ? '' : 'text-th-hi3')}>{icon}</span> : null}
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      {trailing ? <span className={cn('ml-auto inline-flex shrink-0 items-center', disabled ? '' : 'text-th-hi2')}>{trailing}</span> : null}
+      {trailing ? <span className={cn('ms-auto inline-flex shrink-0 items-center', disabled ? '' : 'text-th-hi2')}>{trailing}</span> : null}
     </button>
   );
 }
 
 /** A small heading over a group of MenuItems. Not focusable. */
-export function MenuLabel({ children, className }: { children: ReactNode; className?: string }) {
+export function MenuLabel({
+  children,
+  className,
+  ref,
+  ...rest
+}: Omit<ComponentPropsWithoutRef<'div'>, 'className' | 'role'> & {
+  className?: string;
+  ref?: Ref<HTMLDivElement>;
+}) {
   return (
-    <div role="presentation" className={cn('px-3 pb-1 pt-2 text-2xs font-semibold uppercase tracking-wider text-th-hi2', className)}>
+    <div
+      {...rest}
+      ref={ref}
+      role="presentation"
+      className={cn('px-3 pb-1 pt-2 text-2xs font-semibold uppercase tracking-wider text-th-hi2', className)}
+    >
       {children}
     </div>
   );
 }
 
 /** A thin line between groups of MenuItems. */
-export function MenuSeparator({ className }: { className?: string }) {
-  return <div role="separator" className={cn('my-1 h-px bg-th-line', className)} />;
+export function MenuSeparator({
+  className,
+  ref,
+  ...rest
+}: Omit<ComponentPropsWithoutRef<'div'>, 'className' | 'role' | 'children'> & {
+  className?: string;
+  ref?: Ref<HTMLDivElement>;
+}) {
+  return <div {...rest} ref={ref} role="separator" className={cn('my-1 h-px bg-th-line forced-colors:bg-[CanvasText]', className)} />;
 }
 
-export interface MenuSubHeaderProps {
-  /** Goes back to the parent view (also on ArrowLeft). The menu stays open. */
+export interface MenuSubHeaderProps extends Omit<ComponentPropsWithoutRef<'button'>, 'onClick' | 'children' | 'className' | 'type' | 'role'> {
+  /** Goes back to the parent view (also on ArrowLeft, ArrowRight in right-to-left
+   *  layouts). The menu stays open. */
   onBack: () => void;
   /** The submenu's title. */
   children: ReactNode;
   className?: string;
+  /** The header's button. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /** The first row of a submenu view shown in place: a back arrow and the view's title. */
-export function MenuSubHeader({ onBack, children, className }: MenuSubHeaderProps) {
+export function MenuSubHeader({ onBack, children, className, ref, onKeyDown, ...rest }: MenuSubHeaderProps) {
+  const strings = useNishStrings();
   return (
     <button
+      {...rest}
+      ref={ref}
       type="button"
       role="menuitem"
       tabIndex={-1}
       onClick={onBack}
       onKeyDown={(e) => {
-        if (e.key === 'ArrowLeft') {
+        onKeyDown?.(e);
+        if (e.key === (isRtl(e.currentTarget) ? 'ArrowRight' : 'ArrowLeft')) {
           e.preventDefault();
           onBack();
         }
       }}
-      className={cn(
-        ROW,
-        'mb-1 border-b border-th-line pb-2 font-semibold text-th-hi hover:bg-th-overlay focus:bg-th-overlay',
-        className,
-      )}
+      className={cn(MENU_ROW, 'mb-1 border-b border-th-line pb-2 font-semibold text-th-hi hover:bg-th-overlay focus:bg-th-overlay', className)}
     >
-      <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-th-hi3">
+      <svg
+        width={14}
+        height={14}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="shrink-0 text-th-hi3 rtl:-scale-x-100"
+      >
         <path d="m15 18-6-6 6-6" />
       </svg>
-      <span className="sr-only">Back: </span>
+      <span className="sr-only">{strings.back}</span>
       <span className="min-w-0 flex-1 truncate">{children}</span>
     </button>
   );
 }
-

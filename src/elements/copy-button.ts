@@ -1,5 +1,6 @@
 import { html, nothing, svg, type TemplateResult } from 'lit';
 import { NishElement, define } from './base';
+import { getStrings } from './strings';
 
 const COPIED_MS = 1500;
 const HIDDEN =
@@ -65,8 +66,8 @@ export class NishCopyButton extends NishElement {
     super();
     this.value = null;
     this.for = null;
-    this.label = 'Copy';
-    this.copiedLabel = 'Copied';
+    this.label = '';
+    this.copiedLabel = '';
     this.icon = false;
     this.copied = false;
     this.manual = false;
@@ -131,7 +132,9 @@ export class NishCopyButton extends NishElement {
   }
 
   protected override render(): TemplateResult {
-    const shown = this.copied ? this.copiedLabel : this.manual ? 'Press Ctrl+C' : this.label;
+    const s = getStrings();
+    const copiedText = this.copiedLabel || s.copied;
+    const shown = this.copied ? copiedText : this.manual ? s.copyManual : this.label || s.copy;
     const icon = this.copied ? CHECK_ICON : COPY_ICON;
     return html`${this.icon
         ? html`<button type="button" class="nish-icon-btn nish-icon-btn--sm nish-copy-btn" aria-label=${shown} title=${shown} ?data-copied=${this.copied} @click=${() => this.#onClick()}>
@@ -139,7 +142,7 @@ export class NishCopyButton extends NishElement {
           </button>`
         : html`<button type="button" class="nish-btn nish-btn--sm nish-copy-btn" ?data-copied=${this.copied} @click=${() => this.#onClick()}>
             ${icon}${shown}
-          </button>`}<span role="status" aria-live="polite" style=${HIDDEN}>${this.copied ? this.copiedLabel : this.manual ? 'Press Ctrl+C' : nothing}</span>${this.manual && this.value != null ? html`<textarea data-copy-source readonly tabindex="-1" aria-label=${this.value} style=${HIDDEN} .value=${this.value}></textarea>` : nothing}`;
+          </button>`}<span role="status" aria-live="polite" style=${HIDDEN}>${this.copied ? copiedText : this.manual ? s.copyManual : nothing}</span>${this.manual && this.value != null ? html`<textarea data-copy-source readonly tabindex="-1" aria-label=${this.value} style=${HIDDEN} .value=${this.value}></textarea>` : nothing}`;
   }
 }
 

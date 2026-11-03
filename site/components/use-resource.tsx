@@ -83,7 +83,7 @@ export const useResourceDoc: ComponentDoc = {
   exports: [],
   source: 'src/components/resource.ts',
   summary:
-    'apiFetch, ApiError and useResource: the data fetching every app rewrote. JSON in and out with a timeout and a typed error, then a hook that loads, polls while the tab is visible, refetches on reconnect and on coming back to the tab, and aborts on unmount.',
+    'apiFetch, ApiError and useResource: the data fetching every app rewrote. JSON in and out with a timeout and a typed error, then a hook that loads, shares one request between hooks that ask for the same key, polls while the tab is visible (backing off after errors), refetches on reconnect and on coming back to the tab, and aborts on unmount.',
   importLine: "import { apiFetch, ApiError, configureApi, useResource } from '@nish/ui';",
   controls: [],
   initial: {},
@@ -105,7 +105,12 @@ export const useResourceDoc: ComponentDoc = {
   usage: `import { ApiError, ErrorState, SkeletonLines, apiFetch, configureApi, useResource } from '@nish/ui';
 
 // Once, at startup (optional).
-configureApi({ onUnauthorized: () => { location.href = '/login'; } });
+configureApi({
+  onUnauthorized: () => { location.href = '/login'; },
+  // Sent to same-origin URLs only; a cross-origin API must be allowed by name.
+  headers: () => ({ authorization: 'Bearer ' + token() }),
+  headersFor: (url) => url.startsWith('https://api.example.com/'),
+});
 
 function Positions() {
   const positions = useResource<Position[]>('/api/positions', undefined, { intervalMs: 30_000 });
@@ -122,7 +127,10 @@ await apiFetch('/api/positions', { method: 'POST', body: { symbol: 'NISH' } });`
     'A failed refresh keeps the last good data and sets error. Show a small notice, not a blank page.',
     'apiFetch throws ApiError with status 0 for network failures ("Could not reach the server.") and timeouts ("The server took too long to answer."). Otherwise the message is the server\'s body.error or body.message sentence; a bare code such as not_found, or no message at all, becomes the shared wording: "Log in to continue." for a 401, "That was not found.", "The server had a problem. Try again." or "The server answered 503.". Show error.message as it is.',
     'The key is the request identity: change it to refetch (a filter, a page). Pass null to wait for a dependency.',
-    'There is no shared cache and no request dedupe. Two hooks on the same key fetch twice; lift the hook up and pass the result down.',
-    'For optimistic updates call mutate with the new value, then reload to confirm it with the server.',
+    'Two hooks that ask for the same key at the same time share one request (with the default fetcher, or the same fetcher function). The request is aborted only when the last of them lets go. reload() always starts its own request, so it is the way to ask for fresh data after a write. There is no cache: a hook that mounts later fetches again.',
+    'After a failed poll the next one waits twice as long, doubling per failure up to 5 minutes, with up to 10% jitter so a fleet of tabs does not retry together. The first success returns it to intervalMs.',
+    'For optimistic updates call mutate with the new value, then reload to confirm it with the server. A response that was requested before the mutate and arrives after it is dropped, so it cannot undo the update.',
+    'Headers from configureApi({ headers }) go only to same-origin URLs and to the origin of baseUrl. For another origin return true from headersFor(url); headers you pass to a single apiFetch call always apply.',
+    'A 2xx response that claims to be JSON but is not (an HTML error page from a proxy) throws an ApiError with that status and a short excerpt of the body, instead of resolving a string.',
   ],
 };

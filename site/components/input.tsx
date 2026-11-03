@@ -219,5 +219,7 @@ import { Search } from 'lucide-react';
     'Use size="sm" or "xs" in dense toolbars; phones still get 16px text and a 44px field.',
     'With leading or trailing, className stays on the <input>; wrapperClassName styles the wrapper (width, margin).',
     'For a one-off control (a date input), use fieldClass() instead of copying the field classes.',
+    'The border uses the line-control color (3:1 against the surface in every theme) and the placeholder uses hi3 (4.5:1), so a placeholder is readable, but still not a label.',
+    'leading sits at the start edge and trailing at the end edge, so they swap in right-to-left layouts. ref and rest always reach the input, not the wrapper.',
   ],
 };

@@ -1,20 +1,28 @@
+'use client';
 import {
   Fragment,
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
+  type ComponentPropsWithoutRef,
   type ReactElement,
   type ReactNode,
+  type Ref,
   type RefObject,
 } from 'react';
 import { cn } from '../cn';
+import { safeUrl } from '../url';
+import { isRtl, useIsoLayoutEffect } from './client';
 import { navigateFromLayer } from './command';
+import { mergeRefs } from './data-classes';
+import { FORCED_MARK, warnDev } from './display-classes';
 import { chipClass } from './forms';
+import { useMediaQuery } from './hooks';
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from './icons';
 import { useHeightVar, useScrollEdges } from './layout-vars';
 import { Drawer, Tooltip } from './overlay';
 import { IconButton } from './primitives';
+import { useNishConfig, useNishStrings } from './provider';
 import { ThemeToggle } from './theme-toggle';
 
 export { useScrollEdges };
@@ -29,7 +37,8 @@ export interface NavItem {
   label: string;
   /** A 20-24px SVG icon drawn in currentColor. */
   icon: ReactNode;
-  /** Rendered as an `<a>` unless `renderLink` is given. */
+  /** Rendered as an `<a>` unless `renderLink` is given. A URL that is not safe
+   *  (`javascript:`, `data:` and so on) removes the item, with a dev warning. */
   href?: string;
   /** Rendered as a `<button>` when there is no href. Also called when an `<a>` is clicked. */
   onSelect?: () => void;
@@ -49,6 +58,7 @@ export type RenderLink = (
     className: string;
     children: ReactNode;
     'aria-current'?: 'page';
+    'data-state'?: 'active' | 'inactive';
     onClick?: () => void;
     /** true when rendered inside a sheet: pass it to the router's `<Link replace>` so the
      *  navigation replaces the sheet's own history entry instead of stacking on it. */
@@ -68,28 +78,42 @@ const HIDE_FROM: Record<NavBreakpoint, string> = { md: 'md:hidden', lg: 'lg:hidd
 const RAIL_SHOW: Record<'sm' | 'md' | 'lg', string> = { sm: 'sm:flex', md: 'md:flex', lg: 'lg:flex' };
 const RAIL_HIDE: Record<'md' | 'lg' | 'xl', string> = { md: 'md:hidden', lg: 'lg:hidden', xl: 'xl:hidden' };
 
-function useMatches(query: string): boolean {
-  return useSyncExternalStore(
-    (onChange) => {
-      if (typeof window === 'undefined' || !window.matchMedia) return () => {};
-      const m = window.matchMedia(query);
-      m.addEventListener('change', onChange);
-      return () => m.removeEventListener('change', onChange);
-    },
-    () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(query).matches,
-    () => false,
-  );
+/** Keeps the items whose `href` is safe to navigate to; warns (dev) about each one dropped.
+ *  Items with no href are buttons and always stay. */
+export function visibleNavItems(items: readonly NavItem[]): NavItem[] {
+  return items.filter((item) => {
+    if (item.href == null || safeUrl(item.href) !== null) return true;
+    warnDev(`nish-ui: nav item "${item.key}" was not rendered because its href is not safe (${item.href.slice(0, 40)}).`);
+    return false;
+  });
+}
+
+/** The tooltip side that points away from the nav toward the page: right, or left in RTL. The
+ *  provider's `dir` wins; without one the element's computed direction decides. */
+function useEndSide(ref: RefObject<HTMLElement | null>): 'left' | 'right' {
+  const dir = useNishConfig().dir;
+  const [rtl, setRtl] = useState(dir === 'rtl');
+  useIsoLayoutEffect(() => {
+    setRtl(dir ? dir === 'rtl' : isRtl(ref.current));
+  }, [dir, ref]);
+  return rtl ? 'left' : 'right';
 }
 
 function CountBadge({ value }: { value: number | boolean | undefined }) {
+  const strings = useNishStrings();
   if (value === undefined || value === false || value === 0) return null;
   if (value === true) {
-    return <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-th-loss ring-2 ring-th-surface" />;
+    return (
+      <span
+        aria-hidden="true"
+        className="absolute -end-0.5 -top-0.5 size-2 rounded-full bg-th-loss ring-2 ring-th-surface forced-colors:forced-color-adjust-none forced-colors:bg-[Highlight]"
+      />
+    );
   }
   return (
     <span
-      aria-label={`${value} new`}
-      className="absolute -right-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-th-loss px-1 text-3xs font-semibold leading-none tabular-nums text-th-on-loss ring-2 ring-th-surface"
+      aria-label={strings.newCount(value)}
+      className="absolute -end-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-th-loss px-1 text-3xs font-semibold leading-none tabular-nums text-th-on-loss ring-2 ring-th-surface forced-colors:border forced-colors:border-[CanvasText]"
     >
       {value > 99 ? '99+' : value}
     </span>
@@ -136,12 +160,16 @@ function closeAfterRouterLink(onAfter: () => void): void {
 /** An item as a link or a button, with the caller's look. */
 function renderItem(item: NavItem, className: string, children: ReactNode, renderLink: RenderLink | undefined, onAfter?: () => void): ReactNode {
   const current = item.active ? ('page' as const) : undefined;
+  const state = item.active ? ('active' as const) : ('inactive' as const);
   if (item.href != null) {
+    const href = safeUrl(item.href);
+    if (href === null) return null;
     if (renderLink) {
       return renderLink(item, {
         className,
         children,
         'aria-current': current,
+        'data-state': state,
         ...(onAfter ? { replace: true } : {}),
         onClick: () => {
           item.onSelect?.();
@@ -151,9 +179,10 @@ function renderItem(item: NavItem, className: string, children: ReactNode, rende
     }
     return (
       <a
-        href={item.href}
+        href={href}
         className={className}
         aria-current={current}
+        data-state={state}
         onClick={(e) => {
           item.onSelect?.();
           const inLayer = !!(history.state as { nishLayer?: string } | null)?.nishLayer;
@@ -162,7 +191,7 @@ function renderItem(item: NavItem, className: string, children: ReactNode, rende
             // Closing the sheet runs history.back(), which would race the default navigation.
             e.preventDefault();
             onAfter();
-            navigateFromLayer(item.href as string);
+            navigateFromLayer(href);
             return;
           }
           onAfter?.();
@@ -177,6 +206,7 @@ function renderItem(item: NavItem, className: string, children: ReactNode, rende
       type="button"
       className={className}
       aria-current={current}
+      data-state={state}
       onClick={() => {
         item.onSelect?.();
         onAfter?.();
@@ -193,11 +223,14 @@ const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 // BottomNav
 // ---------------------------------------------------------------------------------
 
-export interface BottomNavProps {
+export interface BottomNavProps extends Omit<ComponentPropsWithoutRef<'nav'>, 'children'> {
+  /** The `nav` element. */
+  ref?: Ref<HTMLElement>;
   /** The destinations. Four or five fit a 360px screen; put the rest behind `more`. */
   items: NavItem[];
   /** A last "More" button that opens a MoreSheet. You own the sheet's open state. */
   more?: {
+    /** Default: the provider's `more` string. */
     label?: string;
     icon?: ReactNode;
     /** Highlight the button, e.g. when the current page lives inside the sheet. */
@@ -209,11 +242,10 @@ export interface BottomNavProps {
   trailing?: ReactNode;
   /** The breakpoint from which the bar is hidden (default md, 768px). */
   hideFrom?: NavBreakpoint;
-  /** Names the nav landmark. Default "Sections". */
+  /** Names the nav landmark. Default: the provider's `sections` string. */
   label?: string;
   /** Renders router links instead of plain anchors. */
   renderLink?: RenderLink;
-  className?: string;
 }
 
 function MoreDots() {
@@ -230,29 +262,44 @@ function MoreDots() {
  *  tinted, safe-area padding and 56px targets. It publishes its height as
  *  `--nish-bottom-nav-h` while it is visible, so Toaster, StickyActionBar and page
  *  padding make room for it. Hidden from `hideFrom` up (pair it with NavRail or a sidebar). */
-export function BottomNav({ items, more, trailing, hideFrom = 'md', label = 'Sections', renderLink, className }: BottomNavProps) {
+export function BottomNav({
+  items,
+  more,
+  trailing,
+  hideFrom = 'md',
+  label,
+  renderLink,
+  className,
+  ref: refProp,
+  ...rest
+}: BottomNavProps) {
+  const strings = useNishStrings();
   const ref = useRef<HTMLElement>(null);
-  const visible = useMatches(MAX_QUERY[hideFrom]);
+  const visible = useMediaQuery(MAX_QUERY[hideFrom]);
   useHeightVar(ref, '--nish-bottom-nav-h', visible);
+  const shown = visibleNavItems(items);
 
   const pill = (active: boolean) =>
     cn(
       'flex w-full flex-col items-center gap-0.5 rounded-xl py-1 text-2xs leading-tight transition-colors',
-      active ? 'bg-th-accent-soft font-medium text-th-accent' : 'text-th-hi3',
+      active ? cn('bg-th-accent-soft font-medium text-th-accent', FORCED_MARK) : 'text-th-hi3',
     );
   const cell = cn('flex min-h-14 min-w-0 flex-1 items-center justify-center px-0.5 pointer-coarse:active:scale-[0.97] transition-transform', FOCUS);
 
   return (
     <nav
-      ref={ref}
-      aria-label={label}
+      {...rest}
+      ref={mergeRefs(ref, refProp)}
+      aria-label={label ?? strings.sections}
+      data-nish-bar=""
+      data-nish-print="hide"
       className={cn(
-        'fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-th-line bg-th-surface pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]',
+        'fixed inset-x-0 bottom-0 z-[var(--nish-z-dropdown,40)] flex items-stretch border-t border-th-line bg-th-surface pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]',
         HIDE_FROM[hideFrom],
         className,
       )}
     >
-      {items.map((item) => (
+      {shown.map((item) => (
         <Fragment key={item.key}>
           {renderItem(
             item,
@@ -269,10 +316,17 @@ export function BottomNav({ items, more, trailing, hideFrom = 'md', label = 'Sec
         </Fragment>
       ))}
       {more ? (
-        <button type="button" aria-expanded={more.expanded} aria-haspopup="dialog" onClick={more.onToggle} className={cell}>
+        <button
+          type="button"
+          aria-expanded={more.expanded}
+          aria-haspopup="dialog"
+          data-state={more.expanded ? 'open' : 'closed'}
+          onClick={more.onToggle}
+          className={cell}
+        >
           <span className={pill(more.active || more.expanded)}>
             <span className="inline-flex size-6 items-center justify-center">{more.icon ?? <MoreDots />}</span>
-            <span className="max-w-full truncate px-1">{more.label ?? 'More'}</span>
+            <span className="max-w-full truncate px-1">{more.label ?? strings.more}</span>
           </span>
         </button>
       ) : null}
@@ -295,9 +349,10 @@ export interface MoreSheetProps {
   /** Called on Escape, a scrim click, the swipe, Android back and after a row is chosen. */
   onClose: () => void;
   items: NavItem[];
-  /** Default "More". */
+  /** Default: the provider's `more` string. */
   title?: string;
-  /** Pinned under the list. Defaults to a "Theme" row with a segmented ThemeToggle. */
+  /** Pinned under the list. Defaults to a "Theme" row (the provider's `theme` string) with a
+   *  segmented ThemeToggle. */
   footer?: ReactNode;
   renderLink?: RenderLink;
 }
@@ -305,31 +360,33 @@ export interface MoreSheetProps {
 /** The overflow sheet behind BottomNav's More button: a bottom Drawer lifted above the bar,
  *  so the bar stays visible and tappable. Rows are 52px with an icon, a label and a
  *  one-line hint. Choosing a row navigates and closes the sheet. */
-export function MoreSheet({ open, onClose, items, title = 'More', footer, renderLink }: MoreSheetProps) {
+export function MoreSheet({ open, onClose, items, title, footer, renderLink }: MoreSheetProps) {
+  const strings = useNishStrings();
   if (!open) return null;
+  const shown = visibleNavItems(items);
   const row = (active: boolean) =>
     cn(
-      'flex min-h-[52px] w-full items-center gap-3 rounded-lg px-3 text-left transition-colors',
-      active ? 'bg-th-accent-soft text-th-accent' : 'text-th-hi hover:bg-th-elevated',
+      'flex min-h-[52px] w-full items-center gap-3 rounded-lg px-3 text-start transition-colors',
+      active ? cn('bg-th-accent-soft text-th-accent', FORCED_MARK) : 'text-th-hi hover:bg-th-elevated',
       FOCUS,
     );
   return (
     <Drawer
       side="bottom"
-      title={title}
+      title={title ?? strings.more}
       onClose={onClose}
       bottomOffset="var(--nish-bottom-nav-h, 0px)"
       footer={
         footer ?? (
           <div className="flex items-center justify-between gap-3 px-5 py-3">
-            <span className="text-sm font-medium text-th-hi">Theme</span>
+            <span className="text-sm font-medium text-th-hi">{strings.theme}</span>
             <ThemeToggle phone="segmented" />
           </div>
         )
       }
     >
       <ul className="m-0 list-none p-2">
-        {items.map((item) => (
+        {shown.map((item) => (
           <li key={item.key}>
             {renderItem(
               item,
@@ -358,7 +415,9 @@ export function MoreSheet({ open, onClose, items, title = 'More', footer, render
 // NavRail
 // ---------------------------------------------------------------------------------
 
-export interface NavRailProps {
+export interface NavRailProps extends Omit<ComponentPropsWithoutRef<'nav'>, 'children'> {
+  /** The `nav` element. */
+  ref?: Ref<HTMLElement>;
   items: NavItem[];
   /** A second group under the items, after a divider (settings, search). */
   tools?: ReactNode;
@@ -368,27 +427,43 @@ export interface NavRailProps {
   showFrom?: 'sm' | 'md' | 'lg';
   /** The breakpoint from which it hides again (default lg, 1024px); pass false to keep it. */
   hideFrom?: 'md' | 'lg' | 'xl' | false;
-  /** Names the nav landmark. Default "Sections". */
+  /** Names the nav landmark. Default: the provider's `sections` string. */
   label?: string;
   renderLink?: RenderLink;
-  className?: string;
 }
 
 /** A 72px icon rail for the unfolded and tablet range between the phone BottomNav and a
  *  full sidebar: each destination is an icon in a pill over an 11px label. The `hint`
  *  shows as a tooltip on mouse hover and keyboard focus. */
-export function NavRail({ items, tools, footer, showFrom = 'md', hideFrom = 'lg', label = 'Sections', renderLink, className }: NavRailProps) {
+export function NavRail({
+  items,
+  tools,
+  footer,
+  showFrom = 'md',
+  hideFrom = 'lg',
+  label,
+  renderLink,
+  className,
+  ref: refProp,
+  ...rest
+}: NavRailProps) {
+  const strings = useNishStrings();
+  const ref = useRef<HTMLElement>(null);
+  const side = useEndSide(ref);
+  const shown = visibleNavItems(items);
   return (
     <nav
-      aria-label={label}
+      {...rest}
+      ref={mergeRefs(ref, refProp)}
+      aria-label={label ?? strings.sections}
       className={cn(
-        'hidden w-[72px] shrink-0 flex-col items-center gap-1 border-r border-th-line bg-th-surface py-3 pl-[env(safe-area-inset-left)]',
+        'hidden w-[72px] shrink-0 flex-col items-center gap-1 border-e border-th-line bg-th-surface py-3 pl-[env(safe-area-inset-left)]',
         RAIL_SHOW[showFrom],
         hideFrom ? RAIL_HIDE[hideFrom] : null,
         className,
       )}
     >
-      {items.map((item) => {
+      {shown.map((item) => {
         const node = renderItem(
           item,
           cn('group flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-2xs leading-tight', FOCUS, item.active ? 'font-medium text-th-accent' : 'text-th-hi3 hover:text-th-hi'),
@@ -396,7 +471,7 @@ export function NavRail({ items, tools, footer, showFrom = 'md', hideFrom = 'lg'
             <span
               className={cn(
                 'relative inline-flex h-8 w-14 items-center justify-center rounded-full transition-colors',
-                item.active ? 'bg-th-accent-soft' : 'group-hover:bg-th-elevated',
+                item.active ? cn('bg-th-accent-soft', FORCED_MARK) : 'group-hover:bg-th-elevated',
               )}
             >
               {item.icon}
@@ -407,7 +482,7 @@ export function NavRail({ items, tools, footer, showFrom = 'md', hideFrom = 'lg'
           renderLink,
         );
         return item.hint ? (
-          <Tooltip key={item.key} tip={item.hint} side="right" focusable={false} className="block w-full">
+          <Tooltip key={item.key} tip={item.hint} side={side} focusable={false} className="block w-full">
             {node}
           </Tooltip>
         ) : (
@@ -431,7 +506,9 @@ export function NavRail({ items, tools, footer, showFrom = 'md', hideFrom = 'lg'
 // NavSidebar (AppShell's lg+ sidebar; internal)
 // ---------------------------------------------------------------------------------
 
-export interface NavSidebarProps {
+export interface NavSidebarProps extends Omit<ComponentPropsWithoutRef<'aside'>, 'children'> {
+  /** The `aside` element. */
+  ref?: Ref<HTMLElement>;
   items: NavItem[];
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
@@ -439,20 +516,39 @@ export interface NavSidebarProps {
   tools?: ReactNode;
   /** Beside the collapse button at the bottom. */
   footer?: ReactNode;
+  /** Names the nav inside the sidebar. Default: the provider's `sections` string. The
+   *  `aside` itself is named by `aria-label` (default: the provider's `sidebar` string). */
   label?: string;
   renderLink?: RenderLink;
-  className?: string;
 }
 
 /** A 224px sidebar of icon and label rows that collapses to a 64px icon column, where the
  *  label becomes the tooltip. The collapse button sits at the bottom. Internal: AppShell
  *  renders it from 1024px when given `sidebar`. */
-export function NavSidebar({ items, collapsed, onCollapsedChange, tools, footer, label = 'Sections', renderLink, className }: NavSidebarProps) {
+export function NavSidebar({
+  items,
+  collapsed,
+  onCollapsedChange,
+  tools,
+  footer,
+  label,
+  renderLink,
+  className,
+  ref: refProp,
+  ...rest
+}: NavSidebarProps) {
+  const strings = useNishStrings();
+  const ref = useRef<HTMLElement>(null);
+  const side = useEndSide(ref);
+  const shown = visibleNavItems(items);
   return (
     <aside
-      aria-label="Sidebar"
+      aria-label={strings.sidebar}
+      {...rest}
+      ref={mergeRefs(ref, refProp)}
+      data-state={collapsed ? 'closed' : 'open'}
       className={cn(
-        'flex h-full shrink-0 flex-col border-r border-th-line bg-th-surface py-3 pl-[env(safe-area-inset-left)] transition-[width] duration-200 motion-reduce:transition-none',
+        'flex h-full shrink-0 flex-col border-e border-th-line bg-th-surface py-3 pl-[env(safe-area-inset-left)] transition-[width] duration-200 motion-reduce:transition-none',
         collapsed ? 'w-16' : 'w-56',
         className,
       )}
@@ -460,16 +556,16 @@ export function NavSidebar({ items, collapsed, onCollapsedChange, tools, footer,
       {tools ? (
         <div className={cn('mb-2 flex gap-1 border-b border-th-line pb-2', collapsed ? 'flex-col items-center' : 'flex-wrap px-3')}>{tools}</div>
       ) : null}
-      <nav aria-label={label} className={cn('flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto', collapsed ? 'items-center px-2' : 'px-3')}>
-        {items.map((item) => {
+      <nav aria-label={label ?? strings.sections} className={cn('flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto', collapsed ? 'items-center px-2' : 'px-3')}>
+        {shown.map((item) => {
           const node = renderItem(
             item,
             cn(
-              'flex min-h-11 items-center gap-3 rounded-lg border-l-2 text-sm transition-colors',
+              'flex min-h-11 items-center gap-3 rounded-lg border-s-2 text-sm transition-colors',
               FOCUS,
               collapsed ? 'w-11 justify-center' : 'w-full px-3',
               item.active
-                ? 'border-th-accent bg-th-accent-soft font-medium text-th-accent'
+                ? cn('border-th-accent bg-th-accent-soft font-medium text-th-accent', FORCED_MARK)
                 : 'border-transparent text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
             ),
             <>
@@ -484,7 +580,7 @@ export function NavSidebar({ items, collapsed, onCollapsedChange, tools, footer,
           // Collapsed, the tooltip names the destination; expanded, it explains it.
           const tip = collapsed ? item.label : item.hint;
           return tip ? (
-            <Tooltip key={item.key} tip={tip} side="right" focusable={false} className={collapsed ? 'block' : 'block w-full'}>
+            <Tooltip key={item.key} tip={tip} side={side} focusable={false} className={collapsed ? 'block' : 'block w-full'}>
               {node}
             </Tooltip>
           ) : (
@@ -496,8 +592,8 @@ export function NavSidebar({ items, collapsed, onCollapsedChange, tools, footer,
       </nav>
       <div className={cn('mt-3 flex gap-2 border-t border-th-line pt-3', collapsed ? 'flex-col items-center' : 'items-center justify-between px-3')}>
         {footer}
-        <IconButton label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => onCollapsedChange(!collapsed)}>
-          {collapsed ? <PanelLeftOpenIcon size={18} /> : <PanelLeftCloseIcon size={18} />}
+        <IconButton label={collapsed ? strings.expandSidebar : strings.collapseSidebar} onClick={() => onCollapsedChange(!collapsed)}>
+          {collapsed ? <PanelLeftOpenIcon size={18} className="rtl:-scale-x-100" /> : <PanelLeftCloseIcon size={18} className="rtl:-scale-x-100" />}
         </IconButton>
       </div>
     </aside>
@@ -508,7 +604,9 @@ export function NavSidebar({ items, collapsed, onCollapsedChange, tools, footer,
 // ScrollRow
 // ---------------------------------------------------------------------------------
 
-export interface ScrollRowProps {
+export interface ScrollRowProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  /** The scrolling element (the tag chosen by `as`). */
+  ref?: Ref<HTMLElement>;
   children: ReactNode;
   /** Let the row run to the screen edges inside a padded page. */
   bleed?: boolean;
@@ -520,7 +618,6 @@ export interface ScrollRowProps {
   as?: 'div' | 'ul' | 'ol' | 'nav';
   /** Accessible name of the row (`aria-label`). */
   label?: string;
-  className?: string;
 }
 
 /** Scrolls a horizontal scroller just far enough to show one child, without ever moving the
@@ -538,7 +635,17 @@ const ACTIVE_SELECTOR = '[aria-pressed="true"],[aria-selected="true"],[aria-curr
 /** A single horizontally scrolling row (chips, filters, tabs) with edge fades and no
  *  scrollbar. The pressed, selected or current child is scrolled into view when it
  *  changes. */
-export function ScrollRow({ children, bleed = false, fade = true, snap = false, as = 'div', label, className }: ScrollRowProps) {
+export function ScrollRow({
+  children,
+  bleed = false,
+  fade = true,
+  snap = false,
+  as = 'div',
+  label,
+  className,
+  ref: refProp,
+  ...rest
+}: ScrollRowProps) {
   const ref = useRef<HTMLElement>(null);
   useScrollEdges(ref);
   const lastActive = useRef<Element | null>(null);
@@ -554,8 +661,9 @@ export function ScrollRow({ children, bleed = false, fade = true, snap = false, 
   const Tag = as as 'div';
   return (
     <Tag
-      ref={ref as RefObject<HTMLDivElement | null>}
-      aria-label={label}
+      {...rest}
+      ref={mergeRefs(ref, refProp) as unknown as RefObject<HTMLDivElement | null>}
+      aria-label={label ?? rest['aria-label']}
       className={cn(
         'flex gap-2 overflow-x-auto nish-no-scrollbar',
         fade && 'nish-scroll-fade',
@@ -661,7 +769,9 @@ export interface SectionNavItem {
   count?: number;
 }
 
-export interface SectionNavProps {
+export interface SectionNavProps extends Omit<ComponentPropsWithoutRef<'nav'>, 'children' | 'onSelect'> {
+  /** The `nav` element. */
+  ref?: Ref<HTMLElement>;
   items: SectionNavItem[];
   /** Stick under the app header (default true). */
   sticky?: boolean;
@@ -670,16 +780,26 @@ export interface SectionNavProps {
   /** Write `#id` with history.replaceState on click (default true). Pass false in apps that
    *  use hash routing. */
   updateHash?: boolean;
-  /** Accessible name. Default "Sections". */
+  /** Accessible name. Default "On this page" (not "Sections", which the app navs use, so
+   *  the two landmarks differ). Translate it per instance. */
   label?: string;
-  className?: string;
 }
 
 /** A row of jump chips for a long page. The chip of the section being read is marked
  *  (`aria-current="true"`) and kept in view; clicking one scrolls to its section. Give the
  *  sections the `nish-scroll-target` class so they stop below the sticky bars. It publishes
- *  its own height as `--nish-sticky-extra`. */
-export function SectionNav({ items, sticky = true, onSelect, updateHash = true, label = 'Sections', className }: SectionNavProps) {
+ *  its own height as `--nish-sticky-extra`. Chips are 44px on coarse pointers. */
+export function SectionNav({
+  items,
+  sticky = true,
+  onSelect,
+  updateHash = true,
+  label = 'On this page',
+  className,
+  style,
+  ref: refProp,
+  ...rest
+}: SectionNavProps) {
   const ref = useRef<HTMLElement>(null);
   const spy = useScrollSpy(items.map((i) => i.id));
   // After a chip tap the tapped chip stays lit, even after the scroll ends (the spy's middle
@@ -744,10 +864,12 @@ export function SectionNav({ items, sticky = true, onSelect, updateHash = true, 
 
   return (
     <nav
-      ref={ref}
+      {...rest}
+      ref={mergeRefs(ref, refProp)}
       aria-label={label}
-      style={sticky ? { top: 'var(--nish-header-h, 0px)' } : undefined}
-      className={cn('z-20 border-b border-th-line bg-th-bg py-2', sticky && 'sticky', className)}
+      data-nish-bar={sticky ? '' : undefined}
+      style={sticky ? { top: 'var(--nish-header-h, 0px)', ...style } : style}
+      className={cn('z-[var(--nish-z-sticky,20)] border-b border-th-line bg-th-bg py-2', sticky && 'sticky', className)}
     >
       <ScrollRow bleed>
         {items.map((item) => {
@@ -757,8 +879,12 @@ export function SectionNav({ items, sticky = true, onSelect, updateHash = true, 
               key={item.id}
               type="button"
               aria-current={on ? 'true' : undefined}
+              data-state={on ? 'active' : 'inactive'}
               onClick={() => go(item.id)}
-              className={chipClass({ pressed: on, className: 'shrink-0 whitespace-nowrap' })}
+              className={chipClass({
+                pressed: on,
+                className: 'shrink-0 whitespace-nowrap pointer-coarse:min-h-11 pointer-coarse:min-w-11',
+              })}
             >
               {item.icon}
               {item.label}

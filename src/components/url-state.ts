@@ -1,3 +1,4 @@
+'use client';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 /** Where useUrlState reads and writes the query string. */
@@ -15,12 +16,21 @@ const EVENT = 'nish:urlstate';
 export const locationAdapter: UrlStateAdapter = {
   get() {
     if (typeof location === 'undefined') return new URLSearchParams();
-    return new URLSearchParams(location.search);
+    try {
+      return new URLSearchParams(location.search);
+    } catch {
+      return new URLSearchParams();
+    }
   },
   set(next) {
     if (typeof location === 'undefined' || typeof history === 'undefined') return;
     const qs = next.toString();
-    history.replaceState(history.state, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
+    try {
+      history.replaceState(history.state, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
+    } catch {
+      // A sandboxed frame can refuse replaceState (SecurityError): the query then stays as it was.
+      return;
+    }
     window.dispatchEvent(new Event(EVENT));
   },
   subscribe(onChange) {
@@ -48,7 +58,7 @@ function parseValue(params: URLSearchParams, key: string, fallback: string | str
   if (typeof fallback === 'number') {
     if (raw.trim() === '') return fallback;
     const n = Number(raw);
-    return Number.isNaN(n) ? fallback : n;
+    return Number.isFinite(n) ? n : fallback;
   }
   if (typeof fallback === 'boolean') {
     if (raw === '1' || raw === 'true') return true;

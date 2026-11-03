@@ -12,7 +12,8 @@ export const COLOR_ROLES = [
   'elevated', // popovers, hovered rows, inputs, raised things inside cards
   'overlay', // the deepest inner layer: chips inside raised things, skeleton sheen
   'line', // borders and dividers
-  'line-strong', // input borders, focused outlines that are not the accent
+  'line-strong', // strong dividers, focused outlines that are not the accent
+  'line-control', // form-control borders: at least 3:1 on surface and elevated
   'hi', // primary text
   'hi2', // secondary text
   'hi3', // tertiary text, labels
@@ -95,7 +96,7 @@ const chart = (list) => Object.fromEntries(list.map((c, i) => [`chart-${i + 1}`,
  * Every theme. `scheme` is what a page that only knows light/dark falls back to.
  * The first entry is the default.
  */
-export const THEMES = {
+const RAW_THEMES = {
   dark: {
     label: 'Dark',
     scheme: 'dark',
@@ -106,6 +107,7 @@ export const THEMES = {
       overlay: '#22252f',
       line: '#262935',
       'line-strong': '#3a3e4d',
+      'line-control': '#666975',
       hi: '#ececf1',
       hi2: '#a8aab7',
       hi3: '#8a8d9b',
@@ -134,9 +136,10 @@ export const THEMES = {
       overlay: '#e6e4de',
       line: '#e2e0da',
       'line-strong': '#c9c6bd',
+      'line-control': '#8a8881',
       hi: '#17171c',
       hi2: '#4f515c',
-      hi3: '#666874',
+      hi3: '#626470',
       ghost: '#8a8c98',
       accent: '#4338ca',
       accent2: '#7e22ce',
@@ -172,9 +175,10 @@ export const THEMES = {
       overlay: '#36363d',
       line: '#3a3a42',
       'line-strong': '#52525b',
+      'line-control': '#77777e',
       hi: '#f4f4f5',
-      hi2: '#a1a1aa',
-      hi3: '#8f8f99',
+      hi2: '#b8b8c0',
+      hi3: '#a0a0a8',
       ghost: '#71717a',
       accent: '#a5b4fc',
       accent2: '#c084fc',
@@ -202,6 +206,7 @@ export const THEMES = {
       overlay: '#1c2820',
       line: '#233028',
       'line-strong': '#34483b',
+      'line-control': '#5c6c61',
       hi: '#d1fae5',
       hi2: '#8fc4a8',
       hi3: '#74a68b',
@@ -230,9 +235,10 @@ export const THEMES = {
       overlay: '#44403c',
       line: '#44403c',
       'line-strong': '#57534e',
+      'line-control': '#83807c',
       hi: '#f5f0eb',
-      hi2: '#b3ada8',
-      hi3: '#a39d98',
+      hi2: '#c6c0bb',
+      hi3: '#b2ada8',
       ghost: '#78716c',
       accent: '#fdba74',
       accent2: '#f472b6',
@@ -260,6 +266,7 @@ export const THEMES = {
       overlay: '#103658',
       line: '#123050',
       'line-strong': '#1f4a72',
+      'line-control': '#507291',
       hi: '#e0f2fe',
       hi2: '#9ccde6',
       hi3: '#6fa9c6',
@@ -288,6 +295,7 @@ export const THEMES = {
       overlay: '#222222',
       line: '#4a4a4a',
       'line-strong': '#8a8a8a',
+      'line-control': '#8a8a8a',
       hi: '#ffffff',
       hi2: '#d4d4d4',
       hi3: '#bdbdbd',
@@ -311,13 +319,20 @@ export const THEMES = {
 // Dark themes use their status colors as fills too, with the same dark ink on every
 // fill; only light themes override them. tools/contrast.mjs checks each on-* color on
 // its fill (4.5:1).
-for (const t of Object.values(THEMES)) {
-  for (const r of ['ok', 'loss', 'warn', 'info']) {
-    t.colors[`${r}-fill`] ??= t.colors[r];
-    t.colors[`on-${r}`] ??= t.colors['on-accent'];
-  }
-  t.colors['on-accent2'] ??= t.colors['on-accent'];
-}
+const withFills = (t) => {
+  const c = t.colors;
+  const fills = Object.fromEntries(
+    ['ok', 'loss', 'warn', 'info'].flatMap((r) => [
+      [`${r}-fill`, c[`${r}-fill`] ?? c[r]],
+      [`on-${r}`, c[`on-${r}`] ?? c['on-accent']],
+    ]),
+  );
+  return { ...t, colors: { ...c, ...fills, 'on-accent2': c['on-accent2'] ?? c['on-accent'] } };
+};
+
+export const THEMES = /* @__PURE__ */ Object.fromEntries(
+  Object.entries(RAW_THEMES).map(([name, t]) => [name, withFills(t)]),
+);
 
 export const DEFAULT_THEME = 'dark';
 

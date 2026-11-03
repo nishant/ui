@@ -178,7 +178,8 @@ export function Notifications() {
   );
 }`,
   guidelines: [
-    'Render the Drawer only while it is open, like Modal; unmounting closes it and returns focus to the opener.',
+    'Render the Drawer only while it is open, like Modal, or pass open and onOpenChange to control it. Unmounting (or open={false}) closes it and returns focus to the opener.',
+    'Pass a title, or aria-label / aria-labelledby: in development a Drawer without a name logs a warning. Like Modal it renders through a Portal and makes an overflowing body a focusable region.',
     'Use a Drawer for a side task that keeps the page in view (notifications, filters, details). Use a Modal for one decision.',
     'Under 640px side drawers take the full width. On phones with a bottom tab bar, use side="bottom" with bottomOffset.',
     'Header actions are IconButtons with labels; the close button is always there.',

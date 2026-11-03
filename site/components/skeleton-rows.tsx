@@ -57,7 +57,7 @@ export const skeletonRows: ComponentDoc = {
 if (query.isPending) return <SkeletonRows rows={5} label="Loading flights" />;`,
   guidelines: [
     'Match the rows to what will replace them: the row count you expect and the height of one row.',
-    'Give it a label that says what is loading when a page has more than one loading region.',
+    'Give it a label that says what is loading when a page has more than one loading region. It is read out as visually hidden text inside the role="status" region.',
     'The shimmer stops under reduced motion, like every Skeleton.',
   ],
 };

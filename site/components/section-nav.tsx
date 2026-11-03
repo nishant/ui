@@ -111,6 +111,7 @@ export const sectionNav: ComponentDoc = {
 <section id="overview" className="nish-scroll-target">…</section>
 <section id="flights" className="nish-scroll-target">…</section>`,
   guidelines: [
+    'The landmark is named "On this page" by default, so it differs from the app navigation ("Sections"); translate it with label. Chips are 44px tall and wide on touch screens.',
     'Give every target section an id and the class nish-scroll-target, so a jump stops below the header and this bar.',
     'The default updateHash writes #id; pass updateHash={false} in apps that use hash routing.',
     'Keep labels to a word or two. The row scrolls on a phone, but the chips you need should be on screen without scrolling.',

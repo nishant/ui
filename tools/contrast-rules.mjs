@@ -38,7 +38,7 @@ export const RULES = [
   ['hi', ['bg', 'surface', 'elevated', 'overlay'], TEXT],
   ['hi2', ['bg', 'surface', 'elevated'], TEXT],
   ['hi3', ['bg', 'surface'], TEXT],
-  ['hi3', ['elevated'], UI],
+  ['hi3', ['elevated', 'overlay'], TEXT], // placeholders sit on elevated inputs and overlay fields
   ['ghost', ['bg', 'surface'], UI],
   ['accent', ['bg', 'surface'], TEXT],
   ['accent', ['elevated'], UI],
@@ -48,6 +48,8 @@ export const RULES = [
   ['warn', ['bg', 'surface'], TEXT],
   ['info', ['bg', 'surface'], TEXT],
   ['line-strong', ['surface'], 1.6],
+  // Form-control borders are UI boundaries (WCAG 1.4.11).
+  ['line-control', ['bg', 'surface', 'elevated'], UI],
   ...['ok-fill', 'loss-fill', 'warn-fill', 'info-fill'].map((f) => [f, ['bg', 'surface', 'elevated'], UI]),
   // Chart lines and bars sit on cards and on raised panels (hovered rows, popovers).
   ...Array.from({ length: 8 }, (_, i) => [`chart-${i + 1}`, ['bg', 'surface', 'elevated'], UI]),

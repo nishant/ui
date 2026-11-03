@@ -276,5 +276,9 @@ import { RefreshCw, Trash2, ExternalLink } from 'lucide-react';
     'Use size="sm" inside dense table rows and size="xs" in dense headers; every size reaches 44px on touch screens.',
     'Use tone="danger" for delete and remove, so the destructive one reads differently on hover.',
     'For an icon-only link, use iconButtonClass() and an aria-label instead of copying classes.',
+    'A missing label logs a development warning: an icon-only button must have a name.',
+    'size="2xs" is 20px visually and keeps a 24px hit area under a mouse (44px on touch).',
+    'Button uses variant="danger" for destructive actions; IconButton keeps tone="danger". The two names differ on purpose and neither is renamed.',
+    'active sets aria-pressed and data-state="active"; pass active={false} on a toggle to get data-state="inactive".',
   ],
 };

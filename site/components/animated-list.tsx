@@ -127,5 +127,6 @@ export const animatedList: ComponentDoc = {
     'The render function gets the phase: enter, idle or exit. Use it for extra styling, not to change the content.',
     'Do not animate a list people sort or filter by hand; changes they cause should be instant.',
     'Respects prefers-reduced-motion: no loops or movement, state changes are instant.',
+    'Large lists stay fast: only items on screen slide, at most 50 per update, and the browser lays the list out twice per update however long it is.',
   ],
 };

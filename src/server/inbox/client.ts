@@ -199,7 +199,9 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
   const devOff = options.url === undefined && !envUrl && !!env?.npm_lifecycle_event && env?.NODE_ENV !== 'production';
   const baseUrl = (options.url ?? (envUrl || DEFAULT_URL)).trim();
   const disabled = baseUrl === 'off' || devOff;
-  const endpoint = `${baseUrl.replace(/\/+$/, '')}/ingest/events`;
+  let trimmed = baseUrl;
+  while (trimmed.endsWith('/')) trimmed = trimmed.slice(0, -1);
+  const endpoint = `${trimmed}/ingest/events`;
   const timeoutMs = options.timeoutMs ?? 3000;
   const log = options.log ?? ((message: string) => console.warn(`[inbox] ${message}`));
   if (devOff) log('off outside production; set INBOX_URL to send');

@@ -290,6 +290,7 @@ const edgeKinds = [
     'Follow: give nodes active and activeAt (the time of the newest activity, in ms) and a Follow button appears in the controls. When on, the view flies to the active nodes: all of them when they fit at a readable zoom, otherwise one at a time, newest first, every 6 seconds, with a caption saying what it follows. Any manual pan or zoom turns it off. Pass follow and onFollowChange to control it, for example to remember the choice.',
     'Minimap: on viewports 600 px wide or more, a small map of the whole canvas shows the current view; click or drag on it to move. Pass minimap={false} to hide it. It is never shown on phones.',
     'Edge ends can be node ids or group ids. An edge into an active node (or a group with one) takes that group color and flows.',
+    'Texts: the label, zoom buttons, Follow and Lines names come from <NishProvider strings> (systemMap, zoomOut, zoomIn, fitToScreen, followActivity, canvasLines, live). The follow caption and the "· 1 hidden" count have no key: set them with the labels prop. A node\'s accessible name starts with the text it shows (label, then the note or detail, then the count), then its group, so voice control and screen readers agree with the card. SystemCanvas takes ref, id, style, data-* and aria-* for its viewport.',
     'Respects prefers-reduced-motion: no pulse, ping, flow or sliding cards, active edges stay solid in the group color, and view changes (including follow) are instant, while the follow cycle still advances.',
   ],
 };

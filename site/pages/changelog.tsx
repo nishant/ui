@@ -21,11 +21,11 @@ export function ChangelogPage() {
         const m = s.heading.match(/^\[?([^\]\s]+)\]?(?:\s+[-–]\s+(.*))?$/);
         const version = m?.[1] ?? s.heading;
         const date = m?.[2];
-        const unreleased = /unreleased/i.test(version);
+        const unreleased = /unreleased/i.test(`${version} ${date ?? ''}`);
         return (
           <Card key={s.heading} className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-semibold tracking-tight text-th-hi">{unreleased ? 'Unreleased' : `v${version}`}</h2>
+              <h2 className="text-xl font-semibold tracking-tight text-th-hi">{/^\d/.test(version) ? `v${version}` : 'Unreleased'}</h2>
               {unreleased ? <Badge tone="warn">next release</Badge> : null}
               {date ? <span className="text-sm text-th-hi3">{date}</span> : null}
             </div>

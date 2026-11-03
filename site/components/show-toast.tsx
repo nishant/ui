@@ -74,6 +74,7 @@ export const showToastDoc: ComponentDoc & { source: string } = {
 <!-- Classic scripts: window.nishTheme.showToast(…) from theme.global.js. -->`,
   guidelines: [
     'Pass text, or a Node for markup (a <strong>, a link). Strings are never parsed as HTML.',
+    'An action href goes through safeUrl(): a javascript: or data: link drops the action. dismissLabel (or strings: { dismiss }) renames the close button.',
     'One toast at a time: a new call replaces the one on screen. The call returns a function that hides it now.',
     'React apps use toast() and <Toaster /> instead; the look and the timer rules match.',
   ],

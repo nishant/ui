@@ -1,3 +1,4 @@
+'use client';
 import { memo, useCallback, useEffect, useImperativeHandle, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import type { CanvasLayout } from './layout';
 import type { CanvasGroup } from './types';

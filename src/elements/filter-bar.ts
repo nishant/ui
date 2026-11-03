@@ -1,12 +1,10 @@
 import type { PropertyValues } from 'lit';
 import { NishElement, define, whenParsed } from './base';
+import { funnelIcon, xIcon } from './icons';
+import { getStrings } from './strings';
 import './sheet';
 import type { NishSheet } from './sheet';
 
-const FUNNEL =
-  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>';
-const X_ICON =
-  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12"></path></svg>';
 
 const QUERY = { md: '(max-width: 767.98px)', lg: '(max-width: 1023.98px)' } as const;
 
@@ -47,11 +45,14 @@ export class NishFilterBar extends NishElement {
   readonly #trailing = div('nish-filter-bar-trailing');
   readonly #summary = div('nish-filter-bar-summary');
   #button: HTMLButtonElement | null = null;
+  #buttonText: Text | null = null;
   #count: HTMLSpanElement | null = null;
   #clear: HTMLButtonElement | null = null;
   #sheet: NishSheet | null = null;
   #sheetBody: HTMLElement | null = null;
   #sheetClear: HTMLButtonElement | null = null;
+  #sheetCloseBtn: HTMLButtonElement | null = null;
+  #sheetDone: HTMLButtonElement | null = null;
   #sheetTitleEl: HTMLElement | null = null;
   #filters: HTMLElement[] = [];
   #mode: 'wide' | 'compact' | null = null;
@@ -63,7 +64,7 @@ export class NishFilterBar extends NishElement {
   constructor() {
     super();
     this.activeCount = 0;
-    this.sheetTitle = 'Filters';
+    this.sheetTitle = '';
     this.sheetBelow = 'md';
     this.sticky = false;
   }
@@ -89,6 +90,10 @@ export class NishFilterBar extends NishElement {
       this.#sheet?.remove();
       this.#root = null;
       this.#button = null;
+      this.#buttonText = null;
+      this.#sheetClear = null;
+      this.#sheetCloseBtn = null;
+      this.#sheetDone = null;
       this.#clear = null;
       this.#sheet = null;
       this.#sheetBody = null;
@@ -158,8 +163,8 @@ export class NishFilterBar extends NishElement {
     button.type = 'button';
     button.className = 'nish-btn nish-btn--secondary nish-filter-btn';
     button.setAttribute('aria-haspopup', 'dialog');
-    button.innerHTML = FUNNEL;
-    button.append(document.createTextNode('Filters'));
+    this.#buttonText = document.createTextNode('');
+    button.append(funnelIcon(16), this.#buttonText);
     const count = document.createElement('span');
     count.className = 'nish-badge nish-badge--accent';
     button.appendChild(count);
@@ -170,7 +175,6 @@ export class NishFilterBar extends NishElement {
     const clear = document.createElement('button');
     clear.type = 'button';
     clear.className = 'nish-btn nish-btn--ghost nish-filter-bar-clear';
-    clear.textContent = 'Clear filters';
     clear.addEventListener('click', () => this.#fireClear());
     this.#clear = clear;
 
@@ -185,8 +189,8 @@ export class NishFilterBar extends NishElement {
     close.type = 'button';
     close.className = 'nish-icon-btn';
     close.setAttribute('data-sheet-close', '');
-    close.setAttribute('aria-label', 'Close');
-    close.innerHTML = X_ICON;
+    this.#sheetCloseBtn = close;
+    close.appendChild(xIcon(16));
     header.appendChild(close);
     const body = document.createElement('div');
     body.className = 'nish-sheet-body nish-filter-sheet-body';
@@ -195,13 +199,12 @@ export class NishFilterBar extends NishElement {
     const sheetClear = document.createElement('button');
     sheetClear.type = 'button';
     sheetClear.className = 'nish-btn nish-btn--ghost';
-    sheetClear.textContent = 'Clear';
     sheetClear.addEventListener('click', () => this.#fireClear());
     const done = document.createElement('button');
     done.type = 'button';
     done.className = 'nish-btn nish-btn--primary';
     done.style.marginInlineStart = 'auto';
-    done.textContent = 'Show results';
+    this.#sheetDone = done;
     done.addEventListener('click', () => this.#sheet?.close());
     footer.append(sheetClear, done);
     sheet.append(header, body, footer);
@@ -258,10 +261,16 @@ export class NishFilterBar extends NishElement {
     if (this.#count) {
       this.#count.textContent = String(count);
       this.#count.hidden = count === 0;
-      this.#count.setAttribute('aria-label', `${count} active`);
+      this.#count.setAttribute('aria-label', getStrings().activeCount(count));
     }
     if (this.#sheetClear) this.#sheetClear.disabled = count === 0;
-    if (this.#sheetTitleEl) this.#sheetTitleEl.textContent = this.sheetTitle || 'Filters';
+    const s = getStrings();
+    if (this.#sheetTitleEl) this.#sheetTitleEl.textContent = this.sheetTitle || s.filters;
+    if (this.#buttonText) this.#buttonText.data = s.filters;
+    clear.textContent = s.clearFilters;
+    if (this.#sheetClear) this.#sheetClear.textContent = s.clear;
+    if (this.#sheetDone) this.#sheetDone.textContent = s.showResults;
+    this.#sheetCloseBtn?.setAttribute('aria-label', s.close);
   }
 }
 

@@ -3,6 +3,7 @@
 // self-contained (src/chart.ts imports React and cannot be bundled into an element file).
 import { date, money, num, pct, time } from '../format';
 import { NishElement } from './base';
+import { getStrings } from './strings';
 
 /** A series color: one of the eight categorical chart colors, or a status/accent color. */
 export type ChartTone = 'chart-1' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5' | 'chart-6' | 'chart-7' | 'chart-8' | 'ok' | 'warn' | 'loss' | 'info' | 'accent';
@@ -32,8 +33,13 @@ export const CHROME = {
 } as const;
 
 /** The default number format: thousands separators from 1000, else up to two decimals. */
-export const defaultNum = (v: number): string =>
-  Math.abs(v) >= 1000 ? v.toLocaleString('en-US', { maximumFractionDigits: 0 }) : String(Math.round(v * 100) / 100);
+let thousands: Intl.NumberFormat | undefined;
+export const defaultNum = (v: number): string => {
+  if (Math.abs(v) < 1000) return String(Math.round(v * 100) / 100);
+  // One formatter for every tick and label: building an Intl.NumberFormat per call is the slow part.
+  thousands ??= /* @__PURE__ */ new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  return thousands.format(v);
+};
 
 /** A format spec attribute to a formatter: `number`, `percent` (a ratio; `percent:0` sets the
  *  digits), `currency:USD`, `date` (`date:medium`, `date:long`, `date:weekday`) and `time`.
@@ -141,7 +147,7 @@ export function normalizeSeries(raw: unknown): LineSeries[] {
   return raw.map((item, i) => {
     const o = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
     return {
-      label: typeof o.label === 'string' && o.label ? o.label : `Series ${i + 1}`,
+      label: typeof o.label === 'string' && o.label ? o.label : getStrings().seriesNumber(i + 1),
       tone: typeof o.tone === 'string' ? o.tone : undefined,
       points: normalizePoints(o.points ?? o.data),
     };

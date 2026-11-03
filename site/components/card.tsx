@@ -265,5 +265,6 @@ export const card: ComponentDoc = {
     'Inside a card, use variant="inset" for boxes; the deepest layer (chips inside those) uses bg-th-overlay. Secondary text on an inset box is hi2 (hi3 is not text-safe on elevated).',
     'Use interactive only when the whole card is a link or a button. For a link, put cardClass({ interactive: true }) on the <a> or <Link>.',
     'Card\'s title prop renders a header, not a native tooltip. With as="section" or "article" the region is labelled by it.',
+    'Card takes ref as a prop and puts it on the rendered element (as). Other props, data-* and aria-* land on that element too.',
   ],
 };

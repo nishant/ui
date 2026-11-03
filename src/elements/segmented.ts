@@ -1,5 +1,5 @@
 import type { PropertyValues } from 'lit';
-import { NishElement, define, whenParsed } from './base';
+import { NishElement, define, isRtl, whenParsed } from './base';
 import { revealInRow, trackScrollEdges } from './tabs';
 
 /** `<nish-segmented>`: moves its child `<button value>` options into `div.nish-seg[role=radiogroup]`.
@@ -39,8 +39,11 @@ export class NishSegmented extends NishElement {
     const checked = opts.findIndex((o) => o.getAttribute('aria-checked') === 'true');
     const at = from >= 0 ? from : checked;
     let next: HTMLButtonElement | undefined;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = at < 0 ? opts[0] : opts[(at + 1) % opts.length];
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = at < 0 ? opts[opts.length - 1] : opts[(at - 1 + opts.length) % opts.length];
+    const rtl = isRtl(this.#group);
+    const forward = rtl ? 'ArrowLeft' : 'ArrowRight';
+    const back = rtl ? 'ArrowRight' : 'ArrowLeft';
+    if (e.key === forward || e.key === 'ArrowDown') next = at < 0 ? opts[0] : opts[(at + 1) % opts.length];
+    else if (e.key === back || e.key === 'ArrowUp') next = at < 0 ? opts[opts.length - 1] : opts[(at - 1 + opts.length) % opts.length];
     else if (e.key === 'Home') next = opts[0];
     else if (e.key === 'End') next = opts[opts.length - 1];
     else return;

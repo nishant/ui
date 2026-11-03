@@ -2,10 +2,21 @@
 import { createHmac, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 export const SESSION_DAYS = 30;
+/** The shortest session secret accepted, in bytes. */
+export const MIN_SECRET_BYTES = 32;
 
 const COOKIE_NAME_RE = /^[A-Za-z0-9_-]+$/;
 const NONCE_RE = /^[0-9a-f]{24}$/;
 const HEX_RE = /^[0-9a-f]+$/;
+
+function assertSecretLength(secret: string): void {
+  if (Buffer.byteLength(secret) < MIN_SECRET_BYTES) {
+    throw new Error(
+      `session secret is too short: ${Buffer.byteLength(secret)} bytes, need at least ${MIN_SECRET_BYTES}. ` +
+        `Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`,
+    );
+  }
+}
 
 function equalStrings(a: string, b: string): boolean {
   const x = Buffer.from(a);
@@ -13,9 +24,11 @@ function equalStrings(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-/** `v1.<expires s>.<24 hex nonce>.<base64url hmac-sha256 of the first three parts>` */
+/** Throws when the secret is empty or shorter than 32 bytes.
+ *  `v1.<expires s>.<24 hex nonce>.<base64url hmac-sha256 of the first three parts>` */
 export function createSessionToken(secret: string, now: number = Date.now(), days: number = SESSION_DAYS): string {
   if (secret === '') throw new Error('session secret is empty');
+  assertSecretLength(secret);
   const expires = Math.floor(now / 1000) + Math.round(days * 86400);
   const body = `v1.${expires}.${randomBytes(12).toString('hex')}`;
   const sig = createHmac('sha256', secret).update(body).digest('base64url');
@@ -56,11 +69,11 @@ export function verifySessionToken(secret: string, token: string | null | undefi
   return equalStrings(expected, sig);
 }
 
-/** sha256 both sides, timingSafeEqual. caseInsensitive (default true) trims and lowercases both.
- *  Always false when expected is ''. */
+/** sha256 both sides, timingSafeEqual. An exact match by default: no trimming, case matters.
+ *  caseInsensitive: true trims and lowercases both sides first. Always false when expected is ''. */
 export function passwordMatches(expected: string, provided: string, opts: { caseInsensitive?: boolean } = {}): boolean {
   if (typeof expected !== 'string' || typeof provided !== 'string' || expected === '') return false;
-  const fold = opts.caseInsensitive ?? true;
+  const fold = opts.caseInsensitive ?? false;
   const a = fold ? expected.trim().toLowerCase() : expected;
   const b = fold ? provided.trim().toLowerCase() : provided;
   const ha = createHash('sha256').update(a).digest();
@@ -101,8 +114,11 @@ export interface SessionAuth {
   clearCookie(): string;
 }
 
+/** Throws at setup for a bad cookie name or, when `secret` is a string, one shorter than 32 bytes.
+ *  A function secret is checked each time a token is issued. */
 export function createSessionAuth(o: { cookieName: string; secret: string | (() => string); days?: number; legacyHex?: boolean }): SessionAuth {
   if (!COOKIE_NAME_RE.test(o.cookieName)) throw new Error(`invalid cookie name: ${o.cookieName}`);
+  if (typeof o.secret === 'string') assertSecretLength(o.secret);
   const days = o.days ?? SESSION_DAYS;
   const secret = (): string => (typeof o.secret === 'function' ? o.secret() : o.secret);
   const auth: SessionAuth = {

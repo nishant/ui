@@ -1,0 +1,46 @@
+{
+  "name": "site",
+  "pages": [
+    {
+      "name": "overview",
+      "url": "http://127.0.0.1:{port}/#/overview",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "color",
+      "url": "http://127.0.0.1:{port}/#/color",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "button",
+      "url": "http://127.0.0.1:{port}/#/components/button",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "modal",
+      "url": "http://127.0.0.1:{port}/#/components/modal",
+      "waitFor": "[data-page]",
+      "settle": 1000
+    },
+    {
+      "name": "card",
+      "url": "http://127.0.0.1:{port}/#/components/card",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "field",
+      "url": "http://127.0.0.1:{port}/#/components/field",
+      "waitFor": "[data-page]"
+    }
+  ],
+  "viewports": [
+    "phone-small",
+    "fold",
+    "desktop"
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "fullPage": true
+}

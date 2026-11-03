@@ -29,7 +29,7 @@ function Demo({
   const [tab, setTab] = useState(items[0].value);
   return (
     <div className="w-full min-w-0">
-      <Tabs label="Profile sections" value={tab} onChange={setTab} items={items} variant={variant} size={size} block={block}>
+      <Tabs label="Profile sections" value={tab} onValueChange={setTab} items={items} variant={variant} size={size} block={block}>
         {panels
           ? items.map((t) => (
               <TabPanel key={t.value} value={t.value} className="pt-3 text-sm text-th-hi2">
@@ -52,7 +52,7 @@ function Responsive() {
         hideFrom="lg"
         controlsPanels
         value={tab}
-        onChange={setTab}
+        onValueChange={setTab}
         items={[
           { value: 'suggestions', label: 'Suggestions', count: 4 },
           { value: 'chat', label: 'Chat' },
@@ -76,7 +76,7 @@ function Sub() {
     <Tabs
       label="Shipping options"
       value={tab}
-      onChange={setTab}
+      onValueChange={setTab}
       items={[
         { value: 'ups', label: 'UPS Ground', sub: '$12 · 3 days' },
         { value: 'fedex', label: 'FedEx 2Day', sub: '$24 · 2 days' },
@@ -91,7 +91,7 @@ export const tabs: ComponentDoc = {
   name: 'Tabs',
   exports: ['Tabs', 'TabPanel'],
   summary:
-    'Switch between panels in place. The full ARIA tabs pattern: a tablist of tabs with aria-selected and aria-controls, arrow keys, Home and End. For links that change the URL, use tabClass() on the router link.',
+    'Switch between panels in place. The full ARIA tabs pattern: a tablist of tabs with aria-selected and aria-controls, arrow keys (mirrored in right-to-left layouts), Home and End. Controlled with value and onValueChange, or uncontrolled with defaultValue. Each tab has data-state="active|inactive". For links that change the URL, use tabClass() on the router link.',
   importLine: "import { Tabs, TabPanel, tabClass } from '@nish/ui';",
   controls: [
     { key: 'variant', label: 'Variant', type: 'select', options: ['underline', 'pill'] },
@@ -108,7 +108,7 @@ export const tabs: ComponentDoc = {
       {
         label: 'Profile sections',
         value: '{tab}',
-        onChange: '{setTab}',
+        onValueChange: '{setTab}',
         items: '{items}',
         variant: a.variant === 'underline' ? undefined : a.variant,
         size: a.size === 'md' ? undefined : a.size,
@@ -138,6 +138,20 @@ export const tabs: ComponentDoc = {
   },
   stories: [
     { id: 'underline', name: 'Underline', render: () => <Demo /> },
+    {
+      id: 'uncontrolled',
+      name: 'Uncontrolled (defaultValue)',
+      note: 'No state of your own: Tabs keeps the selection. onValueChange still tells you when it changes.',
+      render: () => (
+        <Tabs label="Uncontrolled sections" defaultValue="jobs" items={ITEMS}>
+          {ITEMS.map((t) => (
+            <TabPanel key={t.value} value={t.value} className="pt-3 text-sm text-th-hi2">
+              {t.label} content.
+            </TabPanel>
+          ))}
+        </Tabs>
+      ),
+    },
     { id: 'pill', name: 'Pill', render: () => <Demo variant="pill" /> },
     { id: 'sm', name: 'Small', render: () => <Demo size="sm" /> },
     { id: 'pill-sm', name: 'Small pill', render: () => <Demo variant="pill" size="sm" /> },
@@ -188,7 +202,7 @@ export const tabs: ComponentDoc = {
 
 const [tab, setTab] = useState('overview');
 
-<Tabs label="Profile sections" value={tab} onChange={setTab} items={[
+<Tabs label="Profile sections" value={tab} onValueChange={setTab} items={[
   { value: 'overview', label: 'Overview' },
   { value: 'jobs', label: 'Jobs', count: 24 },
 ]}>
@@ -199,5 +213,7 @@ const [tab, setTab] = useState('overview');
     'Tabs switch content in place. If the URL should change, it is navigation: use tabClass() on the router link with aria-current="page".',
     'Render the TabPanels as children of Tabs. If they must live elsewhere, give Tabs and every TabPanel the same idBase, pass active to each panel and controlsPanels to Tabs.',
     'Use the pill variant inside toolbars and the underline variant for page and card sections.',
+    'Pass value and onValueChange to control it, or defaultValue to let Tabs keep the selection. onChange still works as an alias of onValueChange.',
+    'In a right-to-left layout (dir="rtl") ArrowRight and ArrowLeft swap, so the arrow points the way the tabs run. Tabs are at least 44px on touch screens.',
   ],
 };

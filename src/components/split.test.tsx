@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { presetsFor } from '../split-layout';
 import { LayoutPresetPicker, SplitDividers, SplitStage, presetOptions } from './split';
@@ -17,6 +17,7 @@ beforeEach(() => {
   HTMLElement.prototype.hasPointerCapture = () => false;
 });
 afterEach(() => {
+  cleanup();
   delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientWidth;
   delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientHeight;
 });

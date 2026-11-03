@@ -71,6 +71,6 @@ if (query.isError)
   );`,
   guidelines: [
     'Say what failed and, when you know, what to do. "Failed to load" is the fallback, not the goal.',
-    'Pass onRetry whenever trying again can help; pass retrying so the button shows progress.',
+    'Pass onRetry whenever trying again can help; pass retrying so the button shows progress. retryLabel changes the button text; set the message and button words once for every ErrorState with NishProvider strings (failedToLoad, retry).',
   ],
 };

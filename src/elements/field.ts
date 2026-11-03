@@ -1,5 +1,6 @@
 import type { PropertyValues } from 'lit';
 import { NishElement, define, whenParsed } from './base';
+import { getStrings } from './strings';
 
 let counter = 0;
 
@@ -147,7 +148,7 @@ export class NishField extends NishElement {
       if (this.optional) {
         const opt = document.createElement('span');
         opt.className = 'nish-optional';
-        opt.textContent = 'Optional';
+        opt.textContent = getStrings().optional;
         label.appendChild(opt);
       }
     } else label?.remove();

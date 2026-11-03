@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
 
 export type CanvasHue = 'indigo' | 'emerald' | 'amber' | 'lime' | 'rose' | 'sky' | 'violet' | 'teal';
 export type CanvasNodeKind = 'ui' | 'service' | 'worker' | 'library' | 'infra' | 'data' | 'tool' | 'docs';
@@ -61,7 +61,27 @@ export interface CanvasEdgeKind {
  *  rows. "auto": whichever shows the map biggest in the current viewport. */
 export type CanvasLayoutMode = 'columns' | 'bands' | 'auto';
 
-export interface SystemCanvasProps {
+/** Text of the canvas that has no key in `NishStrings`. Each one wins over its English default. */
+export interface CanvasLabels {
+  /** Added to the "Lines" button when kinds are hidden: "· 2 hidden". */
+  hidden: (count: number) => string;
+  /** Follow caption when nothing is active. */
+  followIdle: string;
+  /** Follow caption for one node. */
+  followOne: (group: string, label: string) => string;
+  /** Follow caption for several nodes. */
+  followMany: (count: number) => string;
+}
+
+export const DEFAULT_CANVAS_LABELS: CanvasLabels = {
+  hidden: (count) => `· ${count} hidden`,
+  followIdle: 'Following · waiting for activity',
+  followOne: (group, label) => `Following · ${group} › ${label}`,
+  followMany: (count) => `Following ${count} active pieces`,
+};
+
+export interface SystemCanvasProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onSelect' | 'children' | 'aria-label'> {
+  ref?: Ref<HTMLDivElement>;
   groups: CanvasGroup[];
   edges: CanvasEdge[];
   /** Faint titles above each column ("Edge", "Infra", "Apps", ...), by column index. */
@@ -81,7 +101,9 @@ export interface SystemCanvasProps {
   onSelect?: (id: string, type: 'node' | 'group') => void;
   /** CSS height of the viewport. Default "100%". */
   height?: string;
-  /** aria-label. Default "System map". */
+  /** aria-label. Default: the `systemMap` string ("System map"). */
   label?: string;
+  /** Text without a key in the provider's strings (follow caption, hidden-lines count). */
+  labels?: Partial<CanvasLabels>;
   className?: string;
 }

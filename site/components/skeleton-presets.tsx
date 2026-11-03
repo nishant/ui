@@ -69,7 +69,7 @@ if (stats.isPending) return <StatGridSkeleton count={4} />;
 if (trips.isPending) return <CardListSkeleton count={3} lines={2} />;`,
   guidelines: [
     'StatGridSkeleton uses the same 2-column, then 4-column grid as StatGrid; use the same count as your real stats.',
-    'CardListSkeleton and StatGridSkeleton announce "Loading" once (role="status"); SkeletonCard is decorative, so wrap a group of them yourself.',
+    'CardListSkeleton, StatGridSkeleton and SkeletonLines announce "Loading" once (role="status", hidden text; change it with label); SkeletonCard is decorative, so wrap a group of them yourself.',
     'Use AsyncPanel to swap a skeleton for content, errors and empty states in one place.',
     'For text-only loading inside a card, SkeletonLines is the right size.',
   ],

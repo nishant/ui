@@ -1,6 +1,9 @@
 // Self-test for @nish/ui/format. Run after `npm run build`: imports dist/format.js and
 // checks representative outputs. Exits non-zero on any mismatch.
-import * as f from '../dist/format.js';
+import { pathToFileURL } from 'node:url';
+
+// NISH_FORMAT_JS points at another build of format.js (used to check an unbuilt tree).
+const f = await import(process.env.NISH_FORMAT_JS ? pathToFileURL(process.env.NISH_FORMAT_JS).href : '../dist/format.js');
 
 const M = '−';
 const D = '–';
@@ -74,6 +77,20 @@ const cases = [
   ['time zone', f.time(Date.UTC(2026, 9, 28, 12, 0), { timeZone: 'UTC' }), '12:00 PM'],
   ['dateTime', f.dateTime(at(2026, 10, 28, 7, 42)), 'Oct 28, 7:42 AM'],
   ['dateTime invalid', f.dateTime(undefined), D],
+  // locale and time zone (English output above must not change)
+  ['money de-DE', f.money(1234.56, { locale: 'de-DE' }), '$1.234,56'],
+  ['num fr-FR', f.num(1234.5, { locale: 'fr-FR' }).replace(/[\u202f\u00a0]/g, ' '), '1 234,5'],
+  ['pct de-DE', f.pct(0.123, { locale: 'de-DE' }), '12,3%'],
+  ['time 24h de-DE', f.time(at(2026, 10, 28, 13, 5), { locale: 'de-DE' }), '13:05'],
+  ['date weekday en-GB', f.date(at(2026, 10, 28), 'weekday', { locale: 'en-GB' }), 'Wed 28/10'],
+  ['ago fr-FR', f.ago(NOW - 3 * 60000, { now: NOW, locale: 'fr-FR', style: 'long' }), 'il y a 3 minutes'],
+  ['ago de-DE just now', f.ago(NOW - 1000, { now: NOW, locale: 'de-DE', style: 'long' }), 'jetzt'],
+  ['dateTime timeZone', f.dateTime(Date.UTC(2026, 9, 28, 23, 30), { timeZone: 'Asia/Tokyo' }), 'Oct 29, 8:30 AM'],
+  ['date day-only ignores timeZone', f.date('2026-10-28', 'short', { timeZone: 'Pacific/Kiritimati' }), 'Oct 28'],
+  ['setDefaultLocale', (f.setDefaultLocale('de-DE'), f.num(1234.5)), '1.234,5'],
+  ['getDefaultLocale', f.getDefaultLocale(), 'de-DE'],
+  ['reset default', (f.setDefaultLocale('en-US'), f.num(1234.5)), '1,234.5'],
+  ['bad locale falls back', f.num(1234.5, { locale: 'not a locale!' }), '1,234.5'],
   // dateRange
   ['dateRange same month', f.dateRange(at(2026, 12, 12), at(2026, 12, 16)), `Dec 12 ${D} 16`],
   ['dateRange across months', f.dateRange(at(2026, 12, 30), at(2027, 1, 2)), `Dec 30, 2026 ${D} Jan 2, 2027`],

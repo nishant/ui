@@ -162,6 +162,8 @@ export function DeleteTracker({ remove }: { remove: () => Promise<void> }) {
   );
 }`,
   guidelines: [
+    'The dialog has role="alertdialog" and body is its description (aria-describedby), so screen readers read the question and the consequence on open.',
+    'Render it only while it is open, or pass open and onOpenChange; onCancel is optional when you use onOpenChange.',
     'Ask a question in the title and name the action on the button ("Delete", not "OK").',
     'Use it in place of window.confirm and of hand-rolled two-step remove buttons.',
     'Keep the dialog open while the action runs (pending), and close it when the action settles. Toast the error if it fails.',

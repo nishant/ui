@@ -18,6 +18,7 @@ import { OverviewPage } from './pages/overview';
 import { PatternsPage } from './pages/patterns';
 import { StaticSitesPage } from './pages/static-sites';
 import { ThemesPage } from './pages/themes';
+import { ThemingApiPage } from './pages/theming-api';
 import { WallPage } from './pages/wall';
 
 const isFrame = location.hash.startsWith('#/frame/');
@@ -48,6 +49,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
     title: 'Foundations',
     items: [
       { path: '/themes', label: 'Themes' },
+      { path: '/theming-api', label: 'Theming API' },
       { path: '/color', label: 'Color' },
       { path: '/typography', label: 'Typography' },
       { path: '/spacing', label: 'Spacing & radius' },
@@ -78,6 +80,8 @@ function page(route: Route): { title: string; node: ReactNode; wide?: boolean } 
       return { title: 'Changelog', node: <ChangelogPage /> };
     case 'themes':
       return { title: 'Themes', node: <ThemesPage /> };
+    case 'theming-api':
+      return { title: 'Theming API', node: <ThemingApiPage /> };
     case 'color':
       return { title: 'Color', node: <ColorPage /> };
     case 'typography':
@@ -226,13 +230,24 @@ function Shell() {
   }, [search, extra]);
 
   useEffect(() => {
-    document.title = `${title} · @nish/ui`;
+    document.title = `${title} · nish-ui`;
     window.scrollTo(0, 0);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a prop/DOM measurement inside the effect (React 19 rule flagged at adoption)
     setDrawer(false);
   }, [route.path, title]);
 
   const openSearch = () => setSearch(true);
+
+  // Demo links written as href="#" would send a hash-routed site to its start page. Inside the page
+  // content they do nothing, like a real placeholder link should.
+  useEffect(() => {
+    const on = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.('main a[href="#"]');
+      if (a) e.preventDefault();
+    };
+    document.addEventListener('click', on);
+    return () => document.removeEventListener('click', on);
+  }, []);
 
   return (
     <div className="min-h-dvh">
@@ -262,7 +277,6 @@ function Shell() {
             <button
               type="button"
               onClick={openSearch}
-              aria-label="Search docs"
               aria-keyshortcuts="Control+K Meta+K"
               className="hidden h-9 w-56 items-center gap-2 rounded-lg border border-th-line bg-th-surface px-3 text-sm text-th-hi3 transition-colors hover:border-th-line-strong hover:text-th-hi2 md:inline-flex lg:w-64 pointer-coarse:h-11"
             >

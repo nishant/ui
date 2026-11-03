@@ -11,6 +11,8 @@ import { NishSplit } from './split';
 import { NishTableSort } from './table-sort';
 
 export { NishElement, define } from './base';
+export { configureStrings } from './strings';
+export type { NishElementStrings } from './strings';
 export {
   NishCommandPalette,
   NishFilterBar,

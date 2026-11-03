@@ -241,5 +241,8 @@ const symbols: ComboboxOption[] = [
     'Escape closes the list first and only then clears the typed text; inside a Modal it does not close the dialog while the list is open.',
     'On blur the typed text resets to the selected label, so a half-typed query never looks like a value.',
     'With onQueryChange and no filter prop the options are shown as given; filter on the server.',
+    "name posts the selected value (a hidden input); the typed text is not submitted. defaultValue and onValueChange make it uncontrolled.",
+    "id, aria-describedby, aria-invalid, required and ref go to the text input, so Field and a <label htmlFor> reach it. className goes to the wrapper.",
+    "Strings (No matches, Clear, Searching…) come from NishProvider; emptyText, clearLabel, loadingText and resultsText override them per instance.",
   ],
 };

@@ -6,7 +6,7 @@
 // determinism. Uses layoutSystem's bands layout once it exists, else a hand-built one.
 // Exits non-zero on any failure.
 import assert from 'node:assert/strict';
-import { layoutSystem, routeEdges } from '../dist/index.js';
+import { layoutSystem, routeEdges } from '../dist/esm/index.js';
 
 const grp = (id, column, count, band) => ({
   id,

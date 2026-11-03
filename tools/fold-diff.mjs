@@ -96,8 +96,8 @@ export function formatComment(summary, artifactUrl) {
     lines.push('| Page | Size | Theme | Changed | New problems |', '|---|---|---|---|---|');
     for (const s of rows) {
       const changed = s.diffPct !== null && s.diffPct > 0 ? `${s.diffPct}%` : '—';
-      const probs = s.newProblems.length ? s.newProblems.map((p) => '`' + cut(p.replace(/\s*\n\s*/g, ' ').replace(/`/g, "'"), 120).replace(/\|/g, '\\|') + '`').join('<br>') : '—';
-      lines.push(`| ${String(s.page).replace(/\|/g, '\\|')} | ${widthOf(s.viewport)} | ${s.theme} | ${changed} | ${probs} |`);
+      const probs = s.newProblems.length ? s.newProblems.map((p) => '`' + cut(p.replace(/\s*\n\s*/g, ' ').replace(/`/g, "'"), 120).replace(/\\/g, '\\\\').replace(/\|/g, '\\|') + '`').join('<br>') : '—';
+      lines.push(`| ${String(s.page).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')} | ${widthOf(s.viewport)} | ${s.theme} | ${changed} | ${probs} |`);
     }
     lines.push('');
   }

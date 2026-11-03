@@ -5,12 +5,22 @@ import type { ComponentDoc } from './types';
 
 // --- LoadingBar -----------------------------------------------------------------------------
 
-function Demo({ delayMs = 200, startActive = true, header = true }: { delayMs?: number; startActive?: boolean; header?: boolean }) {
+function Demo({
+  delayMs = 200,
+  startActive = true,
+  header = true,
+  announce,
+}: {
+  delayMs?: number;
+  startActive?: boolean;
+  header?: boolean;
+  announce?: string;
+}) {
   const [active, setActive] = useState(startActive);
   return (
     <>
       {header ? <AppHeader name="trips" /> : null}
-      <LoadingBar active={active} delayMs={delayMs} />
+      <LoadingBar active={active} delayMs={delayMs} announce={announce} />
       <div className="px-[var(--nish-page-gutter)] pt-4">
         <Button size="sm" onClick={() => setActive((a) => !a)}>
           {active ? 'Finish loading' : 'Start loading'}
@@ -31,14 +41,16 @@ export const loadingBar: ComponentDoc = {
   controls: [
     { key: 'delayMs', label: 'Delay (ms)', type: 'number', min: 0, max: 1000 },
     { key: 'header', label: 'With AppHeader', type: 'boolean' },
+    { key: 'announce', label: 'Announce', type: 'text' },
   ],
-  initial: { delayMs: 200, header: true },
+  initial: { delayMs: 200, header: true, announce: 'Loading page' },
   render: (a) => (
     <Device doc="loading-bar" args={a} height={300} title="LoadingBar at 360px">
-      <Demo delayMs={Number(a.delayMs)} header={!!a.header} />
+      <Demo delayMs={Number(a.delayMs)} header={!!a.header} announce={String(a.announce) || undefined} />
     </Device>
   ),
-  code: (a) => `<LoadingBar active={isFetching}${Number(a.delayMs) === 200 ? '' : ` delayMs={${a.delayMs}}`} />`,
+  code: (a) =>
+    `<LoadingBar active={isFetching}${Number(a.delayMs) === 200 ? '' : ` delayMs={${a.delayMs}}`}${a.announce ? ` announce="${a.announce}"` : ''} />`,
   stories: [
     {
       id: 'header',
@@ -78,7 +90,7 @@ const navigating = useNavigation().state !== 'idle'; // React Router
 <LoadingBar active={isFetching || navigating} />`,
   guidelines: [
     'Mount one per app, near the root, driven by your router or data layer.',
-    'It is a role="progressbar" with aria-busy; do not add a second announcement.',
+    'It is a role="progressbar" with aria-busy, which screen readers do not announce when it appears. Pass announce="Loading page" and it writes that text to a persistent polite live region while the bar shows (after the delay), then clears it.',
     'Use a Spinner or a skeleton for loading inside a card; the bar is for the whole page.',
     'The delay is the point: under 200ms nothing shows, which avoids a flash on fast navigations.',
   ],

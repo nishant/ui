@@ -124,6 +124,7 @@ export const statusDot: ComponentDoc = {
   <StatusDot tone={site.up ? 'ok' : 'loss'} /> {site.up ? 'Up' : 'Down'}
 </span>`,
   guidelines: [
+    'In forced-colors mode the dot is drawn in the system highlight color with a text-colored border, so it never disappears; tone is not shown there, so always give it a label or text beside it.',
     'Color is never the only signal: put the state in words beside the dot, or pass label.',
     'Use pulse only for something live or running right now, and at most once per view.',
     'Dots use the -fill roles; never color a dot with a text role such as text-th-ok.',

@@ -1,5 +1,6 @@
 import { html, nothing, svg, type TemplateResult } from 'lit';
 import { define } from './base';
+import { getStrings } from './strings';
 import {
   CHROME,
   NishChartBase,
@@ -105,6 +106,7 @@ export class NishLineChart extends NishChartBase {
   }
 
   protected override render(): TemplateResult {
+    const str = getStrings();
     const label = this.label;
     const height = this.plotHeight;
     const lines = this.lines();
@@ -119,7 +121,7 @@ export class NishLineChart extends NishChartBase {
 
     if (!xs.length) {
       return html`<div class="nish-chart">
-        <div class="nish-empty" role="img" aria-label="${label}: no data" style="height:${height}px;box-sizing:border-box">${this.empty || 'No data yet'}</div>
+        <div class="nish-empty" role="img" aria-label=${str.noDataNamed(label)} style="height:${height}px;box-sizing:border-box">${this.empty || str.noDataYet}</div>
       </div>`;
     }
 
@@ -283,7 +285,7 @@ export class NishLineChart extends NishChartBase {
           </table>
         </div>
         ${lines.length > 1
-          ? html`<ul class="nish-legend" aria-label="Legend">
+          ? html`<ul class="nish-legend" aria-label=${str.legend}>
               ${lines.map((s, i) => html`<li class="nish-legend-item" style="--c: ${toneColor(s.tone, i)}"><i class="nish-legend-swatch" aria-hidden="true"></i>${s.label}</li>`)}
             </ul>`
           : nothing}

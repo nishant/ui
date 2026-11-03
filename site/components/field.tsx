@@ -115,5 +115,8 @@ export const field: ComponentDoc = {
     'Labels are sentence case. The uppercase Label component is for section and card labels, not form fields.',
     'Write errors as the fix ("Enter a number above 0"), not the fault ("Invalid").',
     'Field reuses an id the control already has; pass htmlFor only when the control is not its direct child.',
+    "required adds required and aria-required to the control and a \"*\" after the label (hidden from screen readers). It replaces the Optional tag.",
+    "Field wires id, aria-describedby, aria-invalid and aria-required into any single child: Input, Select, Textarea, SearchInput, Checkbox, Switch, Combobox and Segmented. Wrap exactly one element; a <div> around the control drops the wiring.",
+    "The Optional tag text comes from NishProvider strings (optional).",
   ],
 };

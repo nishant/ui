@@ -213,6 +213,8 @@ export const dropdownMenu: ComponentDoc = {
   guidelines: [
     'Menus hold actions. To pick one value from a few, use Segmented or a Select; for a form in a panel, use Popover.',
     'The trigger is a Button or IconButton; DropdownMenu adds aria-haspopup, aria-expanded and the keys.',
+    'The menu renders into the dialog it sits in, else the NishProvider portalContainer (default document.body). The sheet title and the submenu Back label come from NishProvider strings (menu, back); sheetTitle wins for one menu.',
+    'In right-to-left layouts start and end align to the mirrored edge, and ArrowRight goes back from a MenuSubHeader.',
     'A destructive item opens a ConfirmDialog rather than acting at once.',
     'To show a submenu, swap the rows in place and start them with MenuSubHeader. Call event.preventDefault() in onSelect to keep the menu open.',
   ],

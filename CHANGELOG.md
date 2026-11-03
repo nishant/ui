@@ -4,6 +4,72 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [2.0.0] - unreleased
+
+The production-hardening release: server components, SSR, tree-shaking, one shared runtime, strings, locale and direction, forms that post, accessibility and safer defaults. Moving from 1.x: [docs/MIGRATING-2.0.md](docs/MIGRATING-2.0.md).
+
+### Breaking
+
+- `AppHeader` and `AppShell` `hubHref` is replaced by `hub`: `{ href, label, title? }`, or `false`. The "← nish.software" pill is off by default; pass `hub` to show it.
+- Server kit defaults (`nish-ui/server`, `nish-ui/server/hono`): `passwordMatches` and `loginHandler` compare exactly (no case folding, no trimming) unless `caseInsensitive: true`; `clientIp` and every helper that calls it trust no proxy header unless `trustProxy: 'proxy' | 'cloudflare'` is given; a session secret shorter than 32 bytes throws at setup.
+- `Favicon` and `LinkCard` make no third-party request by default (a letter avatar shows). Call `configureFavicons({ resolve: googleFavicon })` for the old behavior.
+- Components take `ref` as a prop instead of using `forwardRef`. Code that types a ref to a package component through `ForwardRefExoticComponent` or `ComponentRef<typeof X>` needs a change.
+- Form-control borders use the new `line-control` role and placeholders use `hi3` (raised to 4.5:1), so inputs, selects, textareas, checkboxes and comboboxes look different in every theme.
+- The plain-CSS files are in cascade layers (`nish.base`, `nish.components`). Unlayered rules in your own CSS now beat the package's; rules in an earlier layer than yours no longer do.
+- `engines.node` is `>=20.19`. The package stays ESM-only; `require()` works through Node's `require(esm)`.
+- `dist/tailwind.css` scans `dist/esm/components` only (not all of `dist`).
+
+### Behavior changes
+
+- Formatters keep `en-US` output but take `locale` (and `timeZone` for dates); `setDefaultLocale()` changes the default.
+- `Tooltip` around a single focusable child adds `aria-describedby` to that child and no longer adds a Tab stop (`focusable` defaults to false then); it closes on Escape and stays open while the pointer is on it.
+- `ConfirmDialog` is `role="alertdialog"` and its message is the description.
+- The default `AppErrorBoundary` fallback shows the message and stack only outside production or with `showDetails`.
+- `apiFetch` sends `configureApi` headers only to same-origin URLs unless `configureApi({ headersFor })` allows the URL; a response that is not JSON becomes an `ApiError`.
+- `toast()` returns the toast id. Sticky and error toasts are not evicted by newer ones.
+- `Switch` posts in forms (`name`, `value`, `defaultChecked`, `required`, `form`) and has `onCheckedChange(checked)`; `onChange(checked, event)` still works. `Combobox` and `Segmented` post through hidden inputs.
+- `closeOnBack` stays `true` for overlays.
+- Landmark labels are unique (`BottomNav`, `NavRail`, the sidebar, `SectionNav` and the `AppHeader` tabs each have their own).
+- `rowHref`, `CommandPalette` hrefs, `MoreSheet` items, `showToast` actions and element hrefs go through `safeUrl`: a `javascript:` or `data:` URL never navigates.
+
+### Added
+
+- `NishProvider`, `useNishConfig`, `useNishStrings`, `DEFAULT_STRINGS` and the `NishStrings` type: translate every string, set locale and direction, and choose the portal container once. `configureStrings()` does the same for custom elements.
+- New components: `RadioGroup` and `Radio`, `Slider` (single and range), `TagInput`, `FileDropzone`, `Pagination`, `Breadcrumbs`, `Accordion` and `AccordionItem`, `Separator`, `Avatar` and `AvatarGroup`, `Progress`, `VisuallyHidden` and `Portal`.
+- `Modal`, `Drawer` and `ConfirmDialog` take `open` and `onOpenChange`; `toast.promise(promise, { loading, success, error })`.
+- `safeUrl`, `useIsClient`, `useIsoLayoutEffect`, `isRtl`, `setDefaultLocale`, `getDefaultLocale`, `configureFavicons`, `googleFavicon`, `VERSION`, `paginationRange`, `avatarInitials` and `avatarHueIndex`.
+- `"use client"` on exactly the modules that need it; pure helpers (`buttonClass`, `cardClass`, `tabClass`, `chipClass`, `tableClass`, `apiFetch`, `BREAKPOINTS` and the rest) come from `-classes` modules a server component can call.
+- Preserved-modules build in `dist/esm/` with `/* @__PURE__ */` annotations, a `sideEffects` list and `default` conditions on every export. New files: `elements/all`, `tailwind-core.css`, `nish.min.css`, `nish-components.min.css`, `tokens.json`, `tokens.dtcg.json`, `theme-init.sha256`.
+- `nishThemeInit({ nonce })` for a Content Security Policy nonce.
+- `Switch`, `Checkbox`, `Field`, `Combobox`, `Segmented` and `SearchInput` work in native forms and with react-hook-form (`register` or `Controller`); `Field` wires `id`, `aria-describedby`, `aria-invalid` and `required` into every control.
+- Forced-colors (Windows High Contrast) rules for state shown by color, a print stylesheet, and `data-state` and `data-disabled` on stateful roots.
+- `LoadingBar` `announce`; `Tabs` `defaultValue` and `onValueChange`; `Favicon` `src` and `resolve`; `limiter.hit()`; `trustProxy` and `frameOptions` on the server kit; `<html data-nish-storage-key>` for the theme key.
+- A shared runtime on `globalThis[Symbol.for('nish-ui.runtime.v1')]`: one theme state, overlay stack and toast store per page, shared by every entry and every copy. A development warning names two versions on one page.
+- Docs: README rewritten for npm users, Getting started with Frameworks, i18n and RTL, CSP and Testing sections, a Theming API page, the 2.0 migration guide, CONTRIBUTING, SECURITY and CODE_OF_CONDUCT, a browser support statement, and a docs page for every new or changed API.
+- Tests and gates: one unit-test file per component module, server rendering of every export, hydration, two-copy, `require()`, Next.js, Vite and TypeScript consumer builds, axe, forced-colors and CSP specs, size budgets (`npm run size`) and an exports snapshot (`tools/api-surface.test.mjs`).
+
+### Fixed
+
+- `Toaster`, `ThemeToggle`, `useTheme`, `useLocalStorage` and the overlays no longer cause hydration mismatches or throw during server rendering; `<html data-theme>` survives hydration.
+- Theme functions no longer throw when storage or cookies throw (sandboxed iframes) and ignore unknown theme names; `theme-init.js` ignores prototype keys and keeps host `theme-color` metas that have `media` or `data-nish-keep`.
+- The login limiter could be raced by parallel requests; `hit()` counts the attempt before any `await`.
+- `javascript:` URLs reached links in table rows, the command palette, toast actions, more-sheet items, media thumbnails and custom elements.
+- Arrow keys in `Tabs`, `Segmented`, `ChipGroup`, split dividers and charts now mirror in right-to-left layouts.
+- `Checkbox` hint and trailing content no longer join its accessible name; `invalid` sets `aria-invalid`.
+- `SkeletonLines` and `Spinner` announce through a `role="status"` region; the `CommandPalette` empty state is outside the listbox; scrollable table and modal bodies are keyboard-focusable.
+- `SystemCanvas` node names contain their visible text; text roles that failed contrast in `WorkflowBoard`, `AgentNode` and the canvas pass.
+- Docs site: the search button name, focusable code blocks, nested `<main>`, heading order, `href="#"` demo links, 360px overflow, and source links that pointed at master now point at the release tag.
+- Theme switching no longer fades half the page: transitions are off for one frame (`data-nish-theme-switching`).
+
+### Performance
+
+- Intl formatters are cached by locale and options; `currencySymbol` is cached per currency.
+- `Table` sorts with a shared `Intl.Collator`, ignores `columns` identity, and memoizes rows; sort keys are computed once per sort.
+- `LineChart` and `Sparkline` decimate to two points per pixel column and memoize paths; hovering no longer rebuilds them.
+- `AnimatedList` reads layout once per update and animates only visible items (at most 50).
+- `useMediaQuery` shares one listener per query; `useLocalStorage` and `useMediaQuery` use `useSyncExternalStore`.
+- `cn` and `Button` cost under 10 and 11 KB gzip (down from 17.4 KB for any import); `npm run size` enforces the budgets.
+
 ## [1.9.0] - 2026-11-02
 
 ### Added

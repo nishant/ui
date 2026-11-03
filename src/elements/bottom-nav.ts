@@ -1,6 +1,7 @@
 import type { PropertyValues } from 'lit';
 import { mountHeightVar } from '../theme';
 import { NishElement, define, whenParsed } from './base';
+import { getStrings } from './strings';
 import { mountCurrentLink } from './current-link';
 
 /** `<nish-bottom-nav>`: wraps its child links in `<nav class="nish-bottom-nav">`. The link whose
@@ -22,7 +23,7 @@ export class NishBottomNav extends NishElement {
 
   constructor() {
     super();
-    this.label = 'Sections';
+    this.label = '';
     this.lg = false;
   }
 
@@ -61,7 +62,7 @@ export class NishBottomNav extends NishElement {
 
   #sync(): void {
     if (!this.#nav) return;
-    this.#nav.setAttribute('aria-label', this.label || 'Sections');
+    this.#nav.setAttribute('aria-label', this.label || getStrings().sections);
     this.#nav.classList.toggle('nish-bottom-nav--lg', this.lg);
   }
 }

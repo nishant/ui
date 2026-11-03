@@ -1,8 +1,8 @@
+'use client';
 import {
   Fragment,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -13,8 +13,10 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { cn } from '../../cn';
+import { useIsoLayoutEffect } from '../client';
 import { usePrefersReducedMotion } from '../flow';
 import { IconButton } from '../primitives';
+import { useNishStrings } from '../provider';
 import { FollowCaption } from './follow-caption';
 import { useFollow } from './follow';
 import { FitIcon, FollowIcon, MinusIcon, PlusIcon } from './icons';
@@ -23,7 +25,7 @@ import { EdgeLegend } from './legend';
 import { Minimap, type MinimapHandle } from './minimap';
 import { hueStyle, NodeView } from './node';
 import { labelPoint, routeEdges, type Box } from './route';
-import type { CanvasEdgeKind, CanvasGroup, CanvasHue, CanvasNode, SystemCanvasProps } from './types';
+import { DEFAULT_CANVAS_LABELS, type CanvasEdgeKind, type CanvasGroup, type CanvasHue, type CanvasLabels, type CanvasNode, type SystemCanvasProps } from './types';
 import { ANIM_MS, centerOn, clampK, DOUBLE_MS, DOUBLE_PX, DRAG_PX, ease, FIT_PAD, FOLLOW_MS, KEY_PAN, LABEL_K, LOD_K, MIN_K, PHONE_K, PHONE_MAX_W, ZOOM_STEP, zoomAround, type View } from './view';
 
 const insetFor = (w: number, minimap: boolean) => (minimap && w >= MINIMAP_MIN_W ? TOP_INSET_MINIMAP : TOP_INSET);
@@ -64,11 +66,26 @@ export function SystemCanvas({
   selected = null,
   onSelect,
   height = '100%',
-  label = 'System map',
+  label: labelProp,
+  labels: labelOverrides,
   className,
+  style,
+  ref: forwardedRef,
+  ...rest
 }: SystemCanvasProps) {
+  const strings = useNishStrings();
+  const label = labelProp ?? strings.systemMap;
+  const labels: CanvasLabels = useMemo(() => ({ ...DEFAULT_CANVAS_LABELS, ...labelOverrides }), [labelOverrides]);
   const reduced = usePrefersReducedMotion();
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const setViewportRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      viewportRef.current = node;
+      if (typeof forwardedRef === 'function') forwardedRef(node);
+      else if (forwardedRef) (forwardedRef as { current: HTMLDivElement | null }).current = node;
+    },
+    [forwardedRef],
+  );
   const worldRef = useRef<HTMLDivElement>(null);
   const view = useRef<View>({ x: 0, y: 0, k: 1 });
   const target = useRef<View | null>(null); // where a running animation is heading
@@ -138,7 +155,7 @@ export function SystemCanvas({
     mode: layoutMode,
   });
   // Event handlers and effects read the latest props through refs; synced first, before the other layout effects.
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     followRef.current = followOn;
     followProps.current = { controlled: follow !== undefined, onFollowChange };
     latest.current = { cands, minimap, groups, layout, vis: visibleEdges, mode: layoutMode };
@@ -307,7 +324,7 @@ export function SystemCanvas({
     const { w, h } = size.current;
     setViewport((old) => (old.w === w && old.h === h ? old : { w, h }));
   }, []);
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
     let first = true;
@@ -348,7 +365,7 @@ export function SystemCanvas({
   }, [followOn, syncViewport]);
 
   const firstData = useRef(true);
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     if (firstData.current) {
       firstData.current = false;
       return;
@@ -361,7 +378,7 @@ export function SystemCanvas({
   const prevLayout = useRef<CanvasLayout | null>(null);
   const fitted = useRef(false);
   const relayoutTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     const prev = prevLayout.current;
     prevLayout.current = layout;
     if (picked.w <= 0 || picked.h <= 0) return; // picked before the first measurement
@@ -829,13 +846,14 @@ export function SystemCanvas({
 
   return (
     <div
-      ref={viewportRef}
+      {...rest}
+      ref={setViewportRef}
       role="application"
       aria-label={label}
       aria-roledescription="canvas"
       tabIndex={0}
       className={cn('nish-canvas', className)}
-      style={{ height }}
+      style={{ height, ...style }}
       data-grid="both"
       data-lod="near"
       data-focus={focus ? 'true' : undefined}
@@ -939,22 +957,22 @@ export function SystemCanvas({
         })}
       </div>
 
-      <EdgeLegend kinds={kindList} hidden={hiddenKinds} onToggle={toggleKind} />
+      <EdgeLegend kinds={kindList} hidden={hiddenKinds} onToggle={toggleKind} labels={labels} />
       {minimap ? <Minimap layout={layout} groups={groups} handleRef={miniRef} onJump={jumpTo} /> : null}
-      <FollowCaption step={step} />
+      <FollowCaption step={step} labels={labels} />
 
       <div data-canvas-ui className="nish-canvas-controls">
         <span ref={zoomLabelRef} className="nish-canvas-zoom" aria-hidden="true">
           100%
         </span>
-        <IconButton label="Zoom out" variant="ghost" className="size-11" onClick={() => zoomBy(1 / ZOOM_STEP, true)}>
+        <IconButton label={strings.zoomOut} variant="ghost" className="size-11" onClick={() => zoomBy(1 / ZOOM_STEP, true)}>
           <MinusIcon />
         </IconButton>
-        <IconButton label="Zoom in" variant="ghost" className="size-11" onClick={() => zoomBy(ZOOM_STEP, true)}>
+        <IconButton label={strings.zoomIn} variant="ghost" className="size-11" onClick={() => zoomBy(ZOOM_STEP, true)}>
           <PlusIcon />
         </IconButton>
         <IconButton
-          label="Fit to screen"
+          label={strings.fitToScreen}
           variant="ghost"
           className="size-11"
           onClick={() => {
@@ -965,7 +983,7 @@ export function SystemCanvas({
           <FitIcon />
         </IconButton>
         {canFollow ? (
-          <IconButton label="Follow activity" variant="ghost" className="size-11" active={followOn} aria-pressed={followOn} onClick={() => setFollow(!followOn)}>
+          <IconButton label={strings.followActivity} variant="ghost" className="size-11" active={followOn} aria-pressed={followOn} onClick={() => setFollow(!followOn)}>
             <FollowIcon />
           </IconButton>
         ) : null}

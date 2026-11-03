@@ -1,5 +1,6 @@
 import type { PropertyValues } from 'lit';
-import { NishElement, define, whenParsed } from './base';
+import { NishElement, define, isRtl, whenParsed } from './base';
+import { getStrings } from './strings';
 
 export interface NishResizeDetail {
   /** Each pane's share in percent, summing to 100. */
@@ -50,7 +51,8 @@ interface Drag {
  *  in percent and reflects; `nish-resize` fires with `detail: { sizes }`. `storage-key` saves
  *  the sizes in localStorage (a saved list of another length is ignored). Under a coarse
  *  pointer below 640px the panes stack and the dividers hide. Iframes get `pointer-events:
- *  none` while a divider is dragged. A `<nish-split>` inside a pane nests, for 2D layouts. */
+ *  none` while a divider is dragged. In a right-to-left page the first pane is on the right, so
+ *  ArrowLeft and a drag to the left grow it. Divider labels come from `configureStrings`. A `<nish-split>` inside a pane nests, for 2D layouts. */
 export class NishSplit extends NishElement {
   static override properties = {
     orientation: { type: String, reflect: true },
@@ -117,7 +119,8 @@ export class NishSplit extends NishElement {
 
   protected override updated(changed: PropertyValues): void {
     if (!this.#mounted) return;
-    if (changed.has('orientation') || changed.has('sizes') || changed.has('min')) this.#layout();
+    // A changed string arrives as an update with no changed property: redraw the divider labels.
+    if (changed.size === 0 || changed.has('orientation') || changed.has('sizes') || changed.has('min')) this.#layout();
   }
 
   // ---- structure ----------------------------------------------------------------------
@@ -198,6 +201,7 @@ export class NishSplit extends NishElement {
   #layout(): void {
     const row = this.orientation !== 'column';
     const sizes = this.#current;
+    const s = getStrings();
     this.style.display = 'flex';
     this.style.flexDirection = this.#stacked ? 'column' : row ? 'row' : 'column';
     this.style.minWidth = '0';
@@ -224,7 +228,7 @@ export class NishSplit extends NishElement {
       d.classList.toggle('nish-split-divider--v', row);
       d.classList.toggle('nish-split-divider--h', !row);
       d.setAttribute('aria-orientation', row ? 'vertical' : 'horizontal');
-      d.setAttribute('aria-label', row ? 'Resize columns' : 'Resize rows');
+      d.setAttribute('aria-label', row ? s.resizeColumns : s.resizeRows);
       d.setAttribute('aria-valuenow', String(Math.round(sizes[i]!)));
       d.setAttribute('aria-valuemin', '0');
       d.setAttribute('aria-valuemax', '100');
@@ -297,7 +301,9 @@ export class NishSplit extends NishElement {
     const drag = this.#drag;
     if (!drag || drag.pointerId !== e.pointerId || drag.total <= 0) return;
     const pos = this.orientation === 'column' ? e.clientY : e.clientX;
-    const delta = ((pos - drag.start) / drag.total) * 100;
+    // A right-to-left row lays the first pane on the right, so moving left grows it.
+    const flip = this.orientation !== 'column' && isRtl(this) ? -1 : 1;
+    const delta = (((pos - drag.start) * flip) / drag.total) * 100;
     if (delta === 0) return;
     this.#commit(this.#moved(drag.sizes, drag.index, delta, (this.min / drag.total) * 100));
   }
@@ -334,8 +340,9 @@ export class NishSplit extends NishElement {
       return;
     }
     const row = this.orientation !== 'column';
-    const dec = row ? 'ArrowLeft' : 'ArrowUp';
-    const inc = row ? 'ArrowRight' : 'ArrowDown';
+    const rtl = row && isRtl(this);
+    const dec = row ? (rtl ? 'ArrowRight' : 'ArrowLeft') : 'ArrowUp';
+    const inc = row ? (rtl ? 'ArrowLeft' : 'ArrowRight') : 'ArrowDown';
     if (e.key !== dec && e.key !== inc) return;
     e.preventDefault();
     const total = this.#panes.reduce((n, p) => n + this.#lengthOf(p), 0);

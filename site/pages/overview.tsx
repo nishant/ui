@@ -5,23 +5,20 @@ import { ArrowRightIcon } from '../lib/icons';
 import { href } from '../lib/router';
 import { PageHeader, Prose, Section, ThemeScope } from '../lib/ui';
 
-const APPS: { host: string; name: string; what: string; how: 'npm' | 'vendored'; stack: string }[] = [
-  { host: 'nish.software', name: 'The hub', what: 'The front door: a tile for every site and app.', how: 'npm', stack: 'React + Tailwind 4' },
-  { host: 'jobs.nish.software', name: 'Jobs', what: 'Job search and application tracking.', how: 'npm', stack: 'React + Tailwind 4' },
-  { host: 'trading.nish.software', name: 'Trading', what: 'Options ideas, scores and positions.', how: 'npm', stack: 'React + Tailwind 4, pnpm' },
-  { host: 'Nishboard', name: 'Nishboard', what: 'Desktop dashboard with its own extra themes.', how: 'npm', stack: 'Electron + React, pnpm' },
-  { host: 'status.nish.software', name: 'Status', what: 'Uptime and response times for every site.', how: 'npm', stack: 'React + Tailwind 4' },
-  { host: 'trackers.nish.software', name: 'Trackers', what: 'Price trackers and drop alerts.', how: 'npm', stack: 'React + Tailwind 4' },
-  { host: 'minecraft.nish.software', name: 'Minecraft', what: 'Build guides, with a pixel display face.', how: 'vendored', stack: 'Static HTML' },
-  { host: 'trips.nish.software', name: 'Trips', what: 'Trip pages, with a serif display face.', how: 'vendored', stack: 'Static HTML' },
+const WHERE: { name: string; what: string; how: string }[] = [
+  { name: 'React + Tailwind 4 (Vite)', what: 'Components, hooks and the th-* color classes.', how: 'nish-ui, nish-ui/tailwind.css' },
+  { name: 'Next.js App Router', what: 'Server components import it directly; modules that need the browser are client components.', how: 'nish-ui' },
+  { name: 'Plain CSS and static HTML', what: 'Variables, the nish-* classes and a React-free theme switcher.', how: 'nish-ui/nish.css, nish-ui/theme' },
+  { name: 'Custom elements', what: 'Sheets, dialogs, tabs, tables and charts for pages with no React.', how: 'nish-ui/elements' },
+  { name: 'Electron', what: 'The same React app, with the native window kept in step with the scheme.', how: 'nish-ui' },
+  { name: 'Node servers', what: 'A Hono login, session and inbox kit.', how: 'nish-ui/server' },
 ];
 
 const STEPS = [
-  ['Change', 'Edit src/tokens.mjs or a component. Check it here with npm run dev:site.'],
-  ['Check', 'npm run check: typecheck, WCAG contrast of every theme, build and the theme-init tests.'],
-  ['Release', 'npm run release patch: bumps master, then tags a commit that adds the built dist/.'],
-  ['Apps', 'scripts/bump-consumers.sh vX.Y.Z opens a PR in each app moving it to the tag.'],
-  ['Static sites', "Hosting pins the tag in ui.json; scripts/sync-ui.mjs vendors the dist files."],
+  ['Install', 'npm install nish-ui, plus Tailwind 4 for the Tailwind path.'],
+  ['Import the CSS', "@import 'nish-ui/tailwind.css' after Tailwind, or link nish.css on a page without it."],
+  ['Apply the theme early', 'theme-init.js (or the Vite plugin) sets the saved theme before first paint.'],
+  ['Use the components', 'Import from nish-ui and style with color roles such as bg-th-surface.'],
 ];
 
 export function OverviewPage() {
@@ -30,11 +27,11 @@ export function OverviewPage() {
     <div className="space-y-12">
       <PageHeader
         eyebrow="Design system"
-        title="One theme for every nish.software app"
+        title="Tokens, themes and components"
         lead={
           <>
-            <code className="inline">@nish/ui</code> holds the design tokens, the seven themes, the theme switching that follows one choice across
-            subdomains, and the small React components every app ended up writing for itself. This site is built from the same source, so what you
+            <code className="inline">nish-ui</code> holds the design tokens, the seven themes, the theme switching that follows one choice across
+            tabs and subdomains, and accessible React components that also work from server components and plain HTML. This site is built from the same source, so what you
             see here is exactly what ships in v{docgen.version}.
           </>
         }
@@ -60,7 +57,7 @@ export function OverviewPage() {
           [String(PRESETS.length), 'themes', '/themes'],
           [String(colorCount), 'color roles', '/color'],
           [String(COMPONENT_DOCS.length), 'components', '/components/button'],
-          ['8', 'apps and sites', '/overview'],
+          [String(WHERE.length), 'ways to use it', '/getting-started'],
         ].map(([n, label, to]) => (
           <a key={label} href={href(to)} className="block rounded-xl">
             <Card interactive className="h-full">
@@ -76,7 +73,7 @@ export function OverviewPage() {
           {[
             ['Tokens', 'src/tokens.mjs is the one source: colors per theme, type, spacing, radii, shadows, motion, z-index. The build turns it into CSS variables (--nish-*) and Tailwind classes (bg-th-surface).'],
             ['Themes', 'Dark (the default), Light, and the presets Slate, Terminal, Mocha, Ocean and High contrast. Every pair of text and background is checked against WCAG in CI.'],
-            ['Theme switching', 'theme-init.js applies the saved choice before first paint; theme.ts handles switching. The choice lives in a cookie on .nish.software, so it is the same on every subdomain.'],
+            ['Theme switching', 'theme-init.js applies the saved choice before first paint; theme.ts handles switching. The choice is saved in localStorage and, for sites that opt in, a cookie on your domain, so it is the same on every subdomain.'],
             ['Components', 'Button, IconButton, Card, Badge, fields, skeletons, empty and error states, toasts, Modal, Tooltip and ThemeToggle. Small, accessible, and 44px tap targets on touch screens.'],
           ].map(([t, d]) => (
             <Card key={t}>
@@ -87,28 +84,23 @@ export function OverviewPage() {
         </div>
       </Section>
 
-      <Section title="Who uses it" note="Apps install a git tag from npm; static sites vendor the CSS and scripts from the same tag.">
+      <Section title="Where it works" note="One package, several ways in. Every one of them gets the same themes.">
         <Card padded={false} className="overflow-hidden">
           <ul className="divide-y divide-th-line">
-            {APPS.map((a) => (
-              <li key={a.host} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 sm:px-5">
+            {WHERE.map((w) => (
+              <li key={w.name} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 sm:px-5">
                 <div className="min-w-0 flex-1 basis-56">
-                  <p className="font-medium text-th-hi">
-                    {a.name} <span className="font-mono text-xs font-normal text-th-hi3">{a.host}</span>
-                  </p>
-                  <p className="text-sm text-th-hi2">{a.what}</p>
+                  <p className="font-medium text-th-hi">{w.name}</p>
+                  <p className="text-sm text-th-hi2">{w.what}</p>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-xs text-th-hi3">{a.stack}</span>
-                  <Badge tone={a.how === 'npm' ? 'accent' : 'info'}>{a.how === 'npm' ? 'npm git tag' : 'vendored dist'}</Badge>
-                </div>
+                <code className="min-w-0 max-w-full break-words font-mono text-xs text-th-hi3">{w.how}</code>
               </li>
             ))}
           </ul>
         </Card>
       </Section>
 
-      <Section title="How a release reaches them">
+      <Section title="Getting started in four steps">
         <ol className="divide-y divide-th-line overflow-hidden rounded-xl border border-th-line bg-th-surface">
           {STEPS.map(([t, d], i) => (
             <li key={t} className="flex gap-4 px-4 py-3.5 sm:px-5">
@@ -122,8 +114,8 @@ export function OverviewPage() {
         </ol>
         <Prose>
           <p>
-            A release changes nothing in an app until its PR merges, so each app moves on its own schedule. Static sites move when hosting changes the
-            tag in <code>ui.json</code> and re-runs the sync. See <a href={href('/changelog')}>the changelog</a> for what each version changed.
+            The details, with Next.js and Electron, are in <a href={href('/getting-started')}>Getting started</a>. See{' '}
+            <a href={href('/changelog')}>the changelog</a> for what each version changed.
           </p>
         </Prose>
       </Section>

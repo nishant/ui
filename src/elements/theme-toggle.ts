@@ -1,6 +1,7 @@
 import type { PropertyValues } from 'lit';
 import { mountThemeToggle } from '../theme';
 import { NishElement, define } from './base';
+import { getStrings } from './strings';
 
 /** `<nish-theme-toggle>`: one `<button class="nish-theme-btn">` that cycles System, Light and Dark.
  *  Attributes: `labelled` (also shows the current choice as a word), `pill` (rounded pill look),
@@ -47,8 +48,14 @@ export class NishThemeToggle extends NishElement {
 
   #mountedWith = '';
 
+  /** The three mode names: an attribute wins over a configured string. */
+  #words(): [string, string, string] {
+    const s = getStrings();
+    return [this.labelSystem || s.themeSystem, this.labelLight || s.themeLight, this.labelDark || s.themeDark];
+  }
+
   #signature(): string {
-    return JSON.stringify([this.labelled, this.pill, this.labelSystem, this.labelLight, this.labelDark]);
+    return JSON.stringify([this.labelled, this.pill, ...this.#words()]);
   }
 
   #unmount(): void {
@@ -67,10 +74,8 @@ export class NishThemeToggle extends NishElement {
     button.classList.toggle('nish-theme-btn--pill', this.pill);
     this.prepend(button);
     this.#button = button;
-    const labels: Record<string, string> = {};
-    if (this.labelSystem) labels.system = this.labelSystem;
-    if (this.labelLight) labels.light = this.labelLight;
-    if (this.labelDark) labels.dark = this.labelDark;
+    const [system, light, dark] = this.#words();
+    const labels = { system, light, dark };
     this.#cleanup = mountThemeToggle(button, { showLabel: this.labelled, labels });
   }
 }

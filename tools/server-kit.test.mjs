@@ -14,7 +14,7 @@ const {
   newActionToken, hashActionToken, actionTokenMatches, inboxAction, inboxActionTarget, INBOX_ACTION_PATH,
 } = kit;
 
-const SECRET = 'test-secret';
+const SECRET = 'test-secret-0123456789-abcdefghijklmn';
 const NOW = 1_800_000_000_000;
 
 test('tokens: round trip, format, expiry, tamper, wrong secret', () => {
@@ -74,8 +74,10 @@ test('tokens: legacy hex v1 and v2 only with legacyHex', () => {
 });
 
 test('passwordMatches', () => {
-  assert.equal(passwordMatches('Secret', 'secret'), true);
-  assert.equal(passwordMatches('Secret', '  SECRET  '), true);
+  assert.equal(passwordMatches('Secret', 'secret'), false);
+  assert.equal(passwordMatches('Secret', '  SECRET  '), false);
+  assert.equal(passwordMatches('Secret', 'secret', { caseInsensitive: true }), true);
+  assert.equal(passwordMatches('Secret', '  SECRET  ', { caseInsensitive: true }), true);
   assert.equal(passwordMatches('secret', 'secre'), false);
   assert.equal(passwordMatches('Secret', 'secret', { caseInsensitive: false }), false);
   assert.equal(passwordMatches('Secret', 'Secret', { caseInsensitive: false }), true);
@@ -110,11 +112,11 @@ test('readCookie, setCookie and clearCookie', () => {
 });
 
 test('createSessionAuth: function secret is read on every call', () => {
-  let secret = 's1';
+  let secret = 's1'.repeat(16);
   const auth = createSessionAuth({ cookieName: 'x', secret: () => secret, days: 1 });
   const t = auth.issue(NOW);
   assert.equal(auth.verify(t, NOW), true);
-  secret = 's2';
+  secret = 's2'.repeat(16);
   assert.equal(auth.verify(t, NOW), false);
   secret = '';
   assert.equal(auth.verify(t, NOW), false);
@@ -130,19 +132,36 @@ test('createSessionAuth: legacyHex', () => {
   assert.equal(createSessionAuth({ cookieName: 'ja_session', secret: SECRET, legacyHex: true }).verify(legacy, NOW), true);
 });
 
-test('clientIp', () => {
+test('clientIp: trusts no header by default', () => {
   const h = (o) => (name) => o[name];
-  assert.equal(clientIp(h({ 'cf-connecting-ip': ' 1.2.3.4 ', 'x-forwarded-for': '9.9.9.9' }), '5.5.5.5'), '1.2.3.4');
-  assert.equal(clientIp(h({ 'cf-connecting-ip': 'a,b', 'x-forwarded-for': '9.9.9.9' })), '9.9.9.9');
-  assert.equal(clientIp(h({ 'cf-connecting-ip': 'x'.repeat(65), 'x-forwarded-for': '9.9.9.9' })), '9.9.9.9');
-  assert.equal(clientIp(h({ 'x-forwarded-for': '6.6.6.6, 7.7.7.7, 127.0.0.1' })), '7.7.7.7');
-  assert.equal(clientIp(h({ 'x-forwarded-for': '6.6.6.6, 7.7.7.7, ::1, ::ffff:127.0.0.1, ' })), '7.7.7.7');
-  assert.equal(clientIp(h({ 'x-forwarded-for': '127.0.0.1, ::1' }), '8.8.8.8'), '8.8.8.8');
-  assert.equal(clientIp(h({ 'x-forwarded-for': '127.0.0.1' }), '127.0.0.1'), 'local');
-  assert.equal(clientIp(h({}), '::ffff:127.0.0.1'), 'local');
-  assert.equal(clientIp(h({}), null), 'local');
-  assert.equal(clientIp(h({})), 'local');
-  assert.equal(clientIp(h({}), '100.64.0.5'), '100.64.0.5');
+  const spoof = h({ 'cf-connecting-ip': '1.2.3.4', 'x-forwarded-for': '9.9.9.9' });
+  assert.equal(clientIp(spoof, '5.5.5.5'), '5.5.5.5');
+  assert.equal(clientIp(spoof, '5.5.5.5', {}), '5.5.5.5');
+  assert.equal(clientIp(spoof, '5.5.5.5', { trust: 'none' }), '5.5.5.5');
+  assert.equal(clientIp(spoof, '127.0.0.1'), '127.0.0.1');
+  assert.equal(clientIp(spoof), null);
+  assert.equal(clientIp(spoof, null), null);
+  assert.equal(clientIp(spoof, ''), null);
+});
+
+test('clientIp: proxy uses the rightmost hop, cloudflare the cf header first', () => {
+  const h = (o) => (name) => o[name];
+  const proxy = { trust: 'proxy' };
+  assert.equal(clientIp(h({ 'x-forwarded-for': '6.6.6.6, 7.7.7.7' }), '5.5.5.5', proxy), '7.7.7.7');
+  assert.equal(clientIp(h({ 'x-forwarded-for': ' 7.7.7.7 ' }), '5.5.5.5', proxy), '7.7.7.7');
+  assert.equal(clientIp(h({ 'x-forwarded-for': '6.6.6.6, ' }), '5.5.5.5', proxy), '5.5.5.5');
+  assert.equal(clientIp(h({ 'x-forwarded-for': '' }), '5.5.5.5', proxy), '5.5.5.5');
+  assert.equal(clientIp(h({}), '5.5.5.5', proxy), '5.5.5.5');
+  assert.equal(clientIp(h({}), null, proxy), null);
+  assert.equal(clientIp(h({ 'cf-connecting-ip': '1.2.3.4' }), '5.5.5.5', proxy), '5.5.5.5');
+
+  const cf = { trust: 'cloudflare' };
+  assert.equal(clientIp(h({ 'cf-connecting-ip': ' 1.2.3.4 ', 'x-forwarded-for': '9.9.9.9' }), '5.5.5.5', cf), '1.2.3.4');
+  assert.equal(clientIp(h({ 'cf-connecting-ip': 'a,b', 'x-forwarded-for': '9.9.9.9' }), '5.5.5.5', cf), '9.9.9.9');
+  assert.equal(clientIp(h({ 'cf-connecting-ip': 'x'.repeat(64) }), '5.5.5.5', cf), 'x'.repeat(64));
+  assert.equal(clientIp(h({ 'cf-connecting-ip': 'x'.repeat(65), 'x-forwarded-for': '9.9.9.9' }), '5.5.5.5', cf), '9.9.9.9');
+  assert.equal(clientIp(h({ 'cf-connecting-ip': '  ' }), '5.5.5.5', cf), '5.5.5.5');
+  assert.equal(clientIp(h({}), null, cf), null);
 });
 
 test('isLoopback', () => {

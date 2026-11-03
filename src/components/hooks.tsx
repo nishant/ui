@@ -1,29 +1,75 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+'use client';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ComponentPropsWithoutRef,
+  type Ref,
+} from 'react';
 import { cn } from '../cn';
 import { ago, dateTime } from '../format';
-import { useLatest } from './latest';
+import { BREAKPOINTS, NARROW_QUERY, PHONE_QUERY, type Breakpoint } from './hooks-classes';
+import { useNishConfig } from './provider';
 
-/** True while the CSS media query matches. False on the server and before hydration. */
-export function useMediaQuery(query: string): boolean {
-  const subscribe = useCallback(
-    (onChange: () => void) => {
-      if (typeof window === 'undefined' || !window.matchMedia) return () => {};
-      const mq = window.matchMedia(query);
-      mq.addEventListener('change', onChange);
-      return () => mq.removeEventListener('change', onChange);
-    },
-    [query],
-  );
-  const get = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(query).matches;
-  return useSyncExternalStore(subscribe, get, () => false);
+export { BREAKPOINTS, NARROW_QUERY, PHONE_QUERY };
+export type { Breakpoint };
+
+// One MediaQueryList and one listener per query string, shared by every component that asks.
+// An entry exists only while something is subscribed, so nothing runs at import time and
+// matchMedia is never called during render (the snapshot is the cached `matches`).
+interface QueryEntry {
+  mql: MediaQueryList;
+  matches: boolean;
+  subs: Set<() => void>;
+  onChange: () => void;
+}
+const queries = new Map<string, QueryEntry>();
+
+function hasMatchMedia(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function';
 }
 
-export type Breakpoint = 'base' | 'sm' | 'md' | 'lg' | 'xl';
+function subscribeQuery(query: string, cb: () => void): () => void {
+  if (!hasMatchMedia()) return () => {};
+  let entry = queries.get(query);
+  if (!entry) {
+    const mql = window.matchMedia(query);
+    const created: QueryEntry = {
+      mql,
+      matches: mql.matches,
+      subs: new Set(),
+      onChange: () => {
+        created.matches = mql.matches;
+        created.subs.forEach((fn) => fn());
+      },
+    };
+    mql.addEventListener('change', created.onChange);
+    queries.set(query, created);
+    entry = created;
+  }
+  const owner = entry;
+  owner.subs.add(cb);
+  return () => {
+    owner.subs.delete(cb);
+    if (owner.subs.size === 0) {
+      owner.mql.removeEventListener('change', owner.onChange);
+      if (queries.get(query) === owner) queries.delete(query);
+    }
+  };
+}
 
-/** Tailwind's breakpoints, in px. Phone = below sm; narrow = below md (cover screen and small tablets). */
-export const BREAKPOINTS = { sm: 640, md: 768, lg: 1024, xl: 1280 } as const;
-export const PHONE_QUERY = '(max-width: 639.98px)';
-export const NARROW_QUERY = '(max-width: 767.98px)';
+function queryMatches(query: string): boolean {
+  return queries.get(query)?.matches ?? false;
+}
+
+/** True while the CSS media query matches. False on the server and in the first client render, then follows the query. */
+export function useMediaQuery(query: string): boolean {
+  const subscribe = useCallback((onChange: () => void) => subscribeQuery(query, onChange), [query]);
+  const get = useCallback(() => queryMatches(query), [query]);
+  return useSyncExternalStore(subscribe, get, () => false);
+}
 
 const BREAKPOINT_QUERIES: [Exclude<Breakpoint, 'base'>, string][] = (['xl', 'lg', 'md', 'sm'] as const).map((name) => [
   name,
@@ -41,16 +87,13 @@ export function useNarrow(): boolean {
 }
 
 function currentBreakpoint(): Breakpoint {
-  if (typeof window === 'undefined' || !window.matchMedia) return 'base';
-  for (const [name, q] of BREAKPOINT_QUERIES) if (window.matchMedia(q).matches) return name;
+  for (const [name, q] of BREAKPOINT_QUERIES) if (queryMatches(q)) return name;
   return 'base';
 }
 
 function subscribeBreakpoint(onChange: () => void): () => void {
-  if (typeof window === 'undefined' || !window.matchMedia) return () => {};
-  const lists = BREAKPOINT_QUERIES.map(([, q]) => window.matchMedia(q));
-  lists.forEach((l) => l.addEventListener('change', onChange));
-  return () => lists.forEach((l) => l.removeEventListener('change', onChange));
+  const stops = BREAKPOINT_QUERIES.map(([, q]) => subscribeQuery(q, onChange));
+  return () => stops.forEach((stop) => stop());
 }
 
 /** The largest Tailwind breakpoint the viewport has reached: base, sm (640), md (768), lg (1024) or xl (1280). */
@@ -105,14 +148,66 @@ export function useNow(intervalMs = 30000): number {
   return now;
 }
 
-const LOCAL_EVENT = 'nish-local-storage';
+// localStorage as an external store. The snapshot is the stored text (a string or null), so it
+// is stable between renders; the parsed value is memoized from it. A write that storage
+// refuses (private mode, quota) is kept in `memory` so the value still lives for this page.
+const storeSubs = new Map<string, Set<() => void>>();
+const memory = new Map<string, string>();
+const warned = new Set<string>();
+let storageListening = false;
 
-function readStored<T>(key: string, initial: T, raw: boolean): T {
+function notify(key: string | null): void {
+  if (key === null) storeSubs.forEach((set) => set.forEach((fn) => fn()));
+  else storeSubs.get(key)?.forEach((fn) => fn());
+}
+
+function onStorageEvent(e: StorageEvent): void {
+  if (e.key !== null) memory.delete(e.key);
+  else memory.clear();
+  notify(e.key);
+}
+
+function subscribeKey(key: string, cb: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  let set = storeSubs.get(key);
+  if (!set) storeSubs.set(key, (set = new Set()));
+  const subs = set;
+  subs.add(cb);
+  if (!storageListening) {
+    storageListening = true;
+    window.addEventListener('storage', onStorageEvent);
+  }
+  return () => {
+    subs.delete(cb);
+    if (subs.size === 0 && storeSubs.get(key) === subs) storeSubs.delete(key);
+    if (storeSubs.size === 0 && storageListening) {
+      storageListening = false;
+      window.removeEventListener('storage', onStorageEvent);
+    }
+  };
+}
+
+function readText(key: string): string | null {
+  const kept = memory.get(key);
+  if (kept !== undefined) return kept;
   try {
-    const text = window.localStorage.getItem(key);
-    if (text === null) return initial;
-    return raw ? (text as T) : (JSON.parse(text) as T);
+    return window.localStorage.getItem(key);
   } catch {
+    return null;
+  }
+}
+
+function parseStored<T>(key: string, text: string | null, initial: T, raw: boolean): T {
+  if (text === null) return initial;
+  if (raw) return text as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    const id = key + '\0' + text;
+    if (globalThis.process?.env?.NODE_ENV !== 'production' && !warned.has(id)) {
+      warned.add(id);
+      console.warn(`nish-ui: useLocalStorage("${key}") found text that is not valid JSON; using the initial value.`);
+    }
     return initial;
   }
 }
@@ -120,7 +215,8 @@ function readStored<T>(key: string, initial: T, raw: boolean): T {
 /**
  * State kept in localStorage. JSON by default, the raw string with { raw: true }. Never
  * throws (private mode, quota and bad JSON fall back to the initial value) and follows
- * changes from other tabs and from other hooks on the same key.
+ * changes from other tabs (`storage` events) and from other hooks on the same key. The
+ * server and the first client render return `initial`.
  */
 export function useLocalStorage<T>(
   key: string,
@@ -128,72 +224,71 @@ export function useLocalStorage<T>(
   o: { raw?: boolean } = {},
 ): [T, (next: T | ((prev: T) => T)) => void] {
   const raw = !!o.raw;
-  const initialRef = useLatest(initial);
-  const [value, setValueState] = useState<T>(() =>
-    typeof window === 'undefined' ? initial : readStored(key, initial, raw),
-  );
-  const valueRef = useLatest(value);
-  const instanceRef = useRef<object>({});
-
-  useEffect(() => {
-    const sync = () => setValueState(readStored(key, initialRef.current, raw));
-    sync();
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === null || e.key === key) sync();
-    };
-    const onLocal = (e: Event) => {
-      const d = (e as CustomEvent<{ key: string; source: object }>).detail;
-      if (d && d.key === key && d.source !== instanceRef.current) sync();
-    };
-    window.addEventListener('storage', onStorage);
-    window.addEventListener(LOCAL_EVENT, onLocal);
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener(LOCAL_EVENT, onLocal);
-    };
-  }, [initialRef, key, raw]);
+  const [first] = useState(() => initial);
+  const subscribe = useCallback((onChange: () => void) => subscribeKey(key, onChange), [key]);
+  const get = useCallback(() => readText(key), [key]);
+  const text = useSyncExternalStore(subscribe, get, () => null);
+  const value = useMemo(() => parseStored(key, text, first, raw), [key, text, first, raw]);
 
   const setValue = useCallback(
     (next: T | ((prev: T) => T)) => {
-      const resolved = typeof next === 'function' ? (next as (prev: T) => T)(valueRef.current) : next;
-      valueRef.current = resolved;
-      setValueState(resolved);
+      const resolved =
+        typeof next === 'function' ? (next as (prev: T) => T)(parseStored(key, readText(key), first, raw)) : next;
+      const out = raw ? String(resolved) : JSON.stringify(resolved);
       try {
-        window.localStorage.setItem(key, raw ? String(resolved) : JSON.stringify(resolved));
+        window.localStorage.setItem(key, out);
+        memory.delete(key);
       } catch {
         // Storage unavailable: the value still lives in memory.
+        memory.set(key, out);
       }
-      try {
-        window.dispatchEvent(new CustomEvent(LOCAL_EVENT, { detail: { key, source: instanceRef.current } }));
-      } catch {
-        // No window events.
-      }
+      notify(key);
     },
-    [key, raw, valueRef],
+    [key, raw, first],
   );
 
   return [value, setValue];
 }
 
-export interface RelativeTimeProps {
+export interface RelativeTimeProps extends Omit<ComponentPropsWithoutRef<'time'>, 'children' | 'dateTime' | 'style'> {
   /** The moment: a Date, epoch milliseconds or a date string. */
   value: Date | number | string;
-  /** "3m ago" (short, default) or "3 minutes ago" (long). */
+  /** "3m ago" (short, default) or "3 minutes ago" (long). This is the text style, so the inline `style` attribute is not accepted: use className. */
   style?: 'short' | 'long';
   /** How often the text refreshes, in milliseconds. Default 30000. */
   refreshMs?: number;
+  /** Language of the words. Default NishProvider locale, then setDefaultLocale() (en-US). */
+  locale?: string;
   /** Classes for the time element. */
   className?: string;
+  ref?: Ref<HTMLTimeElement>;
 }
 
 /** A self-updating "3m ago". The full date and time show on hover and in the dateTime attribute. */
-export function RelativeTime({ value, style = 'short', refreshMs = 30000, className }: RelativeTimeProps) {
+export function RelativeTime({
+  value,
+  style: textStyle = 'short',
+  refreshMs = 30000,
+  locale,
+  className,
+  ref,
+  ...rest
+}: RelativeTimeProps) {
   const now = useNow(refreshMs);
+  const config = useNishConfig();
+  const loc = locale ?? config.locale;
   const d = new Date(value);
   const iso = Number.isNaN(d.getTime()) ? undefined : d.toISOString();
   return (
-    <time dateTime={iso} title={dateTime(value)} className={cn('tabular-nums', className)}>
-      {ago(value, { now, style })}
+    <time
+      {...rest}
+      ref={ref}
+      dateTime={iso}
+      title={dateTime(value, { locale: loc })}
+      className={cn('tabular-nums', className)}
+      suppressHydrationWarning
+    >
+      {ago(value, { now, style: textStyle, locale: loc })}
     </time>
   );
 }

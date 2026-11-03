@@ -65,6 +65,7 @@ export const tickerText: ComponentDoc = {
   guidelines: [
     'Use it for a single line that changes while someone watches, such as what a task is doing right now.',
     'Give it a width (a block parent or a max width) so the ellipsis has somewhere to cut.',
+    'It takes ref and any span attribute (id, data-*, aria-*), like the other flow components.',
     'Changes that happen every second or faster read as flicker. Slow them down or use ActivityFeed.',
     'Respects prefers-reduced-motion: no loops or movement, state changes are instant.',
   ],

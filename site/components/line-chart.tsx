@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react';
 import { LineChart, type ChartTone, type LinePoint } from '../../src';
+import { NishProvider } from '../../src/components/provider';
 import { money, time } from '../../src/format';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -49,8 +50,9 @@ export const lineChart: ComponentDoc = {
     { key: 'baseline', label: 'Baseline (previous close)', type: 'boolean' },
     { key: 'gaps', label: 'Gap in the data', type: 'boolean' },
     { key: 'state', label: 'State', type: 'select', options: ['data', 'loading', 'empty'] },
+    { key: 'locale', label: 'Locale (default axis numbers)', type: 'select', options: ['en-US', 'de-DE', 'fr-FR'] },
   ],
-  initial: { tone: 'chart-1', height: 200, area: true, baseline: true, gaps: false, state: 'data' },
+  initial: { tone: 'chart-1', height: 200, area: true, baseline: true, gaps: false, state: 'data', locale: 'en-US' },
   render: (a) => (
     <Chart
       mode={a.state as Mode}
@@ -59,6 +61,7 @@ export const lineChart: ComponentDoc = {
       height={Number(a.height)}
       area={!!a.area}
       baseline={a.baseline ? (PRICE[0].y ?? undefined) : undefined}
+      locale={a.locale as string}
     />
   ),
   code: (a) =>
@@ -72,6 +75,7 @@ export const lineChart: ComponentDoc = {
       yFormat: '{money}',
       xFormat: '{time}',
       loading: a.state === 'loading' ? true : undefined,
+      locale: a.locale === 'en-US' ? undefined : a.locale,
     }),
   html: {
     height: 540,
@@ -90,6 +94,16 @@ export const lineChart: ComponentDoc = {
 <script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-charts.js"></script>`,
   },
   stories: [
+    {
+      id: 'locale-rtl',
+      name: 'Locale and right to left',
+      note: 'No yFormat: the axis numbers follow the locale. dir="rtl" on NishProvider mirrors the x axis, moves the y labels to the right and swaps the arrow keys.',
+      render: () => (
+        <NishProvider dir="rtl" locale="de-DE">
+          <Chart yFormat={undefined} height={160} />
+        </NishProvider>
+      ),
+    },
     { id: 'area', name: 'Price with area and baseline', render: () => <Chart area baseline={PRICE[0].y ?? undefined} /> },
     { id: 'gap', name: 'A gap breaks the line', note: 'A null y leaves a hole instead of joining across it.', render: () => <Chart data={GAPPY} tone="chart-3" /> },
     {
@@ -128,6 +142,10 @@ import { money, time } from '@nish/ui/format';
   loading={query.isPending}
 />`,
   guidelines: [
+    'Long series are reduced for drawing to at most two points per pixel column (the lowest and highest of each), so a 10,000-point series stays light and spikes still show. The tooltip and the table use every point.',
+    'Without yFormat and xFormat the axis numbers use the locale prop, else the NishProvider locale, else en-US. When you pass your own formatters (money, time) they win.',
+    'Under dir="rtl" (or NishProvider dir) the x axis runs right to left, the y labels move to the right and the arrow keys follow. The empty and no-data texts come from NishProvider strings (noData, noDataNamed).',
+    'ref and any div attribute (id, data-*, aria-*, style) go on the root.',
     'x is any number (epoch ms works); xFormat turns it into text for the axis and the tooltip heading.',
     "Always pass label: it is the chart's accessible name. The data table for screen readers is generated for you (first 200 points).",
     'Use tone for meaning (ok, loss), chart-1 to chart-8 for categories. Do not rely on red and green alone to tell series apart.',

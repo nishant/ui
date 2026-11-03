@@ -32,17 +32,19 @@ export const linkCard: ComponentDoc = {
     { key: 'blurb', label: 'Blurb', type: 'boolean' },
     { key: 'meta', label: 'Meta', type: 'boolean' },
     { key: 'status', label: 'Status', type: 'boolean' },
+    { key: 'favicon', label: 'Favicon as icon', type: 'boolean' },
     { key: 'external', label: 'External', type: 'boolean' },
     { key: 'disabled', label: 'Disabled', type: 'boolean' },
   ],
-  initial: { layout: 'card', accent: 'chart-2', blurb: true, meta: true, status: true, external: false, disabled: false },
+  initial: { layout: 'card', accent: 'chart-2', blurb: true, meta: true, status: true, favicon: false, external: false, disabled: false },
   render: (a) => (
     <div className="w-full max-w-xs">
       <LinkCard
         href="https://minecraft.nish.software"
         title="Minecraft"
         blurb={a.blurb ? 'Server status, players and controls for the family world.' : undefined}
-        icon={<LayersIcon size={20} />}
+        icon={a.favicon ? undefined : <LayersIcon size={20} />}
+        favicon={!!a.favicon}
         accent={a.accent as LinkCardAccent}
         layout={a.layout as Layout}
         meta={a.meta ? 'Up 3 days' : undefined}
@@ -57,7 +59,8 @@ export const linkCard: ComponentDoc = {
       href: 'https://minecraft.nish.software',
       title: 'Minecraft',
       blurb: a.blurb ? 'Server status, players and controls.' : undefined,
-      icon: '{<CubeIcon />}',
+      icon: a.favicon ? undefined : '{<CubeIcon />}',
+      favicon: a.favicon ? true : undefined,
       accent: a.accent === 'accent' ? undefined : a.accent,
       layout: a.layout === 'auto' ? undefined : a.layout,
       meta: a.meta ? 'Up 3 days' : undefined,
@@ -82,7 +85,7 @@ export const linkCard: ComponentDoc = {
       ),
     },
   ],
-  usage: `import { Favicon, LinkCard } from '@nish/ui';
+  usage: `import { LinkCard } from '@nish/ui';
 
 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
   {apps.map((app) => (
@@ -91,7 +94,7 @@ export const linkCard: ComponentDoc = {
       href={app.url}
       title={app.name}
       blurb={app.blurb}
-      icon={<Favicon url={app.url} size={20} />}
+      favicon
       accent={app.accent}
       status={{ tone: app.up ? 'ok' : 'loss', label: app.up ? 'Online' : 'Down' }}
       external
@@ -102,6 +105,9 @@ export const linkCard: ComponentDoc = {
     'Use a grid with minmax columns; leave layout on auto so a one-column phone list becomes 64px rows by itself.',
     'The tile color is the app\'s identity: pick one accent per destination and keep it everywhere.',
     'A disabled card is for something not available yet. It is not focusable and says so with aria-disabled.',
+    'href goes through safeUrl: a javascript: or data: address makes the card unavailable (dashed, not a link) instead of a live link.',
+    "favicon puts the site's Favicon in the tile. With no configureFavicons resolver that is a letter avatar and no request is made.",
+    'ref and any anchor attribute (id, data-*, aria-*, onClick) go on the card; the chevron flips under dir="rtl".',
     'Hover lift only happens on devices that hover, so touch screens never show a stuck raised card.',
   ],
 };

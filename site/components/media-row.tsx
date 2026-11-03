@@ -252,7 +252,9 @@ export const mediaRow: ComponentDoc = {
 
 <MediaChip thumbnailUrl={item.thumbnailUrl} label={item.title} action="Bring back" onClick={() => restore(item)} />`,
   guidelines: [
-    'Thumbnails load only from https or relative URLs. Anything else (http, data, javascript) shows the fallback, and so does an image that fails to load.',
+    'Thumbnails go through safeUrl: relative and http(s) URLs load. javascript:, data:, vbscript: and other schemes show the fallback, and so does an image that fails to load.',
+    'The Live and Offline badge text comes from NishProvider strings (live, offlineBadge); liveLabel and offlineLabel on one row win.',
+    "MediaRow, MediaChip and MediaThumb take ref and their element's attributes; MediaRow passes them to the wrapper li or div. The chevron and the chip padding flip under dir=\"rtl\".",
     'Titles wrap to two lines. Keep meta to one short line (a channel, an author) and put the date or count in detail.',
     'live is a three-way switch: true shows Live, false shows Offline, and leaving it out shows nothing. Use badges for anything else, such as On screen.',
     'Use dense in widget tiles; it shrinks the thumbnail and badges and keeps the 44px target. Use compact where the tile around it uses 11px and 10px text, so the rows match.',

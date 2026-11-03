@@ -86,6 +86,7 @@ export const stickyBar: ComponentDoc = {
   <List />
 </PageContainer>`,
   guidelines: [
+    'It uses the sticky z-index token (--nish-z-sticky, 20) and prints as a normal block (data-nish-bar), so it never covers printed content.',
     'Put it inside PageContainer (or any element with the page gutter): it bleeds into the gutter with a negative margin.',
     'It sticks under AppHeader by reading --nish-header-h; pass top only to stack under something else.',
     'Do not nest it in an overflow:hidden or overflow:auto ancestor: sticky then sticks to that box instead of the page.',

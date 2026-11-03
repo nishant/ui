@@ -320,6 +320,7 @@ const WAVE2: Record<string, () => ReactNode> = {
       name="Trackers"
       icon={ico('M3 3v18h18M7 15l4-4 3 3 5-6', 20)}
       homeHref="/"
+      hub={{ href: 'https://nish.software', label: 'nish.software' }}
       sticky={false}
       themeToggle={false}
       actions={<IconButton label="Add">{ico('M5 12h14M12 5v14', 18)}</IconButton>}
@@ -596,7 +597,7 @@ function App() {
         />
       );
     default: {
-      const render = WAVE2[c] ?? WAVE3[c];
+      const render = Object.hasOwn(WAVE2, c) ? WAVE2[c] : Object.hasOwn(WAVE3, c) ? WAVE3[c] : undefined;
       return render ? (
         <div id="stage" style={{ padding: 16, maxWidth: '28rem' }}>
           {render()}

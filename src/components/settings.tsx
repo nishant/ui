@@ -1,6 +1,6 @@
+'use client';
 import {
   createContext,
-  forwardRef,
   useCallback,
   useContext,
   useEffect,
@@ -8,17 +8,20 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type ComponentPropsWithRef,
   type FocusEvent,
   type KeyboardEvent,
   type ReactNode,
+  type Ref,
 } from 'react';
 import { cn } from '../cn';
 import { Spinner } from './feedback';
 import { Card, Input, type InputProps } from './primitives';
+import { useNishStrings } from './provider';
 
 // --- SettingsSection ----------------------------------------------------------------
 
-export interface SettingsSectionProps {
+export interface SettingsSectionProps extends Omit<ComponentPropsWithRef<'section'>, 'title' | 'children'> {
   title: ReactNode;
   description?: ReactNode;
   id?: string;
@@ -32,14 +35,14 @@ export interface SettingsSectionProps {
 }
 
 /** True inside a compact SettingsSection, so its rows follow without a prop each. */
-const CompactSettings = createContext(false);
+const CompactSettings = /* @__PURE__ */ createContext(false);
 
 /** A titled group of setting rows in one unpadded Card, rows divided by a line. */
-export function SettingsSection({ title, description, id, actions, compact = false, children, className }: SettingsSectionProps) {
+export function SettingsSection({ title, description, id, actions, compact = false, children, className, ref, ...rest }: SettingsSectionProps) {
   const auto = useId();
   const headingId = `${id ?? auto}-heading`;
   return (
-    <section id={id} aria-labelledby={headingId} className={cn('min-w-0', className)}>
+    <section {...rest} ref={ref} id={id} aria-labelledby={rest['aria-labelledby'] ?? headingId} className={cn('min-w-0', className)}>
       <div className={cn('flex flex-wrap items-end justify-between gap-x-4 gap-y-2', compact ? 'mb-1' : 'mb-3')}>
         <div className="min-w-0">
           <h2 id={headingId} className={compact ? 'text-sm font-semibold text-th-hi2' : 'text-base font-semibold text-th-hi'}>
@@ -64,7 +67,7 @@ export function SettingsSection({ title, description, id, actions, compact = fal
 
 // --- SettingRow ---------------------------------------------------------------------
 
-export interface SettingRowProps {
+export interface SettingRowProps extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
   label: ReactNode;
   description?: ReactNode;
   /** The control (Switch, Select, NumberField, Button). */
@@ -98,6 +101,8 @@ export function SettingRow({
   status,
   statusTone = 'muted',
   className,
+  ref,
+  ...rest
 }: SettingRowProps) {
   const inCompactSection = useContext(CompactSettings);
   const compact = compactProp ?? inCompactSection;
@@ -112,7 +117,11 @@ export function SettingRow({
       ? 'grid grid-cols-[1fr_auto] items-center gap-4'
       : 'flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4';
   return (
-    <div className={cn(compact ? cn('min-h-11 py-2', !inCompactSection && 'px-4') : 'min-h-[56px] px-4 py-3', layout, className)}>
+    <div
+      {...rest}
+      ref={ref}
+      className={cn(compact ? cn('min-h-11 py-2', !inCompactSection && 'px-4') : 'min-h-[56px] px-4 py-3', layout, className)}
+    >
       <div className="min-w-0">
         {htmlFor ? (
           <label htmlFor={htmlFor} className={labelClass}>
@@ -158,6 +167,7 @@ export function useSaveStatus(): {
   tone: 'muted' | 'ok' | 'error';
   run: <T>(p: Promise<T>) => Promise<T | undefined>;
 } {
+  const strings = useNishStrings();
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -197,14 +207,15 @@ export function useSaveStatus(): {
     }
   }, []);
 
-  const label = status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved' : status === 'error' ? (error ?? 'Could not save') : null;
+  const label = status === 'saving' ? strings.saving : status === 'saved' ? strings.saved : status === 'error' ? (error || strings.saveFailed) : null;
   const tone = status === 'saved' ? 'ok' : status === 'error' ? 'error' : 'muted';
   return { status, error, label, tone, run };
 }
 
 // --- NumberField --------------------------------------------------------------------
 
-export interface NumberFieldProps extends Omit<InputProps, 'value' | 'onChange' | 'type' | 'defaultValue'> {
+export interface NumberFieldProps extends Omit<InputProps, 'value' | 'onChange' | 'type' | 'defaultValue' | 'ref'> {
+  ref?: Ref<HTMLInputElement>;
   value: number | null;
   /** Called on blur and on Enter with the parsed, clamped value, only when it differs from `value`. May return a promise: the field shows a spinner state and, on rejection, restores the old value and sets aria-invalid with the error message under it. */
   onCommit: (next: number | null) => void | Promise<void>;
@@ -226,10 +237,25 @@ const fmt = (v: number | null) => (v == null ? '' : String(v));
 const decimals = (n: number) => String(n).split('.')[1]?.length ?? 0;
 
 /** A numeric setting that saves when you leave the field or press Enter. */
-export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(function NumberField(
-  { value, onCommit, min, max, step = 1, nullable = false, suffix, precision, className, onBlur, onKeyDown, id, invalid, 'aria-describedby': describedBy, ...rest },
+export function NumberField({
+  value,
+  onCommit,
+  min,
+  max,
+  step = 1,
+  nullable = false,
+  suffix,
+  precision,
+  className,
+  onBlur,
+  onKeyDown,
+  id,
+  invalid,
+  'aria-describedby': describedBy,
   ref,
-) {
+  ...rest
+}: NumberFieldProps) {
+  const strings = useNishStrings();
   const auto = useId();
   const errId = `${id ?? auto}-error`;
   const [draft, setDraftState] = useState(fmt(value));
@@ -284,7 +310,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
       const n = parseDraft(text);
       if (Number.isNaN(n)) {
         setDraft(fmt(value));
-        setError('Enter a number');
+        setError(strings.enterNumber);
         return;
       }
       let c = clamp(n);
@@ -386,7 +412,7 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
           onKeyDown={handleKeyDown}
         />
         {suffix != null ? <span className="text-sm text-th-hi3">{suffix}</span> : null}
-        {pending ? <Spinner size="sm" label="Saving" className="text-th-hi3" /> : null}
+        {pending ? <Spinner size="sm" label={strings.saving} className="text-th-hi3" /> : null}
       </div>
       {error != null ? (
         <span id={errId} role="alert" className="text-sm text-th-loss">
@@ -395,4 +421,4 @@ export const NumberField = forwardRef<HTMLInputElement, NumberFieldProps>(functi
       ) : null}
     </div>
   );
-});
+}

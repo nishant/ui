@@ -94,6 +94,23 @@ const GROUPS: { id: string; name: string; note?: string; rows: Example[] }[] = [
       ['dateRange("2026-12-12", "2026-12-16")', dateRange(D('2026-12-12'), D('2026-12-16'))],
       ['dateRange("2026-12-30", "2027-01-02")', dateRange(D('2026-12-30'), D('2027-01-02'))],
       ['date(undefined)', date(undefined)],
+      ['time(d, { timeZone: "UTC" })', time(new Date('2026-10-28T07:42:00Z'), { timeZone: 'UTC' })],
+    ],
+  },
+  {
+    id: 'locale',
+    name: 'locale, timeZone, setDefaultLocale',
+    note: 'Every function takes locale. The default is en-US; setDefaultLocale("de-DE") changes it for the whole page, and <NishProvider locale> feeds RelativeTime. Currency symbols always come first, and compact numbers keep the k, M, B and T letters.',
+    rows: [
+      ['money(1234.56, { locale: "de-DE" })', money(1234.56, { locale: 'de-DE' })],
+      ['num(1234567.5, { locale: "fr-FR" })', num(1234567.5, { locale: 'fr-FR' })],
+      ['pct(0.123, { locale: "de-DE" })', pct(0.123, { locale: 'de-DE' })],
+      ['date(d, "long", { locale: "es-ES" })', date(D('2026-10-28'), 'long', { locale: 'es-ES' })],
+      ['date(d, "weekday", { locale: "en-GB" })', date(D('2026-10-28'), 'weekday', { locale: 'en-GB' })],
+      ['time(d, { locale: "de-DE" })', time(new Date('2026-10-28T13:05:00'), { locale: 'de-DE' })],
+      ['ago(now - 3m, { locale: "fr-FR" })', ago(NOW - 180_000, { now: NOW, locale: 'fr-FR' })],
+      ['ago(now - 3m, { locale: "ja-JP", style: "long" })', ago(NOW - 180_000, { now: NOW, locale: 'ja-JP', style: 'long' })],
+      ['duration(24000, { locale: "de-DE", style: "long" })', duration(24000, { locale: 'de-DE', style: 'long' })],
     ],
   },
 ];
@@ -149,7 +166,7 @@ export const format: ComponentDoc = {
   exports: [],
   source: 'src/format.ts',
   summary:
-    'Twelve React-free functions for money, percentages, numbers, durations and dates, in one en-US style across every app. Import them from @nish/ui/format, a separate entry that static pages and servers can use without React. Missing or invalid input becomes an en dash, never "NaN" or "undefined".',
+    'React-free functions for money, percentages, numbers, durations and dates, in one en-US style across every app (any locale with a locale option or setDefaultLocale). Import them from @nish/ui/format, a separate entry that static pages and servers can use without React. Missing or invalid input becomes an en dash, never "NaN" or "undefined".',
   importLine: "import { money, pct, ago, date } from '@nish/ui/format';",
   controls: [
     { key: 'fn', label: 'Function', type: 'select', options: ['money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago'] },
@@ -164,10 +181,11 @@ export const format: ComponentDoc = {
     wide: true,
     render: () => <Examples ids={[g.id]} />,
   })),
-  api: { functions: ['money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago', 'date', 'time', 'dateTime', 'dateRange'], interfaces: [] },
+  api: { functions: ['money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago', 'date', 'time', 'dateTime', 'dateRange', 'setDefaultLocale', 'getDefaultLocale'], interfaces: [] },
   usage: `import { money, signedMoney, pct, ago, dateRange } from '@nish/ui/format';
 
 money(1234.56);                    // "$1,234.56"
+money(1234.56, { locale: 'de-DE' }); // "$1.234,56"
 signedMoney(-4);                   // "−$4.00"
 pct(0.0214, { signed: true });     // "+2.1%"
 ago(Date.now() - 180_000);         // "3m ago"

@@ -24,6 +24,12 @@ function highlight(code: string): ReactNode[] {
   return out;
 }
 
+/** The docs write the package as `@nish/ui` (the name the nish.software apps install it under).
+ *  Everything shown to a reader says `nish-ui`, the name on npm. Getting started explains the alias. */
+export function nishName(s: string): string {
+  return s.replace(/@nish\/ui(?![\w-])/g, 'nish-ui');
+}
+
 /** pre: text-[13px] with leading-relaxed (1.625), so one line is 21.125px. */
 const LINE_PX = 13 * 1.625;
 
@@ -32,6 +38,7 @@ export function CodeBlock({
   title,
   className,
   collapseAt,
+  keepAlias,
 }: {
   code: string;
   /** File name or a short caption above the code. */
@@ -39,8 +46,11 @@ export function CodeBlock({
   className?: string;
   /** Show only this many lines until "Expand" is pressed (Copy always copies it all). */
   collapseAt?: number;
+  /** Show `@nish/ui` as written (the pages that explain the alias). */
+  keepAlias?: boolean;
 }) {
-  const text = code.replace(/^\n+|\s+$/g, '');
+  const trimmed = code.replace(/^\n+|\s+$/g, '');
+  const text = keepAlias ? trimmed : nishName(trimmed);
   const total = text.split('\n').length;
   const collapsible = collapseAt != null && total > collapseAt + 1;
   const [open, setOpen] = useState(false);
@@ -53,6 +63,10 @@ export function CodeBlock({
       </div>
       <div className="relative">
         <pre
+          // Scrolls sideways, so the keyboard must be able to reach it (axe: scrollable-region-focusable).
+          tabIndex={0}
+          role="group"
+          aria-label={title ? `Code: ${title}` : 'Code'}
           className={cn('overflow-x-auto p-4 text-[13px] leading-relaxed', clipped && 'overflow-y-hidden')}
           style={clipped ? { maxHeight: Math.round(collapseAt * LINE_PX + 32) } : undefined}
         >

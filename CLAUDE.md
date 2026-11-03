@@ -29,6 +29,16 @@ export or token change: the README is the npm page, so absolute links only, no t
 `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z`. Details: "Keeping npm in sync" in
 [docs/RELEASING.md](docs/RELEASING.md#keeping-npm-in-sync).
 
+## Repo rules that changed in 2.0
+
+- Components follow the contract in [docs/DEVELOPING.md](docs/DEVELOPING.md#the-component-contract):
+  `'use client'` per module, pure helpers in `*-classes.ts`, `ref` as a prop (no `forwardRef`), strings
+  from `useNishStrings()`, shared state through `shared()` in `src/runtime.ts`.
+- Bundlers load `dist/esm/` (one file per module). The standalone files at the old `dist/` paths stay for
+  static pages. `npm run size` and `tools/api-surface.test.mjs` run in `check`; regenerate the snapshot
+  (`UPDATE_API_SURFACE=1`) after the final build.
+- Docs site samples are written as `@nish/ui` and shown as `nish-ui` by `nishName()` in `site/lib/code.tsx`.
+
 ## Target Device
 
 Every app built on this package follows "Phones and layout" in [`global/CLAUDE.md`](https://github.com/nishant/skills/blob/master/global/CLAUDE.md) in `nishant/skills`: 360px, ~840px and

@@ -104,6 +104,7 @@ export const stepBar: ComponentDoc = {
     'Use it where there is little room, such as a card in a list. Use FlowSteps when the step names matter.',
     'Say the numbers in text beside it ("3 of 6"). The bar is a progressbar for screen readers, but sighted people want the count.',
     'Set active only while work is running, so the current segment pulses.',
+    'The default name is "Progress" (from NishProvider strings); pass label to say what the bar counts.',
     'Respects prefers-reduced-motion: no loops or movement, state changes are instant.',
   ],
 };

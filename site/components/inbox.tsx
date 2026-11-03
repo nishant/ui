@@ -213,6 +213,8 @@ await inbox.send({
     'Item actions (up to 3, from the event) show as small buttons under the text in the open and snoozed views when onAction is given. While one runs it spins and the item\'s other actions are disabled; the last result shows in a muted line under them.',
     'An action\'s id matches /^[a-z0-9][a-z0-9-]{0,31}$/ and is unique in the event; its label is 1-40 characters (longer is cut with an ellipsis); method is POST or left out; target is http://127.0.0.1:<port>/… only, with an explicit port, no credentials, no #hash and at most 2000 characters (isInboxActionTarget). The service follows no redirects; anything but a 2xx leaves the item open, and either way the outcome is stored as item.lastAction. A repeat event with the same dedupeKey replaces the actions.',
     'Pass selectedId from a notification link (#/inbox?item=<id>) so the item is highlighted and scrolled into view.',
+    'Item links go through safeUrl: only http(s), mailto, tel and relative URLs become links, so a stored javascript: or data: URL shows as plain text.',
+    'Tab names, button names and the filter label come from <NishProvider strings>. Text with no string key (the snooze options, "Unsnooze", "Move back", "Load more", "Mark all handled", the "ran/failed" and "Handled ... ago" lines, the empty messages) is set with the labels prop; each key you give wins over its English default. Inbox also takes ref, id, data-* and aria-* for its card.',
     'Colors come only from th-* roles, so every theme works in light and dark.',
   ],
 };

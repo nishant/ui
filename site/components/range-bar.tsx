@@ -98,6 +98,8 @@ export const rangeBar: ComponentDoc = {
     "Give every row the same min and max, so a bar's position tells you where it sits in the whole range.",
     'The track has no text of its own. Show the low and high values as text next to it.',
     'The dot (current) is optional: use it for "now", leave it out for pure ranges.',
+    'The accessible name is built in English ("Range 30 to 70, current 55, within 0 to 100") with numbers in the locale prop or the NishProvider locale. Pass label to write it in your own language.',
+    'The track starts at the start edge, so it mirrors under dir="rtl"; in forced-colors mode the segment, dot and track use system colors.',
     "It fills its container's width; set the width on a wrapper or a grid column.",
   ],
 };

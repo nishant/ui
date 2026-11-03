@@ -123,6 +123,13 @@ import { toast } from '@nish/ui';
 toast.success('Saved', 'Watchlist updated with 3 symbols.');
 toast.error('Could not save', err.message); // stays until dismissed
 
+// every call returns the id
+const id = toast('Syncing…', { duration: Infinity });
+dismissToast(id);
+
+// a pending toast that turns into the result
+toast.promise(save(), { loading: 'Saving…', success: 'Saved', error: (e) => 'Could not save: ' + String(e) });
+
 // One Undo slot: a newer change replaces the old toast, so a stale Undo cannot revert it.
 toast.success('Archived', { action: { label: 'Undo', onClick: () => restore(id) }, id: 'undo' });
 
@@ -132,6 +139,9 @@ toast.success('Archived', { action: { label: 'Undo', onClick: () => restore(id) 
     'An app with a bottom tab bar passes offset (the bar height plus the safe area) and offsetUntil (where the bar hides: sm, md or lg), so a toast never covers the bar.',
     'Static pages: showToast() from @nish/ui/theme (window.nishTheme.showToast) with nish-components.css gives the same toast policy.',
     'Toasts confirm what just happened. Anything people must act on belongs on the page or in a Modal.',
+    'toast.promise(promise, { loading, success, error }) shows a sticky toast while the promise runs and swaps it for the result in the same slot. It returns the promise, so a rejection still reaches your code.',
+    'Sticky toasts (duration Infinity or \'sticky\') and errors are never pushed out by newer ones; when more than four are on screen the oldest ordinary toast goes first.',
+    'The Dismiss label comes from NishProvider strings (dismiss). The Toaster renders nothing on the server.',
     'Errors stay until dismissed, because a failure you did not see is one you will assume succeeded.',
     'Keep the title to a few words; put detail in the body.',
     'At most one action, and only for something to undo or follow up right now (Undo, View).',

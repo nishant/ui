@@ -5,6 +5,8 @@ import { NishBarChart } from './bar-chart';
 import { NishLineChart } from './line-chart';
 
 export { NishElement, define } from './base';
+export { configureStrings } from './strings';
+export type { NishElementStrings } from './strings';
 export { NishBarChart, NishLineChart };
 
 declare global {

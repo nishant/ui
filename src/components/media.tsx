@@ -1,24 +1,16 @@
-import { useState, type ReactNode } from 'react';
+'use client';
+import { useState, type ComponentPropsWithoutRef, type ReactNode, type Ref } from 'react';
 import { cn } from '../cn';
+import { safeUrl } from '../url';
 import { ListRow } from './data';
 import { Badge } from './primitives';
+import { useNishStrings } from './provider';
 
 // Media rows: a thumbnail, a two-line title, a meta line and status badges. Search results,
 // folders, queues and "recent" chips share them. MediaRow composes ListRow.
 
 export type MediaThumbShape = 'wide' | 'round' | 'square';
 export type MediaThumbSize = 'sm' | 'md';
-
-/** Only https and relative sources load. Anything else (http, data, javascript, protocol-relative) shows the fallback. */
-function safeSrc(src: string | undefined): string | null {
-  if (!src) return null;
-  // Browsers drop tabs and newlines and read a backslash as a slash, so normalize before checking.
-  const s = src.trim().replace(/[\t\n\r]/g, '').replace(/\\/g, '/');
-  if (!s || s.startsWith('//')) return null;
-  if (/^https:\/\//i.test(s)) return s;
-  if (/^[a-z][a-z0-9+.-]*:/i.test(s)) return null;
-  return s;
-}
 
 const THUMB_BOX: Record<MediaThumbShape, Record<MediaThumbSize, string>> = {
   wide: {
@@ -29,8 +21,8 @@ const THUMB_BOX: Record<MediaThumbShape, Record<MediaThumbSize, string>> = {
   square: { sm: 'size-9 rounded-[var(--nish-radius-sm)]', md: 'size-12 rounded-[var(--nish-radius-sm)]' },
 };
 
-export interface MediaThumbProps {
-  /** The image URL. Only https and relative URLs load; anything else shows the fallback. */
+export interface MediaThumbProps extends Omit<ComponentPropsWithoutRef<'span'>, 'children'> {
+  /** The image URL. Relative, http(s) URLs load; javascript:, data: and other schemes show the fallback. */
   src?: string;
   /** wide: 16:9 (64x36, or 96x54 at md). round and square: 36px, or 48px at md. */
   shape?: MediaThumbShape;
@@ -41,17 +33,18 @@ export interface MediaThumbProps {
   /** Alternative text. Empty by default: the row's title already names the item. */
   alt?: string;
   className?: string;
+  ref?: Ref<HTMLSpanElement>;
 }
 
 /** A thumbnail in a fixed box: 16:9, round or square, lazy-loaded, with a fallback fill. */
-export function MediaThumb({ src, shape = 'wide', size = 'md', fallback, alt = '', className }: MediaThumbProps) {
-  const url = safeSrc(src);
+export function MediaThumb({ src, shape = 'wide', size = 'md', fallback, alt = '', className, ref, ...rest }: MediaThumbProps) {
+  const url = safeUrl(src);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const failed = failedUrl !== null && failedUrl === url;
   const box = cn('relative block shrink-0 overflow-hidden bg-th-elevated', THUMB_BOX[shape][size], className);
   if (url && !failed) {
     return (
-      <span className={box}>
+      <span {...rest} ref={ref} className={box}>
         <img
           src={url}
           alt={alt}
@@ -66,14 +59,14 @@ export function MediaThumb({ src, shape = 'wide', size = 'md', fallback, alt = '
     );
   }
   return (
-    <span className={cn(box, 'flex items-center justify-center text-th-hi3 [&>svg]:size-5')} role={alt ? 'img' : undefined} aria-label={alt || undefined}>
+    <span {...rest} ref={ref} className={cn(box, 'flex items-center justify-center text-th-hi3 [&>svg]:size-5')} role={alt ? 'img' : undefined} aria-label={alt || undefined}>
       {fallback}
     </span>
   );
 }
 
-export interface MediaRowProps {
-  /** The image URL (https or relative only). */
+export interface MediaRowProps extends Omit<ComponentPropsWithoutRef<'li'>, 'title' | 'onClick' | 'children' | 'className'> {
+  /** The image URL (relative or http(s); other schemes show the fallback). */
   thumbnailUrl?: string;
   /** wide (16:9, default), round (channels) or square. */
   thumbShape?: MediaThumbShape;
@@ -89,6 +82,10 @@ export interface MediaRowProps {
   detail?: ReactNode;
   /** true shows a Live badge, false an Offline badge, undefined none. */
   live?: boolean;
+  /** The Live badge text. Default: the "live" string. */
+  liveLabel?: string;
+  /** The Offline badge text. Default: the "offlineBadge" string. */
+  offlineLabel?: string;
   /** Extra badges after the live one ("On screen"). */
   badges?: ReactNode;
   /** A control or element at the far right, after the badges. */
@@ -106,6 +103,8 @@ export interface MediaRowProps {
   /** The wrapper element. Default 'li'; pass 'div' outside a list. */
   as?: 'li' | 'div';
   className?: string;
+  /** The wrapper element. */
+  ref?: Ref<HTMLElement>;
 }
 
 /** A result row: thumbnail, two-line title, meta and detail, with Live/Offline and other badges. */
@@ -118,6 +117,8 @@ export function MediaRow({
   meta,
   detail,
   live,
+  liveLabel,
+  offlineLabel,
   badges,
   trailing,
   chevron,
@@ -127,7 +128,10 @@ export function MediaRow({
   href,
   as,
   className,
+  ref,
+  ...rest
 }: MediaRowProps) {
+  const t = useNishStrings();
   const small = dense || compact;
   const size = thumbSize ?? (small ? 'sm' : 'md');
   const badgeSize = small ? 'xs' : 'sm';
@@ -141,6 +145,8 @@ export function MediaRow({
     ) : undefined;
   return (
     <ListRow
+      {...rest}
+      ref={ref}
       as={as}
       className={className}
       dense={dense}
@@ -159,11 +165,11 @@ export function MediaRow({
               <span className="flex flex-col items-end gap-1">
                 {live === true ? (
                   <Badge tone="loss" size={badgeSize}>
-                    Live
+                    {liveLabel ?? t.live}
                   </Badge>
                 ) : live === false ? (
                   <Badge tone="neutral" size={badgeSize}>
-                    Offline
+                    {offlineLabel ?? t.offlineBadge}
                   </Badge>
                 ) : null}
                 {badges}
@@ -177,8 +183,8 @@ export function MediaRow({
   );
 }
 
-export interface MediaChipProps {
-  /** The image URL (https or relative only). */
+export interface MediaChipProps extends Omit<ComponentPropsWithoutRef<'button'>, 'onClick' | 'children' | 'type'> {
+  /** The image URL (relative or http(s); other schemes show no image). */
   thumbnailUrl?: string;
   /** The label; truncates. */
   label: string;
@@ -187,16 +193,19 @@ export interface MediaChipProps {
   /** A second, never-truncated word after the label ("Bring back"). */
   action?: string;
   className?: string;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 /** A pill button with a 16:9 thumbnail and a label, 44px tall: a recent item or a hidden pane to bring back. */
-export function MediaChip({ thumbnailUrl, label, onClick, action, className }: MediaChipProps) {
+export function MediaChip({ thumbnailUrl, label, onClick, action, className, ref, ...rest }: MediaChipProps) {
   return (
     <button
+      {...rest}
+      ref={ref}
       type="button"
       onClick={onClick}
       className={cn(
-        'inline-flex h-11 max-w-full items-center gap-2 rounded-full border border-th-line bg-th-surface py-0 pl-1 pr-4 text-sm text-th-hi',
+        'inline-flex h-11 max-w-full items-center gap-2 rounded-full border border-th-line bg-th-surface py-0 ps-1 pe-4 text-sm text-th-hi',
         'transition-colors hover:bg-th-elevated focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-th-accent',
         className,
       )}
@@ -211,7 +220,7 @@ export function MediaChip({ thumbnailUrl, label, onClick, action, className }: M
 }
 
 function MediaChipImage({ src }: { src?: string }) {
-  const url = safeSrc(src);
+  const url = safeUrl(src);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const failed = failedUrl !== null && failedUrl === url;
   if (!url || failed) return null;

@@ -272,5 +272,8 @@ export function ExportBar({ onExport, busy }: { onExport: () => void; busy: bool
     'soft replaces hand-made "accent outline" buttons; subtle is the filled quiet look for dense toolbars and chips.',
     'For a link that looks like a button (<a>, router <Link>, <a download>), use buttonClass({ variant, size }). Never copy the class string.',
     'variant="link" is for actions inside text. It has no touch growth, so do not use it as a standalone control in a toolbar.',
+    'loading disables the button and sets aria-busy; the spinner turns into a slow pulse under reduced motion. Pass your own status text if the result must be announced.',
+    'In forced-colors (Windows high contrast) every button except the link variant draws a border, and disabled ones turn GrayText.',
+    'Button takes ref as a prop (React 19); there is no forwardRef wrapper. Disabled and loading buttons carry data-disabled.',
   ],
 };

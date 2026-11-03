@@ -108,11 +108,17 @@ const [auto, setAuto] = useState(true);
   label="Auto refresh"
   description="Reloads every widget each minute."
   checked={auto}
-  onChange={setAuto}
-/>`,
+  onCheckedChange={setAuto}
+/>
+
+// In a native form, an uncontrolled switch posts its value:
+<Switch name="alerts" defaultChecked label="Alerts" />`,
   guidelines: [
     'Use a Switch for a setting that takes effect immediately. Inside a form that waits for Save, use a Checkbox.',
     'Name it: pass label, or aria-label / aria-labelledby when the label lives elsewhere in the row.',
     'Write the label as the setting ("Auto refresh"), not as an action ("Turn on auto refresh").',
+    "In a native form pass name (and value, default \"on\"): a hidden checkbox posts the state. `<Switch name=\"alerts\" defaultChecked />` needs no state of your own.",
+    "Prefer onCheckedChange(checked) over onChange(checked, event). With react-hook-form use Controller: `<Controller name=\"alerts\" render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} aria-label=\"Alerts\" />} />`; register() cannot drive a Switch.",
+    "In a right-to-left layout the thumb travels the other way, and in forced-colors mode the track gets a border and system colors.",
   ],
 };
