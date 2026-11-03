@@ -2,7 +2,9 @@
 // (Recharts, hand-drawn SVG) take the var() strings and follow theme changes on their
 // own; canvas charts (uPlot, Chart.js) take chartTheme()'s resolved values and redraw
 // when useChartTheme() (or onThemeChange) reports a change.
-import { useEffect, useState, type CSSProperties } from 'react';
+'use client';
+import { useState, type CSSProperties } from 'react';
+import { useIsoLayoutEffect } from './components/client';
 import { onThemeChange, readToken } from './theme';
 
 /** The categorical series color for index i (0-based), cycling through chart-1…chart-8. */
@@ -72,23 +74,31 @@ export function chartTheme(): ChartTheme {
   };
 }
 
+const EMPTY_CHART_THEME: ChartTheme = {
+  grid: '',
+  axis: '',
+  zero: '',
+  text: '',
+  bg: '',
+  surface: '',
+  series: [],
+  ok: '',
+  loss: '',
+  warn: '',
+  info: '',
+  accent: '',
+};
+
 /** chartTheme() as React state: re-renders the component when the theme changes, so a
- *  canvas chart can redraw with the new colors. */
+ *  canvas chart can redraw with the new colors. The first render (server and hydration)
+ *  has empty strings; the real colors are read before the browser paints. The theme
+ *  listeners are shared with the main entry, so one onThemeChange covers every copy. */
 export function useChartTheme(): ChartTheme {
-  const [theme, setTheme] = useState<ChartTheme>(chartTheme);
-  useEffect(() => {
-    setTheme(chartTheme());
-    // Watch <html>'s data-theme rather than only onThemeChange: this entry is bundled on
-    // its own, so its copy of the theme module's listener list may not be the one the
-    // app's applyTheme() calls.
+  const [theme, setTheme] = useState<ChartTheme>(EMPTY_CHART_THEME);
+  useIsoLayoutEffect(() => {
     const update = () => setTheme(chartTheme());
-    const obs = new MutationObserver(update);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style', 'class'] });
-    const off = onThemeChange(update);
-    return () => {
-      obs.disconnect();
-      off();
-    };
+    update();
+    return onThemeChange(update);
   }, []);
   return theme;
 }

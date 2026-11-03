@@ -62,5 +62,6 @@ export const label: ComponentDoc = {
 </label>`,
   guidelines: [
     'Label renders a span. Wrap the Label and the field in a <label> element (or use htmlFor on your own label) so clicking it focuses the field.',
+    'Label takes ref and any span attribute.',
   ],
 };

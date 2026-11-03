@@ -1,7 +1,21 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type FocusEvent, type PointerEvent, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+'use client';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ComponentPropsWithoutRef,
+  type CSSProperties,
+  type FocusEvent,
+  type PointerEvent,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import { cn } from '../cn';
+import { shared } from '../runtime';
 import { AlertTriangleIcon, CheckCircleIcon, InfoIcon, XIcon } from './icons';
+import { Portal } from './portal';
+import { useNishStrings } from './provider';
 
 export type ToastTone = 'success' | 'error' | 'warn' | 'info';
 
@@ -20,7 +34,8 @@ export interface ToastOptions {
    *  onClick and then dismisses the toast. */
   action?: ToastAction;
   /** Milliseconds before it dismisses itself, or 'sticky' to stay until dismissed.
-   *  Default 4000; errors default to 'sticky'. The timer pauses while the toast is
+   *  Default 4000; errors default to 'sticky'; Infinity means 'sticky'. Sticky toasts and
+   *  errors are never pushed out by newer toasts. The timer pauses while the toast is
    *  hovered or holds focus. */
   duration?: number | 'sticky';
   /** A slot name. A new toast with the same id replaces the old one instead of
@@ -43,14 +58,9 @@ export interface ToastItem {
   duration: number | 'sticky';
 }
 
-// A module-level store rather than a context: toast() works from anywhere (event
-// handlers, query callbacks, non-React modules) and needs no provider. Mount
-// <Toaster /> once.
-let items: ToastItem[] = [];
-let nextId = 1;
-const subs = new Set<() => void>();
-const emit = () => subs.forEach((fn) => fn());
-
+// A shared store rather than a context: toast() works from anywhere (event handlers, query
+// callbacks, non-React modules) and needs no provider. Mount <Toaster /> once. The store lives
+// in shared('toast'), so every entry and every copy of the package on a page uses one list.
 const AUTO_DISMISS_MS = 4_000;
 const MAX_VISIBLE = 4;
 
@@ -61,15 +71,39 @@ interface Timer {
   started: number;
   paused: number;
 }
-const timers = new Map<number, Timer>();
+
+interface ToastState {
+  items: ToastItem[];
+  nextId: number;
+  subs: Set<() => void>;
+  timers: Map<number, Timer>;
+}
+
+let cachedStore: ToastState | undefined;
+function store(): ToastState {
+  return (cachedStore ??= shared<ToastState>('toast', () => ({
+    items: [],
+    nextId: 1,
+    subs: new Set(),
+    timers: new Map(),
+  })));
+}
+
+const emit = () => store().subs.forEach((fn) => fn());
 
 function startTimer(id: number, ms: number): void {
-  const t: Timer = { handle: null, remaining: ms, started: Date.now(), paused: 0 };
+  const t: Timer = {
+    handle: null,
+    remaining: ms,
+    started: Date.now(),
+    paused: 0,
+  };
   t.handle = setTimeout(() => dismissToast(id), ms);
-  timers.set(id, t);
+  store().timers.set(id, t);
 }
 
 function clearTimer(id: number): void {
+  const { timers } = store();
   const t = timers.get(id);
   if (t?.handle != null) clearTimeout(t.handle);
   timers.delete(id);
@@ -77,7 +111,7 @@ function clearTimer(id: number): void {
 
 // Hover and focus can overlap, so pauses are counted and the timer resumes at zero.
 function pauseTimer(id: number): void {
-  const t = timers.get(id);
+  const t = store().timers.get(id);
   if (!t) return;
   t.paused += 1;
   if (t.paused > 1 || t.handle == null) return;
@@ -87,7 +121,7 @@ function pauseTimer(id: number): void {
 }
 
 function resumeTimer(id: number): void {
-  const t = timers.get(id);
+  const t = store().timers.get(id);
   if (!t || t.paused === 0) return;
   t.paused -= 1;
   if (t.paused > 0) return;
@@ -99,28 +133,52 @@ function resumeTimer(id: number): void {
 /** Remove a toast now, by the id toast() returned. */
 export function dismissToast(id: number): void {
   clearTimer(id);
-  const next = items.filter((t) => t.id !== id);
-  if (next.length === items.length) return;
-  items = next;
+  const s = store();
+  const next = s.items.filter((t) => t.id !== id);
+  if (next.length === s.items.length) return;
+  s.items = next;
   emit();
 }
 
+// Errors and sticky toasts are never pushed out by newer ones: a failure you didn't see is one
+// you'll assume succeeded.
+const isKept = (t: ToastItem) => t.duration === 'sticky' || t.tone === 'error';
+
 function push(tone: ToastTone, title: string, bodyOrOptions?: string | ToastOptions): number {
   const o: ToastOptions = typeof bodyOrOptions === 'string' ? { body: bodyOrOptions } : (bodyOrOptions ?? {});
-  const id = nextId++;
-  // Errors stay until dismissed: a failure you didn't see is one you'll assume succeeded.
-  const duration = o.duration ?? (tone === 'error' ? 'sticky' : AUTO_DISMISS_MS);
-  const item: ToastItem = { id, tone, title, body: o.body, action: o.action, slot: o.id, duration };
+  const s = store();
+  const id = s.nextId++;
+  // Errors stay until dismissed. Infinity means the same as 'sticky'.
+  const asked = o.duration === Infinity ? 'sticky' : o.duration;
+  const duration = asked ?? (tone === 'error' ? 'sticky' : AUTO_DISMISS_MS);
+  const item: ToastItem = {
+    id,
+    tone,
+    title,
+    body: o.body,
+    action: o.action,
+    slot: o.id,
+    duration,
+  };
 
-  const old = o.id ? items.find((t) => t.slot === o.id) : undefined;
+  const old = o.id ? s.items.find((t) => t.slot === o.id) : undefined;
   if (old) {
     clearTimer(old.id);
-    items = items.map((t) => (t === old ? item : t));
+    s.items = s.items.map((t) => (t === old ? item : t));
   } else {
-    // Drop the oldest beyond the limit, and their timers with them.
-    const kept = items.slice(-(MAX_VISIBLE - 1));
-    items.filter((t) => !kept.includes(t)).forEach((t) => clearTimer(t.id));
-    items = [...kept, item];
+    // Past the limit, drop the oldest toasts that are neither sticky nor errors, and their
+    // timers with them. When everything on screen is kept, the stack grows instead.
+    let excess = s.items.length + 1 - MAX_VISIBLE;
+    const kept: ToastItem[] = [];
+    for (const t of s.items) {
+      if (excess > 0 && !isKept(t)) {
+        excess--;
+        clearTimer(t.id);
+      } else {
+        kept.push(t);
+      }
+    }
+    s.items = [...kept, item];
   }
   emit();
   if (duration !== 'sticky') startTimer(id, duration);
@@ -128,20 +186,46 @@ function push(tone: ToastTone, title: string, bodyOrOptions?: string | ToastOpti
 }
 
 type ToastCall = (title: string, bodyOrOptions?: string | ToastOptions) => number;
+
+/** What toast.promise shows: a sticky toast while the promise is pending, replaced by a
+ *  success or an error toast. Each message may be a function of the result or the error. */
+export interface ToastPromiseMessages<T> {
+  loading: string;
+  success: string | ((value: T) => string);
+  error: string | ((error: unknown) => string);
+}
+
 type ToastFn = ToastCall & {
   success: ToastCall;
   error: ToastCall;
   warn: ToastCall;
   info: ToastCall;
+  /** Shows the loading message until the promise settles, then swaps it for the success or
+   *  error message in the same slot. Returns the promise itself, so a rejection still reaches the caller. */
+  promise: <T>(promise: Promise<T>, messages: ToastPromiseMessages<T>) => Promise<T>;
 };
 
 /** toast('Saved'), toast.error('Could not save', detail), or
- *  toast.success('Archived', { action: { label: 'Undo', onClick: undo }, id: 'undo' }). */
-export const toast: ToastFn = Object.assign((title: string, o?: string | ToastOptions) => push('info', title, o), {
+ *  toast.success('Archived', { action: { label: 'Undo', onClick: undo }, id: 'undo' }).
+ *  Each call returns the toast's id for dismissToast(). */
+export const toast: ToastFn = /* @__PURE__ */ Object.assign((title: string, o?: string | ToastOptions) => push('info', title, o), {
   success: (title: string, o?: string | ToastOptions) => push('success', title, o),
   error: (title: string, o?: string | ToastOptions) => push('error', title, o),
   warn: (title: string, o?: string | ToastOptions) => push('warn', title, o),
   info: (title: string, o?: string | ToastOptions) => push('info', title, o),
+  promise: <T,>(promise: Promise<T>, messages: ToastPromiseMessages<T>): Promise<T> => {
+    const slot = 'nish-promise-' + store().nextId;
+    push('info', messages.loading, { duration: 'sticky', id: slot });
+    promise.then(
+      (value) => {
+        push('success', typeof messages.success === 'function' ? messages.success(value) : messages.success, { id: slot });
+      },
+      (error: unknown) => {
+        push('error', typeof messages.error === 'function' ? messages.error(error) : messages.error, { id: slot });
+      },
+    );
+    return promise;
+  },
 });
 
 /** Same API as a hook, for code that prefers one. */
@@ -152,22 +236,35 @@ export function useToast(): ToastFn {
 function useToasts(): ToastItem[] {
   return useSyncExternalStore(
     (fn) => {
+      const { subs } = store();
       subs.add(fn);
       return () => subs.delete(fn);
     },
-    () => items,
-    () => items,
+    () => store().items,
+    () => store().items,
   );
 }
 
 const TONE: Record<ToastTone, { icon: ReactNode; className: string }> = {
-  success: { icon: <CheckCircleIcon size={15} className="text-th-ok" />, className: 'border-th-ok/35' },
-  error: { icon: <AlertTriangleIcon size={15} className="text-th-loss" />, className: 'border-th-loss/40' },
-  warn: { icon: <AlertTriangleIcon size={15} className="text-th-warn" />, className: 'border-th-warn/40' },
-  info: { icon: <InfoIcon size={15} className="text-th-accent" />, className: 'border-th-line-strong' },
+  success: {
+    icon: <CheckCircleIcon size={15} className="text-th-ok" />,
+    className: 'border-th-ok/35',
+  },
+  error: {
+    icon: <AlertTriangleIcon size={15} className="text-th-loss" />,
+    className: 'border-th-loss/40',
+  },
+  warn: {
+    icon: <AlertTriangleIcon size={15} className="text-th-warn" />,
+    className: 'border-th-warn/40',
+  },
+  info: {
+    icon: <InfoIcon size={15} className="text-th-accent" />,
+    className: 'border-th-line-strong',
+  },
 };
 
-export interface ToasterProps {
+export interface ToasterProps extends Omit<ComponentPropsWithoutRef<'div'>, 'className' | 'children'> {
   /** Extra classes for the stack, e.g. to lift it above a bottom nav: sm:bottom-20. */
   className?: string;
   /** Distance from the bottom of the screen on phones (under 640px, or up to
@@ -180,6 +277,8 @@ export interface ToasterProps {
    *  the bar. From sm the stack still moves to the bottom right; between sm and this
    *  breakpoint it keeps the offset. */
   offsetUntil?: 'sm' | 'md' | 'lg';
+  /** The stack's root element. */
+  ref?: Ref<HTMLDivElement>;
 }
 
 // Full literal class names, so Tailwind's scanner finds every one. From sm the stack sits
@@ -194,7 +293,7 @@ const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
 /** The toast stack: bottom-center full width on phones, bottom-right on wider screens.
  *  It sits above any bottom bar through --nish-bottom-inset, and moves to the top of
  *  the screen on phones while a sheet or dialog is open (html[data-nish-layer-open]). */
-export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps) {
+export function Toaster({ className, offset, offsetUntil = 'md', style: userStyle, ref, ...rest }: ToasterProps) {
   const list = useToasts();
   const [polite, setPolite] = useState({ text: '', seq: 0 });
   const [assertive, setAssertive] = useState({ text: '', seq: 0 });
@@ -202,8 +301,14 @@ export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps)
   type Kind = 'polite' | 'assertive';
   const timers = useRef<{
     queue: Record<Kind, string[]>;
-    flush: { polite?: ReturnType<typeof setTimeout>; assertive?: ReturnType<typeof setTimeout> };
-    clear: { polite?: ReturnType<typeof setTimeout>; assertive?: ReturnType<typeof setTimeout> };
+    flush: {
+      polite?: ReturnType<typeof setTimeout>;
+      assertive?: ReturnType<typeof setTimeout>;
+    };
+    clear: {
+      polite?: ReturnType<typeof setTimeout>;
+      assertive?: ReturnType<typeof setTimeout>;
+    };
   }>({
     queue: { polite: [], assertive: [] },
     flush: {},
@@ -252,32 +357,35 @@ export function Toaster({ className, offset, offsetUntil = 'md' }: ToasterProps)
     };
   }, []);
 
-  if (typeof document === 'undefined') return null;
-  const style = offset ? ({ '--nish-toast-offset': offset } as CSSProperties) : undefined;
-  return createPortal(
-    <div
-      style={style}
-      data-nish-keep-active=""
-      className={cn(
-        'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-3',
-        'pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+8px),calc(12px+env(safe-area-inset-bottom))))]',
-        'max-sm:[html[data-nish-layer-open]_&]:bottom-auto max-sm:[html[data-nish-layer-open]_&]:top-[max(12px,env(safe-area-inset-top))] max-sm:[html[data-nish-layer-open]_&]:pb-0',
-        'sm:inset-x-auto sm:right-5 sm:w-96 sm:items-stretch sm:px-0',
-        DESKTOP_BOTTOM[offsetUntil],
-        className,
-      )}
-    >
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        <span key={polite.seq}>{polite.text}</span>
+  const style = offset ? ({ ...userStyle, '--nish-toast-offset': offset } as CSSProperties) : userStyle;
+  // Portal renders nothing on the server and in the first client render, so hydration matches.
+  return (
+    <Portal>
+      <div
+        {...rest}
+        ref={ref}
+        style={style}
+        data-nish-keep-active=""
+        className={cn(
+          'pointer-events-none fixed inset-x-0 bottom-0 z-[var(--nish-z-toast,60)] flex flex-col items-center gap-2 px-3',
+          'pb-[var(--nish-toast-offset,max(calc(var(--nish-bottom-inset,0px)+8px),calc(12px+env(safe-area-inset-bottom))))]',
+          'max-sm:[html[data-nish-layer-open]_&]:bottom-auto max-sm:[html[data-nish-layer-open]_&]:top-[max(12px,env(safe-area-inset-top))] max-sm:[html[data-nish-layer-open]_&]:pb-0',
+          'sm:inset-x-auto sm:end-5 sm:w-96 sm:items-stretch sm:px-0',
+          DESKTOP_BOTTOM[offsetUntil],
+          className,
+        )}
+      >
+        <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          <span key={polite.seq}>{polite.text}</span>
+        </div>
+        <div role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">
+          <span key={assertive.seq}>{assertive.text}</span>
+        </div>
+        {list.map((t) => (
+          <ToastCard key={t.id} t={t} />
+        ))}
       </div>
-      <div role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">
-        <span key={assertive.seq}>{assertive.text}</span>
-      </div>
-      {list.map((t) => (
-        <ToastCard key={t.id} t={t} />
-      ))}
-    </div>,
-    document.body,
+    </Portal>
   );
 }
 
@@ -296,6 +404,7 @@ interface Drag {
 }
 
 function ToastCard({ t }: { t: ToastItem }) {
+  const strings = useNishStrings();
   const ref = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
 
@@ -307,7 +416,15 @@ function ToastCard({ t }: { t: ToastItem }) {
   };
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse') return;
-    drag.current = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastT: e.timeStamp, velocity: 0, active: false };
+    drag.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      lastX: e.clientX,
+      lastT: e.timeStamp,
+      velocity: 0,
+      active: false,
+    };
   };
   const onMove = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
@@ -398,7 +515,7 @@ function ToastCard({ t }: { t: ToastItem }) {
       <button
         type="button"
         onClick={() => dismissToast(t.id)}
-        aria-label="Dismiss"
+        aria-label={strings.dismiss}
         className="-m-1 inline-flex shrink-0 items-center justify-center rounded-md p-1 text-th-hi3 transition-colors hover:bg-th-overlay hover:text-th-hi pointer-coarse:-my-2 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
       >
         <XIcon size={14} />

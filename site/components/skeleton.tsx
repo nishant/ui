@@ -96,6 +96,6 @@ export const skeleton: ComponentDoc = {
     'For a list or a page of cards, SkeletonRows draws full-width rounded rows and announces itself once.',
     'Match the shape of what is coming, so the page does not jump when it arrives.',
     'The shimmer stops under prefers-reduced-motion; the blocks stay.',
-    'SkeletonLines sets aria-busy and an aria-label of "Loading"; a bare Skeleton is hidden from screen readers.',
+    'SkeletonLines is a role="status" region with "Loading" as visually hidden text (change it with label); a bare Skeleton is hidden from screen readers.',
   ],
 };

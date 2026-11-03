@@ -320,6 +320,7 @@ const WAVE2: Record<string, () => ReactNode> = {
       name="Trackers"
       icon={ico('M3 3v18h18M7 15l4-4 3 3 5-6', 20)}
       homeHref="/"
+      hub={{ href: 'https://nish.software', label: 'nish.software' }}
       sticky={false}
       themeToggle={false}
       actions={<IconButton label="Add">{ico('M5 12h14M12 5v14', 18)}</IconButton>}

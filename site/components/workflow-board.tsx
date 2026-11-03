@@ -123,7 +123,7 @@ export const workflowBoard: ComponentDoc = {
 />`,
   guidelines: [
     'Use it for work split into phases that run in order, each with its own agents. One agent on its own is an AgentNode.',
-    'Match agents to phases with phase (the phase id or title). Unmatched agents land in an "Other" column.',
+    'Match agents to phases with phase (the phase id or title). Unmatched agents land in an "Other" column (otherLabel renames it, waitingLabel renames the empty-phase text).',
     'From 720px wide the phases are columns and the board scrolls sideways inside its own box; below that they stack.',
     'Keep agent ids stable. A new id enters with a rise-in; a known id only changes state.',
     'Respects prefers-reduced-motion: no loops or movement, state changes are instant.',

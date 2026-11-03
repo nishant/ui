@@ -1,0 +1,17 @@
+{
+  "name": "nish-ui-consumer-next",
+  "private": true,
+  "scripts": { "build": "next build", "start": "next start -p 5320" },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "next": "^16.0.0",
+    "nish-ui": "__NISH_UI_TARBALL__",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.3.0",
+    "typescript": "~5.9.0"
+  }
+}

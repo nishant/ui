@@ -7,6 +7,8 @@ import { NishSheet } from './sheet';
 import { NishThemeToggle } from './theme-toggle';
 
 export { NishElement, define } from './base';
+export { configureStrings } from './strings';
+export type { NishElementStrings } from './strings';
 export { NishBottomNav, NishDialog, NishSheet, NishThemeToggle };
 export { toast } from './toast';
 export type { ToastOptions, ToastTone } from './toast';

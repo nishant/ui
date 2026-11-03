@@ -95,7 +95,8 @@ export const activityFeed: ComponentDoc = {
     'Use it for a running log people watch, not for a record they search. Keep each line to one short sentence.',
     'Give every item a stable id. Items with an id the feed has not seen animate in; the first render never animates.',
     'Pass now (a timestamp) to make ages match a clock you control; leave it out to use the current time.',
-    'Tone adds meaning only beside the words. Do not rely on the dot color alone.',
+    'Tone adds meaning only beside the words. Do not rely on the dot color alone (in forced-colors mode every dot is drawn in the text color).',
+    'The empty text and list name default to NishProvider strings (noActivity, activity); empty and label override them.',
     'Respects prefers-reduced-motion: no loops or movement, state changes are instant.',
   ],
 };

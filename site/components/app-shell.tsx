@@ -9,6 +9,7 @@ import type { ComponentDoc } from './types';
 // --- AppShell -------------------------------------------------------------------------------
 
 const ICON = 22;
+const HUB = { href: '#', label: 'nish.software' } as const;
 const NAV: Omit<NavItem, 'active' | 'onSelect'>[] = [
   { key: 'home', label: 'Home', icon: <ChartIcon size={ICON} />, hint: 'Overview and recent activity' },
   { key: 'jobs', label: 'Jobs', icon: <LayersIcon size={ICON} />, hint: 'Open roles you track' },
@@ -35,7 +36,7 @@ function ShellDemo({ container = 'default', loading = false, sidebar = false, ba
   const current = NAV.find((i) => i.key === active);
   if (signedOut) {
     return (
-      <AppShell name="Jobs" icon={<LayersIcon size={20} />} hubHref="#" homeHref="#" container="narrow">
+      <AppShell name="Jobs" icon={<LayersIcon size={20} />} hub={HUB} homeHref="#" container="narrow">
         <h1 className="text-xl font-semibold text-th-hi">Log in</h1>
         <p className="mt-1 text-sm text-th-hi3">No nav until you are signed in: the header, banners and page only.</p>
         <Button className="mt-4">Log in</Button>
@@ -53,7 +54,7 @@ function ShellDemo({ container = 'default', loading = false, sidebar = false, ba
           </Button>
         ) : undefined
       }
-      hubHref="#"
+      hub={HUB}
       homeHref="#"
       nav={nav}
       loading={loading}
@@ -207,6 +208,9 @@ function Root() {
     'Set container to false for a full-bleed page (a map, a board). The <main id="nish-main"> landmark stays, so the skip link still works.',
     'Signed out, render the same AppShell with no nav (nav={signedIn ? nav : []}), so the header and banners do not jump when someone logs in.',
     'Put app banners (a live alert, maintenance) in banner, not above the page: they stay under the header while the page scrolls, below the ConnectionBanner.',
+    "The hub pill is off by default. The nish.software apps pass hub={{ href: 'https://nish.software', label: 'nish.software' }}; an outside app passes its own home site, or nothing.",
+    'Landmarks: the header tabs, the rail, the sidebar nav and the BottomNav share one name (navLabel, default "Sections") because only one shows at a time. Name any extra nav on the page differently (SectionNav defaults to "On this page").',
+    'moreItems without renderLink navigate with window.location.assign after safeUrl; an item whose href is javascript: or data: is not rendered (a dev warning names it).',
     'Use sidebar when there are more destinations than fit as header tabs at 1024px, or when the app needs tools beside the nav. Its tools move into the header below 1024px; its footer shows in the sidebar only. Give each item a hint: it is the tooltip in the expanded sidebar and the rail.',
   ],
 };

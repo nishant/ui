@@ -204,6 +204,7 @@ function Alerts({ settings, patch }) {
     'NumberField clamps to min and max. Give a field that can go negative a min below zero, so phones show a keyboard with a minus key. Arrow keys step by step.',
     'Use compact inside a Modal, Drawer or side panel, where a Card inside the surface would be a box in a box.',
     'Feed useSaveStatus().label and .tone into a row status, so the result is announced politely and not only shown.',
+    'SettingsSection, SettingRow and NumberField take ref, id, className and every other attribute of their root element (section, div, input); NumberField passes them to its input. useSaveStatus, NumberField\'s "Enter a number" and its saving spinner use the saving, saved, saveFailed and enterNumber strings of <NishProvider>.',
   ],
   api: { functions: ['useSaveStatus'], interfaces: ['SaveStatus'] },
 };

@@ -13,7 +13,7 @@ export const spinner: ComponentDoc = {
   name: 'Spinner',
   exports: ['Spinner'],
   summary:
-    'A spinning loader in the current text color. With a label it announces itself (role="status"); without one it is decorative.',
+    'A spinning loader in the current text color. With a label it announces itself (role="status", the label is visually hidden text inside it); without one it is decorative (aria-hidden).',
   importLine: "import { Spinner } from '@nish/ui';",
   controls: [
     { key: 'size', label: 'Size', type: 'select', options: [...SIZES] },

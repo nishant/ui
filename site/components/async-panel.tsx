@@ -91,6 +91,8 @@ const status = query.isPending ? 'loading' : query.isError ? 'error' : query.dat
     'Pass a skeleton that matches the content: StatGridSkeleton for stats, CardListSkeleton for cards. The default is SkeletonRows.',
     'Compute status once, with empty checked after ready data exists, so the empty state never flashes during a load.',
     'The error body says what failed and offers Retry; do not hide the previous data behind it if you still have some.',
+    'The default error text ("Failed to load") and empty title ("Nothing here yet") come from NishProvider strings (failedToLoad, nothingHere); error.message and empty.title win when given.',
+    'ref and div attributes (id, data-*, aria-*) go on the root, which carries aria-busy while loading.',
     'It renders no card of its own: wrap it in Card or put it in a page section.',
   ],
 };

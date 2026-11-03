@@ -5,7 +5,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
 // shadows, or it treats `text-th-hi text-sm` as a conflict and drops one. The same goes
 // for the extra type sizes: without `text: ['2xs', '3xs']` it may read text-2xs as a
 // color and drop text-th-hi next to it. scripts/build.mjs asserts both cases.
-const twMerge = extendTailwindMerge({
+const twMerge = /* @__PURE__ */ extendTailwindMerge({
   extend: {
     theme: {
       text: ['2xs', '3xs'],

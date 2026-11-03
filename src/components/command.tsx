@@ -1,3 +1,4 @@
+'use client';
 import {
   useEffect,
   useId,
@@ -8,9 +9,11 @@ import {
   type ReactNode,
 } from 'react';
 import { cn } from '../cn';
+import { safeUrl } from '../url';
 import { XIcon } from './icons';
 import { Modal, whenHistorySettled } from './overlay';
 import { useLatest } from './latest';
+import { useNishStrings } from './provider';
 
 // ---------------------------------------------------------------------------------
 // CommandPalette: a search-and-jump dialog (Ctrl/Cmd+K) over a list of items.
@@ -30,7 +33,8 @@ export interface CommandItem {
   keywords?: string[];
   /** A 16-20px icon shown before the label. */
   icon?: ReactNode;
-  /** Navigate here on select (`location.assign`, or a new tab when `external`). */
+  /** Navigate here on select (`location.assign`, or a new tab when `external`). Passed through
+   *  `safeUrl`: a `javascript:` or `data:` URL does nothing (a dev warning names it). */
   href?: string;
   /** Open `href` in a new tab. */
   external?: boolean;
@@ -51,6 +55,10 @@ export interface CommandPaletteProps {
   placeholder?: string;
   /** Text shown when nothing matches. Default 'No results'. */
   emptyText?: string;
+  /** Screen-reader announcement of the result count. Default "3 results". */
+  resultsLabel?: (count: number) => string;
+  /** Accessible name of the "opens in a new tab" mark on external rows. Default 'opens in a new tab'. */
+  externalLabel?: string;
   /** Open with Ctrl/Cmd+K, and with `/` when focus is not in a field (default true). */
   hotkey?: boolean;
   /** Called on every keystroke with the new query. */
@@ -62,6 +70,17 @@ export interface CommandPaletteProps {
 }
 
 const MAX_RESULTS = 50;
+
+/** An item with its label and keywords lowercased once, not on every keystroke. */
+interface Indexed {
+  item: CommandItem;
+  label: string;
+  keywords: string[];
+}
+
+function indexItems(items: CommandItem[]): Indexed[] {
+  return items.map((item) => ({ item, label: item.label.toLowerCase(), keywords: (item.keywords ?? []).map((k) => k.toLowerCase()) }));
+}
 
 interface Ranked {
   item: CommandItem;
@@ -106,7 +125,12 @@ function matchText(text: string, q: string): { tier: number; idx: number[] } | n
 /** Navigates after the layer that is closing has dropped its own history entry. Running
  *  `history.back()` (the layer's cleanup) right after `location.assign` would cancel the
  *  navigation, so wait for that pop to finish. Call it before closing the layer. */
-export function navigateFromLayer(href: string): void {
+export function navigateFromLayer(rawHref: string): void {
+  const href = safeUrl(rawHref);
+  if (href === null) {
+    warnUnsafe(rawHref);
+    return;
+  }
   const inLayer = !!(history.state as { nishLayer?: string } | null)?.nishLayer;
   if (!inLayer) {
     window.location.assign(href);
@@ -125,19 +149,27 @@ export function navigateFromLayer(href: string): void {
   window.setTimeout(go, 400);
 }
 
-function rankItems(items: CommandItem[], query: string): Ranked[] {
+function warnUnsafe(href: string): void {
+  try {
+    if (process.env.NODE_ENV !== 'production') console.warn(`CommandPalette: ignored an unsafe href (${href.slice(0, 40)}).`);
+  } catch {
+    // No process or no console.
+  }
+}
+
+function rankItems(items: Indexed[], query: string): Ranked[] {
   const q = query.trim().toLowerCase();
-  if (!q) return items.slice(0, MAX_RESULTS).map((item) => ({ item, marks: [] }));
+  if (!q) return items.slice(0, MAX_RESULTS).map(({ item }) => ({ item, marks: [] }));
   const scored: { r: Ranked; score: number; order: number }[] = [];
-  items.forEach((item, order) => {
-    const label = matchText(item.label.toLowerCase(), q);
+  items.forEach(({ item, label: lower, keywords }, order) => {
+    const label = matchText(lower, q);
     if (label) {
       scored.push({ r: { item, marks: label.idx }, score: label.tier, order });
       return;
     }
     let best: number | null = null;
-    for (const kw of item.keywords ?? []) {
-      const m = matchText(kw.toLowerCase(), q);
+    for (const kw of keywords) {
+      const m = matchText(kw, q);
       // Keywords match by prefix, word start or substring only; a loose subsequence
       // over long keywords (summaries) would match almost any short query.
       if (m && m.tier < 3 && (best === null || m.tier < best)) best = m.tier;
@@ -210,6 +242,10 @@ function SearchIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+function defaultResultsLabel(count: number): string {
+  return `${count} result${count === 1 ? '' : 's'}`;
+}
+
 function isTypingTarget(t: EventTarget | null): boolean {
   if (!(t instanceof HTMLElement)) return false;
   const tag = t.tagName;
@@ -249,13 +285,16 @@ export function CommandPalette({
   open,
   onOpenChange,
   items,
-  placeholder = 'Search…',
-  emptyText = 'No results',
+  placeholder,
+  emptyText,
+  resultsLabel,
+  externalLabel,
   hotkey = true,
   onQuery,
   footer,
   onSubmitQuery,
 }: CommandPaletteProps) {
+  const s = useNishStrings();
   useCommandHotkey(() => {
     if (!open) onOpenChange(true);
   }, hotkey);
@@ -264,8 +303,10 @@ export function CommandPalette({
     <PaletteDialog
       onClose={() => onOpenChange(false)}
       items={items}
-      placeholder={placeholder}
-      emptyText={emptyText}
+      placeholder={placeholder ?? s.searchPlaceholder}
+      emptyText={emptyText ?? s.noResults}
+      resultsLabel={resultsLabel}
+      externalLabel={externalLabel ?? 'opens in a new tab'}
       onQuery={onQuery}
       footer={footer}
       onSubmitQuery={onSubmitQuery}
@@ -278,12 +319,15 @@ interface DialogProps {
   items: CommandPaletteProps['items'];
   placeholder: string;
   emptyText: string;
+  resultsLabel?: (count: number) => string;
+  externalLabel: string;
   onQuery?: (q: string) => void;
   footer?: ReactNode;
   onSubmitQuery?: (q: string) => void;
 }
 
-function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer, onSubmitQuery }: DialogProps) {
+function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, externalLabel, onQuery, footer, onSubmitQuery }: DialogProps) {
+  const s = useNishStrings();
   const uid = useId();
   const listId = `${uid}-list`;
   const optionId = (i: number) => `${uid}-opt-${i}`;
@@ -330,10 +374,12 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
     };
   }, [query, isFn, itemsRef]);
 
+  // Lowercased once per items array, not per keystroke.
+  const indexed = useMemo(() => (isFn ? [] : indexItems(items as CommandItem[])), [isFn, items]);
   const rows = useMemo<Ranked[]>(() => {
     if (isFn) return dynamic.map((item) => ({ item, marks: matchText(item.label.toLowerCase(), query.trim().toLowerCase())?.idx ?? [] }));
-    return rankItems(items as CommandItem[], query);
-  }, [isFn, dynamic, items, query]);
+    return rankItems(indexed, query);
+  }, [isFn, dynamic, indexed, query]);
   const groups = useMemo(() => groupRows(rows), [rows]);
   // Keyboard order follows the grouped display order.
   const flat = useMemo(() => groups.flatMap((g) => g.rows.map((x) => x.r.item)), [groups]);
@@ -353,8 +399,10 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
   const select = (item: CommandItem) => {
     onClose();
     if (item.href) {
-      if (item.external) window.open(item.href, '_blank', 'noopener,noreferrer');
-      else navigateFromLayer(item.href);
+      const href = safeUrl(item.href);
+      if (href === null) warnUnsafe(item.href);
+      else if (item.external) window.open(href, '_blank', 'noopener,noreferrer');
+      else navigateFromLayer(href);
     } else {
       item.onSelect?.();
     }
@@ -395,7 +443,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={flat.length ? optionId(active) : undefined}
-        aria-label={placeholder.replace(/…$/, '') || 'Search'}
+        aria-label={placeholder.replace(/…$/, '') || s.search}
         value={query}
         placeholder={placeholder}
         autoComplete="off"
@@ -413,7 +461,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
       <button
         type="button"
         onClick={onClose}
-        aria-label="Close"
+        aria-label={s.close}
         className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-th-hi3 transition-colors hover:bg-th-elevated hover:text-th-hi sm:hidden"
       >
         <XIcon size={18} />
@@ -427,20 +475,20 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
     <Modal
       onClose={onClose}
       header={header}
-      aria-label="Search"
+      aria-label={s.search}
       placement="top"
       sheetHeight="full"
       footer={footer}
       className="sm:max-w-[560px]"
     >
       <div aria-live="polite" className="sr-only">
-        {showEmpty ? emptyText : `${flat.length} result${flat.length === 1 ? '' : 's'}`}
+        {showEmpty ? '' : (resultsLabel ?? defaultResultsLabel)(flat.length)}
       </div>
       <div
         ref={listRef}
         id={listId}
         role="listbox"
-        aria-label="Results"
+        aria-label={s.results}
         aria-busy={pending}
         className="-mx-2"
         onMouseDown={(e) => e.preventDefault()}
@@ -473,7 +521,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
                   </span>
                   {r.item.hint ? <span className="max-w-[40%] shrink-0 truncate text-xs text-th-hi3">{r.item.hint}</span> : null}
                   {r.item.external ? (
-                    <span className="shrink-0 text-xs text-th-hi3" aria-label="opens in a new tab">
+                    <span className="inline-block shrink-0 text-xs text-th-hi3 rtl:-scale-x-100" role="img" aria-label={externalLabel}>
                       ↗
                     </span>
                   ) : null}
@@ -482,8 +530,13 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, onQuery, footer
             </div>
           );
         })}
-        {showEmpty ? <div className="px-3 py-8 text-center text-sm text-th-hi3">{emptyText}</div> : null}
       </div>
+      {/* Outside the listbox: a listbox may hold only options and groups. */}
+      {showEmpty ? (
+        <div role="status" className="px-3 py-8 text-center text-sm text-th-hi3">
+          {emptyText}
+        </div>
+      ) : null}
     </Modal>
   );
 }

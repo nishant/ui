@@ -3,6 +3,13 @@
 @source '../src';
 @source './';
 
+/* No sideways page scroll at 360px: the fixed Toaster region of a story can end past the edge.
+   `clip` (not `hidden`) keeps position: sticky working. */
+html,
+body {
+  overflow-x: clip;
+}
+
 /* Site-only helpers. Everything else comes from the package. */
 @layer components {
   .doc-prose p + p {

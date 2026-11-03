@@ -8,6 +8,9 @@
  *  module takes over for runtime switching and keeps tabs and subdomains in sync.
  */
 import { DEFAULT_THEME, THEMES, type Scheme } from './tokens.mjs';
+import { shared } from './runtime';
+import { safeUrl } from './url';
+import { DEFAULT_STRINGS, type NishStrings } from './components/strings';
 
 /** A shared theme, or an app's own one added with registerThemes(). */
 export type ThemeName = keyof typeof THEMES | (string & {});
@@ -27,32 +30,61 @@ export const PRESETS: ThemePreset[] = (Object.keys(THEMES) as (keyof typeof THEM
   colors: THEMES[id].colors,
 }));
 
-const KEY = 'nish-theme';
+const DEFAULT_KEY = 'nish-theme';
 const SHARED_DOMAIN = 'nish.software';
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
-// App-defined themes ({ id: 'dark' | 'light' }). The app styles them itself with
-// [data-theme='<id>'] blocks that set --nish-* variables; this only teaches the theme
-// logic that the names are valid and which scheme each one is.
-const extra: Record<string, Scheme> = {};
+type Listener = (choice: ThemeChoice, theme: ThemeName) => void;
+
+interface ThemeState {
+  /** App-defined themes ({ id: 'dark' | 'light' }). The app styles them itself with
+   *  [data-theme='<id>'] blocks that set --nish-* variables; this only teaches the theme
+   *  logic that the names are valid and which scheme each one is. */
+  extra: Record<string, Scheme>;
+  listeners: Set<Listener>;
+  watching: boolean;
+  /** Bumped on every switch; the "switching" attribute is removed only by the latest one. */
+  switchId: number;
+}
+
+/** Theme listeners and registered themes live once per page, shared by every entry
+ *  (., /theme, /chart) and every copy of the package. Lazy: nothing runs at import. */
+const state = (): ThemeState =>
+  shared<ThemeState>('theme', () => ({ extra: {}, listeners: new Set<Listener>(), watching: false, switchId: 0 }));
+
+const warn = (msg: string): void => {
+  if (globalThis.process?.env?.NODE_ENV !== 'production') console.warn(`nish-ui: ${msg}`);
+};
+
+/** The storage and cookie name: <html data-nish-storage-key="x"> or 'nish-theme'. Only
+ *  letters, digits, '-' and '_' count (the name goes into a cookie). */
+function storageKey(): string {
+  if (typeof document === 'undefined') return DEFAULT_KEY;
+  const k = document.documentElement.getAttribute('data-nish-storage-key');
+  return k && /^[A-Za-z0-9_-]+$/.test(k) ? k : DEFAULT_KEY;
+}
 
 /** Let an app offer its own themes next to the shared ones. Call it before
  *  initTheme(), and set the same map on window.__nishExtraThemes before theme-init.js
  *  runs, so the first paint knows them too. */
 export function registerThemes(themes: Record<string, Scheme>): void {
-  Object.assign(extra, themes);
+  Object.assign(state().extra, themes);
 }
 
 const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
 
 export function isThemeName(v: unknown): v is ThemeName {
-  return typeof v === 'string' && (has(THEMES, v) || has(extra, v));
+  return typeof v === 'string' && (has(THEMES, v) || has(state().extra, v));
 }
 
 function readCookie(): string | null {
   if (typeof document === 'undefined') return null;
-  const m = document.cookie.match(/(?:^|;\s*)nish-theme=([a-z0-9-]+)/);
-  return m ? m[1] : null;
+  try {
+    const m = document.cookie.match(new RegExp(`(?:^|;\\s*)${storageKey()}=([a-z0-9-]+)`));
+    return m ? m[1]! : null;
+  } catch {
+    return null; // cookies blocked (sandboxed iframe)
+  }
 }
 
 const covers = (domain: string, host: string) => host === domain || host.endsWith('.' + domain);
@@ -77,7 +109,7 @@ function sharedDomain(): string | null {
 export function getThemeChoice(): ThemeChoice {
   let v: string | null = null;
   try {
-    v = readCookie() ?? localStorage.getItem(KEY);
+    v = readCookie() ?? localStorage.getItem(storageKey());
   } catch {
     // storage blocked: fall through to system
   }
@@ -104,33 +136,59 @@ export function resolveTheme(choice: ThemeChoice = getThemeChoice()): ThemeName 
 }
 
 export function schemeOf(theme: ThemeName): Scheme {
-  return has(THEMES, theme) ? THEMES[theme as keyof typeof THEMES].scheme : (extra[theme] ?? 'dark');
+  const { extra } = state();
+  return has(THEMES, theme) ? THEMES[theme as keyof typeof THEMES].scheme : has(extra, theme) ? extra[theme]! : 'dark';
 }
 
 /** Paint a choice onto <html> without saving it. */
 export function applyTheme(choice: ThemeChoice = getThemeChoice()): ThemeName {
   const theme = resolveTheme(choice);
   const root = document.documentElement;
+  const previous = root.getAttribute('data-theme');
+  if (previous && previous !== theme) suspendTransitions(root);
   root.setAttribute('data-theme', theme);
   root.setAttribute('data-scheme', schemeOf(theme));
   root.setAttribute('data-theme-choice', choice);
   root.style.colorScheme = schemeOf(theme);
   syncChromeColor();
-  listeners.forEach((fn) => fn(choice, theme));
+  state().listeners.forEach((fn) => fn(choice, theme));
   return theme;
+}
+
+/** Sets data-nish-theme-switching on <html> for one frame, so nish.css turns every
+ *  transition off while the colors swap (no half-faded page). Two frames are needed:
+ *  the first applies the new styles, the second is when they have been painted. */
+function suspendTransitions(root: HTMLElement): void {
+  const st = state();
+  const id = ++st.switchId;
+  root.setAttribute('data-nish-theme-switching', '');
+  const done = () => {
+    if (st.switchId === id) root.removeAttribute('data-nish-theme-switching');
+  };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(done));
+  else setTimeout(done, 32);
 }
 
 /** Save a choice everywhere it can be read back, then apply it. */
 export function setThemeChoice(choice: ThemeChoice): ThemeName {
+  if (choice !== 'system' && !isThemeName(choice)) {
+    warn(`unknown theme "${String(choice)}" ignored. Register it with registerThemes() first.`);
+    return resolveTheme(getThemeChoice());
+  }
+  const key = storageKey();
   try {
-    localStorage.setItem(KEY, choice);
+    localStorage.setItem(key, choice);
   } catch {
     // private mode: the cookie (or nothing) still carries it for this page view
   }
-  const domain = sharedDomain();
-  if (domain) {
-    const secure = location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${KEY}=${choice}; Domain=.${domain}; Path=/; Max-Age=${ONE_YEAR}; SameSite=Lax${secure}`;
+  try {
+    const domain = sharedDomain();
+    if (domain) {
+      const secure = location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${key}=${choice}; Domain=.${domain}; Path=/; Max-Age=${ONE_YEAR}; SameSite=Lax${secure}`;
+    }
+  } catch {
+    // cookies blocked (sandboxed iframe): the choice still applies to this page view
   }
   return applyTheme(choice);
 }
@@ -145,31 +203,33 @@ export function readToken(name: string): string {
 function syncChromeColor(): void {
   const bg = readToken('bg');
   if (!bg) return;
-  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  // Ours is the data-nish one (theme-init makes it). Without it, take over the first static
+  // tag; metas scoped by media, or marked data-nish-keep, belong to the host and stay.
+  let meta =
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"][data-nish]') ??
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media]):not([data-nish-keep])');
   if (!meta) {
     meta = document.createElement('meta');
     meta.name = 'theme-color';
-    document.head.appendChild(meta);
+    (document.head || document.documentElement).appendChild(meta);
   }
+  meta.setAttribute('data-nish', '');
   meta.content = bg;
 }
-
-type Listener = (choice: ThemeChoice, theme: ThemeName) => void;
-const listeners = new Set<Listener>();
-let watching = false;
 
 /** Re-apply when the OS scheme flips (for 'system'), another tab saves a choice, or
  *  the page comes back into view after another subdomain changed the cookie. */
 function watch(): void {
-  if (watching || typeof window === 'undefined') return;
-  watching = true;
+  const st = state();
+  if (st.watching || typeof window === 'undefined') return;
+  st.watching = true;
   const reapply = () => {
     const choice = getThemeChoice();
     if (choice !== document.documentElement.getAttribute('data-theme-choice') || choice === 'system') applyTheme(choice);
   };
-  matchMedia('(prefers-color-scheme: light)').addEventListener('change', reapply);
+  if (typeof matchMedia === 'function') matchMedia('(prefers-color-scheme: light)').addEventListener('change', reapply);
   window.addEventListener('storage', (e) => {
-    if (e.key === KEY) reapply();
+    if (e.key === storageKey()) reapply();
   });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') reapply();
@@ -179,8 +239,11 @@ function watch(): void {
 /** Subscribe to theme changes; returns an unsubscribe function. */
 export function onThemeChange(fn: Listener): () => void {
   watch();
+  const { listeners } = state();
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }
 
 /** The order a one-button toggle steps through. */
@@ -201,6 +264,11 @@ export interface MountThemeToggleOptions {
   /** Replace the words "System", "Light" and "Dark" in the button's label, e.g. for
    *  another language. The label reads "Theme: Light. Switch to Dark". */
   labels?: ThemeToggleLabels;
+  /** Replace the label sentence: `themeToggleLabel(current, next)`. Defaults to DEFAULT_STRINGS. */
+  strings?: Partial<Pick<NishStrings, 'themeToggleLabel'>>;
+  /** The words after a preset saved on another site: "Theme: Mocha (set on another site). …".
+   *  Default "set on another site". */
+  elsewhereLabel?: string;
   /** Also show the current choice as a word after the icon (System, Light, Dark, or a
    *  preset's name such as "Mocha" when one was saved on another site): a
    *  <span data-theme-word aria-hidden="true">, kept in sync on click and on theme
@@ -209,15 +277,55 @@ export interface MountThemeToggleOptions {
   showLabel?: boolean;
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+type Shape = [tag: string, attrs: Record<string, string>];
+
+/** An <svg> built node by node (createElementNS), never from markup, so pages with Trusted Types
+ *  (require-trusted-types-for 'script') accept it. */
+function svgIcon(size: number, shapes: Shape[], attrs: Record<string, string> = {}): SVGSVGElement {
+  const el = document.createElementNS(SVG_NS, 'svg');
+  const all: Record<string, string> = {
+    width: String(size),
+    height: String(size),
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': '2',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    'aria-hidden': 'true',
+    focusable: 'false',
+    ...attrs,
+  };
+  for (const k of Object.keys(all)) el.setAttribute(k, all[k]!);
+  for (const [tag, a] of shapes) {
+    const child = document.createElementNS(SVG_NS, tag);
+    for (const k of Object.keys(a)) child.setAttribute(k, a[k]!);
+    el.appendChild(child);
+  }
+  return el;
+}
+
 // Same geometry as ThemeToggle's MonitorIcon, SunIcon and MoonIcon (lucide, 24px grid).
-const TOGGLE_ICONS: Record<'system' | 'light' | 'dark', string> = {
-  system: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/>',
-  light:
-    '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-2.93 1.41-1.41M17.66 6.34l1.41-1.41M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41"/>',
-  dark: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>',
+const TOGGLE_ICONS: Record<'system' | 'light' | 'dark', Shape[]> = {
+  system: [
+    ['rect', { width: '20', height: '14', x: '2', y: '3', rx: '2' }],
+    ['path', { d: 'M8 21h8M12 17v4' }],
+  ],
+  light: [
+    ['circle', { cx: '12', cy: '12', r: '4' }],
+    ['path', { d: 'M12 2v2M12 20v2m-7.07-2.93 1.41-1.41M17.66 6.34l1.41-1.41M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41' }],
+  ],
+  dark: [['path', { d: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9' }]],
 };
 
-const DEFAULT_TOGGLE_LABELS = { system: 'System', light: 'Light', dark: 'Dark' };
+const DEFAULT_TOGGLE_LABELS = {
+  system: DEFAULT_STRINGS.themeSystem,
+  light: DEFAULT_STRINGS.themeLight,
+  dark: DEFAULT_STRINGS.themeDark,
+};
+const DEFAULT_ELSEWHERE = 'set on another site';
 
 /** What a one-button toggle steps to from a choice: the same rule as cycleTheme(). */
 function nextChoice(choice: ThemeChoice): ThemeChoice {
@@ -249,14 +357,19 @@ function themeLabel(choice: ThemeChoice, words: Record<'system' | 'light' | 'dar
  */
 export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOptions = {}): () => void {
   const words = { ...DEFAULT_TOGGLE_LABELS, ...opts.labels };
+  const sentence = opts.strings?.themeToggleLabel ?? DEFAULT_STRINGS.themeToggleLabel;
+  const elsewhereWords = opts.elsewhereLabel ?? DEFAULT_ELSEWHERE;
   if (button.tagName === 'BUTTON' && !button.getAttribute('type')) button.setAttribute('type', 'button');
-  button.innerHTML =
-    (Object.keys(TOGGLE_ICONS) as (keyof typeof TOGGLE_ICONS)[])
-      .map(
-        (id) =>
-          `<svg data-icon="${id}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${TOGGLE_ICONS[id]}</svg>`,
-      )
-      .join('') + (opts.showLabel ? '<span data-theme-word aria-hidden="true"></span>' : '');
+  const children: Node[] = (Object.keys(TOGGLE_ICONS) as (keyof typeof TOGGLE_ICONS)[]).map((id) =>
+    svgIcon(16, TOGGLE_ICONS[id], { 'data-icon': id }),
+  );
+  if (opts.showLabel) {
+    const w = document.createElement('span');
+    w.setAttribute('data-theme-word', '');
+    w.setAttribute('aria-hidden', 'true');
+    children.push(w);
+  }
+  button.replaceChildren(...children);
   const word = button.querySelector<HTMLElement>('[data-theme-word]');
 
   const render = (choice: ThemeChoice) => {
@@ -267,8 +380,8 @@ export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOpti
       if (svg.getAttribute('data-icon') === icon) svg.removeAttribute('display');
       else svg.setAttribute('display', 'none');
     });
-    const elsewhere = TOGGLE_ORDER.includes(choice) ? '' : ' (set on another site)';
-    const label = `Theme: ${themeLabel(choice, words)}${elsewhere}. Switch to ${themeLabel(nextChoice(choice), words)}`;
+    const elsewhere = TOGGLE_ORDER.includes(choice) ? '' : ` (${elsewhereWords})`;
+    const label = sentence(`${themeLabel(choice, words)}${elsewhere}`, themeLabel(nextChoice(choice), words));
     button.setAttribute('aria-label', label);
     button.setAttribute('title', label);
     if (word) word.textContent = themeLabel(choice, words);
@@ -290,13 +403,24 @@ export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOpti
 
 export type StaticToastTone = 'neutral' | 'ok' | 'warn' | 'loss' | 'info';
 
-// The React toast's tone icons (CheckCircle, AlertTriangle, Info), 15px: static markup, no user text.
-const TOAST_ICON_PATHS: Record<StaticToastTone, string> = {
-  neutral: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
-  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
-  ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
-  warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
-  loss: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+// The React toast's tone icons (CheckCircle, AlertTriangle, Info), 15px: static geometry, no user text.
+const TRIANGLE: Shape[] = [
+  ['path', { d: 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3' }],
+  ['path', { d: 'M12 9v4M12 17h.01' }],
+];
+const INFO: Shape[] = [
+  ['circle', { cx: '12', cy: '12', r: '10' }],
+  ['path', { d: 'M12 16v-4M12 8h.01' }],
+];
+const TOAST_ICONS: Record<StaticToastTone, Shape[]> = {
+  neutral: INFO,
+  info: INFO,
+  ok: [
+    ['circle', { cx: '12', cy: '12', r: '10' }],
+    ['path', { d: 'm9 12 2 2 4-4' }],
+  ],
+  warn: TRIANGLE,
+  loss: TRIANGLE,
 };
 
 export interface ShowToastOptions {
@@ -307,10 +431,13 @@ export interface ShowToastOptions {
    *  user can reach a link inside it. */
   duration?: number | 'sticky';
   /** One text action after the message: a link (href) or a button (onClick). Clicking
-   *  it hides the toast. */
+   *  it hides the toast. An href goes through safeUrl(): a javascript: or data: URL
+   *  drops the action. */
   action?: { label: string; href?: string; onClick?: () => void };
-  /** Accessible name of the dismiss button. Default "Dismiss". */
+  /** Accessible name of the dismiss button. Default DEFAULT_STRINGS.dismiss ("Dismiss"). */
   dismissLabel?: string;
+  /** Strings for this toast (another language): `dismiss`. `dismissLabel` wins when both are given. */
+  strings?: Partial<Pick<NishStrings, 'dismiss'>>;
 }
 
 const TOAST_MS = 6_000;
@@ -337,7 +464,7 @@ export function showToast(content: string | Node, opts: ShowToastOptions = {}): 
   const icon = document.createElement('span');
   icon.className = 'nish-toast-icon';
   icon.setAttribute('aria-hidden', 'true');
-  icon.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">${TOAST_ICON_PATHS[opts.tone ?? 'neutral']}</svg>`;
+  icon.append(svgIcon(15, TOAST_ICONS[opts.tone ?? 'neutral']));
   box.append(icon);
   const body = document.createElement('p');
   body.className = 'nish-toast-body';
@@ -373,15 +500,17 @@ export function showToast(content: string | Node, opts: ShowToastOptions = {}): 
     if (holds === 0) run(Math.max(remaining, 1_000));
   };
 
-  if (opts.action) {
-    const a = opts.action;
-    const el = document.createElement(a.href ? 'a' : 'button');
+  const action = opts.action;
+  // A link whose href is not safe (javascript:, data:, …) is dropped, not rendered inert.
+  const href = action?.href != null ? safeUrl(action.href) : null;
+  if (action && (action.href == null || href != null)) {
+    const el = document.createElement(action.href != null ? 'a' : 'button');
     el.className = 'nish-toast-action';
-    el.textContent = a.label;
-    if (a.href) (el as HTMLAnchorElement).href = a.href;
+    el.textContent = action.label;
+    if (href != null) (el as HTMLAnchorElement).href = href;
     else (el as HTMLButtonElement).type = 'button';
     el.addEventListener('click', () => {
-      a.onClick?.();
+      action.onClick?.();
       hide();
     });
     box.append(el);
@@ -389,9 +518,8 @@ export function showToast(content: string | Node, opts: ShowToastOptions = {}): 
   const close = document.createElement('button');
   close.type = 'button';
   close.className = 'nish-toast-close';
-  close.setAttribute('aria-label', opts.dismissLabel ?? 'Dismiss');
-  close.innerHTML =
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  close.setAttribute('aria-label', opts.dismissLabel ?? opts.strings?.dismiss ?? DEFAULT_STRINGS.dismiss);
+  close.append(svgIcon(14, [['path', { d: 'M18 6 6 18M6 6l12 12' }]]));
   close.addEventListener('click', hide);
   box.append(close);
 
@@ -423,8 +551,10 @@ export interface ConfirmDialogOptions {
   body?: string | Node;
   /** The confirm button's label: a verb that names the action. Default "Confirm". */
   confirmLabel?: string;
-  /** The cancel button's label. Default "Cancel". */
+  /** The cancel button's label. Default DEFAULT_STRINGS.cancel ("Cancel"). */
   cancelLabel?: string;
+  /** Strings for this dialog (another language): `cancel`. `cancelLabel` wins when both are given. */
+  strings?: Partial<Pick<NishStrings, 'cancel'>>;
   /** danger: a red confirm button, and focus starts on Cancel (as in the React
    *  ConfirmDialog). Without it: an accent confirm button that takes the first focus. */
   tone?: 'danger' | 'primary';
@@ -469,7 +599,7 @@ export function confirmDialog(opts: ConfirmDialogOptions): Promise<boolean> {
     b.textContent = label;
     return b;
   };
-  const cancelBtn = button(opts.cancelLabel ?? 'Cancel', 'nish-btn');
+  const cancelBtn = button(opts.cancelLabel ?? opts.strings?.cancel ?? DEFAULT_STRINGS.cancel, 'nish-btn');
   const confirmBtn = button(opts.confirmLabel ?? 'Confirm', `nish-btn ${danger ? 'nish-btn--danger' : 'nish-btn--primary'}`);
   (danger ? cancelBtn : confirmBtn).autofocus = true;
   actions.append(cancelBtn, confirmBtn);

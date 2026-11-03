@@ -1,5 +1,5 @@
 import type { PropertyValues } from 'lit';
-import { NishElement, define, whenParsed } from './base';
+import { NishElement, define, isRtl, whenParsed } from './base';
 
 /** Keep `data-at-start` / `data-at-end` on a sideways scroller current (the edge fades in
  *  base.css read them), as `useScrollEdges` does for the React components. Returns a stop function. */
@@ -49,7 +49,7 @@ let counter = 0;
 const safe = (v: string): string => v.replace(/[^\w-]+/g, '-');
 
 /** `<nish-tabs>`: moves its child `<button value>` tabs into `div.nish-tabs[role=tablist]` and wires the
- *  ARIA tabs pattern (roving tabindex, ArrowLeft/Right/Home/End, selection follows focus).
+ *  ARIA tabs pattern (roving tabindex, ArrowLeft/Right/Home/End, mirrored in a right-to-left page, selection follows focus).
  *  Panels are elements with `data-tab-panel="<value>"` and `data-tabs="<this id>"` anywhere in the
  *  document (or inside this element when it has no id); each gets `role=tabpanel`, `aria-labelledby`
  *  and `hidden` unless selected. Fires `nish-change` (`detail: { value }`).
@@ -83,8 +83,11 @@ export class NishTabs extends NishElement {
     const from = tabs.findIndex((t) => t === document.activeElement);
     const at = from >= 0 ? from : Math.max(0, tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true'));
     let next: HTMLButtonElement | undefined;
-    if (e.key === 'ArrowRight') next = tabs[(at + 1) % tabs.length];
-    else if (e.key === 'ArrowLeft') next = tabs[(at - 1 + tabs.length) % tabs.length];
+    // In a right-to-left list the visual order is reversed, so the arrows swap.
+    const forward = isRtl(this.#list) ? 'ArrowLeft' : 'ArrowRight';
+    const back = isRtl(this.#list) ? 'ArrowRight' : 'ArrowLeft';
+    if (e.key === forward) next = tabs[(at + 1) % tabs.length];
+    else if (e.key === back) next = tabs[(at - 1 + tabs.length) % tabs.length];
     else if (e.key === 'Home') next = tabs[0];
     else if (e.key === 'End') next = tabs[tabs.length - 1];
     else return;

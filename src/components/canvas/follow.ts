@@ -1,3 +1,4 @@
+'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { CanvasGroup } from './types';
 import type { CanvasLayout } from './layout';

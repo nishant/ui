@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
-import { Button, ConfirmDialog, Drawer, DropdownMenu, MenuItem, Modal, Popover, Toaster, toast } from '../../src';
+import { Button, ConfirmDialog, Drawer, DropdownMenu, MenuItem, Modal, Popover, Toaster, Tooltip, toast } from '../../src';
 
 function Harness() {
   const [modal, setModal] = useState(false);
@@ -10,6 +10,8 @@ function Harness() {
   const [nested, setNested] = useState(false);
   const [popover, setPopover] = useState(false);
   const popoverAnchor = useRef<HTMLButtonElement>(null);
+  const flipAnchor = useRef<HTMLButtonElement>(null);
+  const [flip, setFlip] = useState(false);
 
   return (
     <main className="flex flex-col items-start gap-3 p-6">
@@ -17,6 +19,24 @@ function Harness() {
       <Button onClick={() => setDrawer(true)}>Open drawer</Button>
       <Button onClick={() => setConfirm(true)}>Open confirm</Button>
       <Button onClick={() => toast('Saved to the harness')}>Toast</Button>
+      <Tooltip tip="Saves your work">
+        <Button>Hover target</Button>
+      </Tooltip>
+      <DropdownMenu trigger={<Button>Fruit</Button>} aria-label="Fruit menu">
+        <MenuItem>Apple</MenuItem>
+        <MenuItem>Banana</MenuItem>
+        <MenuItem disabled>Blocked</MenuItem>
+        <MenuItem>Blueberry</MenuItem>
+        <MenuItem>Cherry</MenuItem>
+      </DropdownMenu>
+      <div className="fixed bottom-2 left-2">
+        <Button ref={flipAnchor} onClick={() => setFlip((v) => !v)}>
+          Flip anchor
+        </Button>
+      </div>
+      <Popover open={flip} onOpenChange={setFlip} anchor={flipAnchor} aria-label="Flip panel">
+        <div className="h-40 w-40 text-sm text-th-hi">Tall panel</div>
+      </Popover>
 
       {modal && (
         <Modal title="Harness modal" onClose={() => setModal(false)}>

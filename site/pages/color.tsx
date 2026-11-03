@@ -281,7 +281,7 @@ export function ColorPage() {
           code={`.price { color: var(--nish-hi); }
 .drop  { color: var(--nish-ok); background: var(--nish-ok-soft); }
 
-import { readToken, onThemeChange } from '@nish/ui';
+import { readToken, onThemeChange } from 'nish-ui';
 const draw = () => chart.update({ line: readToken('chart-1'), grid: readToken('line') });
 onThemeChange(draw);`}
         />

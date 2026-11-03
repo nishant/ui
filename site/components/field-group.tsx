@@ -122,5 +122,6 @@ export const fieldGroup: ComponentDoc = {
   guidelines: [
     'Use Field for one control and FieldGroup for several. The legend names the group; each control still needs its own name (a ChipGroup label, an aria-label on each input).',
     'Static pages: a <fieldset class="nish-field"> with <legend class="nish-field-label"> gives the same look.',
+    "The Optional tag text comes from NishProvider strings (optional); ref and extra props go to the fieldset.",
   ],
 };

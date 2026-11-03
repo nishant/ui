@@ -13,6 +13,8 @@ import { NishSwitch } from './switch';
 import { NishTabs } from './tabs';
 
 export { NishElement, define } from './base';
+export { configureStrings } from './strings';
+export type { NishElementStrings } from './strings';
 export {
   NishChipGroup,
   NishCombobox,

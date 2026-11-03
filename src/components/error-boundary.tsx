@@ -1,5 +1,8 @@
+'use client';
 import { Component, type ReactNode } from 'react';
 import { Button, Card } from './primitives';
+import { useNishStrings } from './provider';
+import type { NishStrings } from './strings';
 
 export interface AppErrorBoundaryProps {
   children: ReactNode;
@@ -9,6 +12,9 @@ export interface AppErrorBoundaryProps {
   onError?: (error: Error, info: { componentStack?: string | null }) => void;
   /** When any value changes, a shown error resets (pass [location.pathname] to reset on navigation). */
   resetKeys?: unknown[];
+  /** Show the error message and stack in the default fallback. Default: only outside production
+   *  (`process.env.NODE_ENV !== 'production'`), so end users never see internals. */
+  showDetails?: boolean;
 }
 
 interface State {
@@ -25,8 +31,21 @@ function changed(a: unknown[] = [], b: unknown[] = []): boolean {
   return a.length !== b.length || a.some((v, i) => !Object.is(v, b[i]));
 }
 
-/** Catches render errors below it and shows a themed fallback with a way to recover. */
-export class AppErrorBoundary extends Component<AppErrorBoundaryProps, State> {
+/** True outside production. Bundlers replace `process.env.NODE_ENV`; where nothing does,
+ *  the ReferenceError is caught and the page counts as production. */
+function isDevelopment(): boolean {
+  try {
+    return process.env.NODE_ENV !== 'production';
+  } catch {
+    return false;
+  }
+}
+
+interface BoundaryProps extends AppErrorBoundaryProps {
+  strings: NishStrings;
+}
+
+class Boundary extends Component<BoundaryProps, State> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: unknown): State {
@@ -34,10 +53,10 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, State> {
   }
 
   componentDidCatch(error: Error, info: { componentStack?: string | null }): void {
-    this.props.onError?.(error, { componentStack: info.componentStack });
+    this.props.onError?.(error instanceof Error ? error : new Error(String(error)), { componentStack: info.componentStack });
   }
 
-  componentDidUpdate(prev: AppErrorBoundaryProps): void {
+  componentDidUpdate(prev: BoundaryProps): void {
     if (this.state.error && changed(prev.resetKeys, this.props.resetKeys)) this.reset();
   }
 
@@ -50,31 +69,40 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, State> {
     if (!error) return this.props.children;
     if (this.props.fallback) return this.props.fallback({ error, reset: this.reset });
 
+    const s = this.props.strings;
+    const details = this.props.showDetails ?? isDevelopment();
     const stale = isChunkError(error);
     const message = error.message.length > 300 ? `${error.message.slice(0, 300)}…` : error.message;
     return (
       <Card role="alert" className="mx-auto my-16 max-w-md">
-        <h2 className="text-lg font-semibold text-th-hi">{stale ? 'A new version is available' : 'Something went wrong'}</h2>
+        <h2 className="text-lg font-semibold text-th-hi">{stale ? s.errorStaleTitle : s.errorTitle}</h2>
         <p className="mt-1 break-words text-sm text-th-hi2">
-          {stale ? 'Reload the page to get the latest version.' : message || 'An unexpected error occurred.'}
+          {stale ? s.errorStaleBody : details ? message || s.errorBody : s.errorBody}
         </p>
-        {error.stack ? (
+        {details && error.stack ? (
           <details className="mt-3">
-            <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-th-hi3">Details</summary>
+            <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-th-hi3">{s.errorDetails}</summary>
             <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-th-elevated p-2 font-mono text-xs text-th-hi2">{error.stack}</pre>
           </details>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
           {stale ? null : (
             <Button variant="primary" onClick={this.reset}>
-              Try again
+              {s.errorTryAgain}
             </Button>
           )}
           <Button variant={stale ? 'primary' : 'secondary'} onClick={() => location.reload()}>
-            Reload page
+            {s.errorReload}
           </Button>
         </div>
       </Card>
     );
   }
+}
+
+/** Catches render errors below it and shows a themed fallback with a way to recover. The
+ *  default fallback shows the message and stack only outside production or with `showDetails`. */
+export function AppErrorBoundary(props: AppErrorBoundaryProps) {
+  const strings = useNishStrings();
+  return <Boundary {...props} strings={strings} />;
 }

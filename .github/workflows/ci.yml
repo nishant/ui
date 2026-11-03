@@ -5,9 +5,15 @@ on:
   pull_request:
 permissions: { contents: read }
 
+# A new push to a pull request cancels the run it replaces; master runs always finish.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -15,12 +21,17 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # typecheck, WCAG contrast for every theme, build
+      # typecheck, WCAG contrast for every theme, build, the tool checks, lint, size budgets
       - run: npm run check
       - run: npm run test:tools
-      - run: npm run test:unit
+      # dom + node (SSR, multi-copy) vitest projects, with the coverage thresholds in vitest.config.ts
+      - name: Unit tests (dom and SSR projects) with coverage
+        run: npm run test:unit -- --coverage
+      - name: Bundle size budgets
+        run: npm run size
       - run: npx playwright install --with-deps chromium
-      - name: Overlay interaction specs
+      # overlay, elements, hydration, axe, forced-colors, RTL and CSP specs (Chromium)
+      - name: Browser specs
         run: npx playwright test
       - name: Visual check of the demo gallery
         run: |
@@ -40,3 +51,75 @@ jobs:
           path: |
             visual-out
             test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: coverage
+          path: coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # The overlay specs again in Firefox and WebKit (the Chromium run is in the check job).
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps firefox webkit
+      - name: Overlay specs in Firefox and WebKit
+        run: npx playwright test --project=firefox --project=webkit
+        env:
+          NISH_BROWSERS: all
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: browsers-out
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # The packed tarball installed into a Next.js (App Router), a Vite + Tailwind and a TypeScript
+  # (5.4, 5.9, 6.0 x bundler and node16) consumer, the way an outside team would use it.
+  consumers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture: [next, vite, ts]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install Chromium
+        if: matrix.fixture != 'ts'
+        run: npx playwright install --with-deps chromium
+      - name: Consumer check (${{ matrix.fixture }})
+        run: node tools/consumer-check.mjs ${{ matrix.fixture }}
+
+  # Fold check on pull requests: builds the base and the head docs site, screenshots both at
+  # 360, 840 and 1440 in light and dark, and fails on any problem the PR adds. The workflow it
+  # calls needs fold.visual.json (URLs with {port}) at the repo root.
+  visual:
+    if: github.event_name == 'pull_request'
+    permissions: { contents: read, pull-requests: write }
+    uses: ./.github/workflows/fold-check.yml
+    with:
+      config: fold.visual.json
+      serve: npm run build:site && exec npx vite preview --config site/vite.config.ts --host 127.0.0.1 --port "$FOLD_PORT" --strictPort
+      node-version: '24'

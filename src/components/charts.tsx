@@ -1,7 +1,24 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+'use client';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentPropsWithoutRef,
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import { cn } from '../cn';
 import { CHART, seriesColor, tooltipStyle } from '../chart';
+import { isRtl } from './client';
+import { chartNumber, decimateMinMax, mergeRefs } from './data-classes';
 import { Skeleton } from './feedback';
+import { useMediaQuery } from './hooks';
+import { useNishConfig, useNishStrings } from './provider';
 
 /** A series color: one of the eight categorical chart colors, or a status/accent color. */
 export type ChartTone = 'chart-1' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5' | 'chart-6' | 'chart-7' | 'chart-8' | 'ok' | 'loss' | 'accent';
@@ -48,28 +65,30 @@ function useWidth<T extends HTMLElement>(): [(el: T | null) => void, number, T |
   return [setEl, width, el];
 }
 
-/** True on coarse (touch) pointers; false on the server and before mount. */
-function useCoarsePointer(): boolean {
-  const [coarse, setCoarse] = useState(false);
+/** True when the chart is laid out right-to-left: the provider's `dir`, else the element's
+ *  computed direction (read after mount, so the first render matches the server). */
+function useChartRtl(el: HTMLElement | null): boolean {
+  const { dir } = useNishConfig();
+  const [measured, setMeasured] = useState(false);
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mq = window.matchMedia('(pointer: coarse)');
-    const update = () => setCoarse(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  return coarse;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a DOM measurement inside the effect
+    setMeasured(isRtl(el));
+  }, [el, dir]);
+  return dir ? dir === 'rtl' : measured;
 }
 
-const defaultNum = (v: number) => (Math.abs(v) >= 1000 ? v.toLocaleString('en-US', { maximumFractionDigits: 0 }) : String(Math.round(v * 100) / 100));
+/** x position of a data value on the plot. In right-to-left layouts the x axis runs the other way. */
+function xPos(x: number, xMin: number, xMax: number, padLeft: number, plotW: number, rtl: boolean): number {
+  const f = (x - xMin) / (xMax - xMin);
+  return padLeft + (rtl ? 1 - f : f) * plotW;
+}
 
 function ticksBetween(min: number, max: number, count: number): number[] {
   const n = Math.max(2, Math.floor(count));
   return Array.from({ length: n }, (_, i) => min + ((max - min) * i) / (n - 1));
 }
 
-export interface LineChartProps {
+export interface LineChartProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   /** A single series of points. Use this or `series`. */
   data?: LinePoint[];
   /** Several series sharing one x axis. */
@@ -78,7 +97,7 @@ export interface LineChartProps {
   height?: number;
   /** Fill under the first series with a fading gradient of its color. */
   area?: boolean;
-  /** Formats y axis ticks and tooltip values. */
+  /** Formats y axis ticks and tooltip values. Default: numbers in `locale`. */
   yFormat?: (v: number) => string;
   /** Formats x axis ticks and the tooltip heading. */
   xFormat?: (v: number) => string;
@@ -94,9 +113,12 @@ export interface LineChartProps {
   label: string;
   /** Show a skeleton of the same height. */
   loading?: boolean;
-  /** Shown when there are no points. Default "No data". */
+  /** Shown when there are no points. Default: the "noData" string. */
   empty?: ReactNode;
+  /** The locale of the default axis numbers. Default: the provider's locale, else en-US. */
+  locale?: string;
   className?: string;
+  ref?: Ref<HTMLDivElement>;
 }
 
 const PAD_TOP = 10;
@@ -106,14 +128,16 @@ const PAD_RIGHT = 12;
 /** A dependency-free SVG line chart that fills its container's width. Gaps (null y)
  *  break the line. Hover, touch-drag or Left/Right keys move a crosshair with a
  *  tooltip; vertical swipes still scroll the page. A hidden table carries the data for
- *  screen readers. */
+ *  screen readers. Long series are reduced to at most two points per pixel column
+ *  (the lowest and highest of each), so spikes survive. In right-to-left layouts the
+ *  x axis runs right to left and the arrow keys follow. */
 export function LineChart({
   data,
   series,
   height = 200,
   area,
-  yFormat = defaultNum,
-  xFormat = defaultNum,
+  yFormat,
+  xFormat,
   yTicks = 4,
   xTicks = 4,
   baseline,
@@ -121,9 +145,18 @@ export function LineChart({
   label,
   loading,
   empty,
+  locale,
   className,
+  ref,
+  ...rest
 }: LineChartProps) {
+  const t = useNishStrings();
+  const config = useNishConfig();
+  const loc = locale ?? config.locale ?? 'en-US';
+  const yFmt = yFormat ?? ((v: number) => chartNumber(v, loc));
+  const xFmt = xFormat ?? ((v: number) => chartNumber(v, loc));
   const [wrapRef, width, wrapEl] = useWidth<HTMLDivElement>();
+  const rtl = useChartRtl(wrapEl);
   const gradId = `nish-area-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const [active, setActive] = useState<number | null>(null);
   const fromKey = useRef(false);
@@ -168,6 +201,24 @@ export function LineChart({
     return { xMin, xMax: xMax === xMin ? xMin + 1 : xMax, yMin, yMax };
   }, [lines, xs, baseline]);
 
+  // Each series as runs of finite points sorted by x (a gap starts a new run). Depends on the data only.
+  const runs = useMemo(
+    () =>
+      lines.map((s) => {
+        const out: { x: number; y: number }[][] = [];
+        let cur: { x: number; y: number }[] = [];
+        for (const p of [...s.points].sort((a, b) => a.x - b.x)) {
+          if (p.y == null || !Number.isFinite(p.y) || !Number.isFinite(p.x)) {
+            if (cur.length) out.push(cur);
+            cur = [];
+          } else cur.push({ x: p.x, y: p.y });
+        }
+        if (cur.length) out.push(cur);
+        return out;
+      }),
+    [lines],
+  );
+
   // Clear a touch-pinned tooltip when the next pointer lands outside the chart.
   useEffect(() => {
     if (active == null) return;
@@ -178,42 +229,51 @@ export function LineChart({
     return () => document.removeEventListener('pointerdown', onDown);
   }, [active, wrapEl]);
 
+  const yLabels = scale ? ticksBetween(scale.yMin, scale.yMax, yTicks).map((v) => ({ v, text: yFmt(v) })) : [];
+  const padLeft = Math.ceil(Math.max(0, ...yLabels.map((l) => l.text.length)) * 6.6) + 10;
+  const plotW = Math.max(0, width - padLeft - PAD_RIGHT);
+  const plotH = Math.max(0, height - PAD_TOP - PAD_BOTTOM);
+
+  // Path points as strings. Depends on data, size and direction, not on the hover position.
+  const paths = useMemo(() => {
+    if (!scale) return [];
+    const sy = (y: number) => PAD_TOP + (1 - (y - scale.yMin) / (scale.yMax - scale.yMin)) * plotH;
+    return runs.map((segs) =>
+      segs.map((seg) =>
+        decimateMinMax(seg, scale.xMin, scale.xMax, plotW).map(
+          (p) => `${xPos(p.x, scale.xMin, scale.xMax, padLeft, plotW, rtl).toFixed(1)},${sy(p.y).toFixed(1)}`,
+        ),
+      ),
+    );
+  }, [runs, scale, plotW, plotH, padLeft, rtl]);
+
   if (loading) return <Skeleton className={cn('w-full rounded-xl', className)} style={{ height }} />;
 
   if (!scale) {
     return (
-      <div role="img" aria-label={`${label}: no data`} className={cn('flex w-full items-center justify-center text-sm text-th-hi3', className)} style={{ height }}>
-        {empty ?? 'No data'}
+      <div
+        {...rest}
+        ref={ref}
+        role="img"
+        aria-label={t.noDataNamed(label)}
+        className={cn('flex w-full items-center justify-center text-sm text-th-hi3', className)}
+        style={{ height, ...rest.style }}
+      >
+        {empty ?? t.noData}
       </div>
     );
   }
 
-  const yLabels = ticksBetween(scale.yMin, scale.yMax, yTicks).map((v) => ({ v, text: yFormat(v) }));
-  const padLeft = Math.ceil(Math.max(...yLabels.map((t) => t.text.length)) * 6.6) + 10;
-  const plotW = Math.max(0, width - padLeft - PAD_RIGHT);
-  const plotH = Math.max(0, height - PAD_TOP - PAD_BOTTOM);
-  const sx = (x: number) => padLeft + ((x - scale.xMin) / (scale.xMax - scale.xMin)) * plotW;
+  const sx = (x: number) => xPos(x, scale.xMin, scale.xMax, padLeft, plotW, rtl);
   const sy = (y: number) => PAD_TOP + (1 - (y - scale.yMin) / (scale.yMax - scale.yMin)) * plotH;
   const bottom = PAD_TOP + plotH;
-
-  const paths = lines.map((s) => {
-    const segs: string[][] = [];
-    let cur: string[] = [];
-    for (const p of [...s.points].sort((a, b) => a.x - b.x)) {
-      if (p.y == null || !Number.isFinite(p.y) || !Number.isFinite(p.x)) {
-        if (cur.length) segs.push(cur);
-        cur = [];
-      } else cur.push(`${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`);
-    }
-    if (cur.length) segs.push(cur);
-    return segs;
-  });
 
   const xLabels = ticksBetween(scale.xMin, scale.xMax, Math.min(xTicks, Math.max(2, Math.floor(plotW / 72))));
 
   const moveTo = (clientX: number, el: Element) => {
     const rect = el.getBoundingClientRect();
-    const x = scale.xMin + ((clientX - rect.left - padLeft) / (plotW || 1)) * (scale.xMax - scale.xMin);
+    const f = (clientX - rect.left - padLeft) / (plotW || 1);
+    const x = scale.xMin + (rtl ? 1 - f : f) * (scale.xMax - scale.xMin);
     let lo = 0;
     let hi = xs.length - 1;
     while (hi - lo > 1) {
@@ -233,7 +293,8 @@ export function LineChart({
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
       fromKey.current = true;
-      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      // The plot is mirrored in RTL, so the right arrow goes back along the data.
+      const dir = (e.key === 'ArrowRight' ? 1 : -1) * (rtl ? -1 : 1);
       setActive((a) => (a == null ? (dir > 0 ? 0 : xs.length - 1) : Math.min(xs.length - 1, Math.max(0, a + dir))));
     } else if (e.key === 'Escape') setActive(null);
   };
@@ -246,7 +307,7 @@ export function LineChart({
   const tableXs = xs.slice(0, 200);
 
   return (
-    <div ref={wrapRef} className={cn('relative w-full select-none', className)} style={{ height }}>
+    <div {...rest} ref={mergeRefs(wrapRef, ref)} className={cn('relative w-full select-none', className)} style={{ height, ...rest.style }}>
       {width > 0 && (
         <svg
           width={width}
@@ -274,11 +335,19 @@ export function LineChart({
               </linearGradient>
             </defs>
           )}
-          {yLabels.map((t, i) => (
+          {yLabels.map((l, i) => (
             <g key={i}>
-              <line x1={padLeft} x2={padLeft + plotW} y1={sy(t.v)} y2={sy(t.v)} stroke={CHART.grid} strokeWidth={1} />
-              <text x={padLeft - 6} y={sy(t.v)} textAnchor="end" dominantBaseline="middle" fontSize={11} fill={CHART.text} style={{ fontVariantNumeric: 'tabular-nums' }}>
-                {t.text}
+              <line x1={padLeft} x2={padLeft + plotW} y1={sy(l.v)} y2={sy(l.v)} stroke={CHART.grid} strokeWidth={1} />
+              <text
+                x={rtl ? padLeft + plotW + 6 : padLeft - 6}
+                y={sy(l.v)}
+                textAnchor={rtl ? 'start' : 'end'}
+                dominantBaseline="middle"
+                fontSize={11}
+                fill={CHART.text}
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {l.text}
               </text>
             </g>
           ))}
@@ -287,12 +356,12 @@ export function LineChart({
               key={i}
               x={sx(v)}
               y={height - 6}
-              textAnchor={i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'}
+              textAnchor={i === 0 ? (rtl ? 'end' : 'start') : i === xLabels.length - 1 ? (rtl ? 'start' : 'end') : 'middle'}
               fontSize={11}
               fill={CHART.text}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
-              {xFormat(v)}
+              {xFmt(v)}
             </text>
           ))}
           {baseline != null && Number.isFinite(baseline) && (
@@ -323,15 +392,15 @@ export function LineChart({
       )}
       {ax != null && width > 0 && (
         <div
-          className="pointer-events-none absolute top-1 z-10 whitespace-nowrap px-2 py-1 tabular-nums"
+          className="pointer-events-none absolute top-1 z-[var(--nish-z-tooltip,10)] whitespace-nowrap px-2 py-1 tabular-nums"
           style={{ ...tooltipStyle, ...(tipRight ? { left: cx + 10 } : { right: width - cx + 10 }) }}
         >
-          <div className="text-th-hi3">{xFormat(ax)}</div>
+          <div className="text-th-hi3">{xFmt(ax)}</div>
           {tipRows.map((r) => (
             <div key={r.i} className="flex items-center gap-1.5">
               <span aria-hidden="true" className="inline-block size-2 rounded-full" style={{ background: toneColor(r.s.tone, r.i) }} />
               {lines.length > 1 && <span className="text-th-hi3">{r.s.label}</span>}
-              <span className="font-medium">{yFormat(r.y as number)}</span>
+              <span className="font-medium">{yFmt(r.y as number)}</span>
             </div>
           ))}
         </div>
@@ -351,9 +420,9 @@ export function LineChart({
         <tbody>
           {tableXs.map((x) => (
             <tr key={x}>
-              <th scope="row">{xFormat(x)}</th>
+              <th scope="row">{xFmt(x)}</th>
               {lines.map((_, i) => (
-                <td key={i}>{lookup[i].has(x) ? yFormat(lookup[i].get(x) as number) : ''}</td>
+                <td key={i}>{lookup[i].has(x) ? yFmt(lookup[i].get(x) as number) : ''}</td>
               ))}
             </tr>
           ))}
@@ -363,14 +432,14 @@ export function LineChart({
   );
 }
 
-export interface BarChartProps {
+export interface BarChartProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   /** One bar per entry, in order. */
   data: { label: string; value: number }[];
   /** Plot height in pixels. Default 140. */
   height?: number;
   /** Bar color. Default chart-1. */
   tone?: ChartTone;
-  /** Formats values above the bars and in the caption. */
+  /** Formats values above the bars and in the caption. Default: numbers in `locale`. */
   valueFormat?: (v: number) => string;
   /** 'always' prints every value above its bar; 'auto' (default) does so on touch
    *  screens only, where there is no hover. */
@@ -379,7 +448,12 @@ export interface BarChartProps {
   xTicks?: 'ends' | 'all';
   /** Accessible name of the chart. */
   label: string;
+  /** Shown when there are no bars. Default: the "noData" string. */
+  empty?: ReactNode;
+  /** The locale of the default value format. Default: the provider's locale, else en-US. */
+  locale?: string;
   className?: string;
+  ref?: Ref<HTMLDivElement>;
 }
 
 const BAR_TOP = 18;
@@ -387,10 +461,29 @@ const BAR_BOTTOM = 22;
 
 /** A dependency-free SVG bar chart that fills its container's width. Hover, tap or
  *  Left/Right keys select a bar and show "label: value" under the chart. A hidden table
- *  carries the data for screen readers. */
-export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = defaultNum, showValues = 'auto', xTicks = 'ends', label, className }: BarChartProps) {
-  const [wrapRef, width] = useWidth<HTMLDivElement>();
-  const coarse = useCoarsePointer();
+ *  carries the data for screen readers. In right-to-left layouts the first bar is at the
+ *  right and the arrow keys follow. */
+export function BarChart({
+  data,
+  height = 140,
+  tone = 'chart-1',
+  valueFormat,
+  showValues = 'auto',
+  xTicks = 'ends',
+  label,
+  empty,
+  locale,
+  className,
+  ref,
+  ...rest
+}: BarChartProps) {
+  const t = useNishStrings();
+  const config = useNishConfig();
+  const loc = locale ?? config.locale ?? 'en-US';
+  const fmt = valueFormat ?? ((v: number) => chartNumber(v, loc));
+  const [wrapRef, width, wrapEl] = useWidth<HTMLDivElement>();
+  const rtl = useChartRtl(wrapEl);
+  const coarse = useMediaQuery('(pointer: coarse)');
   const [selected, setSelected] = useState<number | null>(null);
   const color = toneColor(tone, 0);
 
@@ -398,15 +491,23 @@ export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = d
     (clientX: number, el: Element) => {
       const rect = el.getBoundingClientRect();
       const i = Math.floor(((clientX - rect.left) / (rect.width || 1)) * data.length);
-      setSelected(Math.min(data.length - 1, Math.max(0, i)));
+      const clamped = Math.min(data.length - 1, Math.max(0, i));
+      setSelected(rtl ? data.length - 1 - clamped : clamped);
     },
-    [data.length],
+    [data.length, rtl],
   );
 
   if (!data.length) {
     return (
-      <div role="img" aria-label={`${label}: no data`} className={cn('flex w-full items-center justify-center text-sm text-th-hi3', className)} style={{ height }}>
-        No data
+      <div
+        {...rest}
+        ref={ref}
+        role="img"
+        aria-label={t.noDataNamed(label)}
+        className={cn('flex w-full items-center justify-center text-sm text-th-hi3', className)}
+        style={{ height, ...rest.style }}
+      >
+        {empty ?? t.noData}
       </div>
     );
   }
@@ -420,17 +521,19 @@ export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = d
   const band = width / data.length;
   const barW = Math.max(1, band * 0.72);
   const printValues = showValues === 'always' || coarse;
+  // Where bar i sits: in RTL the first bar is at the right end.
+  const slot = (i: number) => (rtl ? data.length - 1 - i : i);
 
   const onKey = (e: KeyboardEvent<SVGSVGElement>) => {
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
-      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      const dir = (e.key === 'ArrowRight' ? 1 : -1) * (rtl ? -1 : 1);
       setSelected((s) => (s == null ? (dir > 0 ? 0 : data.length - 1) : Math.min(data.length - 1, Math.max(0, s + dir))));
     } else if (e.key === 'Escape') setSelected(null);
   };
 
   return (
-    <div ref={wrapRef} className={cn('w-full', className)}>
+    <div {...rest} ref={mergeRefs(wrapRef, ref)} className={cn('w-full', className)}>
       {width > 0 && (
         <svg
           width={width}
@@ -453,7 +556,7 @@ export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = d
           {values.map((v, i) => {
             const h = Math.max(2, (Math.abs(v) / span) * plotH);
             const y = v < 0 ? zeroY : zeroY - h;
-            const x = i * band + (band - barW) / 2;
+            const x = slot(i) * band + (band - barW) / 2;
             const isSel = selected === i;
             const showVal = isSel || (printValues && (showValues === 'always' || band >= 26));
             return (
@@ -461,7 +564,7 @@ export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = d
                 <rect x={x} y={y} width={barW} height={h} rx={2} fill={color} opacity={selected == null || isSel ? 1 : 0.55} />
                 {showVal && (
                   <text x={x + barW / 2} y={v < 0 ? y + h + 11 : Math.max(11, y - 4)} textAnchor="middle" fontSize={11} fill={CHART.text} style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {valueFormat(v)}
+                    {fmt(v)}
                   </text>
                 )}
               </g>
@@ -470,8 +573,9 @@ export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = d
           {data.map((d, i) => {
             const show = xTicks === 'all' || i === 0 || i === data.length - 1;
             if (!show) return null;
-            const anchor = xTicks === 'all' ? 'middle' : i === 0 ? 'start' : 'end';
-            const x = xTicks === 'all' ? i * band + band / 2 : i === 0 ? 0 : width;
+            const atLeft = slot(i) === 0;
+            const anchor = xTicks === 'all' ? 'middle' : atLeft ? 'start' : 'end';
+            const x = xTicks === 'all' ? slot(i) * band + band / 2 : atLeft ? 0 : width;
             return (
               <text key={i} x={x} y={height - 6} textAnchor={anchor} fontSize={11} fill={CHART.text}>
                 {d.label}
@@ -481,7 +585,7 @@ export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = d
         </svg>
       )}
       <div className="mt-1 min-h-5 text-sm tabular-nums text-th-hi2" aria-live="polite">
-        {selected != null ? `${data[selected].label}: ${valueFormat(values[selected])}` : ''}
+        {selected != null ? `${data[selected].label}: ${fmt(values[selected])}` : ''}
       </div>
       <table className="sr-only">
         <caption>{label}</caption>
@@ -489,7 +593,7 @@ export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = d
           {data.map((d, i) => (
             <tr key={i}>
               <th scope="row">{d.label}</th>
-              <td>{valueFormat(values[i])}</td>
+              <td>{fmt(values[i])}</td>
             </tr>
           ))}
         </tbody>
@@ -498,7 +602,7 @@ export function BarChart({ data, height = 140, tone = 'chart-1', valueFormat = d
   );
 }
 
-export interface RangeBarProps {
+export interface RangeBarProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   /** The track's lower end (e.g. the 52-week low). */
   min: number;
   /** The track's upper end. */
@@ -509,31 +613,42 @@ export interface RangeBarProps {
   high: number;
   /** Marks a value (e.g. the current price) with a dot. */
   current?: number;
+  /** The accessible name. Default (English): "Range low to high, current x, within min to max". */
+  label?: string;
+  /** The locale of the numbers in the default name. Default: the provider's locale, else en-US. */
+  locale?: string;
   className?: string;
+  ref?: Ref<HTMLDivElement>;
 }
 
 /** A thin range track with a highlighted low-to-high segment and an optional dot for
- *  the current value: daily temperature ranges, a price's day range. */
-export function RangeBar({ min, max, low, high, current, className }: RangeBarProps) {
+ *  the current value: daily temperature ranges, a price's day range. The track starts at
+ *  the start edge, so it mirrors in right-to-left layouts. */
+export function RangeBar({ min, max, low, high, current, label, locale, className, ref, ...rest }: RangeBarProps) {
+  const config = useNishConfig();
+  const loc = locale ?? config.locale ?? 'en-US';
+  const num = (v: number) => chartNumber(v, loc);
   const span = max - min;
   const pos = (v: number) => (span > 0 ? Math.min(100, Math.max(0, ((v - min) / span) * 100)) : 0);
   const a = pos(Math.min(low, high));
   const b = pos(Math.max(low, high));
   return (
     <div
+      {...rest}
+      ref={ref}
       role="img"
-      aria-label={`Range ${defaultNum(low)} to ${defaultNum(high)}${current != null ? `, current ${defaultNum(current)}` : ''}, within ${defaultNum(min)} to ${defaultNum(max)}`}
-      className={cn('relative h-1.5 w-full rounded-full bg-th-line', className)}
+      aria-label={label ?? `Range ${num(low)} to ${num(high)}${current != null ? `, current ${num(current)}` : ''}, within ${num(min)} to ${num(max)}`}
+      className={cn('relative h-1.5 w-full rounded-full bg-th-line forced-colors:bg-[color:GrayText]', className)}
     >
       <div
-        className="absolute inset-y-0 rounded-full"
-        style={{ left: `${a}%`, width: `${Math.max(b - a, 1)}%`, background: 'linear-gradient(90deg, var(--nish-chart-2), var(--nish-chart-5))' }}
+        className="absolute inset-y-0 rounded-full bg-gradient-to-r from-[var(--nish-chart-2)] to-[var(--nish-chart-5)] rtl:bg-gradient-to-l forced-colors:bg-none forced-colors:bg-[color:Highlight]"
+        style={{ insetInlineStart: `${a}%`, width: `${Math.max(b - a, 1)}%` }}
       />
       {current != null && (
         <span
           aria-hidden="true"
-          className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-th-surface bg-th-hi"
-          style={{ left: `${pos(current)}%` }}
+          className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-th-surface bg-th-hi rtl:translate-x-1/2 forced-colors:bg-[color:CanvasText]"
+          style={{ insetInlineStart: `${pos(current)}%` }}
         />
       )}
     </div>

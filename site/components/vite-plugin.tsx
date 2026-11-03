@@ -2,13 +2,13 @@ import { CodeBlock } from '../lib/code';
 import type { ComponentDoc } from './types';
 
 // --- Vite plugin and lint -------------------------------------------------------------------
-// Node-only entries: @nish/ui/vite, @nish/ui/eslint and the nish-th-check bin. There is
+// Node-only entries: nish-ui/vite, nish-ui/eslint and the nish-th-check bin. There is
 // nothing to render, so the page shows the config an app writes.
 
 const PLUGIN = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { nishThemeInit } from '@nish/ui/vite';
+import { nishThemeInit } from 'nish-ui/vite';
 
 export default defineConfig({
   plugins: [nishThemeInit(), react(), tailwindcss()],
@@ -17,12 +17,12 @@ export default defineConfig({
 const PLUGIN_OPTIONS = `// Splice the script right after <meta charset> (status, workflows), and migrate an old key once.
 nishThemeInit({ position: 'after-charset', legacyKey: 'theme' });
 
-// Run an app preset before theme-init (nishboard).
+// Run an app preset before theme-init (an app preset).
 nishThemeInit({ prelude: "try{localStorage.setItem('nish-preset','ember')}catch(e){}" });`;
 
 const ESLINT = `// eslint.config.js
 import tseslint from 'typescript-eslint';
-import nish from '@nish/ui/eslint';
+import nish from 'nish-ui/eslint';
 
 export default [
   ...tseslint.configs.recommended,
@@ -30,7 +30,7 @@ export default [
   // servers and scripts: ...nish.configs.node (the core rules, no theme rules)
 ];`;
 
-const RULES = `nish/no-unknown-th-class   a th-* color @nish/ui does not define (a made-up name after bg-th-)
+const RULES = `nish/no-unknown-th-class   a th-* color nish-ui does not define (a made-up name after bg-th-)
 nish/no-raw-palette        bg-red-500, text-slate-300: bypasses the theme
 nish/no-white-black        text-white, bg-black: ignores the theme
 nish/no-legacy-th-alias    text-th-gain, bg-th-danger, text-th-2: use th-ok, th-loss, th-hi2
@@ -42,10 +42,10 @@ npx nish-th-check src site          # directories or files; default: src
 # exits 1 and prints file:line and the class for each unknown th-* color`;
 
 const TSCONFIG = `// tsconfig.json: a Vite + React app
-{ "extends": "@nish/ui/tsconfig/react.json", "include": ["src"] }
+{ "extends": "nish-ui/tsconfig/react.json", "include": ["src"] }
 
 // a server or script: NodeNext resolution and node types
-{ "extends": "@nish/ui/tsconfig/node.json", "include": ["server"] }
+{ "extends": "nish-ui/tsconfig/node.json", "include": ["server"] }
 
 // base.json: strict, ES2023, Bundler resolution, isolatedModules, noEmit`;
 
@@ -55,8 +55,8 @@ export const vitePlugin: ComponentDoc = {
   exports: [],
   source: 'src/node/vite.ts',
   summary:
-    'Node-only entries for the build. @nish/ui/vite puts the theme-init script into index.html so every app sets its theme before first paint without copying the script. @nish/ui/eslint and the nish-th-check command stop made-up th-* colors and raw palette classes from reaching the page.',
-  importLine: "import { nishThemeInit } from '@nish/ui/vite';",
+    'Node-only entries for the build. nish-ui/vite puts the theme-init script into index.html so every app sets its theme before first paint without copying the script. nish-ui/eslint and the nish-th-check command stop made-up th-* colors and raw palette classes from reaching the page.',
+  importLine: "import { nishThemeInit } from 'nish-ui/vite';",
   controls: [],
   initial: {},
   render: () => <code className="rounded-md bg-th-elevated px-2 py-1 font-mono text-xs text-th-hi2">plugins: [nishThemeInit()]</code>,
@@ -64,7 +64,7 @@ export const vitePlugin: ComponentDoc = {
   stories: [
     { id: 'plugin', name: 'vite.config.ts', wide: true, render: () => <CodeBlock code={PLUGIN} title="vite.config.ts" /> },
     { id: 'options', name: 'Plugin options', wide: true, render: () => <CodeBlock code={PLUGIN_OPTIONS} title="vite.config.ts" /> },
-    { id: 'eslint', name: '@nish/ui/eslint', wide: true, render: () => <CodeBlock code={ESLINT} title="eslint.config.js" /> },
+    { id: 'eslint', name: 'nish-ui/eslint', wide: true, render: () => <CodeBlock code={ESLINT} title="eslint.config.js" /> },
     { id: 'rules', name: 'The nish/* rules', wide: true, render: () => <CodeBlock code={RULES} title="rules" /> },
     { id: 'tsconfig', name: 'TypeScript presets', wide: true, render: () => <CodeBlock code={TSCONFIG} title="tsconfig.json" /> },
     { id: 'check', name: 'nish-th-check', wide: true, render: () => <CodeBlock code={CHECK} title="terminal" /> },

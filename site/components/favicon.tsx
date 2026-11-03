@@ -1,4 +1,5 @@
 import { Favicon } from '../../src';
+import { googleFavicon } from '../../src/components/data';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 
@@ -19,16 +20,25 @@ export const favicon: ComponentDoc = {
   name: 'Favicon',
   exports: ['Favicon'],
   summary:
-    'A site\'s favicon at a fixed size, for link lists and bookmarks. While it loads, when it fails or when the address is not valid it shows a colored letter avatar of the same size, so a list never jumps or shows a broken image. Decorative: it is hidden from screen readers.',
-  importLine: "import { Favicon } from '@nish/ui';",
+    'A site\'s favicon at a fixed size, for link lists and bookmarks. Out of the box it makes no request at all and shows a colored letter avatar; give it an image with src, a resolver with resolve, or set one for the whole app with configureFavicons. While an image loads, when it fails or when the address is not valid the avatar shows too, so a list never jumps or shows a broken image. Decorative: it is hidden from screen readers.',
+  importLine: "import { Favicon, configureFavicons, googleFavicon } from '@nish/ui';",
   controls: [
     { key: 'url', label: 'URL', type: 'text' },
     { key: 'size', label: 'Size (px)', type: 'number', min: 12, max: 64 },
     { key: 'label', label: 'Fallback letter from', type: 'text' },
+    { key: 'resolver', label: 'Resolver', type: 'select', options: ['none (default)', 'google'] },
   ],
-  initial: { url: 'https://github.com', size: 24, label: '' },
-  render: (a) => <Favicon url={String(a.url)} size={Number(a.size)} label={String(a.label) || undefined} />,
-  code: (a) => jsx('Favicon', { url: a.url, size: Number(a.size) === 16 ? undefined : Number(a.size), label: a.label || undefined }),
+  initial: { url: 'https://github.com', size: 24, label: '', resolver: 'none (default)' },
+  render: (a) => (
+    <Favicon url={String(a.url)} size={Number(a.size)} label={String(a.label) || undefined} resolve={a.resolver === 'google' ? googleFavicon : undefined} />
+  ),
+  code: (a) =>
+    jsx('Favicon', {
+      url: a.url,
+      size: Number(a.size) === 16 ? undefined : Number(a.size),
+      label: a.label || undefined,
+      resolve: a.resolver === 'google' ? '{googleFavicon}' : undefined,
+    }),
   stories: [
     {
       id: 'sizes',
@@ -72,16 +82,26 @@ export const favicon: ComponentDoc = {
       ),
     },
   ],
-  usage: `import { Favicon } from '@nish/ui';
+  usage: `import { Favicon, configureFavicons, googleFavicon } from '@nish/ui';
+
+// Once, at startup: opt in to one provider for every Favicon and LinkCard.
+// Without this call no request is made and every site gets a letter avatar.
+configureFavicons({ resolve: googleFavicon });
+
+// Or per icon: your own resolver, or a fixed image.
+<Favicon url={bookmark.url} resolve={(host, size) => \`/icons/\${host}.png\`} />
+<Favicon url={bookmark.url} src={bookmark.icon} />
 
 <a href={bookmark.url} className="flex items-center gap-2">
   <Favicon url={bookmark.url} label={bookmark.title} />
   {bookmark.title}
 </a>`,
   guidelines: [
-    'It requests the icon from Google\'s favicon service by host name only, at twice the size for sharp screens. Only the host leaves the page, never the path.',
+    'Nothing is requested by default: the avatar shows. The page that opts in decides where icons come from. googleFavicon asks google.com for the host and tells Google which sites you show; use your own resolver or a proxy when that matters (it also needs img-src to allow the provider under a strict CSP).',
+    'Order: src (used as is) wins, then the resolve prop, then configureFavicons. A resolver returns null for "no image". Unsafe URLs (javascript:, data:) are ignored.',
+    'Images load lazily with referrerPolicy no-referrer, so your page address never goes to the icon host.',
     'Always pass label when you have a title: the fallback letter then matches what the user sees.',
     'It is decorative (aria-hidden). Put the site name in text next to it.',
-    'Inside a LinkCard, pass it as the icon at size 20.',
+    'Inside a LinkCard, pass it as the icon at size 20, or set favicon on the LinkCard.',
   ],
 };

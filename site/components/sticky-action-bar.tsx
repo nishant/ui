@@ -108,6 +108,7 @@ export const stickyActionBar: ComponentDoc = {
   primary={<Button variant="primary" loading={saving} onClick={save}>Save</Button>}
 />`,
   guidelines: [
+    'The region label comes from the NishProvider actions string; label overrides it. It uses the sticky z-index token plus 10, floats at the end edge from sm (the left in right-to-left layouts) and is hidden when printing.',
     'Use it for the page\'s one pending decision: save or discard a form, act on a selection. Not for navigation.',
     'Closed, it renders nothing and publishes no height. PageContainer already pads for it while it is open.',
     'Primary goes last (right). Keep both buttons short; the message truncates to one line.',

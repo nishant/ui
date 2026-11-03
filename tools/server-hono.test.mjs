@@ -16,7 +16,7 @@ const env = (remoteAddress = '203.0.113.5') => ({ incoming: { socket: { remoteAd
 const json = (body, headers = {}) => ({ method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
 function sessionApp(extra = {}) {
-  const auth = createSessionAuth({ cookieName: 'test_session', secret: 'test-secret' });
+  const auth = createSessionAuth({ cookieName: 'test_session', secret: 'test-secret-0123456789-abcdefghijklmn' });
   const app = new Hono();
   mountSessionRoutes(app, { auth, password: 'Hunter2', limiter: createLimiter(), secure: false, ...extra });
   app.get('/api/private', requireSession(auth), (c) => c.json({ ok: true }));
@@ -30,7 +30,7 @@ test('session routes: login, me, logout, wrong password', async () => {
   assert.equal(bad.status, 401);
   assert.deepEqual(await bad.json(), { error: 'That password is not right.' });
 
-  const ok = await app.request('/api/login', json({ password: 'hunter2' }), env());
+  const ok = await app.request('/api/login', json({ password: 'Hunter2' }), env());
   assert.equal(ok.status, 200);
   assert.deepEqual(await ok.json(), { authed: true });
   const set = ok.headers.get('set-cookie');
@@ -55,10 +55,10 @@ test('session routes: the 11th failed try in a minute is 429', async () => {
     const r = await app.request('/api/login', json({ password: 'x' }), env('198.51.100.9'));
     assert.equal(r.status, 401);
   }
-  const blocked = await app.request('/api/login', json({ password: 'hunter2' }), env('198.51.100.9'));
+  const blocked = await app.request('/api/login', json({ password: 'Hunter2' }), env('198.51.100.9'));
   assert.equal(blocked.status, 429);
   assert.deepEqual(await blocked.json(), { error: 'Too many tries. Wait a minute and try again.' });
-  const other = await app.request('/api/login', json({ password: 'hunter2' }), env('198.51.100.10'));
+  const other = await app.request('/api/login', json({ password: 'Hunter2' }), env('198.51.100.10'));
   assert.equal(other.status, 200);
 });
 
@@ -78,7 +78,7 @@ test('session routes: errorBody and onSuccess overrides, secure function, bad bo
 });
 
 test('requireSession: 401 with the message, passes with a cookie', async () => {
-  const auth = createSessionAuth({ cookieName: 'test_session', secret: 'test-secret' });
+  const auth = createSessionAuth({ cookieName: 'test_session', secret: 'test-secret-0123456789-abcdefghijklmn' });
   const app = new Hono();
   app.get('/a', requireSession(auth), (c) => c.json({ ok: true }));
   app.get('/b', requireSession(auth, { message: 'unauthorized' }), (c) => c.json({ ok: true }));
@@ -92,15 +92,13 @@ test('requireSession: 401 with the message, passes with a cookie', async () => {
   assert.equal(ok.status, 200);
 });
 
-test('clientIpOf uses the rightmost non-loopback XFF; remoteAddressOf reads the socket', async () => {
+test('clientIpOf ignores forwarding headers unless told to trust them; remoteAddressOf reads the socket', async () => {
   const app = new Hono();
-  app.get('/ip', (c) => c.json({ ip: clientIpOf(c), peer: remoteAddressOf(c) ?? null }));
-  const viaProxy = await app.request('/ip', { headers: { 'x-forwarded-for': '6.6.6.6, 203.0.113.7, 127.0.0.1' } }, env('127.0.0.1'));
-  assert.deepEqual(await viaProxy.json(), { ip: '203.0.113.7', peer: '127.0.0.1' });
-  const cf = await app.request('/ip', { headers: { 'cf-connecting-ip': '192.0.2.1', 'x-forwarded-for': '6.6.6.6' } }, env('127.0.0.1'));
-  assert.equal((await cf.json()).ip, '192.0.2.1');
+  app.get('/ip', (c) => c.json({ ip: clientIpOf(c), proxy: clientIpOf(c, 'proxy'), cf: clientIpOf(c, 'cloudflare'), peer: remoteAddressOf(c) ?? null }));
+  const viaProxy = await app.request('/ip', { headers: { 'x-forwarded-for': '6.6.6.6, 203.0.113.7', 'cf-connecting-ip': '192.0.2.1' } }, env('127.0.0.1'));
+  assert.deepEqual(await viaProxy.json(), { ip: '127.0.0.1', proxy: '203.0.113.7', cf: '192.0.2.1', peer: '127.0.0.1' });
   const bare = await app.request('/ip');
-  assert.deepEqual(await bare.json(), { ip: 'local', peer: null });
+  assert.deepEqual(await bare.json(), { ip: null, proxy: null, cf: null, peer: null });
 });
 
 test('serveSpa serves a deep link and assets', async () => {

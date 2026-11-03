@@ -164,5 +164,8 @@ export const chip: ComponentDoc = {
     'Chips are for multi-select filters and tags. For one choice among several, use Segmented.',
     'Always wrap a set in ChipGroup with a label, so screen readers hear what the chips filter.',
     'Tags get their remove button name from removeLabel, or "Remove <text>" when the text is a string.',
+    "ChipGroup moves focus between chips with the arrow keys, Home and End (mirrored in right-to-left layouts); every chip stays a Tab stop.",
+    "A tag chip is a span: ref and extra props go to it. The remove button's name comes from NishProvider strings (removeNamed, remove) unless removeLabel is set.",
+    "Toggle chips set data-state (active or inactive) and, in forced-colors mode, show Highlight when pressed.",
   ],
 };

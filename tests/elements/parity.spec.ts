@@ -68,7 +68,7 @@ const CASES: Case[] = [
   {
     name: 'dialog open',
     query: 'c=dialog',
-    react: { box: '[role="dialog"]', title: '[role="dialog"] h2', body: '[role="dialog"] .text-th-hi2' },
+    react: { box: '[role="alertdialog"]', title: '[role="alertdialog"] h2', body: '[role="alertdialog"] .text-th-hi2' },
     element: { box: 'dialog.nish-dialog[open]', title: '.nish-dialog-title', body: '.nish-dialog-body' },
   },
   ...TONES.map(

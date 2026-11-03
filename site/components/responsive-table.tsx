@@ -66,7 +66,7 @@ export const responsiveTable: ComponentDoc = {
   name: 'ResponsiveTable',
   exports: ['ResponsiveTable'],
   summary:
-    'A table on wide screens and a list of cards on phones, from one column definition. Sortable headers (and a Sort by menu in card mode), clickable or linked rows, a status edge per row, and loading, empty and error states built in. Replaces hand-rolled mobile card layouts next to desktop tables.',
+    'A table on wide screens and a list of cards on phones, from one column definition. Sortable headers (and a Sort by menu in card mode), clickable or linked rows, a status edge per row, and loading, empty and error states built in. Replaces hand-rolled mobile card layouts next to desktop tables. Sorting is announced to screen readers, and the status edge, the pinned column and the arrows mirror in right-to-left layouts.',
   importLine: "import { ResponsiveTable } from '@nish/ui';",
   controls: [
     { key: 'mode', label: 'State', type: 'select', options: ['data', 'loading', 'empty', 'error'] },
@@ -162,6 +162,16 @@ export const responsiveTable: ComponentDoc = {
         </Device>
       ),
     },
+    {
+      id: 'rtl',
+      name: 'Right to left',
+      note: 'Under dir="rtl" the status edge, the pinned first column, the alignment and the row chevrons mirror. Nothing to configure.',
+      render: () => (
+        <div dir="rtl" className="w-full min-w-0">
+          <Demo tone sticky minWidth={800} />
+        </div>
+      ),
+    },
     { id: 'loading', name: 'Loading', render: () => <Demo mode="loading" /> },
     { id: 'empty', name: 'Empty', render: () => <Demo mode="empty" /> },
     { id: 'error', name: 'Error', render: () => <Demo mode="error" /> },
@@ -190,5 +200,10 @@ const columns: Column<Position>[] = [
     'Without sort or onSortChange the table sorts itself with each column\'s sortValue; control it when the server sorts.',
     'rowTone is a 3px edge only. Say the status in a cell too; color alone is not an answer.',
     'cardsBelow moves the switch point (sm, md or lg); a table with many columns wants lg.',
+    'Keep columns in a module constant or useMemo. Sorting does not depend on it, but unchanged rows only skip re-rendering while the array is the same one.',
+    'rowHref goes through safeUrl: javascript:, data: and other unsafe URLs never navigate (the row does nothing, and a dev warning names it). http(s), mailto, tel, relative and #fragment URLs pass.',
+    'A sort change is announced in a polite live region ("Sorted by Price, ascending"). Translate it and the direction button with sortText; the "Sort by", "Default", "Nothing here yet" and loading texts come from NishProvider strings (sortBy, sortDefault, nothingHere, loadingNamed).',
+    'When the table is wider than its box the box becomes a focusable region named by label, so keyboard users can scroll it with the arrow keys.',
+    'It takes ref and any div attribute (id, data-*, aria-*, style); they land on the root.',
   ],
 };

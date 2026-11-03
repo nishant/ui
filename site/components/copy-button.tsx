@@ -13,19 +13,21 @@ export const copyButton: ComponentDoc = {
   name: 'CopyButton',
   exports: ['CopyButton'],
   summary:
-    'Copies text with one click, shows "Copied" for 1.5 seconds and announces it to screen readers. copyText() is the same copy, as a function.',
+    'Copies text with one click, shows "Copied" for 1.5 seconds and announces it to screen readers. Without a Clipboard API or on an insecure origin it falls back to a hidden textarea, and shows failedLabel when that fails too. copyText() is the same copy, as a function.',
   importLine: "import { CopyButton, copyText } from '@nish/ui';",
   controls: [
     { key: 'iconOnly', label: 'Icon only', type: 'boolean' },
     { key: 'size', label: 'Size', type: 'select', options: ['sm', 'md'] },
     { key: 'variant', label: 'Variant', type: 'select', options: ['secondary', 'ghost', 'primary'] },
     { key: 'label', label: 'Label', type: 'text' },
+    { key: 'failedLabel', label: 'Failed label', type: 'text' },
   ],
-  initial: { iconOnly: false, size: 'sm', variant: 'secondary', label: 'Copy link' },
+  initial: { iconOnly: false, size: 'sm', variant: 'secondary', label: 'Copy link', failedLabel: 'Copy failed' },
   render: (a) => (
     <CopyButton
       text="https://jobs.nish.software/j/4821"
       label={String(a.label) || undefined}
+      failedLabel={String(a.failedLabel) || undefined}
       iconOnly={!!a.iconOnly}
       size={a.size as 'sm'}
       variant={a.variant as 'secondary'}
@@ -80,6 +82,7 @@ export const copyButton: ComponentDoc = {
 // Without a button:
 if (await copyText(address)) toast.success('Address copied');`,
   guidelines: [
+    'On an insecure origin (plain http) or in a browser without the Clipboard API, CopyButton copies through a hidden textarea and execCommand. When that fails as well it shows failedLabel (default "Copy failed") for 1.5 seconds and announces it; onCopy(false) is called.',
     'Label it with what it copies when there are several on a page ("Copy address").',
     'The live region says "Copied"; do not add a toast as well.',
     'copyText falls back to a hidden textarea on http:// pages, where the Clipboard API is missing.',

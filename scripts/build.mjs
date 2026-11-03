@@ -1,13 +1,14 @@
 // Builds dist/: generated CSS from src/tokens.mjs, the copied fonts, theme-init.js
-// with the theme list baked in, the React-free tokens entry, and the JS/types via tsup.
+// with the theme list baked in, the React-free tokens entry, the types and the standalone single files via tsup,
+// and the bundler-facing preserved-modules ESM build (dist/esm/) via esbuild.
 import { createHash } from 'node:crypto';
-import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join, relative, resolve as resolvePath } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execSync } from 'node:child_process';
 import vm from 'node:vm';
-import { COLOR_ROLES, DEFAULT_THEME, SCALE, SHADOWS, SOFT_ROLES, THEMES } from '../src/tokens.mjs';
+import { COLOR_ROLES, DEFAULT_THEME, HUE_ROLES, SCALE, SHADOWS, SOFT_ROLES, THEMES } from '../src/tokens.mjs';
 import { TH_COLORS } from '../src/th-colors.mjs';
 import { buildComponentsCss } from './build-components.mjs';
 
@@ -20,6 +21,8 @@ rmSync(dist, { recursive: true, force: true });
 mkdirSync(join(dist, 'fonts'), { recursive: true });
 
 execSync('npx tsup', { cwd: root, stdio: 'inherit' });
+const pkgVersion = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
+await buildEsm();
 
 // --- tokens.css ----------------------------------------------------------------
 for (const [name, t] of Object.entries(THEMES)) {
@@ -92,29 +95,31 @@ for (const f of ['inter-latin-wght-normal.woff2', 'inter-latin-ext-wght-normal.w
 const baseCss = readFileSync(join(src, 'css/base.css'), 'utf8');
 writeFileSync(join(dist, 'fonts.css'), fontsCss);
 writeFileSync(join(dist, 'base.css'), baseCss);
+// Tailwind apps import base.css into Tailwind's own `base` layer. A nested `nish.base` sublayer would lose to the
+// preflight rules that sit directly in `base`, so that copy has no layer wrapper of its own.
+const LAYER_OPEN = '@layer nish.base {';
+const openAt = baseCss.indexOf(LAYER_OPEN);
+const closeAt = baseCss.lastIndexOf('}');
+if (openAt < 0 || closeAt < openAt) throw new Error('src/css/base.css must be one @layer nish.base { ... } block');
+writeFileSync(join(dist, 'base-tailwind.css'), baseCss.slice(0, openAt) + baseCss.slice(openAt + LAYER_OPEN.length, closeAt) + baseCss.slice(closeAt + 1));
 writeFileSync(join(dist, 'nish.css'), [HEADER, tokensCss, fontsCss, baseCss].join('\n'));
 // Opt-in component classes for static pages (not part of nish.css).
 const componentsCss = buildComponentsCss(src, dist);
 
 // --- tailwind.css ------------------------------------------------------------------
 // Consumers: @import "tailwindcss"; @import "@nish/ui/tailwind.css";
-const tailwindCss = [
+const tailwindLines = (withSource) => [
   HEADER,
   '@import "./tokens.css";',
   '@import "./fonts.css";',
-  '@import "./base.css" layer(base);',
+  '@import "./base-tailwind.css" layer(base);',
   '',
   '/* Class names used by the components in this package. */',
-  // Only the shipped component JS (dist/*.js, chunks included). Not .map, .d.ts, theme.global.js
-  // or dist/node (the Vite plugin, ESLint preset and CLI). When dist sits in a gitignored
-  // node_modules, an explicit @source scans the whole folder, so the exclusions are explicit.
-  '@source "./*.js";',
-  '@source not "./theme.global.js";',
-  '@source not "./node";',
-  '@source not "./*.map";',
-  '@source not "./*.d.ts";',
-  '@source not "./*/**";',
-  '',
+  // Only the component modules of the preserved-modules build (dist/esm/components, the canvas included). Not
+  // the Vite plugin, ESLint preset or CLI (dist/node), theme.global.js, maps or .d.ts. When dist sits in a
+  // gitignored node_modules, an explicit @source scans the whole folder it names, so that folder is the narrowest.
+  // tailwind-core.css has no @source line: an app that scans only the modules it uses adds its own.
+  ...(withSource ? ['@source "./esm/components";', ''] : ['']),
   '/* dark: follows the active theme, not the OS. */',
   "@custom-variant dark (&:where([data-scheme='dark'], [data-scheme='dark'] *));",
   "@custom-variant light (&:where([data-scheme='light'], [data-scheme='light'] *));",
@@ -146,8 +151,22 @@ const tailwindCss = [
   '  }',
   '}',
   '',
-].join('\n');
+];
+const tailwindCss = tailwindLines(true).join('\n');
 writeFileSync(join(dist, 'tailwind.css'), tailwindCss);
+writeFileSync(join(dist, 'tailwind-core.css'), tailwindLines(false).join('\n').replace('/* Class names used by the components in this package. */\n', ''));
+
+// --- minified static CSS ------------------------------------------------------------
+// The files a static page links, minified (nish-components.css halves its gzip size). No browser targets, so the
+// syntax is left as written.
+const { transform } = await import('lightningcss');
+const minifiedCss = [];
+for (const f of ['nish.css', componentsCss]) {
+  const out = f.replace(/\.css$/, '.min.css');
+  const res = transform({ filename: f, code: readFileSync(join(dist, f)), minify: true });
+  writeFileSync(join(dist, out), res.code);
+  minifiedCss.push(out);
+}
 
 // --- theme-init.js -----------------------------------------------------------------
 const schemes = Object.fromEntries(Object.entries(THEMES).map(([k, t]) => [k, t.scheme]));
@@ -158,6 +177,9 @@ const init = readFileSync(join(src, 'theme-init.js'), 'utf8')
   .replace('var DEFAULT = __DEFAULT__;', `var DEFAULT = ${JSON.stringify(DEFAULT_THEME)};`);
 testInit(init);
 writeFileSync(join(dist, 'theme-init.js'), init);
+// For a CSP script-src hash: sha256-<base64> of the file as shipped.
+const themeInitHash = 'sha256-' + createHash('sha256').update(init).digest('base64');
+writeFileSync(join(dist, 'theme-init.sha256'), themeInitHash + '\n');
 
 testGlobal(readFileSync(join(dist, 'theme.global.js'), 'utf8'));
 testStandalone();
@@ -170,25 +192,173 @@ copyFileSync(join(src, 'tokens.mjs'), join(dist, 'tokens.js'));
 copyFileSync(join(src, 'tokens.d.mts'), join(dist, 'tokens.d.ts'));
 await testTokensEntry();
 await testCn();
+await testEsmBuild();
+
+// --- tokens.json and tokens.dtcg.json: the same tokens as data, for design tools and other build chains ------
+const tokensJson = { defaultTheme: DEFAULT_THEME, themes: THEMES, scale: SCALE, shadows: SHADOWS, softRoles: SOFT_ROLES, hueRoles: HUE_ROLES, colorRoles: COLOR_ROLES };
+writeFileSync(join(dist, 'tokens.json'), JSON.stringify(tokensJson, null, 2) + '\n');
+writeFileSync(join(dist, 'tokens.dtcg.json'), JSON.stringify(buildDtcg(), null, 2) + '\n');
+
+// The Inter license travels with the font files it covers.
+mkdirSync(join(dist, 'fonts'), { recursive: true });
+copyFileSync(join(root, 'node_modules/@fontsource-variable/inter/LICENSE'), join(dist, 'fonts/LICENSE-Inter.txt'));
 
 // What a static site vendors, with the hashed font names, so a sync script never has
 // to guess them (hosting's scripts/sync-ui.mjs can read this instead of a fixed list).
 writeFileSync(
   join(dist, 'files.json'),
-  JSON.stringify({ static: ['nish.css', componentsCss, 'theme-init.js', 'theme.js', 'theme.global.js', 'elements.js', 'elements-forms.js', 'elements-data.js', 'elements-charts.js', ...fontFiles] }, null, 2) + '\n',
+  JSON.stringify(
+    {
+      static: ['nish.css', componentsCss, ...minifiedCss, 'theme-init.js', 'theme.js', 'theme.global.js', 'elements.js', 'elements-forms.js', 'elements-data.js', 'elements-charts.js', 'elements-all.js', ...fontFiles],
+      themeInitHash,
+    },
+    null,
+    2,
+  ) + '\n',
 );
 
 console.log('built dist/');
 
-/** dist/tailwind.css must scan only the shipped component JS in dist's top level, never all of dist (that pulled in
- *  .map files with sourcesContent and .d.ts files, which minted classes nothing uses). Checked by a
- *  real Tailwind compile in a temp git project that ignores node_modules, like a consumer's. */
+/** Preserved-modules ESM build of the bundler-facing entries into dist/esm/, mirroring src/.
+ *
+ *  Tool: esbuild, one file per source module (bundle: true per file, with a plugin that marks every relative import
+ *  external and rewrites its specifier to the emitted file, `.js` appended). rolldown/rollup preserveModules would work
+ *  too; esbuild is already installed (tsup) and keeps the PURE annotation comments and the `"use client"` directive as written.
+ *  The module graph is walked from the entries, so only modules something imports are emitted.
+ *  Not minified, no source maps, target es2022, automatic JSX; react, react-dom, clsx and tailwind-merge stay external.
+ *  src/tokens.mjs (and any other .mjs a module imports) is copied as is. */
+async function buildEsm() {
+  const esbuild = await import('esbuild');
+  const out = join(dist, 'esm');
+  const entries = ['index', 'theme', 'chart', 'format', 'split-layout', 'inbox-client', 'system-canvas']
+    .map((n) => join(src, `${n}.ts`))
+    .filter((f) => existsSync(f));
+  const seen = new Set(entries);
+  const copied = new Set();
+  let queue = [...entries];
+
+  /** The source file a relative import points at, or undefined. */
+  const locate = (fromFile, spec) => {
+    const base = resolvePath(dirname(fromFile), spec);
+    const stem = base.replace(/\.js$/, '');
+    for (const c of [base, `${stem}.ts`, `${stem}.tsx`, `${base}.ts`, `${base}.tsx`, `${base}.mjs`, `${base}.js`, join(base, 'index.ts'), join(base, 'index.tsx')]) {
+      if (existsSync(c) && statSync(c).isFile()) return c;
+    }
+    return undefined;
+  };
+  const plugin = {
+    name: 'nish-preserve-modules',
+    setup(build) {
+      build.onResolve({ filter: /^\.\.?(\/|$)/ }, (args) => {
+        if (args.kind === 'entry-point') return undefined;
+        const file = locate(args.importer, args.path);
+        if (!file) throw new Error(`${relative(root, args.importer)}: cannot resolve ${args.path}`);
+        let spec = args.path;
+        if (/\.(ts|tsx)$/.test(file)) {
+          spec = (/\.js$/.test(spec) ? spec.replace(/\.js$/, '') : spec).replace(/\/$/, '');
+          const viaDirectory = /^index\.tsx?$/.test(basename(file)) && !/(^|\/)index$/.test(spec);
+          spec = viaDirectory ? `${spec}/index.js` : `${spec}.js`;
+          if (!seen.has(file)) {
+            seen.add(file);
+            next.push(file);
+          }
+        } else if (!copied.has(file)) {
+          copied.add(file);
+          const dest = join(out, relative(src, file));
+          mkdirSync(dirname(dest), { recursive: true });
+          copyFileSync(file, dest);
+        }
+        return { path: spec, external: true };
+      });
+    },
+  };
+  let next = [];
+  while (queue.length) {
+    next = [];
+    await esbuild.build({
+      entryPoints: queue,
+      outdir: out,
+      outbase: src,
+      bundle: true,
+      format: 'esm',
+      target: 'es2022',
+      jsx: 'automatic',
+      platform: 'neutral',
+      mainFields: ['module', 'main'],
+      packages: 'external',
+      sourcemap: false,
+      minify: false,
+      legalComments: 'none',
+      define: { __NISH_UI_VERSION__: JSON.stringify(pkgVersion) },
+      plugins: [plugin],
+      logLevel: 'warning',
+    });
+    queue = next;
+  }
+
+  // A source module whose first statement is 'use client' must start its output with "use client";.
+  const directive = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(['"])use client\1/;
+  for (const file of seen) {
+    if (!directive.test(readFileSync(file, 'utf8'))) continue;
+    const dest = join(out, relative(src, file).replace(/\.tsx?$/, '.js'));
+    const code = readFileSync(dest, 'utf8');
+    if (!code.startsWith('"use client";')) writeFileSync(dest, `"use client";\n${code.replace(/^\s*(['"])use client\1;?\s*/, '')}`);
+  }
+}
+
+/** The tokens in W3C Design Tokens (DTCG) format: colors per theme, plus the scale entries that are lengths or durations. */
+function buildDtcg() {
+  const color = {};
+  for (const [name, t] of Object.entries(THEMES)) {
+    color[name] = { $description: `${name} theme (${t.scheme})` };
+    for (const r of COLOR_ROLES) color[name][r] = { $type: 'color', $value: t.colors[r] };
+  }
+  const dimension = {};
+  const duration = {};
+  for (const [k, v] of Object.entries(SCALE)) {
+    if (/^-?\d*\.?\d+(px|rem|em)$/.test(v)) dimension[k] = { $type: 'dimension', $value: v };
+    else if (/^\d*\.?\d+(ms|s)$/.test(v)) duration[k] = { $type: 'duration', $value: v };
+  }
+  return { color, dimension, duration };
+}
+
+/** dist/esm must hold the preserved modules the package exports point at, with the version defined and no maps. */
+async function testEsmBuild() {
+  const esm = join(dist, 'esm');
+  for (const f of ['index.js', 'theme.js', 'format.js', 'split-layout.js', 'inbox-client.js', 'system-canvas.js', 'tokens.mjs']) {
+    if (!existsSync(join(esm, f))) throw new Error(`dist/esm/${f} is missing`);
+  }
+  const all = [];
+  (function walk(d) {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      if (e.isDirectory()) walk(join(d, e.name));
+      else all.push(join(d, e.name));
+    }
+  })(esm);
+  const maps = all.filter((f) => f.endsWith('.map'));
+  if (maps.length) throw new Error(`dist/esm must have no source maps (${maps.length} found)`);
+  for (const f of all.filter((f) => f.endsWith('.js'))) {
+    const code = readFileSync(f, 'utf8');
+    if (code.includes('__NISH_UI_VERSION__')) throw new Error(`${relative(root, f)}: __NISH_UI_VERSION__ was not defined`);
+    const bad = code.match(/\bfrom\s*["'](\.\.?\/[^"']*)["']/g)?.find((m) => !/\.m?js["']$/.test(m));
+    if (bad) throw new Error(`${relative(root, f)}: relative import without extension (${bad})`);
+  }
+  // Each module is its own file: the main entry re-exports from them rather than carrying copies.
+  const index = readFileSync(join(esm, 'index.js'), 'utf8');
+  if (!/from "\.\/components\//.test(index) || index.length > 60_000) throw new Error('dist/esm/index.js must re-export from per-module files');
+}
+
+/** dist/tailwind.css must scan only the component modules of the preserved-modules build (dist/esm/components), never
+ *  all of dist (that pulled in .map files with sourcesContent and .d.ts files, which minted classes nothing uses).
+ *  dist/tailwind-core.css has no @source line. Checked by a real Tailwind compile in a temp git project that ignores
+ *  node_modules, like a consumer's. */
 async function testSourceScan() {
   const css = readFileSync(join(dist, 'tailwind.css'), 'utf8');
   if (css.includes('@source "./";')) throw new Error('dist/tailwind.css must not scan all of dist (@source "./")');
-  for (const line of ['@source "./*.js";', '@source not "./node";', '@source not "./*.map";', '@source not "./*.d.ts";', '@source not "./*/**";']) {
-    if (!css.includes(line)) throw new Error(`dist/tailwind.css must contain ${line}`);
-  }
+  if (!css.includes('@source "./esm/components";')) throw new Error('dist/tailwind.css must contain @source "./esm/components";');
+  if ((css.match(/@source/g) ?? []).length !== 1) throw new Error('dist/tailwind.css must have exactly one @source line');
+  const core = readFileSync(join(dist, 'tailwind-core.css'), 'utf8');
+  if (core.includes('@source')) throw new Error('dist/tailwind-core.css must have no @source line');
 
   const { compile } = await import('@tailwindcss/node');
   const { Scanner } = await import('@tailwindcss/oxide');
@@ -197,15 +367,14 @@ async function testSourceScan() {
     execSync('git init -q', { cwd: tmp });
     writeFileSync(join(tmp, '.gitignore'), 'node_modules\n');
     const pkg = join(tmp, 'node_modules/@nish/ui/dist');
-    mkdirSync(join(pkg, 'node'), { recursive: true });
-    mkdirSync(join(pkg, 'sub'), { recursive: true });
-    for (const f of ['tokens.css', 'fonts.css', 'base.css', 'tailwind.css']) copyFileSync(join(dist, f), join(pkg, f));
+    for (const d of ['node', 'sub', 'esm/components']) mkdirSync(join(pkg, d), { recursive: true });
+    for (const f of ['tokens.css', 'fonts.css', 'base.css', 'base-tailwind.css', 'tailwind.css']) copyFileSync(join(dist, f), join(pkg, f));
     for (const f of readdirSync(join(dist, 'fonts'))) {
       mkdirSync(join(pkg, 'fonts'), { recursive: true });
       copyFileSync(join(dist, 'fonts', f), join(pkg, 'fonts', f));
     }
-    writeFileSync(join(pkg, 'index.js'), 'export const a = "scan-keep-index flex";\n');
-    for (const f of ['index.js.map', 'index.d.ts', 'node/x.js', 'theme.global.js', 'sub/x.js']) {
+    writeFileSync(join(pkg, 'esm/components/x.js'), 'export const a = "scan-keep-index flex";\n');
+    for (const f of ['index.js', 'index.js.map', 'index.d.ts', 'node/x.js', 'theme.global.js', 'sub/x.js', 'esm/index.js', 'esm/theme.js']) {
       writeFileSync(join(pkg, f), `x("scan-leak-${f.replace(/[^a-z]/gi, '-')}")`);
     }
     const twIndex = join(root, 'node_modules/tailwindcss/index.css').replaceAll('\\', '/');
@@ -220,7 +389,7 @@ async function testSourceScan() {
     // Candidates are only minted into CSS when they are valid utilities; check the scanned strings instead.
     const seen = new Set(candidates);
     const leaked = [...seen].filter((c) => c.startsWith('scan-leak-'));
-    if (!seen.has('flex') && !out.includes('.flex')) throw new Error('dist/tailwind.css no longer scans dist/index.js');
+    if (!seen.has('flex') && !out.includes('.flex')) throw new Error('dist/tailwind.css no longer scans dist/esm/components');
     if (leaked.length) throw new Error(`dist/tailwind.css scans files it must not (${leaked.join(', ')})`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -253,7 +422,7 @@ async function testTokensEntry() {
 /** tailwind-merge must keep a th-* color next to the small type sizes and the custom
  *  shadows, and still resolve real conflicts. */
 async function testCn() {
-  const { cn } = await import(pathToFileURL(join(dist, 'index.js')).href);
+  const { cn } = await import(pathToFileURL(join(dist, 'esm/index.js')).href);
   const cases = [
     [['text-th-hi', 'text-2xs'], 'text-th-hi text-2xs'],
     [['text-th-hi2', 'text-3xs'], 'text-th-hi2 text-3xs'],
@@ -284,12 +453,17 @@ function testGlobal(code) {
       documentElement: el,
       head: { appendChild() {} },
       querySelector: () => null,
-      createElement: () => ({}),
+      createElement: () => ({ hasWord: true, setAttribute() {}, removeAttribute() {}, append() {}, appendChild() {} }),
+      createElementNS: (_ns, tag) => {
+        const a = {};
+        return { tagName: tag, a, setAttribute: (k, v) => (a[k] = v), getAttribute: (k) => a[k] ?? null, removeAttribute: (k) => delete a[k], append() {}, appendChild() {} };
+      },
       addEventListener() {},
     },
     localStorage: { getItem: () => stored, setItem: (k, v) => (stored = v) },
     location: { hostname: 'localhost', protocol: 'http:' },
     matchMedia: () => ({ matches: false, addEventListener() {} }),
+    setTimeout() {},
     getComputedStyle: () => ({ getPropertyValue: () => '#f7f6f3' }),
     addEventListener() {},
   };
@@ -305,18 +479,19 @@ function testGlobal(code) {
 
   // mountThemeToggle: label, data-choice, icons, cycling and cleanup.
   const btnAttrs = {};
-  const icons = ['system', 'light', 'dark'].map((id) => {
-    const a = { 'data-icon': id };
-    return { getAttribute: (k) => a[k] ?? null, setAttribute: (k, v) => (a[k] = v), removeAttribute: (k) => delete a[k], a };
-  });
+  let icons = [];
+  let kids = [];
   const handlers = {};
   const word = { textContent: '' };
   const button = {
     tagName: 'BUTTON',
-    innerHTML: '',
     getAttribute: (k) => btnAttrs[k] ?? null,
     setAttribute: (k, v) => (btnAttrs[k] = v),
-    querySelector: (sel) => (sel === '[data-theme-word]' && button.innerHTML.includes('data-theme-word') ? word : null),
+    replaceChildren: (...nodes) => {
+      kids = nodes;
+      icons = nodes.filter((n) => n.tagName === 'svg');
+    },
+    querySelector: (sel) => (sel === '[data-theme-word]' && kids.some((n) => n.hasWord) ? word : null),
     querySelectorAll: () => icons,
     addEventListener: (t, fn) => (handlers[t] = fn),
     removeEventListener: (t, fn) => handlers[t] === fn && delete handlers[t],
@@ -327,7 +502,7 @@ function testGlobal(code) {
     }
   };
   const stop = api.mountThemeToggle(button);
-  if (btnAttrs.type !== 'button' || !button.innerHTML.includes('data-icon="dark"')) throw new Error('theme.global.js: mountThemeToggle did not fill the button');
+  if (btnAttrs.type !== 'button' || icons.length !== 3) throw new Error('theme.global.js: mountThemeToggle did not fill the button');
   expectLabel('Theme: Light. Switch to Dark', 'on light');
   if (btnAttrs['data-choice'] !== 'light' || icons[1].a.display || icons[2].a.display !== 'none') {
     throw new Error('theme.global.js: mountThemeToggle shows the wrong icon');
@@ -346,7 +521,7 @@ function testGlobal(code) {
   labelled();
   // showLabel: the visible word follows the choice; the label is unchanged.
   const worded = api.mountThemeToggle(button, { showLabel: true });
-  if (!button.innerHTML.includes('data-theme-word') || word.textContent !== 'Mocha') {
+  if (!kids.some((n) => n.hasWord) || word.textContent !== 'Mocha') {
     throw new Error(`theme.global.js: mountThemeToggle showLabel word "${word.textContent}", expected "Mocha"`);
   }
   expectLabel('Theme: Mocha (set on another site). Switch to System', 'with showLabel');

@@ -156,6 +156,7 @@ const t = useServiceTokens();
     "Revoking is final: a revoked token stays revoked, and access comes back with a new token from npm run tokens in nishant/mcp.",
     "Pass useServiceTokens() straight in. With your own state, make onRevoke reject on failure so the dialog stays open with the error.",
     "The block never sees a token or its hash, only the id, name, scopes and dates the server chose to show.",
+    "Titles, button names and the confirmation title come from <NishProvider strings> (serviceTokens, serviceTokensIntro, tokenRevoke and the other token* keys). The empty line, the confirmation body, \"created <date>\" and \"from SERVICE_TOKENS\" have no key: set emptyMessage, revokeBody, createdLabel and envSourceLabel per instance. The block takes ref, className and every attribute of its section.",
   ],
   api: {
     functions: ["useServiceTokens"],

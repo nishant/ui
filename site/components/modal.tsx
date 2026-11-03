@@ -303,15 +303,20 @@ export function DeleteTracker({ onDelete }: { onDelete: () => void }) {
   );
 }
 
+// controlled: no conditional rendering
+<Modal open={open} onOpenChange={setOpen} title="Settings">…</Modal>
+
 // a command palette
 <Modal aria-label="Command palette" placement="top" header={<SearchField />} onClose={close}>
   {results}
 </Modal>`,
   guidelines: [
-    'Render the Modal only while it is open; unmounting is what closes it and returns focus.',
+    'Render the Modal only while it is open, or pass open and onOpenChange to control it: unmounting (or open={false}) is what closes it and returns focus to the opener.',
     'Put autofocus (or data-autofocus) on the field people should type in first. Otherwise the panel itself takes focus.',
     'Keep it to one decision. Long flows belong on a page. For a yes-or-no question, use ConfirmDialog.',
     'With header, pass aria-label: the dialog has no visible title to take its name from.',
+    'Give every Modal a name: a title, or aria-label / aria-labelledby when you pass header. In development a Modal without one logs a warning.',
+    'Modal renders through a Portal: nothing on the server, and into the NishProvider portalContainer when you set one. A body that overflows becomes a focusable region so keyboard users can scroll it.',
     'Page scroll is locked on both <html> and <body>, so apps that scroll the root element need no local lock.',
   ],
 };

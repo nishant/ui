@@ -1,5 +1,6 @@
 import { html, nothing, svg, type TemplateResult } from 'lit';
 import { NishElement, define } from './base';
+import { getStrings } from './strings';
 
 const SEARCH_ICON = (size: number) =>
   svg`<svg width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>`;
@@ -33,7 +34,6 @@ export class NishSearch extends NishElement {
   constructor() {
     super();
     this.value = '';
-    this.placeholder = 'Search';
     this.label = '';
     this.size = 'md';
     this.variant = 'field';
@@ -77,6 +77,7 @@ export class NishSearch extends NishElement {
   }
 
   protected override render(): TemplateResult {
+    const s = getStrings();
     const classes = ['nish-search'];
     if (this.size === 'xs' || this.size === 'sm') classes.push(`nish-search--${this.size}`);
     if (this.variant === 'bare') classes.push('nish-search--bare');
@@ -87,8 +88,8 @@ export class NishSearch extends NishElement {
         type="search"
         enterkeyhint="search"
         autocomplete="off"
-        aria-label=${this.label || (this.closest('nish-field') ? nothing : 'Search')}
-        placeholder=${this.placeholder ?? ''}
+        aria-label=${this.label || (this.closest('nish-field') ? nothing : s.search)}
+        placeholder=${this.placeholder ?? s.search}
         name=${this.name ?? nothing}
         ?disabled=${this.disabled}
         .value=${this.value ?? ''}
@@ -96,7 +97,7 @@ export class NishSearch extends NishElement {
         @keydown=${(e: KeyboardEvent) => this.#onKeydown(e)}
       />
       ${this.value && !this.disabled
-        ? html`<button type="button" class="nish-icon-btn nish-icon-btn--xs" aria-label="Clear" @click=${() => this.#clear()}>${X_ICON}</button>`
+        ? html`<button type="button" class="nish-icon-btn nish-icon-btn--xs" aria-label=${s.clear} @click=${() => this.#clear()}>${X_ICON}</button>`
         : nothing}
     </label>`;
   }

@@ -50,7 +50,7 @@ export const appErrorBoundary: ComponentDoc = {
   exports: ['AppErrorBoundary'],
   source: 'src/components/error-boundary.tsx',
   summary:
-    'Catches a render error below it and shows a themed fallback with Try again and Reload page, instead of a white screen. It needs no Toaster and no theme context, so it can wrap the whole app. A failed dynamic import after a release shows a "new version" message.',
+    'Catches a render error below it and shows a themed fallback with Try again and Reload page, instead of a white screen. It needs no Toaster and no theme context, so it can wrap the whole app. A failed dynamic import after a release shows a "new version" message. The default fallback shows the error message and stack only outside production, or when showDetails is set; end users get a generic message.',
   importLine: "import { AppErrorBoundary } from '@nish/ui';",
   controls: [],
   initial: {},
@@ -59,6 +59,18 @@ export const appErrorBoundary: ComponentDoc = {
   stories: [
     { id: 'default', name: 'Default fallback', render: () => <Fallback message="Could not render the portfolio chart." /> },
     { id: 'interactive', name: 'Throw on demand', render: () => <Demo /> },
+    {
+      id: 'production',
+      name: 'Production copy (no internals)',
+      note: 'showDetails={false} is what an end user sees in a production build: the message and stack stay hidden.',
+      render: () => (
+        <div className="w-full max-w-lg">
+          <AppErrorBoundary showDetails={false}>
+            <Boom message="Could not render the portfolio chart." />
+          </AppErrorBoundary>
+        </div>
+      ),
+    },
     {
       id: 'chunk',
       name: 'Stale deploy (failed dynamic import)',
@@ -81,5 +93,7 @@ export const appErrorBoundary: ComponentDoc = {
     'Error boundaries catch errors while rendering, not in event handlers or async code. Those go to ErrorState or a toast.',
     'Pass resetKeys={[location.pathname]} so navigating away from a broken page recovers without a reload.',
     'onError is called once per caught error: send it to your log endpoint there.',
+    'In production the default fallback hides the message and stack. Pass showDetails for an internal tool where you want them, or write your own fallback.',
+    'The fallback words (title, body, Try again, Reload page) come from NishProvider strings (errorTitle, errorBody, errorTryAgain, errorReload and the stale-version pair).',
   ],
 };

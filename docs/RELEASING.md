@@ -154,6 +154,28 @@ package missing from npm, a refused publish) turns the job red.
   absolute links only (npm does not resolve relative ones), no table wider than 3 short columns,
   detail on design.nish.software. `files` in `package.json` ships `dist` and `tsconfig`; check
   with `npm pack --dry-run` after `npm run build`.
+- **The tarball contents.** `files` ships `dist` (minus `dist/esm/**/*.map`) and `tsconfig`. Besides
+  the CSS, fonts and standalone JS, `dist/` has `esm/` (the preserved-modules build that bundlers
+  load: one file per source module, `"use client"` kept per module), `tailwind-core.css`,
+  `nish.min.css`, `nish-components.min.css`, `tokens.json`, `tokens.dtcg.json`, `theme-init.sha256`,
+  `elements-all.js` and `fonts/LICENSE-Inter.txt`. `dist/files.json` lists what a static site
+  vendors and carries `themeInitHash`. `npm run build` writes them all; `scripts/build.mjs` fails
+  when one is missing.
+- **Size checks.** `npm run size` (the last step of `npm run check`) bundles each import in
+  `tools/size-budgets.json` and fails over its gzip budget, and fails when `npm pack --dry-run`
+  reports an unpacked size over 2.5 MB. Lower a budget when a release shrinks an import; raising
+  one needs a reason in the PR. Before a release also look at the pack list:
+  `npm pack --dry-run` shows the new files and no `dist/esm` source maps.
+- **The exports snapshot.** `tools/api-surface.snapshot.json` lists every runtime export per
+  entry and every `.nish-*` class. After the final build, regenerate it with
+  `UPDATE_API_SURFACE=1 node --test tools/api-surface.test.mjs`; a removal then shows in the diff
+  and needs a major bump.
+- **Major releases.** The CHANGELOG entry for a major has `### Breaking` and `### Behavior changes`
+  sections, and `docs/MIGRATING-<major>.0.md` has before and after code for each. Every app's bump
+  PR is held until a session adopts it (see the fan-out above), so write the app-side change for
+  each fleet repo into the PR body or this file. 2.0.0: `hubHref` becomes `hub`, server-kit users
+  pass `trustProxy` and keep `caseInsensitive: true` where they relied on it, Favicon and LinkCard
+  users call `configureFavicons({ resolve: googleFavicon })`, `forwardRef`-typed usages get fixed.
 - **A publish run fails.** Read the job summary and log
   (`gh run list -R nishant/ui -w publish.yml`, then `gh run view <id> --log-failed`). Fix the
   cause on master, then rerun for the same tag: `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z`

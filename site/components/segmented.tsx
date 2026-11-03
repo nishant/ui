@@ -135,5 +135,8 @@ const [range, setRange] = useState<'24h' | '7d' | '30d'>('7d');
     'It is a single-choice radio group. Multi-select toggles are ChipGroup and Chip.',
     'Always pass label: it names the group for screen readers.',
     'Icon-only options need ariaLabel (and a title for mouse users).',
+    "name posts the selection in a native form (hidden radio inputs). defaultValue and onValueChange make it uncontrolled; value and onChange keep it controlled.",
+    "ref, id, className and aria-* go to the radiogroup, so Field can label and describe it.",
+    "In a right-to-left layout ArrowLeft moves forward and ArrowRight back, like a native radio group.",
   ],
 };

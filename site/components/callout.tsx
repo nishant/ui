@@ -193,6 +193,7 @@ export const callout: ComponentDoc = {
 // Appears after something fails: announce it.
 {error ? <Callout tone="loss" live>{error.message}</Callout> : null}`,
   guidelines: [
+    'The dismiss button is named by the NishProvider dismiss string; dismissLabel overrides it for one callout. An href with an unsafe scheme (javascript:, data:) is dropped and the callout is not a link.',
     'Use the tone for meaning: info for context, ok for success, warn for something to check soon, loss for a failure.',
     'Set live only when the callout appears in response to something; a notice present on page load needs no role.',
     'One action at most. A callout with several decisions is a dialog or a section.',

@@ -1,5 +1,6 @@
 import { html, nothing, svg, type TemplateResult } from 'lit';
 import { define } from './base';
+import { getStrings } from './strings';
 import { CHROME, NishChartBase, SR_ONLY, jsonList, normalizeBars, parseFormat, toneColor } from './chart-format';
 
 const BAR_TOP = 18;
@@ -60,6 +61,7 @@ export class NishBarChart extends NishChartBase {
   }
 
   protected override render(): TemplateResult {
+    const str = getStrings();
     const label = this.label;
     const height = this.height > 0 ? this.height : 140;
     const data = normalizeBars(this.data);
@@ -69,7 +71,7 @@ export class NishBarChart extends NishChartBase {
 
     if (!data.length) {
       return html`<div class="nish-chart">
-        <div class="nish-empty" role="img" aria-label="${label}: no data" style="height:${height}px;box-sizing:border-box">${this.empty || 'No data yet'}</div>
+        <div class="nish-empty" role="img" aria-label=${str.noDataNamed(label)} style="height:${height}px;box-sizing:border-box">${this.empty || str.noDataYet}</div>
       </div>`;
     }
 

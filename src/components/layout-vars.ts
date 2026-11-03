@@ -1,3 +1,4 @@
+'use client';
 import { useEffect, useState, type RefObject } from 'react';
 import { mountStuck } from '../theme';
 

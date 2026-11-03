@@ -242,6 +242,7 @@ export function Shell({ children }) {
   );
 }`,
   guidelines: [
+    'The landmark takes the NishProvider sections string; pass label to name it differently. Items whose href is not safe (javascript:, data:) are not rendered. The current item is also marked data-state="active", and drawn in the system highlight color in forced-colors mode.',
     'Four or five destinations at most; put the rest behind the More button and a MoreSheet.',
     'Give PageContainer (or the class nish-pad-bottom-inset) to the page so its last row clears the bar. Do not add your own bottom padding.',
     'Pass renderLink to use your router\'s Link; the bar adds the className and aria-current for you.',

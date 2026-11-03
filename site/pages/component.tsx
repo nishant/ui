@@ -2,13 +2,16 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import docgen from 'virtual:nish-docgen';
 import { Card, cn, CopyButton, Input, PRESETS, Select, SectionNav, Switch, Tabs, tabClass, useTheme, type ThemeName } from '../../src';
 import { COMPONENT_DOCS, RealModalButton, type ComponentDoc, type Control, type Story } from '../components';
-import { CodeBlock } from '../lib/code';
+import { CodeBlock, nishName } from '../lib/code';
 import { ExternalIcon } from '../lib/icons';
 import type { Args } from '../lib/jsx';
 import { href } from '../lib/router';
 import { PageHeader, PropsTable, Section, ThemeColumns } from '../lib/ui';
 
 const REPO = 'https://github.com/nishant/ui';
+
+/** Source links point at the release the page documents, not at master, so they cannot drift. */
+const SOURCE_REF = `v${docgen.version}`;
 
 /** URL of a preview frame: this same page, routed to #/frame/… */
 export function frameUrl(doc: ComponentDoc, opts: { story?: string; theme?: ThemeName; args?: Args }): string {
@@ -191,7 +194,7 @@ function StoryCard({ doc, story, theme }: { doc: ComponentDoc; story: Story; the
     <div className={cn('flex min-w-0 flex-col overflow-hidden rounded-xl border border-th-line bg-th-surface', (story.wide || doc.framed) && 'sm:col-span-2')}>
       <div className="border-b border-th-line px-4 py-2.5">
         <h3 className="text-sm font-semibold text-th-hi">{story.name}</h3>
-        {story.note ? <p className="mt-0.5 text-xs text-th-hi3">{story.note}</p> : null}
+        {story.note ? <p className="mt-0.5 text-xs text-th-hi3">{typeof story.note === 'string' ? nishName(story.note) : story.note}</p> : null}
       </div>
       {doc.framed ? (
         <Frame key={theme} src={frameUrl(doc, { story: story.id, theme })} height={doc.framed.height} title={`${doc.name}: ${story.name}`} />
@@ -252,14 +255,14 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Component" title={doc.name} lead={doc.summary}>
+      <PageHeader eyebrow="Component" title={doc.name} lead={nishName(doc.summary)}>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <div className="flex min-w-0 max-w-full items-center gap-2 rounded-lg border border-th-line bg-th-surface py-1 pl-3 pr-1">
-            <code className="min-w-0 truncate font-mono text-[13px] text-th-hi">{doc.importLine}</code>
-            <CopyButton text={doc.importLine} iconOnly label="Copy import line" />
+            <code className="min-w-0 truncate font-mono text-[13px] text-th-hi">{nishName(doc.importLine)}</code>
+            <CopyButton text={nishName(doc.importLine)} iconOnly label="Copy import line" />
           </div>
           <a
-            href={`${REPO}/blob/master/${file}`}
+            href={`${REPO}/blob/${SOURCE_REF}/${file}`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-th-hi2 hover:bg-th-elevated hover:text-th-hi pointer-coarse:min-h-11"
@@ -319,7 +322,7 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
           <Section id="guidelines" title="Guidelines">
             <ul className="max-w-2xl list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-th-hi2 marker:text-th-ghost">
               {doc.guidelines.map((g) => (
-                <li key={g}>{g}</li>
+                <li key={g}>{nishName(g)}</li>
               ))}
             </ul>
           </Section>

@@ -151,9 +151,10 @@ export const tooltip: ComponentDoc = {
 </Tooltip>`,
   guidelines: [
     'Tooltips explain; they never hold the only copy of something people need. Touch screens cannot hover.',
-    'The trigger becomes focusable, so keyboard users get the tip on focus. A focusable child (a button) shows it too.',
+    'When the child is a single focusable element (a button, a link, an IconButton) it gets aria-describedby and is the only Tab stop. Any other content is wrapped in a focusable span, so keyboard users get the tip on focus.',
+    'Escape dismisses the tip, and the pointer can move onto it: it closes about 100 ms after the pointer leaves both the trigger and the tip (WCAG 1.4.13).',
     'Use variant="hint" for a term the tip defines, instead of hand-styling a dotted underline.',
-    'Set focusable={false} only for dense marks (chart bars), and give those values another way in.',
+    'Set focusable={false} only for dense marks (chart bars), and give those values another way in. focusable={true} keeps the wrapper in the Tab order even around a button.',
     'For icon-only buttons, IconButton already sets a title and aria-label.',
   ],
 };

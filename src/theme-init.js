@@ -5,18 +5,29 @@
 (function () {
   var THEMES = __THEMES__;
   var BG = __BG__;
+  var own = function (o, k) {
+    return Object.prototype.hasOwnProperty.call(o, k);
+  };
+  var root = document.documentElement;
   // An app's own themes: window.__nishExtraThemes = { rose: 'dark', paper: 'light' }.
   var extra = window.__nishExtraThemes || {};
-  for (var k in extra) if (!THEMES[k]) THEMES[k] = extra[k];
+  for (var k in extra) if (own(extra, k) && !own(THEMES, k)) THEMES[k] = extra[k];
   var DEFAULT = __DEFAULT__;
-  var KEY = 'nish-theme';
-  var root = document.documentElement;
+  // Storage and cookie name: <html data-nish-storage-key="x"> (letters, digits, - and _).
+  var KEY = root.getAttribute('data-nish-storage-key');
+  if (!KEY || !/^[A-Za-z0-9_-]+$/.test(KEY)) KEY = 'nish-theme';
   var choice = null;
+  // Cookies and storage can each throw (sandboxed iframe, blocked site data): read them apart.
   try {
-    var m = document.cookie.match(/(?:^|;\s*)nish-theme=([a-z0-9-]+)/);
-    choice = m ? m[1] : localStorage.getItem(KEY);
+    var m = document.cookie.match(new RegExp('(?:^|;\\s*)' + KEY + '=([a-z0-9-]+)'));
+    choice = m ? m[1] : null;
   } catch (e) {}
-  if (choice !== 'system' && !THEMES[choice]) choice = 'system';
+  if (choice == null) {
+    try {
+      choice = localStorage.getItem(KEY);
+    } catch (e) {}
+  }
+  if (choice !== 'system' && !(typeof choice === 'string' && own(THEMES, choice))) choice = 'system';
   var theme = choice;
   if (theme === 'system') {
     theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : DEFAULT;
@@ -31,7 +42,7 @@
   root.style.colorScheme = THEMES[theme];
   // Browser and PWA chrome in the theme's bg from the first frame. An app's own
   // (registered) theme has no baked color: theme.ts sets it once its CSS is live.
-  if (BG[theme]) {
+  if (own(BG, theme)) {
     try {
       var meta = document.querySelector('meta[name="theme-color"][data-nish]');
       if (!meta) {
@@ -42,10 +53,13 @@
       }
       meta.setAttribute('content', BG[theme]);
       // A static theme-color an app ships would win over ours (the first one is used).
-      // Drop those, but keep the ones scoped by a media attribute.
+      // Drop those, but keep the ones scoped by a media attribute or marked data-nish-keep.
       var metas = document.querySelectorAll('meta[name="theme-color"]');
       for (var i = 0; i < metas.length; i++) {
-        if (metas[i] !== meta && !metas[i].hasAttribute('media') && metas[i].parentNode) metas[i].parentNode.removeChild(metas[i]);
+        var other = metas[i];
+        if (other !== meta && !other.hasAttribute('media') && !other.hasAttribute('data-nish-keep') && other.parentNode) {
+          other.parentNode.removeChild(other);
+        }
       }
     } catch (e) {}
   }

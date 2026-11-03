@@ -92,7 +92,7 @@ export async function main(argv) {
   const decision = plan({
     tag,
     version: pkg.version,
-    distOk: existsSync(join(dir, 'dist', 'index.js')),
+    distOk: existsSync(join(dir, 'dist', 'esm', 'index.js')),
     published: await publishedVersions(NPM_NAME),
   });
   if (decision.action === 'fail') {

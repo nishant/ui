@@ -1,6 +1,7 @@
 import type { PropertyValues } from 'lit';
 import { COMBOBOX_DEBOUNCE_MS, COMBOBOX_MAX_SHOWN, defaultComboboxFilter } from '../combobox-filter';
 import { NishElement, define, whenParsed } from './base';
+import { getStrings } from './strings';
 
 export interface NishComboboxOption {
   value: string;
@@ -96,7 +97,7 @@ export class NishCombobox extends NishElement {
     this.placeholder = null;
     this.label = null;
     this.allowCustom = false;
-    this.emptyText = 'No matches';
+    this.emptyText = '';
     this.size = null;
     this.disabled = false;
     this.loading = false;
@@ -174,7 +175,6 @@ export class NishCombobox extends NishElement {
     const clear = document.createElement('button');
     clear.type = 'button';
     clear.className = 'nish-icon-btn nish-combobox-clear';
-    clear.setAttribute('aria-label', 'Clear');
     clear.tabIndex = -1;
     clear.hidden = true;
     clear.append(icon('M18 6 6 18M6 6l12 12'));
@@ -401,6 +401,7 @@ export class NishCombobox extends NishElement {
     else input.removeAttribute('placeholder');
     if (this.label) input.setAttribute('aria-label', this.label);
     else input.removeAttribute('aria-label');
+    this.#clearBtn.setAttribute('aria-label', getStrings().clear);
     this.#clearBtn.hidden = !(this.#hasValue && !this.disabled);
 
     const hidden = this.#hidden;
@@ -440,6 +441,7 @@ export class NishCombobox extends NishElement {
   }
 
   #renderList(input: HTMLInputElement, root: HTMLDivElement, status: HTMLSpanElement): void {
+    const s = getStrings();
     const listId = `nish-cb-list-${this.#uid}`;
     const vis = this.#visible;
     const sel = this.#selected;
@@ -507,13 +509,13 @@ export class NishCombobox extends NishElement {
       const spin = document.createElement('span');
       spin.className = 'nish-spinner nish-spinner--sm';
       spin.setAttribute('aria-hidden', 'true');
-      row.append(spin, document.createTextNode('Searching…'));
+      row.append(spin, document.createTextNode(s.searching));
       items.push(row);
     } else if (vis.length === 0) {
       const row = document.createElement('li');
       row.setAttribute('role', 'presentation');
       row.className = 'nish-combobox-empty';
-      row.textContent = this.emptyText;
+      row.textContent = this.emptyText || s.noMatches;
       items.push(row);
     }
     list.replaceChildren(...items);
@@ -523,11 +525,7 @@ export class NishCombobox extends NishElement {
     if (this.#active >= 0 && vis[this.#active]) input.setAttribute('aria-activedescendant', `${listId}-opt-${this.#active}`);
     else input.removeAttribute('aria-activedescendant');
 
-    status.textContent = this.loading
-      ? 'Searching…'
-      : vis.length === 0
-        ? this.emptyText
-        : `${vis.length} ${vis.length === 1 ? 'result' : 'results'}`;
+    status.textContent = this.loading ? s.searching : vis.length === 0 ? this.emptyText || s.noMatches : s.resultCount(vis.length);
 
     this.#place(list, input);
     list.querySelector<HTMLElement>(`[data-index="${this.#active}"]`)?.scrollIntoView?.({ block: 'nearest' });

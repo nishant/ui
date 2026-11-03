@@ -1,24 +1,55 @@
+'use client';
 import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  type HTMLAttributes,
+  type ComponentPropsWithoutRef,
   type ReactNode,
+  type Ref,
   type SVGProps,
 } from 'react';
 import { cn } from '../cn';
 import { sparklineGeometry } from '../sparkline-path';
+import { safeUrl } from '../url';
+import { mergeRefs } from './data-classes';
+import { displayInternals, FORCED_MARK, toneFor, warnDev } from './display-classes';
+import type { CalloutTone, ChartLegendTone, MeterTone, SparklineTone, StatusTone } from './display-classes';
 import { Skeleton } from './feedback';
 import { AlertTriangleIcon, CheckCircleIcon, ChevronDownIcon, InfoIcon, XIcon } from './icons';
 import { useHeightVar, useStuck } from './layout-vars';
 import { DropdownMenu, Tooltip } from './overlay';
 import { Badge, Button, Card, IconButton, type ButtonProps } from './primitives';
+import { useNishStrings } from './provider';
 import { ThemeToggle } from './theme-toggle';
 
 // Read-only display pieces: notices, status marks, numbers, meters, small charts,
 // headers. Every color is a role; fills (*-fill) for marks, plain roles for text.
+
+// The pure helpers and tone types live in display-classes.ts (no directive) so server code
+// can import them; they are re-exported here so existing import paths keep working.
+export { signTone, toneFor } from './display-classes';
+export type { CalloutTone, ChartLegendTone, MeterTone, SparklineTone, StatusTone } from './display-classes';
+
+const {
+  FILL,
+  CALLOUT_TONE,
+  CALLOUT_CLAMP,
+  DOT_SIZE,
+  HALO,
+  STAT_VALUE_SIZE,
+  STAT_SKELETON,
+  STAT_TONE,
+  GRID_BASE,
+  GRID_MD,
+  METER_FILL,
+  METER_THICK,
+  METER_THICK_V,
+  SPARK_TONE,
+  LEGEND_FILL,
+} = displayInternals;
 
 // --- icons only this file needs (24px grid, 2px stroke, lucide geometry) -------------
 
@@ -63,39 +94,9 @@ const ChevronRightIcon = (p: IconProps) => (
   </Svg>
 );
 
-// --- shared tone maps -----------------------------------------------------------------
-
-/** Status tones shared by the display components. */
-export type StatusTone = 'ok' | 'warn' | 'loss' | 'info' | 'accent' | 'neutral';
-
-/** Solid fills for marks (dots, bars, meters). */
-const FILL: Record<StatusTone, string> = {
-  ok: 'bg-th-ok-fill',
-  warn: 'bg-th-warn-fill',
-  loss: 'bg-th-loss-fill',
-  info: 'bg-th-info-fill',
-  accent: 'bg-th-accent',
-  neutral: 'bg-th-ghost',
-};
-
 // =====================================================================================
 // Callout
 // =====================================================================================
-
-export type CalloutTone = 'neutral' | 'accent' | 'info' | 'ok' | 'warn' | 'loss';
-
-// box: translucent tint that sits in the flow. bar: the same tint flattened onto the page
-// background (-soft-solid), so content scrolling under a sticky bar never shows through.
-const CALLOUT_TONE: Record<CalloutTone, { box: string; bar: string; icon: string }> = {
-  neutral: { box: 'border-th-line bg-th-elevated', bar: 'border-th-line bg-th-elevated', icon: 'text-th-hi3' },
-  accent: { box: 'border-th-accent/30 bg-th-accent-soft', bar: 'border-th-accent/30 bg-th-accent-soft-solid', icon: 'text-th-accent' },
-  info: { box: 'border-th-info/30 bg-th-info-soft', bar: 'border-th-info/30 bg-th-info-soft-solid', icon: 'text-th-info' },
-  ok: { box: 'border-th-ok/30 bg-th-ok-soft', bar: 'border-th-ok/30 bg-th-ok-soft-solid', icon: 'text-th-ok' },
-  warn: { box: 'border-th-warn/30 bg-th-warn-soft', bar: 'border-th-warn/30 bg-th-warn-soft-solid', icon: 'text-th-warn' },
-  loss: { box: 'border-th-loss/30 bg-th-loss-soft', bar: 'border-th-loss/30 bg-th-loss-soft-solid', icon: 'text-th-loss' },
-};
-
-const CALLOUT_CLAMP = { 1: 'line-clamp-1', 2: 'line-clamp-2', 3: 'line-clamp-3' } as const;
 
 function defaultCalloutIcon(tone: CalloutTone, size: number): ReactNode {
   if (tone === 'ok') return <CheckCircleIcon size={size} />;
@@ -103,7 +104,9 @@ function defaultCalloutIcon(tone: CalloutTone, size: number): ReactNode {
   return <InfoIcon size={size} />;
 }
 
-export interface CalloutProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title' | 'onClick'> {
+export interface CalloutProps extends Omit<ComponentPropsWithoutRef<'div'>, 'title' | 'onClick'> {
+  /** The root element. */
+  ref?: Ref<HTMLDivElement>;
   /** What kind of notice: info and accent for news, ok for success, warn for something to
    *  check, loss for a failure. neutral is a plain grey note. */
   tone?: CalloutTone;
@@ -117,6 +120,8 @@ export interface CalloutProps extends Omit<HTMLAttributes<HTMLDivElement>, 'titl
   action?: ReactNode;
   /** Adds a Dismiss button that calls this. */
   onDismiss?: () => void;
+  /** Accessible name of the dismiss button. Default: the provider's `dismiss` string. */
+  dismissLabel?: string;
   /** box: a rounded tinted box in the flow (default). bar: full width with square
    *  corners and no side borders, for a sticky page-level alert. */
   variant?: 'box' | 'bar';
@@ -131,7 +136,9 @@ export interface CalloutProps extends Omit<HTMLAttributes<HTMLDivElement>, 'titl
   /** Limits the body to 1, 2 or 3 lines with an ellipsis, instead of growing. */
   clamp?: 1 | 2 | 3;
   /** Makes the icon, title and text one link (at least 44px tall) with a trailing
-   *  chevron. `action` and the dismiss button stay separate controls beside it. */
+   *  chevron. `action` and the dismiss button stay separate controls beside it. A URL that
+   *  is not safe (`javascript:` and so on) is dropped with a dev warning, and the callout
+   *  is not a link. */
   href?: string;
   /** Like href, but a button. */
   onClick?: () => void;
@@ -149,19 +156,24 @@ export function Callout({
   children,
   action,
   onDismiss,
+  dismissLabel,
   variant = 'box',
   compact = false,
   live = false,
   sticky = false,
   clamp,
-  href,
+  href: hrefProp,
   onClick,
   count,
   className,
+  ref,
   ...rest
 }: CalloutProps) {
+  const strings = useNishStrings();
   const t = CALLOUT_TONE[tone];
   const shown = icon === false ? null : (icon ?? defaultCalloutIcon(tone, compact ? 14 : 16));
+  const href = hrefProp == null ? undefined : (safeUrl(hrefProp) ?? undefined);
+  if (hrefProp != null && href === undefined) warnDev(`nish-ui: Callout dropped an unsafe href (${hrefProp.slice(0, 40)}).`);
   const interactive = href != null || onClick != null;
   const iconEl = shown ? <span className={cn('shrink-0', compact ? 'mt-px' : 'mt-0.5', t.icon)}>{shown}</span> : null;
   const text = (
@@ -170,7 +182,7 @@ export function Callout({
         <p className="flex items-center gap-2 font-medium leading-snug text-th-hi">
           {title ? <span className="min-w-0">{title}</span> : null}
           {count != null ? (
-            <Badge tone={tone} aria-label={`${count} more`} className="shrink-0">
+            <Badge tone={tone} aria-label={strings.moreCount(count)} className="shrink-0">
               +{count}
             </Badge>
           ) : null}
@@ -185,27 +197,29 @@ export function Callout({
   );
   const actionEl = action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null;
   const dismissEl = onDismiss ? (
-    <IconButton label="Dismiss" size="xs" onClick={onDismiss} className="-my-0.5 -mr-1">
+    <IconButton label={dismissLabel ?? strings.dismiss} size="xs" onClick={onDismiss} className="-my-0.5 -me-1">
       <XIcon size={14} />
     </IconButton>
   ) : null;
-  const chevron = <ChevronDownIcon size={16} className="-rotate-90 shrink-0 self-center text-th-hi3" />;
+  const chevron = <ChevronDownIcon size={16} className="-rotate-90 shrink-0 self-center text-th-hi3 rtl:rotate-90" />;
   const hit = cn(
-    'flex min-h-11 min-w-0 flex-1 items-start text-left outline-none focus-visible:ring-2 focus-visible:ring-th-accent/40',
+    'flex min-h-11 min-w-0 flex-1 items-start text-start outline-none focus-visible:ring-2 focus-visible:ring-th-accent/40',
     compact ? 'gap-2' : 'gap-3',
     // Pull the padding of the row into the link so the whole row is the target.
     compact ? '-my-2 py-2' : '-my-3 py-3',
   );
   return (
     <div
+      ref={ref}
       role={live ? (tone === 'loss' ? 'alert' : 'status') : undefined}
+      data-nish-bar={sticky ? '' : undefined}
       className={cn(
         'flex border',
         variant === 'bar' && action ? 'items-center' : 'items-start',
         compact ? 'gap-2 px-3 py-2 text-xs' : 'gap-3 px-4 py-3 text-sm',
         variant === 'bar' ? 'w-full rounded-none border-x-0' : 'rounded-xl',
         variant === 'bar' ? t.bar : t.box,
-        sticky && 'sticky top-[var(--nish-header-h,0px)] z-20',
+        sticky && 'sticky top-[var(--nish-header-h,0px)] z-[var(--nish-z-sticky,20)]',
         className,
       )}
       {...rest}
@@ -246,18 +260,9 @@ export function Callout({
 // StatusDot
 // =====================================================================================
 
-const DOT_SIZE = { xs: 'size-1.5', sm: 'size-2', md: 'size-2.5', lg: 'size-3.5' } as const;
-
-const HALO: Record<StatusTone, string> = {
-  ok: 'ring-4 ring-th-ok-fill/25',
-  warn: 'ring-4 ring-th-warn-fill/25',
-  loss: 'ring-4 ring-th-loss-fill/25',
-  info: 'ring-4 ring-th-info-fill/25',
-  accent: 'ring-4 ring-th-accent/25',
-  neutral: 'ring-4 ring-th-ghost/25',
-};
-
-export interface StatusDotProps {
+export interface StatusDotProps extends Omit<ComponentPropsWithoutRef<'span'>, 'children'> {
+  /** The dot element. */
+  ref?: Ref<HTMLSpanElement>;
   /** ok, warn, loss and info use the status fills; accent the accent; neutral the ghost grey. */
   tone: StatusTone;
   /** xs 6px, sm 8px (default), md 10px, lg 14px. */
@@ -269,48 +274,43 @@ export interface StatusDotProps {
   /** The accessible name read by screen readers ("Up", "Degraded"; role="img"). Without it the
    *  dot is aria-hidden, so always pair it with visible text then. */
   label?: string;
-  className?: string;
 }
 
 /** A small round status mark. Color is never the only signal: give it a label or
- *  put text beside it. */
-export function StatusDot({ tone, size = 'sm', pulse = false, halo = false, label, className }: StatusDotProps) {
+ *  put text beside it. In forced-colors mode it stays visible in the system highlight color. */
+export function StatusDot({ tone, size = 'sm', pulse = false, halo = false, label, className, ref, ...rest }: StatusDotProps) {
   return (
     <span
+      ref={ref}
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
+      data-tone={tone}
       className={cn(
         'inline-block shrink-0 rounded-full',
         DOT_SIZE[size],
         FILL[tone],
         halo && HALO[tone],
         pulse && 'motion-safe:animate-pulse',
+        FORCED_MARK,
+        'forced-colors:border forced-colors:border-[CanvasText]',
         className,
       )}
+      {...rest}
     />
   );
 }
 
 // =====================================================================================
-// Stat, StatGrid, signTone
+// Stat, StatGrid
 // =====================================================================================
 
-/** ok for a positive number, loss for a negative one, neutral for zero or nothing.
- *  Replaces `n >= 0 ? gain : loss` ternaries. */
-export function signTone(n: number | null | undefined): 'ok' | 'loss' | 'neutral' {
-  if (n == null || Number.isNaN(n) || n === 0) return 'neutral';
-  return n > 0 ? 'ok' : 'loss';
-}
-
-const STAT_VALUE_SIZE = { sm: 'text-base', md: 'text-xl', lg: 'text-2xl' } as const;
-const STAT_SKELETON = { sm: 'h-6', md: 'h-7', lg: 'h-8' } as const;
-const STAT_TONE = { ok: 'text-th-ok', loss: 'text-th-loss', warn: 'text-th-warn', neutral: 'text-th-hi' } as const;
-
 // Set by StatGrid so each Stat renders a <div> of <dt>/<dd> inside its <dl>.
-const InStatGrid = createContext(false);
+const InStatGrid = /* @__PURE__ */ createContext(false);
 
-export interface StatProps {
+export interface StatProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'title'> {
+  /** The root element: the card, or the `dl` / `div` of the other variants. */
+  ref?: Ref<HTMLElement>;
   /** What the number is: "Open positions", "Uptime (30d)". */
   label: ReactNode;
   /** The number, already formatted ("$12,480", "99.95%"). */
@@ -328,7 +328,6 @@ export interface StatProps {
   variant?: 'card' | 'inset' | 'plain';
   /** Skeleton bars of the same size instead of the value and sub. */
   loading?: boolean;
-  className?: string;
 }
 
 /** One labelled number. Inside a StatGrid it is a row of the grid's <dl>; on its own it
@@ -343,6 +342,8 @@ export function Stat({
   variant = 'card',
   loading = false,
   className,
+  ref,
+  ...rest
 }: StatProps) {
   const inGrid = useContext(InStatGrid);
   // hi3 clears 4.5:1 on bg and surface only; on the elevated inset box the quiet text is hi2.
@@ -379,79 +380,50 @@ export function Stat({
       )}
     </>
   );
-  const Box = inGrid ? 'div' : 'dl';
   if (variant === 'card') {
     return (
-      <Card padding="sm" className={cn('min-w-0', className)}>
+      <Card ref={ref} padding="sm" className={cn('min-w-0', className)} {...rest}>
         {inGrid ? body : <dl>{body}</dl>}
       </Card>
     );
   }
-  return <Box className={cn('min-w-0', variant === 'inset' && 'rounded-lg bg-th-elevated p-3', className)}>{body}</Box>;
+  const Box = (inGrid ? 'div' : 'dl') as 'div';
+  return (
+    <Box
+      ref={ref as Ref<HTMLDivElement>}
+      className={cn('min-w-0', variant === 'inset' && 'rounded-lg bg-th-elevated p-3', className)}
+      {...rest}
+    >
+      {body}
+    </Box>
+  );
 }
 
-const GRID_BASE = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' } as const;
-const GRID_MD = {
-  2: 'md:grid-cols-2',
-  3: 'md:grid-cols-3',
-  4: 'md:grid-cols-4',
-  5: 'md:grid-cols-5',
-  6: 'md:grid-cols-6',
-} as const;
-
-export interface StatGridProps {
+export interface StatGridProps extends Omit<ComponentPropsWithoutRef<'dl'>, 'children'> {
+  /** The `dl` element. */
+  ref?: Ref<HTMLDListElement>;
   /** Columns on phones (base, default 2) and from 768px (md, default 4). */
   cols?: { base?: keyof typeof GRID_BASE; md?: keyof typeof GRID_MD };
   /** Stat elements. */
   children: ReactNode;
-  className?: string;
 }
 
 /** A responsive grid of Stats, rendered as one <dl>. */
-export function StatGrid({ cols, children, className }: StatGridProps) {
+export function StatGrid({ cols, children, className, ref, ...rest }: StatGridProps) {
   return (
-    <dl className={cn('grid gap-3', GRID_BASE[cols?.base ?? 2], GRID_MD[cols?.md ?? 4], className)}>
+    <dl ref={ref} className={cn('grid gap-3', GRID_BASE[cols?.base ?? 2], GRID_MD[cols?.md ?? 4], className)} {...rest}>
       <InStatGrid.Provider value={true}>{children}</InStatGrid.Provider>
     </dl>
   );
 }
 
 // =====================================================================================
-// Meter, toneFor
+// Meter
 // =====================================================================================
 
-/** ok, warn or loss for a value against two thresholds. When loss is above warn, higher
- *  is worse (disk use: { warn: 75, loss: 90 }). When loss is below warn, lower is worse
- *  (battery: { warn: 30, loss: 10 }). */
-export function toneFor(value: number, t: { warn: number; loss: number }): 'ok' | 'warn' | 'loss' {
-  if (t.loss >= t.warn) return value >= t.loss ? 'loss' : value >= t.warn ? 'warn' : 'ok';
-  return value <= t.loss ? 'loss' : value <= t.warn ? 'warn' : 'ok';
-}
-
-type ChartTone = `chart-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
-export type MeterTone = 'accent' | 'ok' | 'warn' | 'loss' | 'info' | 'neutral' | ChartTone;
-
-const METER_FILL: Record<MeterTone, string> = {
-  accent: 'bg-th-accent',
-  ok: 'bg-th-ok-fill',
-  warn: 'bg-th-warn-fill',
-  loss: 'bg-th-loss-fill',
-  info: 'bg-th-info-fill',
-  neutral: 'bg-th-hi3',
-  'chart-1': 'bg-th-chart-1',
-  'chart-2': 'bg-th-chart-2',
-  'chart-3': 'bg-th-chart-3',
-  'chart-4': 'bg-th-chart-4',
-  'chart-5': 'bg-th-chart-5',
-  'chart-6': 'bg-th-chart-6',
-  'chart-7': 'bg-th-chart-7',
-  'chart-8': 'bg-th-chart-8',
-};
-
-const METER_THICK = { xs: 'h-1', sm: 'h-1.5', md: 'h-2.5' } as const;
-const METER_THICK_V = { xs: 'w-1', sm: 'w-1.5', md: 'w-2.5' } as const;
-
-export interface MeterProps {
+export interface MeterProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'role'> {
+  /** The element with the `meter` / `progressbar` role (the bar itself, also with `showValue`). */
+  ref?: Ref<HTMLDivElement>;
   /** The current value, between min and max (clamped). */
   value: number;
   /** Default 0. */
@@ -476,10 +448,11 @@ export interface MeterProps {
   kind?: 'meter' | 'progress';
   /** Shows the rounded percentage beside a horizontal bar. */
   showValue?: boolean;
-  className?: string;
 }
 
-/** A thin bar showing how full something is: disk, quota, progress, a score. */
+/** A thin bar showing how full something is: disk, quota, progress, a score. The fill
+ *  stays visible in forced-colors mode (system highlight on a bordered track). `className`
+ *  goes on the bar, or on the wrapper row with `showValue`. */
 export function Meter({
   value,
   min = 0,
@@ -493,6 +466,8 @@ export function Meter({
   kind = 'meter',
   showValue = false,
   className,
+  ref,
+  ...rest
 }: MeterProps) {
   const span = max - min || 1;
   const clamped = Math.min(Math.max(value, min), max);
@@ -501,15 +476,19 @@ export function Meter({
   const vertical = orientation === 'vertical';
   const bar = (
     <div
+      {...rest}
+      ref={ref}
       role={kind === 'progress' ? 'progressbar' : 'meter'}
       aria-label={label}
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuenow={clamped}
       aria-valuetext={`${Math.round(pct)}%`}
+      data-tone={resolved}
       className={cn(
         'relative shrink-0 overflow-hidden rounded-full',
         track === 'overlay' ? 'bg-th-overlay' : 'bg-th-elevated',
+        'forced-colors:border forced-colors:border-[CanvasText] forced-colors:bg-[Canvas]',
         vertical ? cn('h-full', METER_THICK_V[size]) : cn('w-full', METER_THICK[size]),
         !showValue && className,
       )}
@@ -517,8 +496,9 @@ export function Meter({
       <div
         className={cn(
           'absolute rounded-full duration-300 ease-out motion-reduce:transition-none',
-          vertical ? 'inset-x-0 bottom-0 transition-[height]' : 'inset-y-0 left-0 transition-[width]',
+          vertical ? 'inset-x-0 bottom-0 transition-[height]' : 'inset-y-0 start-0 transition-[width]',
           METER_FILL[resolved],
+          FORCED_MARK,
         )}
         style={vertical ? { height: `${pct}%` } : { width: `${pct}%` }}
       />
@@ -528,7 +508,7 @@ export function Meter({
   return (
     <div className={cn('flex w-full items-center gap-2', className)}>
       {bar}
-      <span aria-hidden="true" className="w-9 shrink-0 text-right text-xs tabular-nums text-th-hi3">
+      <span aria-hidden="true" className="w-9 shrink-0 text-end text-xs tabular-nums text-th-hi3">
         {Math.round(pct)}%
       </span>
     </div>
@@ -539,25 +519,10 @@ export function Meter({
 // Sparkline
 // =====================================================================================
 
-export type SparklineTone = ChartTone | 'accent' | 'ok' | 'warn' | 'loss' | 'info';
-
-const SPARK_TONE: Record<SparklineTone, string> = {
-  accent: 'text-th-accent',
-  ok: 'text-th-ok-fill',
-  warn: 'text-th-warn-fill',
-  loss: 'text-th-loss-fill',
-  info: 'text-th-info-fill',
-  'chart-1': 'text-th-chart-1',
-  'chart-2': 'text-th-chart-2',
-  'chart-3': 'text-th-chart-3',
-  'chart-4': 'text-th-chart-4',
-  'chart-5': 'text-th-chart-5',
-  'chart-6': 'text-th-chart-6',
-  'chart-7': 'text-th-chart-7',
-  'chart-8': 'text-th-chart-8',
-};
-
-export interface SparklineProps {
+export interface SparklineProps
+  extends Omit<ComponentPropsWithoutRef<'svg'>, 'values' | 'fill' | 'min' | 'max' | 'width' | 'height' | 'children'> {
+  /** The svg element. */
+  ref?: Ref<SVGSVGElement>;
   /** The series, oldest first. null leaves a gap (a missed check, a closed market). */
   values: (number | null)[];
   /** Accessible name, ideally with the trend: "Response time, last 24 hours, 120 to 180 ms". */
@@ -574,11 +539,11 @@ export interface SparklineProps {
   min?: number;
   /** Top of the scale. Default: the largest value. */
   max?: number;
-  className?: string;
 }
 
 /** A tiny line chart with no axes, for a trend beside a number. Plain SVG, no chart
- *  library. Gaps at nulls; a flat dashed line when there is no data. */
+ *  library. Gaps at nulls; a flat dashed line when there is no data. The geometry is
+ *  recomputed only when `values`, the size or the scale change. */
 export function Sparkline({
   values,
   label,
@@ -589,17 +554,25 @@ export function Sparkline({
   min,
   max,
   className,
+  ref,
+  ...rest
 }: SparklineProps) {
-  const { empty, lines, areas, baseline } = sparklineGeometry(values, width, height, min, max);
+  const strings = useNishStrings();
+  const { empty, lines, areas, baseline } = useMemo(
+    () => sparklineGeometry(values, width, height, min, max),
+    [values, width, height, min, max],
+  );
 
   return (
     <svg
       role="img"
-      aria-label={empty ? `${label}: no data` : label}
+      aria-label={empty ? strings.noDataNamed(label) : label}
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
+      {...rest}
+      ref={ref}
       className={cn('block shrink-0 overflow-visible', empty ? 'text-th-line-strong' : SPARK_TONE[tone], className)}
     >
       {empty ? (
@@ -635,7 +608,9 @@ export function Sparkline({
 // Disclosure
 // =====================================================================================
 
-export interface DisclosureProps {
+export interface DisclosureProps extends Omit<ComponentPropsWithoutRef<'details'>, 'open' | 'onToggle' | 'children'> {
+  /** The `details` element. */
+  ref?: Ref<HTMLDetailsElement>;
   /** The always-visible row that opens and closes it. */
   summary: ReactNode;
   /** What it reveals. */
@@ -648,11 +623,10 @@ export interface DisclosureProps {
   onOpenChange?: (open: boolean) => void;
   /** plain: a bare row (default). card: a bordered surface box. */
   variant?: 'plain' | 'card';
-  className?: string;
 }
 
 /** Show-more on native <details>/<summary>: keyboard and find-in-page work for free,
- *  with a chevron that turns when open. */
+ *  with a chevron that turns when open. The root carries `data-state="open|closed"`. */
 export function Disclosure({
   summary,
   children,
@@ -661,15 +635,23 @@ export function Disclosure({
   onOpenChange,
   variant = 'plain',
   className,
+  ref,
+  ...rest
 }: DisclosureProps) {
   const card = variant === 'card';
+  const [inner, setInner] = useState(defaultOpen);
+  const isOpen = open ?? inner;
   return (
     <details
-      // Uncontrolled, React writes defaultOpen once and the element owns the state after;
-      // controlled, React writes it whenever `open` changes.
-      open={open ?? defaultOpen}
+      {...rest}
+      ref={ref}
+      // Controlled, React writes `open` whenever it changes; uncontrolled, the element owns
+      // the state and `inner` mirrors it for data-state.
+      open={isOpen}
+      data-state={isOpen ? 'open' : 'closed'}
       onToggle={(e) => {
         const now = e.currentTarget.open;
+        if (open === undefined) setInner(now);
         // Skip the toggle event React's own write of `open` causes.
         if (open === undefined || now !== open) onOpenChange?.(now);
       }}
@@ -688,11 +670,11 @@ export function Disclosure({
       >
         <ChevronRightIcon
           size={14}
-          className="shrink-0 text-th-hi3 transition-transform duration-150 group-open:rotate-90 motion-reduce:transition-none"
+          className="shrink-0 text-th-hi3 transition-transform duration-150 group-open:rotate-90 rtl:rotate-180 rtl:group-open:rotate-90 motion-reduce:transition-none"
         />
         <span className="min-w-0 flex-1">{summary}</span>
       </summary>
-      <div className={cn('text-sm text-th-hi2', card ? 'border-t border-th-line px-4 py-3' : 'pb-2 pl-6 pt-1')}>
+      <div className={cn('text-sm text-th-hi2', card ? 'border-t border-th-line px-4 py-3' : 'pb-2 ps-6 pt-1')}>
         {children}
       </div>
     </details>
@@ -703,10 +685,16 @@ export function Disclosure({
 // Kbd
 // =====================================================================================
 
+export interface KbdProps extends ComponentPropsWithoutRef<'kbd'> {
+  /** The `kbd` element. */
+  ref?: Ref<HTMLElement>;
+}
+
 /** A keyboard key or shortcut, e.g. <Kbd>⌘K</Kbd>. */
-export function Kbd({ className, ...rest }: HTMLAttributes<HTMLElement>) {
+export function Kbd({ className, ref, ...rest }: KbdProps) {
   return (
     <kbd
+      ref={ref}
       className={cn(
         'inline-flex min-w-[1.5em] items-center justify-center rounded border border-th-line-strong bg-th-elevated px-1.5 font-mono text-2xs leading-4 text-th-hi2',
         className,
@@ -720,30 +708,38 @@ export function Kbd({ className, ...rest }: HTMLAttributes<HTMLElement>) {
 // copyText, CopyButton
 // =====================================================================================
 
-/** Copies text to the clipboard. Uses the Clipboard API, falling back to a hidden
- *  textarea for insecure origins and old browsers. Resolves true when it worked. */
+/** Copies text to the clipboard. Uses the Clipboard API when it exists and the page is a
+ *  secure context; otherwise (no API, an insecure origin, a denied permission, an old
+ *  browser) it falls back to a hidden textarea and `execCommand('copy')`. Resolves true when
+ *  it worked, false when neither path did. */
 export async function copyText(text: string): Promise<boolean> {
   try {
-    if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof window !== 'undefined' && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
       return true;
     }
   } catch {
     // permission denied or not focused: try the fallback
   }
-  if (typeof document === 'undefined') return false;
+  if (typeof document === 'undefined' || !document.body) return false;
   const ta = document.createElement('textarea');
   ta.value = text;
   ta.setAttribute('readonly', '');
+  ta.setAttribute('aria-hidden', 'true');
   ta.style.position = 'fixed';
   ta.style.top = '-1000px';
   ta.style.opacity = '0';
   const active = document.activeElement as HTMLElement | null;
   document.body.appendChild(ta);
   ta.select();
+  try {
+    ta.setSelectionRange(0, text.length);
+  } catch {
+    // some engines refuse on a readonly field
+  }
   let ok = false;
   try {
-    ok = document.execCommand('copy');
+    ok = typeof document.execCommand === 'function' && document.execCommand('copy');
   } catch {
     ok = false;
   }
@@ -754,13 +750,18 @@ export async function copyText(text: string): Promise<boolean> {
 
 const COPIED_MS = 1_500;
 
-export interface CopyButtonProps {
+export interface CopyButtonProps extends Omit<ComponentPropsWithoutRef<'button'>, 'onCopy' | 'onClick' | 'children' | 'type'> {
+  /** The button element. */
+  ref?: Ref<HTMLButtonElement>;
   /** What lands on the clipboard. */
   text: string;
-  /** Button text, and the accessible name when iconOnly. Default "Copy". */
+  /** Button text, and the accessible name when iconOnly. Default: the provider's `copy` string ("Copy"). */
   label?: string;
-  /** Shown for 1.5s after a copy and announced politely. Default "Copied". */
+  /** Shown for 1.5s after a copy and announced politely. Default: the provider's `copied` string. */
   copiedLabel?: string;
+  /** Shown for 1.5s when neither the Clipboard API nor the textarea fallback worked, and
+   *  announced politely. Default "Copy failed". */
+  failedLabel?: string;
   /** A square IconButton instead of a labelled Button. */
   iconOnly?: boolean;
   /** Button size (or IconButton size when iconOnly). Default sm. */
@@ -769,48 +770,58 @@ export interface CopyButtonProps {
   variant?: ButtonProps['variant'];
   /** Called after each copy attempt with whether it worked. */
   onCopy?: (ok: boolean) => void;
-  className?: string;
 }
 
-/** Copies text with one click, shows "Copied" for 1.5s and tells screen readers. */
+/** Copies text with one click, shows "Copied" for 1.5s and tells screen readers. Without a
+ *  Clipboard API (or on an insecure origin) it falls back to a textarea and `execCommand`;
+ *  when that fails too it shows `failedLabel` instead. */
 export function CopyButton({
   text,
-  label = 'Copy',
-  copiedLabel = 'Copied',
+  label,
+  copiedLabel,
+  failedLabel = 'Copy failed',
   iconOnly = false,
   size = 'sm',
   variant = 'secondary',
   onCopy,
   className,
+  ref,
+  ...rest
 }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false);
+  const strings = useNishStrings();
+  const idleText = label ?? strings.copy;
+  const doneText = copiedLabel ?? strings.copied;
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
   const onClick = async () => {
     const ok = await copyText(text);
     onCopy?.(ok);
-    if (!ok) return;
-    setCopied(true);
+    setState(ok ? 'copied' : 'failed');
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setCopied(false), COPIED_MS);
+    timer.current = setTimeout(() => setState('idle'), COPIED_MS);
   };
+  const shownText = state === 'copied' ? doneText : state === 'failed' ? failedLabel : idleText;
   const iconSize = size === 'sm' ? 14 : 16;
-  const icon = copied ? <CheckIcon size={iconSize} className="text-th-ok" /> : <CopyIcon size={iconSize} />;
+  const icon = state === 'copied' ? <CheckIcon size={iconSize} className="text-th-ok" /> : <CopyIcon size={iconSize} />;
   return (
     <>
       {iconOnly ? (
-        <IconButton label={copied ? copiedLabel : label} size={size} onClick={onClick} className={className}>
+        <IconButton ref={ref} label={shownText} size={size} onClick={onClick} className={className} data-state={state} {...rest}>
           {icon}
         </IconButton>
       ) : (
-        <Button variant={variant} size={size} icon={icon} onClick={onClick} className={className}>
-          {copied ? copiedLabel : label}
+        <Button ref={ref} variant={variant} size={size} icon={icon} onClick={onClick} className={className} data-state={state} {...rest}>
+          {shownText}
         </Button>
       )}
       <span role="status" aria-live="polite" className="sr-only">
-        {copied ? copiedLabel : ''}
+        {state === 'copied' ? doneText : state === 'failed' ? failedLabel : ''}
       </span>
     </>
   );
@@ -820,7 +831,9 @@ export function CopyButton({
 // PageHeader
 // =====================================================================================
 
-export interface PageHeaderProps {
+export interface PageHeaderProps extends Omit<ComponentPropsWithoutRef<'header'>, 'title'> {
+  /** The `header` element. */
+  ref?: Ref<HTMLElement>;
   /** The page's title. */
   title: ReactNode;
   /** One sentence under the title. */
@@ -840,7 +853,6 @@ export interface PageHeaderProps {
   /** Sticky only: under 640px, once stuck, hide the description and show the title as
    *  one truncated line, so the bar stays short. Default true. */
   collapseWhenStuck?: boolean;
-  className?: string;
 }
 
 /** The title block at the top of a page: optional back link and eyebrow, the title,
@@ -855,18 +867,22 @@ export function PageHeader({
   sticky = false,
   collapseWhenStuck = true,
   className,
+  ref: refProp,
+  ...rest
 }: PageHeaderProps) {
   const ref = useRef<HTMLElement>(null);
   const stuck = useStuck(ref) && sticky;
   const collapsed = stuck && collapseWhenStuck;
   return (
     <header
-      ref={ref}
+      {...rest}
+      ref={mergeRefs(ref, refProp)}
+      data-nish-bar={sticky ? '' : undefined}
       className={cn(
         'flex flex-col gap-2',
         sticky &&
           cn(
-            'sticky top-[var(--nish-header-h,0px)] z-20 -mx-[var(--nish-page-gutter,1rem)] border-b bg-th-bg px-[var(--nish-page-gutter,1rem)] py-3',
+            'sticky top-[var(--nish-header-h,0px)] z-[var(--nish-z-sticky,20)] -mx-[var(--nish-page-gutter,1rem)] border-b bg-th-bg px-[var(--nish-page-gutter,1rem)] py-3',
             stuck ? 'border-th-line' : 'border-transparent',
           ),
         className,
@@ -896,7 +912,19 @@ export function PageHeader({
 // AppHeader
 // =====================================================================================
 
-export interface AppHeaderProps {
+/** The hub pill: a link back to the site that hosts a family of apps. */
+export interface AppHeaderHub {
+  /** Where the pill goes. An unsafe URL (`javascript:` and so on) hides the pill with a dev warning. */
+  href: string;
+  /** The pill text after the arrow ("nish.software", "Acme home"). */
+  label: ReactNode;
+  /** The pill's title attribute. Default: the provider's `hubTitle` string. */
+  title?: string;
+}
+
+export interface AppHeaderProps extends Omit<ComponentPropsWithoutRef<'header'>, 'children'> {
+  /** The `header` element. */
+  ref?: Ref<HTMLElement>;
   /** The app's name, shown as the wordmark. */
   name: ReactNode;
   /** An icon before the name, drawn in the accent color. */
@@ -905,8 +933,10 @@ export interface AppHeaderProps {
    *  switcher, a wordmark with a subtitle). It is not wrapped in a link; `name` stays for
    *  screen readers. */
   brand?: ReactNode;
-  /** Where the "← nish.software" pill goes. Default https://nish.software. */
-  hubHref?: string;
+  /** A pill at the start of the header that links back to a hub site ("← nish.software").
+   *  Default false: no pill. The nish.software apps pass
+   *  `{ href: 'https://nish.software', label: 'nish.software' }`. */
+  hub?: AppHeaderHub | false;
   /** Buttons before the theme toggle. */
   actions?: ReactNode;
   /** A second row of nav links (use tabClass on each, aria-current on the active one). */
@@ -922,8 +952,8 @@ export interface AppHeaderProps {
   /** Under 640px show only the icon; the name stays for screen readers, so the pill,
    *  actions and theme toggle fit on one row. Needs an icon. */
   hideNameBelow?: 'sm';
-  /** Names the nav row's <nav> landmark ("Trackers"), so several navs on a page can be
-   *  told apart. */
+  /** Names the nav row's <nav> landmark. Default: the provider's `sections` string. Give
+   *  each nav on a page its own name. */
   navLabel?: string;
   /** Under 480px the hub pill shrinks to its arrow (.nish-pill-link--compact), for
    *  headers with a long name. */
@@ -934,7 +964,6 @@ export interface AppHeaderProps {
   /** Extra MenuItems. From 640px they render after `actions`; under 640px they collapse
    *  into a "More actions" kebab menu, so the row never wraps. */
   overflowActions?: ReactNode;
-  className?: string;
 }
 
 /** A 3-dot "more" icon for the overflow kebab. */
@@ -948,14 +977,14 @@ function MoreVerticalIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-/** The shared app header: the hub pill, the wordmark, actions and the theme toggle,
+/** The shared app header: an optional hub pill, the wordmark, actions and the theme toggle,
  *  with an optional nav row. Opaque by default (glass is opt-in), safe-area aware. A
  *  sticky header publishes its height as `--nish-header-h` for the rest of the layout. */
 export function AppHeader({
   name,
   icon,
   brand,
-  hubHref = 'https://nish.software',
+  hub = false,
   actions,
   nav,
   themeToggle,
@@ -968,7 +997,10 @@ export function AppHeader({
   glass = false,
   overflowActions,
   className,
+  ref: refProp,
+  ...rest
 }: AppHeaderProps) {
+  const strings = useNishStrings();
   const ref = useRef<HTMLElement>(null);
   useHeightVar(ref, '--nish-header-h', sticky);
   const stuck = useStuck(ref) && sticky;
@@ -983,6 +1015,8 @@ export function AppHeader({
   });
   const toggle = themeToggle === false ? null : (themeToggle ?? <ThemeToggle />);
   const hideName = hideNameBelow === 'sm' && icon != null;
+  const hubHref = hub ? safeUrl(hub.href) : null;
+  if (hub && hubHref == null) warnDev(`nish-ui: AppHeader hid the hub pill because its href is not safe (${hub.href.slice(0, 40)}).`);
   const mark = (
     <>
       {icon ? <span className="shrink-0 text-th-accent [&>svg]:size-5">{icon}</span> : null}
@@ -990,13 +1024,16 @@ export function AppHeader({
     </>
   );
   const markClass = 'inline-flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight text-th-hi';
+  const pillArrow = <span className="inline-block rtl:-scale-x-100">←</span>;
   return (
     <header
-      ref={ref}
+      {...rest}
+      ref={mergeRefs(ref, refProp)}
+      data-nish-bar={sticky ? '' : undefined}
       className={cn(
         'border-b border-th-line pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]',
         glass ? 'bg-th-bg supports-[backdrop-filter]:bg-th-bg/80 supports-[backdrop-filter]:backdrop-blur-xl' : 'bg-th-bg',
-        sticky && 'sticky top-0 z-30 transition-shadow',
+        sticky && 'sticky top-0 z-[calc(var(--nish-z-sticky,20)+10)] transition-shadow',
         stuck && 'shadow-[var(--nish-shadow-card)]',
         className,
       )}
@@ -1007,19 +1044,21 @@ export function AppHeader({
           innerClassName,
         )}
       >
-        {compactPill ? (
-          <a className="nish-pill-link nish-pill-link--compact" href={hubHref} title="Back to nish.software">
-            ← <span className="nish-pill-link-label">nish.software</span>
-          </a>
-        ) : (
-          <a
-            className="nish-pill-link @max-[400px]/header:min-w-11 @max-[400px]/header:justify-center @max-[400px]/header:px-1.5 @max-[400px]/header:[&_.nish-pill-link-label]:sr-only"
-            href={hubHref}
-            title="Back to nish.software"
-          >
-            ← <span className="nish-pill-link-label">nish.software</span>
-          </a>
-        )}
+        {hub && hubHref != null ? (
+          compactPill ? (
+            <a className="nish-pill-link nish-pill-link--compact" href={hubHref} title={hub.title ?? strings.hubTitle}>
+              {pillArrow} <span className="nish-pill-link-label">{hub.label}</span>
+            </a>
+          ) : (
+            <a
+              className="nish-pill-link @max-[400px]/header:min-w-11 @max-[400px]/header:justify-center @max-[400px]/header:px-1.5 @max-[400px]/header:[&_.nish-pill-link-label]:sr-only"
+              href={hubHref}
+              title={hub.title ?? strings.hubTitle}
+            >
+              {pillArrow} <span className="nish-pill-link-label">{hub.label}</span>
+            </a>
+          )
+        ) : null}
         {brand != null ? (
           <div className="flex min-w-0 items-center">
             <span className="sr-only">{name}</span>
@@ -1032,7 +1071,7 @@ export function AppHeader({
         ) : (
           <span className={markClass}>{mark}</span>
         )}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ms-auto flex shrink-0 items-center gap-2">
           {actions}
           {overflowActions ? (
             <>
@@ -1043,7 +1082,7 @@ export function AppHeader({
                 <DropdownMenu
                   align="end"
                   trigger={
-                    <IconButton label="More actions">
+                    <IconButton label={strings.moreActions}>
                       <MoreVerticalIcon />
                     </IconButton>
                   }
@@ -1058,7 +1097,7 @@ export function AppHeader({
       </div>
       {nav ? (
         <nav
-          aria-label={navLabel}
+          aria-label={navLabel ?? strings.sections}
           className={cn('nish-no-scrollbar -mb-px flex gap-6 overflow-x-auto px-[var(--nish-page-gutter,1rem)]', innerClassName)}
         >
           {nav}
@@ -1072,7 +1111,9 @@ export function AppHeader({
 // SectionHeader
 // =====================================================================================
 
-export interface SectionHeaderProps {
+export interface SectionHeaderProps extends Omit<ComponentPropsWithoutRef<'div'>, 'title' | 'id'> {
+  /** The wrapper row. */
+  ref?: Ref<HTMLDivElement>;
   /** The section's title. */
   title: ReactNode;
   /** id for the heading, so the section can point aria-labelledby at it. */
@@ -1083,14 +1124,13 @@ export interface SectionHeaderProps {
   meta?: ReactNode;
   /** A control on the right, after meta (a Button, a Segmented, a link). */
   action?: ReactNode;
-  className?: string;
 }
 
 /** The heading row of a section inside a page: the title, with optional meta text
  *  and an action on the right. Smaller than PageHeader, larger than CardHeader. */
-export function SectionHeader({ title, id, as: H = 'h2', meta, action, className }: SectionHeaderProps) {
+export function SectionHeader({ title, id, as: H = 'h2', meta, action, className, ref, ...rest }: SectionHeaderProps) {
   return (
-    <div className={cn('mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1', className)}>
+    <div ref={ref} className={cn('mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1', className)} {...rest}>
       <H id={id} className="min-w-0 text-lg font-semibold tracking-tight text-th-hi [overflow-wrap:anywhere]">
         {title}
       </H>
@@ -1122,26 +1162,27 @@ export interface KeyValueItem {
    *  - `'words'`: prose (a phrase-long status or error). Both cells wrap at word breaks,
    *    labels first: the label keeps its one-line width up to 60% of the row
    *    (`shrink-0 max-w-[calc(60%-0.75rem)]`), so a short label never wraps one word per
-   *    line, and the value takes the rest, at least 40% (`min-w-0 flex-1 text-right`). A
+   *    line, and the value takes the rest, at least 40% (`min-w-0 flex-1 text-end`). A
    *    word splits only when it alone is wider than its cell (`overflow-wrap: anywhere`).
    *  Without `wrap` the value keeps its full width, so keep it short. */
   wrap?: boolean | 'anywhere' | 'words';
 }
 
-export interface KeyValueListProps {
+export interface KeyValueListProps extends Omit<ComponentPropsWithoutRef<'ul'>, 'children'> {
+  /** The `ul` or `dl` element. */
+  ref?: Ref<HTMLElement>;
   items: KeyValueItem[];
   /** Rows 32px tall instead of 44px, for dense panels. */
   dense?: boolean;
   /** ul: a list of rows (default). dl: a description list with dt and dd, for label
    *  and value pairs that read as "name: value". */
   as?: 'ul' | 'dl';
-  className?: string;
 }
 
 /** Label and value rows with dividers: services and their status, runner details,
  *  vitals. Each row is at least 44px tall (32px dense); an item with `wrap` lets its row
  *  wrap and grow: `true`/`'anywhere'` for a path or URL, `'words'` for prose. */
-export function KeyValueList({ items, dense = false, as = 'ul', className }: KeyValueListProps) {
+export function KeyValueList({ items, dense = false, as = 'ul', className, ref, ...rest }: KeyValueListProps) {
   // A wrapping row gets vertical padding so wrapped lines clear the dividers; a single
   // line still fits inside the 44px (32px dense) minimum, so its height is unchanged.
   const row = (wrap: KeyValueItem['wrap']) =>
@@ -1164,24 +1205,26 @@ export function KeyValueList({ items, dense = false, as = 'ul', className }: Key
     wrap === 'words' ? 'min-w-0 flex-1 [overflow-wrap:anywhere]' : wrap ? 'min-w-0 break-all' : 'shrink-0';
   if (as === 'dl') {
     return (
-      <dl className={cn('grid text-sm text-th-hi', className)}>
+      <dl
+        ref={ref as Ref<HTMLDListElement>}
+        className={cn('grid text-sm text-th-hi', className)}
+        {...(rest as ComponentPropsWithoutRef<'dl'>)}
+      >
         {items.map((it) => (
           <div key={it.key} className={row(it.wrap)}>
             <dt className={cn('text-th-hi2', labelCls(it.wrap))}>{it.label}</dt>
-            <dd className={cn('m-0 text-right', valueCls(it.wrap))}>{it.value}</dd>
+            <dd className={cn('m-0 text-end', valueCls(it.wrap))}>{it.value}</dd>
           </div>
         ))}
       </dl>
     );
   }
   return (
-    <ul className={cn('grid text-sm text-th-hi', className)}>
+    <ul ref={ref as Ref<HTMLUListElement>} className={cn('grid text-sm text-th-hi', className)} {...rest}>
       {items.map((it) => (
         <li key={it.key} className={row(it.wrap)}>
           <span className={cn('flex items-center gap-2', labelCls(it.wrap))}>{it.label}</span>
-          <span className={cn('flex items-center justify-end gap-2 text-right', valueCls(it.wrap))}>
-            {it.value}
-          </span>
+          <span className={cn('flex items-center justify-end gap-2 text-end', valueCls(it.wrap))}>{it.value}</span>
         </li>
       ))}
     </ul>
@@ -1192,25 +1235,6 @@ export function KeyValueList({ items, dense = false, as = 'ul', className }: Key
 // ChartLegend
 // =====================================================================================
 
-export type ChartLegendTone = ChartTone | 'accent' | 'ok' | 'warn' | 'loss' | 'info';
-
-// Full literal class names, so Tailwind's scanner finds every one. Marks use -fill.
-const LEGEND_FILL: Record<ChartLegendTone, string> = {
-  'chart-1': 'bg-th-chart-1',
-  'chart-2': 'bg-th-chart-2',
-  'chart-3': 'bg-th-chart-3',
-  'chart-4': 'bg-th-chart-4',
-  'chart-5': 'bg-th-chart-5',
-  'chart-6': 'bg-th-chart-6',
-  'chart-7': 'bg-th-chart-7',
-  'chart-8': 'bg-th-chart-8',
-  accent: 'bg-th-accent',
-  ok: 'bg-th-ok-fill',
-  warn: 'bg-th-warn-fill',
-  loss: 'bg-th-loss-fill',
-  info: 'bg-th-info-fill',
-};
-
 export interface ChartLegendItem {
   /** The series name. */
   label: string;
@@ -1218,26 +1242,38 @@ export interface ChartLegendItem {
   tone: ChartLegendTone;
 }
 
-export interface ChartLegendProps {
+export interface ChartLegendProps extends Omit<ComponentPropsWithoutRef<'ul'>, 'children'> {
+  /** The `ul` element. */
+  ref?: Ref<HTMLUListElement>;
   items: ChartLegendItem[];
   /** line: a short 3px x 10px stroke, for line charts (default). dot: an 8px dot, for
    *  bars and points. */
   marker?: 'line' | 'dot';
-  /** Accessible name of the list. Default "Legend". */
+  /** Accessible name of the list. Default: the provider's `legend` string. */
   label?: string;
-  className?: string;
 }
 
 /** The key for a multi-series chart (uPlot and canvas charts draw none of their own):
  *  each series' color mark and name. The marks are decorative; the names carry it. */
-export function ChartLegend({ items, marker = 'line', label = 'Legend', className }: ChartLegendProps) {
+export function ChartLegend({ items, marker = 'line', label, className, ref, ...rest }: ChartLegendProps) {
+  const strings = useNishStrings();
   return (
-    <ul aria-label={label} className={cn('flex flex-wrap gap-x-4 gap-y-1 text-xs text-th-hi2', className)}>
+    <ul
+      ref={ref}
+      aria-label={label ?? strings.legend}
+      className={cn('flex flex-wrap gap-x-4 gap-y-1 text-xs text-th-hi2', className)}
+      {...rest}
+    >
       {items.map((it) => (
         <li key={it.label} className="inline-flex items-center gap-1.5">
           <i
             aria-hidden="true"
-            className={cn('inline-block shrink-0', marker === 'dot' ? 'size-2 rounded-full' : 'h-0.75 w-2.5 rounded-sm', LEGEND_FILL[it.tone])}
+            className={cn(
+              'inline-block shrink-0',
+              marker === 'dot' ? 'size-2 rounded-full' : 'h-0.75 w-2.5 rounded-sm',
+              LEGEND_FILL[it.tone],
+              'forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]',
+            )}
           />
           {it.label}
         </li>

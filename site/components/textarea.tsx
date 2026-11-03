@@ -95,5 +95,6 @@ export const textarea: ComponentDoc = {
     'Pair it with a label (Field does it); a placeholder is not a label.',
     'For errors, use Field error: it sets invalid and ties the message with aria-describedby.',
     'autoGrow uses rows as the minimum height and turns off the manual resize handle.',
+    "ref, className and every textarea attribute reach the element. Works with register(): `<Textarea {...register('notes')} />`.",
   ],
 };

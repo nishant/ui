@@ -133,5 +133,8 @@ export const checkbox: ComponentDoc = {
     'Use it for independent on/off choices inside a form. For a setting that applies at once, use Switch; for one choice among several, Segmented or Select.',
     'Group related boxes in a fieldset with a legend.',
     'A box without a visible label (a table row) needs aria-label.',
+    "hint and trailing describe the box (aria-describedby) and are not part of its accessible name.",
+    "invalid sets aria-invalid; Field does this for you. Wrapped in Field with required, the box gets required and aria-required.",
+    "Works with register(): `<Checkbox label=\"Accept\" {...register('accept')} />`.",
   ],
 };

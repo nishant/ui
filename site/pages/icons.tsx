@@ -21,7 +21,7 @@ const SIZES = [
 
 const USAGE = `// package.json: "lucide-react": "^1"
 import { Bell, Settings } from 'lucide-react';
-import { Button, IconButton } from '@nish/ui';
+import { Button, IconButton } from 'nish-ui';
 
 <Button variant="primary" icon={<Bell size={20} />}>Alerts</Button>
 <IconButton label="Settings"><Settings size={20} /></IconButton>
@@ -35,16 +35,16 @@ export function IconsPage() {
       <PageHeader
         eyebrow="Foundations"
         title="Icons"
-        lead="Apps use lucide-react. @nish/ui never depends on an icon package: it inlines the few icons its own components need, drawn on lucide's grid so the two sets sit side by side."
+        lead="Use lucide-react for icons. nish-ui never depends on an icon package: it inlines the few icons its own components need, drawn on lucide's grid so the two sets sit side by side."
       />
 
       <Section title="The decision">
         <Prose>
             <p>
-              <strong>Apps use <code>lucide-react</code> (^1).</strong> It tree-shakes per icon, has a large maintained set, is MIT licensed, and trading, startpage and nishboard already use it.
+              <strong>Apps use <code>lucide-react</code> (^1).</strong> It tree-shakes per icon, has a large maintained set, is MIT licensed.
             </p>
             <p>
-              <strong>@nish/ui inlines its own.</strong> The few icons a component needs (the close X, the check, the chevron) are SVGs in the package, drawn on lucide&apos;s 24px grid with a 2px stroke, round caps and joins. That keeps the package free of an icon dependency, so an app is never pinned to one lucide version, and a new icon in an app needs no release of ui.
+              <strong>nish-ui inlines its own.</strong> The few icons a component needs (the close X, the check, the chevron) are SVGs in the package, drawn on lucide&apos;s 24px grid with a 2px stroke, round caps and joins. That keeps the package free of an icon dependency, so an app is never pinned to one lucide version, and a new icon in an app needs no release of ui.
             </p>
             <p>
               <strong>One style.</strong> Stroke icons that take <code>currentColor</code>, so they follow the theme with no extra classes. Do not mix in filled or two-tone sets.
@@ -76,7 +76,7 @@ export function IconsPage() {
         </div>
       </Section>
 
-      <Section title="Icons @nish/ui exports" note="The icons its components use that apps can also import. Anything else comes from lucide-react.">
+      <Section title="Icons nish-ui exports" note="The icons its components use that apps can also import. Anything else comes from lucide-react.">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {UI_ICONS.map(({ name, Icon }) => (
             <Card key={name} className="flex flex-col items-center gap-3 text-center">
@@ -90,7 +90,7 @@ export function IconsPage() {
       </Section>
 
       <Section title="In an app">
-        <CodeBlock title="lucide-react with @nish/ui" code={USAGE} />
+        <CodeBlock title="lucide-react with nish-ui" code={USAGE} />
       </Section>
     </div>
   );

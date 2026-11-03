@@ -139,6 +139,8 @@ export const listRow: ComponentDoc = {
   guidelines: [
     'Use as="div" when the row is not inside a <ul> or <ol>.',
     'With a client-side router, pass onClick that navigates instead of href, so the row stays one control and the router handles the transition.',
+    'href goes through safeUrl: a javascript: or data: URL makes the row a plain row (or the button, when onClick is also given), never a link.',
+    'ref and any li attribute (id, data-*, aria-*) go on the wrapper; className goes on the row inside it, where the link or button is. The chevron flips under dir="rtl".',
     'Do not put a second button inside a row that is itself a link or button. Trailing is for non-interactive badges or a Switch in a plain row.',
     'Titles truncate (or wrap to two lines with titleLines={2}, as MediaRow does); subtitles clamp to two lines. Keep meta to a short value such as a date or an amount.',
   ],

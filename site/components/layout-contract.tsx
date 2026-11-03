@@ -114,7 +114,7 @@ export const layoutContract: ComponentDoc = {
   source: 'src/css/base.css',
   summary:
     'The header and bottom bars publish their heights as CSS variables on <html>; Toaster, Drawer, sticky elements and page padding read them. So a toast never covers a tab bar and a sticky filter row sits exactly under the header, with no React context and no offsets passed by hand. It works in static pages too.',
-  importLine: "import { useHeightVar } from '@nish/ui';",
+  importLine: "import { useHeightVar } from 'nish-ui';",
   controls: [],
   initial: {},
   render: () => (
@@ -148,7 +148,7 @@ export const layoutContract: ComponentDoc = {
     },
   ],
   api: { functions: ['useHeightVar', 'useStuck', 'useScrollEdges', 'mountHeightVar'], interfaces: [] },
-  usage: `import { useHeightVar } from '@nish/ui';
+  usage: `import { useHeightVar } from 'nish-ui';
 
 // A bar you build yourself joins the contract in one line:
 const ref = useRef<HTMLDivElement>(null);
@@ -162,6 +162,6 @@ useHeightVar(ref, '--nish-bottom-bar-h', open);
     'Never set --nish-bottom-inset yourself: base.css defines it as the sum of the nav and bar heights.',
     'Read variables with a 0px fallback (var(--nish-header-h, 0px)) so the element works with no header on the page.',
     'The bottom nav height already includes the device safe area, so do not add env(safe-area-inset-bottom) on top of it.',
-    'Static pages join with mountHeightVar(el, name) from @nish/ui/theme, the twin of useHeightVar.',
+    'Static pages join with mountHeightVar(el, name) from nish-ui/theme, the twin of useHeightVar.',
   ],
 };

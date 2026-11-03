@@ -1,8 +1,11 @@
+'use client';
 import {
+  useCallback,
   useEffect,
-  useLayoutEffect,
+  useId,
   useRef,
   useState,
+  type ComponentPropsWithRef,
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
@@ -17,9 +20,11 @@ import {
   type LayoutNode,
   type Rect,
 } from '../split-layout';
+import { isRtl, useIsoLayoutEffect } from './client';
 import { useMediaQuery } from './hooks';
 import { ScrollRow } from './nav';
 import { Tooltip } from './overlay';
+import { useNishStrings } from './provider';
 
 // Split panes: a layout tree drawn as flat, absolutely positioned panes, with drag handles
 // between them and a preset picker. The math is in `@nish/ui/split-layout` (no React).
@@ -75,6 +80,12 @@ export interface SplitDividersProps {
    * area stays off a pane bar shown there. Default 0.
    */
   barInset?: number;
+  /** Set when the area is mirrored (right-to-left): positions are measured from the right edge,
+   *  a drag to the right shrinks the first pane, and ArrowLeft grows it. `SplitStage` sets this. */
+  rtl?: boolean;
+  /** The DOM id of the pane in a slot, so each divider can list the panes it resizes in `aria-controls`.
+   *  `SplitStage` passes it. */
+  paneId?(slot: number): string | undefined;
 }
 
 interface DragStart {
@@ -86,11 +97,13 @@ interface DragStart {
 
 /**
  * Drag handles between panes. Each is a keyboard-focusable separator: arrow keys move it 2%,
- * Enter or a double-click resets that split to equal sizes. The hit area is 24px, 44px on touch
+ * Home and End move it to the smallest and largest pane size, Enter or a double-click resets
+ * that split to equal sizes. With several handles in one direction, their names carry a number. The hit area is 24px, 44px on touch
  * screens; a thin accent bar shows on hover, focus and drag. Place it inside a `relative` box
  * that is `w` by `h` (`SplitStage` does).
  */
-export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPane, barInset = 0 }: SplitDividersProps) {
+export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPane, barInset = 0, rtl = false, paneId }: SplitDividersProps) {
+  const strings = useNishStrings();
   const coarse = useMediaQuery('(pointer: coarse)');
   const drag = useRef<DragStart | null>(null);
   const hit = coarse ? 44 : 24;
@@ -153,7 +166,7 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
   const move = (e: PointerEvent<HTMLDivElement>, d: Divider) => {
     const start = drag.current;
     if (!start || start.pointerId !== e.pointerId) return;
-    const delta = d.dir === 'row' ? e.clientX - start.x : e.clientY - start.y;
+    const delta = d.dir === 'row' ? (rtl ? start.x - e.clientX : e.clientX - start.x) : e.clientY - start.y;
     if (delta === 0) return;
     onResize(resizeAt(start.layout, d.path, d.index, delta, w, h, gap, minFor(d)));
   };
@@ -169,16 +182,36 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
 
   const key = (e: KeyboardEvent<HTMLDivElement>, d: Divider) => {
     const horizontal = d.dir === 'row';
-    const dec = horizontal ? 'ArrowLeft' : 'ArrowUp';
-    const inc = horizontal ? 'ArrowRight' : 'ArrowDown';
+    // The first pane grows with ArrowRight (ArrowLeft when mirrored) or ArrowDown.
+    const dec = horizontal ? (rtl ? 'ArrowRight' : 'ArrowLeft') : 'ArrowUp';
+    const inc = horizontal ? (rtl ? 'ArrowLeft' : 'ArrowRight') : 'ArrowDown';
     if (e.key === dec || e.key === inc) {
       e.preventDefault();
       const step = (e.key === inc ? 1 : -1) * 0.02;
       onResize(resizeAt(layout, d.path, d.index, step * splitLength(d), w, h, gap, minFor(d)));
+    } else if (e.key === 'Home' || e.key === 'End') {
+      // The first pane to its smallest (Home) or largest (End); resizeAt clamps to the minimum pane size.
+      e.preventDefault();
+      const far = (e.key === 'End' ? 1 : -1) * (w + h);
+      onResize(resizeAt(layout, d.path, d.index, far, w, h, gap, minFor(d)));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       reset(d);
     }
+  };
+
+  const perDir = { row: dividers.filter((d) => d.dir === 'row').length, col: dividers.filter((d) => d.dir === 'col').length };
+  const seen = { row: 0, col: 0 };
+
+  /** The ids of every pane on either side of a divider. */
+  const controls = (d: Divider): string | undefined => {
+    if (!paneId) return undefined;
+    const node = nodeAt(layout, d.path);
+    if (!node || node.type !== 'split') return undefined;
+    const sides = [node.children[d.index], node.children[d.index + 1]];
+    const ids = sides.flatMap((c) => (c ? leafSlots(c) : [])).map((slot) => paneId(slot));
+    const list = ids.filter((id): id is string => !!id);
+    return list.length > 0 ? list.join(' ') : undefined;
   };
 
   return (
@@ -186,16 +219,22 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
       {dividers.map((d) => {
         const vertical = d.dir === 'row';
         const pad = (hit - (vertical ? d.w : d.h)) / 2;
+        const x = rtl ? w - d.x - d.w : d.x;
         const style = vertical
-          ? { left: d.x - pad, top: d.y + barInset, width: d.w + pad * 2, height: Math.max(0, d.h - barInset) }
-          : { left: d.x, top: d.y - (barInset > 0 ? pad * 2 : pad), width: d.w, height: d.h + pad * 2 };
+          ? { left: x - pad, top: d.y + barInset, width: d.w + pad * 2, height: Math.max(0, d.h - barInset) }
+          : { left: x, top: d.y - (barInset > 0 ? pad * 2 : pad), width: d.w, height: d.h + pad * 2 };
+        const base = vertical ? strings.resizeColumns : strings.resizeRows;
+        const nth = ++seen[d.dir];
+        const pct = Math.round(fraction(d) * 100);
         return (
           <div
             key={`${d.path.join('.')}:${d.index}`}
             role="separator"
             aria-orientation={vertical ? 'vertical' : 'horizontal'}
-            aria-label={vertical ? 'Resize columns' : 'Resize rows'}
-            aria-valuenow={Math.round(fraction(d) * 100)}
+            aria-label={perDir[d.dir] > 1 ? `${base} ${nth}` : base}
+            aria-controls={controls(d)}
+            aria-valuenow={pct}
+            aria-valuetext={`${pct}%`}
             aria-valuemin={0}
             aria-valuemax={100}
             tabIndex={0}
@@ -213,7 +252,7 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
           >
             <span
               className={cn(
-                'rounded-full bg-th-accent opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100',
+                'rounded-full bg-th-accent opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100 forced-colors:bg-[Highlight]',
                 vertical ? 'h-full w-1' : 'h-1 w-full',
               )}
             />
@@ -226,7 +265,7 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
 
 // --- SplitStage ------------------------------------------------------------------------------
 
-export interface SplitStageProps {
+export interface SplitStageProps extends Omit<ComponentPropsWithRef<'div'>, 'children'> {
   /** The layout tree; null renders no panes. Leaves cover slots 0..n-1. */
   layout: LayoutNode | null;
   /** Item ids in DOM order. Keep this order stable (for example, insertion order); never sort it by slot, or panes move in the DOM and iframes reload. */
@@ -277,9 +316,21 @@ export function SplitStage({
   barInset,
   children,
   className,
+  ref: forwardedRef,
+  ...rest
 }: SplitStageProps) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const setRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      ref.current = node;
+      if (typeof forwardedRef === 'function') forwardedRef(node);
+      else if (forwardedRef) (forwardedRef as { current: HTMLDivElement | null }).current = node;
+    },
+    [forwardedRef],
+  );
+  const paneBase = useId();
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [rtl, setRtl] = useState(false);
   const [resizing, setResizing] = useState(false);
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const showDividers = resizable && !!layout && slots.length > 1;
@@ -290,13 +341,15 @@ export function SplitStage({
     onSizeRef.current = onSize;
   });
 
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const measure = () => {
       const w = Math.round(el.clientWidth);
       const h = Math.round(el.clientHeight);
       setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+      const mirrored = isRtl(el);
+      setRtl((prev) => (prev === mirrored ? prev : mirrored));
     };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
@@ -318,7 +371,7 @@ export function SplitStage({
     : 'none';
 
   return (
-    <div ref={ref} className={cn('relative overflow-hidden', className)} {...(active ? { 'data-dragging': '' } : {})}>
+    <div {...rest} ref={setRef} className={cn('relative overflow-hidden', className)} {...(active ? { 'data-dragging': '' } : {})}>
       {layout &&
         // DOM order follows `items`, not slot order, so a swap never moves a node.
         items.map((id) => {
@@ -328,10 +381,11 @@ export function SplitStage({
           return (
             <div
               key={id}
+              id={`${paneBase}-pane-${slot}`}
               data-split-pane={id}
               style={{
                 position: 'absolute',
-                left: rect.x,
+                left: rtl ? size.w - rect.x - rect.w : rect.x,
                 top: rect.y,
                 width: rect.w,
                 height: rect.h,
@@ -350,6 +404,8 @@ export function SplitStage({
           gap={gap}
           onResize={(next) => onLayoutChange?.(next)}
           onDragChange={setResizing}
+          rtl={rtl}
+          paneId={(slot) => (slots[slot] !== undefined && items.includes(slots[slot]) ? `${paneBase}-pane-${slot}` : undefined)}
           {...(minPane ? { minPane } : {})}
           {...(barInset ? { barInset } : {})}
         />
@@ -361,7 +417,7 @@ export function SplitStage({
 
 // --- LayoutPresetIcon ------------------------------------------------------------------------
 
-export interface LayoutPresetIconProps {
+export interface LayoutPresetIconProps extends Omit<ComponentPropsWithRef<'svg'>, 'width' | 'height' | 'children'> {
   /** The layout to draw: one rounded rectangle per pane. */
   node: LayoutNode;
   /** Width of the drawing in px (default 56). */
@@ -372,7 +428,7 @@ export interface LayoutPresetIconProps {
 }
 
 /** A small drawing of a layout in the current text color. Decorative: name it with a label beside it. */
-export function LayoutPresetIcon({ node, width = 56, height = 36, className }: LayoutPresetIconProps) {
+export function LayoutPresetIcon({ node, width = 56, height = 36, className, ref, ...rest }: LayoutPresetIconProps) {
   const rects = computeRects(node, width - 4, height - 4, 2);
   return (
     <svg
@@ -382,6 +438,8 @@ export function LayoutPresetIcon({ node, width = 56, height = 36, className }: L
       fill="none"
       aria-hidden="true"
       focusable="false"
+      {...rest}
+      ref={ref}
       {...(className ? { className } : {})}
     >
       {rects.map((r, i) => (
@@ -415,7 +473,7 @@ export interface LayoutPresetOption {
   node: LayoutNode;
 }
 
-export interface LayoutPresetPickerProps {
+export interface LayoutPresetPickerProps extends Omit<ComponentPropsWithRef<'div'>, 'onChange' | 'children'> {
   /** One radio per option. */
   options: LayoutPresetOption[];
   /** The id of the chosen option, or null when the layout is custom (for example after a resize). */
@@ -430,7 +488,7 @@ export interface LayoutPresetPickerProps {
   overlay?: boolean;
   /** Extra classes for the bar, for example an inset like `pr-52`. */
   className?: string;
-  /** Name of the radio group for screen readers (default "Layout presets"). */
+  /** Name of the radio group for screen readers. Default: the `layoutPresets` string ("Layout presets"). */
   label?: string;
 }
 
@@ -448,16 +506,24 @@ export function LayoutPresetPicker({
   note,
   overlay = false,
   className,
-  label = 'Layout presets',
+  label: labelProp,
+  ref,
+  ...rest
 }: LayoutPresetPickerProps) {
+  const strings = useNishStrings();
+  const label = labelProp ?? strings.layoutPresets;
   const group = useRef<HTMLDivElement>(null);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const n = options.length;
     if (n === 0) return;
     let to = -1;
     const cur = Math.max(0, options.findIndex((o) => o.id === value));
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') to = (cur + 1) % n;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') to = (cur - 1 + n) % n;
+    // The row reads right to left on a right-to-left page: ArrowLeft goes to the next option.
+    const rtl = isRtl(group.current);
+    const forward = rtl ? 'ArrowLeft' : 'ArrowRight';
+    const backward = rtl ? 'ArrowRight' : 'ArrowLeft';
+    if (e.key === forward || e.key === 'ArrowDown') to = (cur + 1) % n;
+    else if (e.key === backward || e.key === 'ArrowUp') to = (cur - 1 + n) % n;
     else if (e.key === 'Home') to = 0;
     else if (e.key === 'End') to = n - 1;
     if (to < 0) return;
@@ -469,6 +535,8 @@ export function LayoutPresetPicker({
   };
   return (
     <div
+      {...rest}
+      ref={ref}
       className={cn(
         'flex shrink-0 items-center gap-3 border-b border-th-line px-3 py-2',
         overlay ? 'bg-th-surface/85 shadow-lg backdrop-blur-md' : 'bg-th-surface',
@@ -495,13 +563,14 @@ export function LayoutPresetPicker({
                     aria-checked={on}
                     tabIndex={on || (!hasValue && i === 0) ? 0 : -1}
                     aria-label={`${o.label}: ${o.hint}`}
+                    data-state={on ? 'checked' : 'unchecked'}
                     onClick={() => onChange(o.id)}
                     className={cn(
                       'flex min-h-11 shrink-0 flex-col items-center gap-0.5 rounded-lg border px-2 py-1 text-xs',
                       'focus-visible:outline-2 focus-visible:outline-th-accent',
                       on
-                        ? 'border-th-accent bg-th-accent-soft text-th-hi'
-                        : 'border-transparent text-th-hi3 hover:bg-th-elevated hover:text-th-hi2',
+                        ? 'border-th-accent bg-th-accent-soft text-th-hi forced-color-adjust-none forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText]'
+                        : 'border-transparent text-th-hi3 hover:bg-th-elevated hover:text-th-hi2 forced-colors:border-[ButtonText]',
                     )}
                   >
                     <LayoutPresetIcon node={o.node} />

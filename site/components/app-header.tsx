@@ -6,6 +6,8 @@ import type { ComponentDoc } from './types';
 
 // --- AppHeader ----------------------------------------------------------------------
 
+const HUB = { href: '#', label: 'nish.software' } as const;
+
 const navLink = (active: boolean) => tabClass({ active });
 
 const NAV = (
@@ -29,20 +31,22 @@ export const appHeader: ComponentDoc = {
   name: 'AppHeader',
   exports: ['AppHeader'],
   summary:
-    'The header every app shares: the "← nish.software" pill, the wordmark, actions and the theme toggle, with an optional nav row. Glass background, safe-area aware.',
+    'The header every app shares: an optional hub pill ("← nish.software"), the wordmark, actions and the theme toggle, with an optional nav row. Opaque by default, safe-area aware.',
   importLine: "import { AppHeader } from '@nish/ui';",
   controls: [
     { key: 'name', label: 'Name', type: 'text' },
     { key: 'icon', label: 'Icon', type: 'boolean' },
     { key: 'actions', label: 'Actions', type: 'boolean' },
     { key: 'nav', label: 'Nav row', type: 'boolean' },
+    { key: 'hub', label: 'Hub pill', type: 'boolean' },
     { key: 'toggle', label: 'Theme toggle', type: 'boolean' },
   ],
-  initial: { name: 'trading', icon: true, actions: true, nav: true, toggle: true },
+  initial: { name: 'trading', icon: true, actions: true, nav: true, hub: true, toggle: true },
   render: (a) => (
     <div className="w-full overflow-hidden rounded-xl border border-th-line">
       <AppHeader
         sticky={false}
+        hub={a.hub ? HUB : false}
         name={String(a.name)}
         icon={a.icon ? <ChartIcon size={20} /> : undefined}
         actions={a.actions ? <Bell /> : undefined}
@@ -55,6 +59,7 @@ export const appHeader: ComponentDoc = {
   code: (a) =>
     jsx('AppHeader', {
       name: a.name,
+      hub: a.hub ? "{{ href: 'https://nish.software', label: 'nish.software' }}" : undefined,
       icon: a.icon ? '{<ChartLine />}' : undefined,
       actions: a.actions ? '{<IconButton label="Notifications"><Bell /></IconButton>}' : undefined,
       nav: a.nav ? '{<Nav />}' : undefined,
@@ -83,7 +88,7 @@ export const appHeader: ComponentDoc = {
       wide: true,
       render: () => (
         <div className="w-full overflow-hidden rounded-xl border border-th-line">
-          <AppHeader sticky={false} name="status" />
+          <AppHeader sticky={false} hub={HUB} name="status" />
         </div>
       ),
     },
@@ -93,7 +98,7 @@ export const appHeader: ComponentDoc = {
       wide: true,
       render: () => (
         <div className="w-full overflow-hidden rounded-xl border border-th-line">
-          <AppHeader sticky={false} name="trading" icon={<ChartIcon size={20} />} actions={<Bell />} nav={NAV} />
+          <AppHeader sticky={false} hub={HUB} name="trading" icon={<ChartIcon size={20} />} actions={<Bell />} nav={NAV} />
         </div>
       ),
     },
@@ -103,7 +108,7 @@ export const appHeader: ComponentDoc = {
       wide: true,
       render: () => (
         <div className="w-full overflow-hidden rounded-xl border border-th-line">
-          <AppHeader sticky={false} name="trackers" themeToggle={false} innerClassName="mx-auto max-w-3xl" actions={<Bell />} />
+          <AppHeader sticky={false} hub={HUB} name="trackers" themeToggle={false} innerClassName="mx-auto max-w-3xl" actions={<Bell />} />
         </div>
       ),
     },
@@ -120,6 +125,7 @@ export const appHeader: ComponentDoc = {
             icon={<ChartIcon />}
             homeHref="#/components/app-header"
             hideNameBelow="sm"
+            hub={HUB}
             compactPill
             sticky={false}
             navLabel="Status"
@@ -150,7 +156,8 @@ import { NavLink } from 'react-router';
   ))}
 />`,
   guidelines: [
-    'Every app shows the hub pill at every width; do not hide it on phones.',
+    "The hub pill is off by default. Every nish.software app passes hub={{ href: 'https://nish.software', label: 'nish.software' }} and shows it at every width; do not hide it on phones. An outside app passes its own home site (label, href, optional title), or leaves hub out.",
+    'Several navs on one page need different names: give the tabs row navLabel (default "Sections") and name any BottomNav, NavRail or SectionNav differently.',
     'Keep actions to icon buttons; the wordmark truncates first when space runs out.',
     'Nav links use tabClass and aria-current="page", not Tabs: they navigate.',
     'brand replaces the icon, the name and their home link with your own node (a profile switcher). It is not wrapped in a link, so a button or a link inside it is fine.',

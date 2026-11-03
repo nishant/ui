@@ -1,15 +1,18 @@
+'use client';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocalStorage } from './hooks';
 import { useHeightVar } from './layout-vars';
 import { cn } from '../cn';
+import { safeUrl } from '../url';
 import { ConnectionBanner, LoadingBar, PageContainer, type ConnectionBannerProps, type PageContainerProps } from './layout';
 import { AppErrorBoundary } from './error-boundary';
-import { AppHeader } from './display';
+import { AppHeader, type AppHeaderHub } from './display';
 import { MoreIcon } from './icons';
-import { BottomNav, MoreSheet, NavRail, NavSidebar, type NavItem, type RenderLink } from './nav';
+import { BottomNav, MoreSheet, NavRail, NavSidebar, visibleNavItems, type NavItem, type RenderLink } from './nav';
 import { DropdownMenu, MenuItem } from './overlay';
 import { IconButton } from './primitives';
-import { tabClass } from './tabs';
+import { useNishStrings } from './provider';
+import { tabClass } from './tabs-classes';
 import { ThemeToggle } from './theme-toggle';
 import { Toaster, type ToasterProps } from './toast';
 
@@ -39,7 +42,8 @@ export interface AppShellProps {
   brand?: ReactNode;
   /** Home link on the icon and name. Default "/". */
   homeHref?: string;
-  hubHref?: string;
+  /** A pill at the start of the header that links back to a hub site ("← nish.software"). Default false: no pill. The nish.software apps pass `{ href: 'https://nish.software', label: 'nish.software' }`. */
+  hub?: AppHeaderHub | false;
   /** Every destination, in order. All show in the rail and the desktop header nav (or the sidebar); the BottomNav shows the first `primary` and puts the rest in a MoreSheet. Empty or left out, the shell has no nav at all (no tabs, rail, sidebar, BottomNav or sheet): the signed-out frame. */
   nav?: NavItem[];
   /** How many items the BottomNav shows before "More". Default 4; when nav.length <= 5 all fit and there is no More. */
@@ -47,6 +51,10 @@ export interface AppShellProps {
   /** Extra MoreSheet-only items (settings, sign out) shown after the overflow nav items. From md up they sit in a "More" menu in the header. Give them `onSelect`: the menu runs it, and only follows `href` (a full page load) when there is no `onSelect`. */
   moreItems?: NavItem[];
   renderLink?: RenderLink;
+  /** Names the nav landmark (header tabs, rail, sidebar nav and BottomNav; only one shows at a time). Default: the provider's `sections` string. */
+  navLabel?: string;
+  /** id of the `main` element and target of the skip link. Default "nish-main"; give each shell on a page its own. */
+  mainId?: string;
   /** Header buttons before the theme toggle. */
   actions?: ReactNode;
   /** Replaces the header's ThemeToggle; false hides it. */
@@ -88,11 +96,13 @@ export function AppShell({
   icon,
   brand,
   homeHref = '/',
-  hubHref,
-  nav = [],
+  hub = false,
+  nav: navProp = [],
   primary = 4,
-  moreItems = [],
+  moreItems: moreItemsProp = [],
   renderLink,
+  navLabel: navLabelProp,
+  mainId = MAIN_ID,
   actions,
   themeToggle,
   railFooter,
@@ -106,6 +116,10 @@ export function AppShell({
   resetKey,
   children,
 }: AppShellProps) {
+  const strings = useNishStrings();
+  const navLabel = navLabelProp ?? strings.sections;
+  const nav = visibleNavItems(navProp);
+  const moreItems = visibleNavItems(moreItemsProp);
   const [sheet, setSheet] = useState(false);
   const firstKey = useRef(true);
   useEffect(() => {
@@ -176,7 +190,7 @@ export function AppShell({
         <DropdownMenu
           align="end"
           trigger={
-            <IconButton label="More">
+            <IconButton label={strings.more}>
               <MoreIcon size={20} />
             </IconButton>
           }
@@ -188,7 +202,10 @@ export function AppShell({
               active={item.active}
               onSelect={() => {
                 if (item.onSelect) item.onSelect();
-                else if (item.href != null) window.location.assign(item.href);
+                else if (item.href != null) {
+                  const href = safeUrl(item.href);
+                  if (href !== null) window.location.assign(href);
+                }
               }}
             >
               {item.label}
@@ -203,25 +220,25 @@ export function AppShell({
   return (
     <>
       <a
-        href={`#${MAIN_ID}`}
+        href={`#${mainId}`}
         className="nish-skip-link"
         onClick={(e) => {
           // A fragment link would change the route in hash-routed apps; move focus instead.
-          const main = document.getElementById(MAIN_ID);
+          const main = document.getElementById(mainId);
           if (!main) return;
           e.preventDefault();
           main.focus();
           main.scrollIntoView?.();
         }}
       >
-        Skip to content
+        {strings.skipToContent}
       </a>
       <AppHeader
         name={name}
         icon={icon}
         brand={brand}
         homeHref={homeHref}
-        hubHref={hubHref}
+        hub={hub}
         hideNameBelow={icon != null ? 'sm' : undefined}
         compactPill
         actions={
@@ -234,17 +251,18 @@ export function AppShell({
         themeToggle={toggle}
         className="max-lg:[&>nav]:hidden"
         nav={hasNav && !side ? desktopNav : undefined}
-        navLabel="Sections"
+        navLabel={navLabel}
       />
       <LoadingBar active={loading} />
-      <div ref={bannersRef} className="sticky top-[var(--nish-header-h,0px)] z-20 empty:hidden">
+      <div ref={bannersRef} data-nish-bar=""
+        className="sticky top-[var(--nish-header-h,0px)] z-[var(--nish-z-sticky,20)] empty:hidden">
         {connection !== false ? <ConnectionBanner {...connection} /> : null}
         {banner}
       </div>
       <div className="md:flex">
         {hasNav ? (
           <div className={cn(stickTop, 'hidden md:block lg:hidden')}>
-            <NavRail items={nav} showFrom="md" hideFrom="lg" footer={railFooter} renderLink={renderLink} className="h-full" />
+            <NavRail items={nav} showFrom="md" hideFrom="lg" footer={railFooter} renderLink={renderLink} label={navLabel} className="h-full" />
           </div>
         ) : null}
         {hasNav && side ? (
@@ -256,11 +274,12 @@ export function AppShell({
               tools={side.tools}
               footer={side.footer}
               renderLink={renderLink}
+              label={navLabel}
             />
           </div>
         ) : null}
         <div className="min-w-0 flex-1">
-          <main id={MAIN_ID} tabIndex={-1} className="focus:outline-none">
+          <main id={mainId} tabIndex={-1} className="focus:outline-none">
             {container === false ? page : <PageContainer as="div" size={container}>{page}</PageContainer>}
           </main>
         </div>
@@ -271,6 +290,7 @@ export function AppShell({
             items={bottomItems}
             more={hasSheet ? { active: moreActive, expanded: sheet, onToggle: () => setSheet((s) => !s) } : undefined}
             renderLink={renderLink}
+            label={navLabel}
           />
           <MoreSheet open={sheet} onClose={() => setSheet(false)} items={sheetItems} renderLink={renderLink} />
         </>

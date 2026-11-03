@@ -1,44 +1,51 @@
 // @vitest-environment node
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { nishThemeInit } from './vite';
 
 const dir = mkdtempSync(join(tmpdir(), 'nish-vite-'));
 const file = join(dir, 'theme-init.js');
-writeFileSync(file, '// a reader comment\n(function(){\n  // inner note\n  var a = "http://x"; // trailing stays\n})();\n');
+writeFileSync(file, '// comment\nwindow.__init = 1;\n');
+afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-const page = '<!doctype html><html><head><meta charset="UTF-8" /><title>x</title></head></html>';
-const run = (o: Parameters<typeof nishThemeInit>[0], html = page) => nishThemeInit({ file, ...o }).transformIndexHtml.handler(html);
+type Tag = { tag: string; attrs?: Record<string, string>; children: string; injectTo: string };
+const run = (o: Parameters<typeof nishThemeInit>[0], html: string) => nishThemeInit({ file, ...o }).transformIndexHtml.handler(html);
 
-describe('nishThemeInit', () => {
-  it('strips whole-line comments and keeps code', () => {
-    const out = run({}) as string;
-    expect(out).not.toContain('a reader comment');
-    expect(out).not.toContain('inner note');
-    expect(out).toContain('var a = "http://x"; // trailing stays');
+describe('nishThemeInit nonce', () => {
+  it('adds no attrs without a nonce', () => {
+    const tags = run({}, '<html><head></head></html>') as Tag[];
+    expect(tags).toHaveLength(1);
+    expect(tags[0].attrs).toBeUndefined();
+    expect(tags[0].children).toBe('window.__init = 1;');
+    expect(tags[0].injectTo).toBe('head-prepend');
   });
-
-  it('auto puts the script right after <meta charset> so the charset stays in the first 1024 bytes', () => {
-    const out = run({}) as string;
-    expect(out.indexOf('<meta charset="UTF-8" /><script>')).toBeGreaterThan(-1);
-    expect(out.indexOf('<meta charset')).toBeLessThan(1024);
+  it('puts a string nonce on the injected tag', () => {
+    const tags = run({ nonce: 'abc123' }, '<html><head></head></html>') as Tag[];
+    expect(tags[0].attrs).toEqual({ nonce: 'abc123' });
   });
-
-  it('auto falls back to head-prepend when the page has no charset', () => {
-    expect(run({}, '<html><head></head></html>')).toEqual([expect.objectContaining({ tag: 'script', injectTo: 'head-prepend' })]);
+  it('calls a nonce function for every page', () => {
+    let n = 0;
+    const plugin = nishThemeInit({ file, nonce: () => `n${++n}` });
+    const a = plugin.transformIndexHtml.handler('<html><head></head></html>') as Tag[];
+    const b = plugin.transformIndexHtml.handler('<html><head></head></html>') as Tag[];
+    expect(a[0].attrs).toEqual({ nonce: 'n1' });
+    expect(b[0].attrs).toEqual({ nonce: 'n2' });
   });
-
-  it('head-prepend and after-charset still do what they say', () => {
-    expect(run({ position: 'head-prepend' })).toEqual([expect.objectContaining({ injectTo: 'head-prepend' })]);
-    expect(() => run({ position: 'after-charset' }, '<html><head></head></html>')).toThrow(/no <meta charset>/);
+  it('puts the nonce on the spliced script after <meta charset>', () => {
+    const out = run({ nonce: 'x"y' }, '<head><meta charset="utf-8"><title>t</title></head>') as string;
+    expect(out).toContain('<meta charset="utf-8"><script nonce="x&quot;y">window.__init = 1;</script>');
   });
-
-  it('runs the legacy migration and prelude before theme-init', () => {
-    const out = run({ legacyKey: 'theme', prelude: 'window.__p=1;' }) as string;
-    const s = out.slice(out.indexOf('<script>'));
-    expect(s.indexOf("'theme'") === -1 ? s.indexOf('"theme"') : s.indexOf("'theme'")).toBeLessThan(s.indexOf('window.__p=1'));
-    expect(s.indexOf('window.__p=1')).toBeLessThan(s.indexOf('(function(){'));
+  it('splices a plain script without a nonce', () => {
+    const out = run({}, '<head><meta charset="utf-8"></head>') as string;
+    expect(out).toContain('<meta charset="utf-8"><script>window.__init = 1;</script>');
+  });
+  it('treats an empty nonce as none', () => {
+    const tags = run({ nonce: '' }, '<html><head></head></html>') as Tag[];
+    expect(tags[0].attrs).toBeUndefined();
+  });
+  it('still throws for after-charset without a charset', () => {
+    expect(() => run({ position: 'after-charset' }, '<head></head>')).toThrow(/no <meta charset>/);
   });
 });

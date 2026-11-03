@@ -1,4 +1,5 @@
 import { BarChart, type ChartTone } from '../../src';
+import { NishProvider } from '../../src/components/provider';
 import { money, num } from '../../src/format';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
@@ -61,6 +62,18 @@ export const barChart: ComponentDoc = {
   },
   stories: [
     {
+      id: 'rtl',
+      name: 'Right to left',
+      note: 'Under dir="rtl" (set it once on NishProvider) the first bar is at the right, the end labels swap and the arrow keys follow.',
+      render: () => (
+        <NishProvider dir="rtl" locale="de-DE">
+          <div className="w-full min-w-0">
+            <BarChart label="Spend by month" data={data(MONTHS.slice(0, 7), SPEND)} xTicks="all" />
+          </div>
+        </NishProvider>
+      ),
+    },
+    {
       id: 'months',
       name: 'Twelve bars, labels at the ends',
       note: 'August is zero and keeps its stub.',
@@ -100,6 +113,8 @@ import { money } from '@nish/ui/format';
   guidelines: [
     'Keep it to roughly 7 to 14 bars on a phone. More than that, aggregate or switch to LineChart.',
     'xTicks="ends" labels the first and last bar; use "all" for 7 or fewer short labels such as weekdays.',
+    'Without valueFormat the numbers follow the locale prop, else the NishProvider locale, else en-US. The no-data text is the noData string (or the empty prop).',
+    'ref and any div attribute (id, data-*, aria-*) go on the root.',
     'Pass valueFormat so the caption, the value labels and the screen reader table all show the same units.',
     "Always pass label, the chart's accessible name.",
   ],

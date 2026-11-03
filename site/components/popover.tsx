@@ -222,6 +222,7 @@ export function Filters() {
     'A Popover is not modal: the page stays usable. For one decision that blocks the page, use Modal.',
     'For a list of actions use DropdownMenu, which adds menu roles and arrow keys.',
     'Give the panel an aria-label and the anchor aria-expanded.',
+    'Outside a dialog the panel renders into the NishProvider portalContainer (default document.body); it renders nothing on the server.',
     'Inside a Modal or Drawer it stacks above the dialog, and Escape closes the popover first.',
     'className lands on the panel: p-0 for edge-to-edge lists, app-region-no-drag in Electron title bars.',
   ],

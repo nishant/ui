@@ -1,6 +1,8 @@
 import type { PropertyValues } from 'lit';
 import { COMMAND_QUERY_DEBOUNCE_MS, filterCommandItems } from '../command-filter';
+import { safeUrl } from '../url';
 import { NishElement, define, whenParsed } from './base';
+import { getStrings } from './strings';
 
 export interface NishCommandItem {
   /** Stable key, unique within the list. */
@@ -72,6 +74,12 @@ function searchIcon(): SVGSVGElement {
   return svg;
 }
 
+function warnUnsafe(href: string): void {
+  if (globalThis.process?.env?.NODE_ENV !== 'production') {
+    console.warn(`nish-ui: <nish-command-palette> did not follow an unsafe href (${JSON.stringify(href.slice(0, 40))}). Only relative, #, http(s), mailto and tel URLs are followed.`);
+  }
+}
+
 function isTypingTarget(t: EventTarget | null): boolean {
   if (!(t instanceof HTMLElement)) return false;
   const tag = t.tagName;
@@ -109,6 +117,7 @@ export class NishCommandPalette extends NishElement {
   #input: HTMLInputElement | null = null;
   #list: HTMLDivElement | null = null;
   #status: HTMLSpanElement | null = null;
+  #closeBtn: HTMLButtonElement | null = null;
   #query = '';
   #active = 0;
   #flat: NishCommandItem[] = [];
@@ -122,8 +131,8 @@ export class NishCommandPalette extends NishElement {
     super();
     this.open = false;
     this.hotkey = false;
-    this.placeholder = 'Search…';
-    this.emptyText = 'No results';
+    this.placeholder = '';
+    this.emptyText = '';
     this.items = [];
   }
 
@@ -213,7 +222,6 @@ export class NishCommandPalette extends NishElement {
 
     const dialog = document.createElement('dialog');
     dialog.className = 'nish-command';
-    dialog.setAttribute('aria-label', 'Search');
 
     const listId = `nish-command-list-${this.#uid}`;
     const input = document.createElement('input');
@@ -237,7 +245,6 @@ export class NishCommandPalette extends NishElement {
     const close = document.createElement('button');
     close.type = 'button';
     close.className = 'nish-icon-btn';
-    close.setAttribute('aria-label', 'Close');
     close.append(closeIcon());
     close.addEventListener('click', () => {
       this.open = false;
@@ -248,7 +255,6 @@ export class NishCommandPalette extends NishElement {
     list.className = 'nish-command-list';
     list.id = listId;
     list.setAttribute('role', 'listbox');
-    list.setAttribute('aria-label', 'Results');
     list.addEventListener('mousedown', (e) => e.preventDefault());
     list.addEventListener('mousemove', (e) => {
       const row = (e.target as Element | null)?.closest<HTMLElement>('[data-index]');
@@ -280,6 +286,7 @@ export class NishCommandPalette extends NishElement {
     this.#input = input;
     this.#list = list;
     this.#status = status;
+    this.#closeBtn = close;
     this.#refreshStatic();
     this.#syncOpen();
   }
@@ -291,11 +298,22 @@ export class NishCommandPalette extends NishElement {
     if (changed.has('open')) this.#syncOpen();
   }
 
+  protected override stringsChanged(): void {
+    this.#refreshStatic();
+    if (this.#dialog?.open) this.#renderList();
+    super.stringsChanged();
+  }
+
   #refreshStatic(): void {
     const input = this.#input;
     if (!input) return;
-    input.placeholder = this.placeholder;
-    input.setAttribute('aria-label', this.placeholder.replace(/…$/, '') || 'Search');
+    const s = getStrings();
+    const placeholder = this.placeholder || s.searchPlaceholder;
+    input.placeholder = placeholder;
+    input.setAttribute('aria-label', placeholder.replace(/…$/, '') || s.search);
+    this.#dialog?.setAttribute('aria-label', s.search);
+    this.#closeBtn?.setAttribute('aria-label', s.close);
+    this.#list?.setAttribute('aria-label', s.results);
   }
 
   #syncOpen(): void {
@@ -324,6 +342,7 @@ export class NishCommandPalette extends NishElement {
     const list = this.#list;
     const input = this.#input;
     if (!list || !input) return;
+    const s = getStrings();
     this.#flat = filterCommandItems(this.items, this.#query);
     if (this.#active >= this.#flat.length) this.#active = 0;
     list.textContent = '';
@@ -371,15 +390,13 @@ export class NishCommandPalette extends NishElement {
     if (this.#flat.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'nish-command-empty';
-      empty.textContent = this.emptyText;
+      empty.textContent = this.emptyText || s.noResults;
       list.append(empty);
     }
     if (this.#flat.length) input.setAttribute('aria-activedescendant', this.#optionId(this.#active));
     else input.removeAttribute('aria-activedescendant');
     if (this.#status) {
-      this.#status.textContent = this.#flat.length
-        ? `${this.#flat.length} result${this.#flat.length === 1 ? '' : 's'}`
-        : this.emptyText;
+      this.#status.textContent = this.#flat.length ? s.resultCount(this.#flat.length) : this.emptyText || s.noResults;
     }
   }
 
@@ -449,8 +466,16 @@ export class NishCommandPalette extends NishElement {
     this.dispatchEvent(
       new CustomEvent<NishCommandSelectDetail>('nish-select', { bubbles: true, detail: { id: item.id } }),
     );
-    if (source) source.click();
-    else if (item.href) window.location.assign(item.href);
+    if (source) {
+      // A child anchor is clicked so its own listeners run, but never when its href is a script URL.
+      const raw = source.getAttribute('href');
+      if (raw !== null && safeUrl(raw) === null) warnUnsafe(raw);
+      else source.click();
+    } else if (item.href) {
+      const url = safeUrl(item.href);
+      if (url === null) warnUnsafe(item.href);
+      else window.location.assign(url);
+    }
   }
 
   #onDialogClick = (e: MouseEvent): void => {

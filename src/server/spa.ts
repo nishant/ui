@@ -8,7 +8,15 @@ export interface SpaOptions {
   immutable?: string[]; // URL path prefixes cached for a year: ['/assets/']
   maxAge?: number; // seconds for other static files: 3600
   notBuilt?: string; // 'UI not built: run npm run build'
+  /** Sends `X-Frame-Options: SAMEORIGIN` unless false (for an app that is meant to be framed). */
+  frameOptions?: false;
 }
+
+/** Sent on every answer. */
+const SECURITY_HEADERS: Record<string, string> = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+};
 
 const TYPES: Record<string, string> = {
   html: 'text/html; charset=utf-8',
@@ -44,8 +52,6 @@ async function isFile(path: string): Promise<boolean> {
   }
 }
 
-const text = (body: string, status: number): Response =>
-  new Response(body, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
 export function createSpaHandler(o: SpaOptions): (req: Request) => Promise<Response> {
   const dir = resolve(o.dir);
@@ -54,10 +60,15 @@ export function createSpaHandler(o: SpaOptions): (req: Request) => Promise<Respo
   const maxAge = o.maxAge ?? 3600;
   const notBuilt = o.notBuilt ?? 'UI not built: run npm run build';
   const indexPath = resolve(dir, indexName);
+  const safety: Record<string, string> = { ...SECURITY_HEADERS };
+  if (o.frameOptions !== false) safety['X-Frame-Options'] = 'SAMEORIGIN';
+
+  const text = (body: string, status: number): Response =>
+    new Response(body, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', ...safety } });
 
   const send = async (file: string, cache: string, head: boolean): Promise<Response> => {
     const body = head ? null : await readFile(file);
-    return new Response(body, { status: 200, headers: { 'Content-Type': contentType(file), 'Cache-Control': cache } });
+    return new Response(body, { status: 200, headers: { 'Content-Type': contentType(file), 'Cache-Control': cache, ...safety } });
   };
 
   return async (req) => {

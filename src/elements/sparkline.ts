@@ -1,6 +1,7 @@
 import { html, nothing, svg, type TemplateResult } from 'lit';
 import { sparklineGeometry } from '../sparkline-path';
 import { NishElement, define } from './base';
+import { getStrings } from './strings';
 
 const TONE_COLOR: Record<string, string> = {
   'chart-1': 'var(--nish-chart-1)',
@@ -80,11 +81,12 @@ export class NishSparkline extends NishElement {
     const height = this.height > 0 ? this.height : 28;
     const { empty, lines, areas, baseline } = sparklineGeometry(values, width, height, this.min ?? undefined, this.max ?? undefined);
     const color = empty ? 'var(--nish-line-strong)' : (Object.hasOwn(TONE_COLOR, this.tone) ? TONE_COLOR[this.tone] : 'var(--nish-chart-1)');
-    const name = this.label || 'Trend';
+    const s = getStrings();
+    const name = this.label || s.trend;
     return html`<svg
       class="nish-sparkline"
       role="img"
-      aria-label=${empty ? `${name}: no data` : name}
+      aria-label=${empty ? s.noDataNamed(name) : name}
       width=${width}
       height=${height}
       viewBox="0 0 ${width} ${height}"

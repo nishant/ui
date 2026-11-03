@@ -5,7 +5,7 @@ import { DownloadIcon, InboxIcon, RefreshIcon, SearchIcon } from '../lib/icons';
 import { href } from '../lib/router';
 import { PageHeader, Section, ThemeColumns } from '../lib/ui';
 
-// Realistic screens built only from @nish/ui components and th-* classes.
+// Realistic screens built only from nish-ui components and th-* classes.
 
 const SITES = [
   { host: 'nish.software', what: 'Hub', status: 'ok', p95: 38, uptime: '100%' },

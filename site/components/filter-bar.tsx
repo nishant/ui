@@ -249,6 +249,8 @@ export function Jobs({ jobs }) {
     'Put the one control people change most (a sort Select, a view toggle) in trailing: it stays visible at every width.',
     'On a router that owns the URL, pass an adapter built on its search-params hook instead of the default location adapter.',
     'Do not put controls that need the whole row (a date range with two fields) inline on a phone: they belong in the sheet, which is where children go below md.',
+    'The Filters, Clear, Done, Clear filters and "N active" texts come from <NishProvider strings>; sheetTitle, FilterSheet title and resultLabel win per instance. FilterBar takes ref, id, data-* and aria-* for its root.',
+    'useUrlState tolerates a hand-edited URL: a number that is not finite, a boolean that is not 1/true/0/false, and broken percent escapes fall back to the default. If the browser refuses history.replaceState (a sandboxed frame), the state simply stays as it was.',
   ],
   api: { functions: ['useUrlState'], interfaces: ['FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter'] },
 };

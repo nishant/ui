@@ -115,6 +115,7 @@ export const navRail: ComponentDoc = {
 <NavRail items={items} tools={<SearchButton />} footer={<ThemeToggle />} />
 <BottomNav items={items} />`,
   guidelines: [
+    'The landmark takes the NishProvider sections string; pass label to name it differently. The hint tooltip opens on the page side, so it flips to the left in right-to-left layouts.',
     'Reuse the exact items array of BottomNav so the two never drift apart.',
     'The rail is a flex column of fixed width: put it beside your content in a flex row, not over it.',
     'Hints show on fine pointers only; on touch the labels already say what each item is.',

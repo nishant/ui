@@ -14,23 +14,19 @@ export function StaticSitesPage() {
       <PageHeader
         eyebrow="Start"
         title="Static sites"
-        lead="Sites with no build step (minecraft.nish.software, the trip pages) get the same theme by vendoring a handful of dist files from a release tag."
+        lead="Sites with no build step get the same theme by copying a handful of dist files from the npm package or a release tag."
       />
 
-      <Section title="How hosting vendors them" note="nishant/hosting pins one tag and copies the files into each static site.">
+      <Section title="Vendoring the files" note="Copy the files from node_modules/nish-ui/dist (or a release tag) into your site, and keep them in step with one version.">
         <ol className="max-w-2xl list-decimal space-y-2 pl-5 text-[15px] leading-relaxed text-th-hi2 marker:text-th-hi3">
           <li>
-            <code className="inline">ui.json</code> at the hosting repo root names the tag, for example <code className="inline">v{docgen.version}</code>, and
-            the hash of every vendored file.
+            Pin one version, for example <code className="inline">v{docgen.version}</code>, and copy exactly the files <code className="inline">dist/files.json</code> lists.
+            That file also carries the hash of <code className="inline">theme-init.js</code> for a Content Security Policy.
           </li>
           <li>
-            <code className="inline">node scripts/sync-ui.mjs</code> downloads that tag from codeload.github.com (curl and tar only, no npm) and copies the
-            files into <code className="inline">minecraft/site/assets/nish/</code> and <code className="inline">static/trips/nish/</code>.
+            Check the copy against the package in CI, so nobody edits a vendored file by hand and an upgrade replaces all of them together.
           </li>
-          <li>
-            <code className="inline">--check --offline</code> fails CI when a vendored copy differs from the pinned hashes, so nobody edits them by hand.
-          </li>
-          <li>Pages link the files with a ?v= hash, and font files carry a content hash in their names, so /assets can be cached for a year.</li>
+          <li>Link the files with a ?v= version, and font files carry a content hash in their names, so the folder can be cached for a year.</li>
         </ol>
         <CodeBlock title="the files (dist/files.json)" code={docgen.distFiles.join('\n')} />
       </Section>
@@ -99,7 +95,6 @@ export function StaticSitesPage() {
             title="with a bundler"
             code={`import 'nish-ui/elements';
 import 'nish-ui/elements/forms'; // wave 2: field, search, switch, chips, combobox, tabs, segmented, copy, sparkline
-// in a fleet app: import '@nish/ui/elements';
 import { toast } from 'nish-ui/elements';
 
 toast('Saved', { tone: 'ok' });`}
@@ -155,7 +150,7 @@ toast('Saved', { tone: 'ok' });`}
               <span className="size-2.5 rounded-full bg-th-warn-fill" />
               <span className="size-2.5 rounded-full bg-th-ok-fill" />
             </span>
-            <code className="min-w-0 truncate font-mono text-xs text-th-hi3">trips.nish.software/smokies/ · static-example/{page}</code>
+            <code className="min-w-0 truncate font-mono text-xs text-th-hi3">static-example/{page}</code>
           </div>
           <iframe key={page} src={`static-example/${page}`} title="Static page example" className="block h-[720px] w-full border-0 bg-th-bg" />
         </div>

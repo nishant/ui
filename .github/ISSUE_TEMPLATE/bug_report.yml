@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in nish-ui does not work as documented.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: nish-ui version
+      placeholder: 2.0.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Framework and version, bundler, Node version, browser and device.
+      placeholder: Next.js 16 App Router, Node 22, Chrome 130
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: A short code sample, or a link to a repo or StackBlitz.
+      render: tsx
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Console output, screenshots, theme (light or dark), screen width.

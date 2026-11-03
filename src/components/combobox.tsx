@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+'use client';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type Ref } from 'react';
 import { cn } from '../cn';
 import { CheckIcon, XIcon } from './icons';
 import { Spinner } from './feedback';
 import { fieldClass } from './primitives';
-import { COMBOBOX_DEBOUNCE_MS, COMBOBOX_MAX_SHOWN, defaultComboboxFilter } from '../combobox-filter';
+import { useNishStrings } from './provider';
+import { indexComboboxOptions, setRef } from './forms-classes';
+import { COMBOBOX_DEBOUNCE_MS, COMBOBOX_MAX_SHOWN } from '../combobox-filter';
 
 export interface ComboboxOption {
   value: string;
@@ -13,11 +16,20 @@ export interface ComboboxOption {
   disabled?: boolean;
 }
 
-export interface ComboboxProps {
+export interface ComboboxProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'defaultValue' | 'children' | 'id' | 'aria-label' | 'aria-labelledby' | 'aria-describedby' | 'aria-invalid' | 'role'> {
+  /** The text input (the combobox element). The remaining div attributes go to the wrapper. */
+  ref?: Ref<HTMLInputElement>;
   options: ComboboxOption[];
-  /** The selected option's value, or the custom text; null when nothing is selected. */
-  value: string | null;
-  onChange: (value: string | null, option: ComboboxOption | null) => void;
+  /** The selected option's value, or the custom text; null when nothing is selected.
+   *  Leave it out and use `defaultValue` for an uncontrolled combobox. */
+  value?: string | null;
+  /** The starting value of an uncontrolled combobox. */
+  defaultValue?: string | null;
+  /** Called with the new value and the option it matches (null for custom text or a clear). */
+  onChange?: (value: string | null, option: ComboboxOption | null) => void;
+  /** Called with the new value only (the form-library friendly name). */
+  onValueChange?: (value: string | null) => void;
   /** Filtering. Default: case-insensitive substring on label and hint; show at most 50.
    *  With `onQueryChange` and no `filter`, options are shown as given (the server filtered them). */
   filter?: (option: ComboboxOption, query: string) => boolean;
@@ -26,74 +38,144 @@ export interface ComboboxProps {
   placeholder?: string;
   /** Accessible name when there is no visible <label htmlFor={id}>. */
   'aria-label'?: string;
+  /** Names the combobox by another element's id. */
+  'aria-labelledby'?: string;
+  /** Ids of help or error text; reaches the input (Field sets it). */
+  'aria-describedby'?: string;
+  /** Reaches the input (Field sets it on error). */
+  'aria-invalid'?: boolean | 'true' | 'false';
+  /** Same as aria-invalid="true". */
+  invalid?: boolean;
+  /** The id of the text input, so a `<label htmlFor>` and Field reach it. */
   id?: string;
+  /** Field name for a native form. A hidden input carries the selected value (the typed
+   *  text is not submitted). */
+  name?: string;
+  /** The id of the `<form>` the hidden input belongs to, when it is not an ancestor. */
+  form?: string;
+  /** Marks the combobox required (`required` and `aria-required` on the input). */
+  required?: boolean;
   disabled?: boolean;
-  /** Shown when nothing matches. Default "No matches". */
+  /** Shown when nothing matches. Default "No matches" (NishProvider strings). */
   emptyText?: string;
   /** Async options: called (debounced 200ms) with the query; while `loading` shows a Spinner row "Searching…". */
   onQueryChange?: (q: string) => void;
   loading?: boolean;
   /** md h-9 (default) or sm h-8. Both grow to 44px on touch screens. */
   size?: 'sm' | 'md';
+  /** Accessible name of the clear button. Default "Clear" (NishProvider strings). */
+  clearLabel?: string;
+  /** The loading row and its announcement. Default "Searching…" (NishProvider strings). */
+  loadingText?: string;
+  /** The polite announcement of the result count. Default "3 results" / "1 result". */
+  resultsText?: (count: number) => string;
   className?: string;
 }
 
 const MAX_SHOWN = COMBOBOX_MAX_SHOWN;
 const DEBOUNCE_MS = COMBOBOX_DEBOUNCE_MS;
-const defaultFilter = defaultComboboxFilter;
+
+const defaultResultsText = (n: number): string => `${n} ${n === 1 ? 'result' : 'results'}`;
 
 /** A text input with a listbox of suggestions (ARIA 1.2 combobox). Pick from the options,
  *  or with `allowCustom` commit what was typed. The list sits under the input and works
- *  inside a Modal or Drawer. */
+ *  inside a Modal or Drawer. `ref`, `id`, `aria-*`, `name` and `required` belong to the
+ *  input; `className` and other attributes go to the wrapper. */
 export function Combobox({
+  ref,
   options,
-  value,
+  value: valueProp,
+  defaultValue = null,
   onChange,
+  onValueChange,
   filter,
   allowCustom = false,
   placeholder,
   'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+  invalid,
   id,
+  name,
+  form,
+  required,
   disabled = false,
-  emptyText = 'No matches',
+  emptyText,
   onQueryChange,
   loading = false,
   size = 'md',
+  clearLabel,
+  loadingText,
+  resultsText = defaultResultsText,
   className,
+  ...rest
 }: ComboboxProps) {
+  const strings = useNishStrings();
   const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = id ?? `nish-cb-${autoId}`;
   const listId = `nish-cb-list-${autoId}`;
+  const empty = emptyText ?? strings.noMatches;
+  const searching = loadingText ?? strings.searching;
+
+  const [own, setOwn] = useState<string | null>(defaultValue);
+  const controlled = valueProp !== undefined;
+  const value = controlled ? valueProp : own;
 
   const [open, setOpen] = useState(false);
   // The text shown while the person is typing; `dirty` false means "show the selected label".
   const [text, setText] = useState('');
   const [dirty, setDirty] = useState(false);
   const [active, setActive] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
+  // After typing (without allowCustom) the first enabled match is the active option.
+  const [armed, setArmed] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const hiddenRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const debounceRef = useRef<number | undefined>(undefined);
 
+  const indexed = useMemo(() => indexComboboxOptions(options), [options]);
   const selected = useMemo(() => options.find((o) => o.value === value) ?? null, [options, value]);
   const label = selected?.label ?? value ?? '';
   const shown = dirty ? text : label;
   const hasValue = value != null && value !== '';
 
+  // One filtering pass per keystroke, over labels lower-cased once per options array.
   const visible = useMemo(() => {
     const serverFiltered = onQueryChange != null && filter == null;
-    const test = filter ?? defaultFilter;
-    const list = !dirty || serverFiltered ? options : options.filter((o) => test(o, text));
-    return list.slice(0, MAX_SHOWN);
-  }, [options, dirty, text, filter, onQueryChange]);
+    const needle = text.trim().toLowerCase();
+    const out: ComboboxOption[] = [];
+    for (const it of indexed) {
+      if (out.length >= MAX_SHOWN) break;
+      if (dirty && !serverFiltered) {
+        if (filter) {
+          if (!filter(it.option, text)) continue;
+        } else if (needle && !it.label.includes(needle) && !(it.hint?.includes(needle) ?? false)) continue;
+      }
+      out.push(it.option);
+    }
+    return out;
+  }, [indexed, dirty, text, filter, onQueryChange]);
+
+  const current = armed ? visible.findIndex((o) => !o.disabled) : active;
 
   useEffect(() => () => window.clearTimeout(debounceRef.current), []);
 
+  // An uncontrolled combobox returns to its default when its form is reset.
+  useEffect(() => {
+    const f = hiddenRef.current?.form;
+    if (!f || controlled) return;
+    const onReset = () => setOwn(defaultValue);
+    f.addEventListener('reset', onReset);
+    return () => f.removeEventListener('reset', onReset);
+  }, [name, form, controlled, defaultValue]);
+
   // Keep the active option in view as the arrows move through a long list.
   useEffect(() => {
-    if (!open || active < 0) return;
-    const el = listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`);
+    if (!open || current < 0) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-index="${current}"]`);
     el?.scrollIntoView?.({ block: 'nearest' });
-  }, [open, active]);
+  }, [open, current]);
 
   // Bring the whole list into view when it opens (e.g. inside a bottom-sheet Modal).
   useEffect(() => {
@@ -108,17 +190,21 @@ export function Combobox({
   const close = useCallback(() => {
     setOpen(false);
     setActive(-1);
+    setArmed(false);
   }, []);
 
-  const select = useCallback(
-    (opt: ComboboxOption) => {
-      if (opt.disabled) return;
-      onChange(opt.value, opt);
-      reset();
-      close();
-    },
-    [onChange, reset, close],
-  );
+  const commit = (v: string | null, opt: ComboboxOption | null) => {
+    if (!controlled) setOwn(v);
+    onChange?.(v, opt);
+    onValueChange?.(v);
+  };
+
+  const select = (opt: ComboboxOption) => {
+    if (opt.disabled) return;
+    commit(opt.value, opt);
+    reset();
+    close();
+  };
 
   /** The next enabled index from `from` in `dir`, wrapping; -1 when none is enabled. */
   const step = (from: number, dir: 1 | -1): number => {
@@ -132,26 +218,22 @@ export function Combobox({
     return -1;
   };
   const edge = (dir: 1 | -1) => (dir === 1 ? step(-1, 1) : step(0, -1));
+  const selectedAt = () => (selected ? visible.findIndex((o) => o.value === selected.value) : -1);
 
   function openList() {
     if (open || disabled) return;
     setOpen(true);
-    const at = selected ? visible.findIndex((o) => o.value === selected.value) : -1;
-    setActive(at >= 0 ? at : -1);
+    setArmed(false);
+    setActive(selectedAt());
   }
 
   function onInput(next: string) {
     setText(next);
     setDirty(true);
     setOpen(true);
+    setActive(-1);
     // Without allowCustom the first match is armed for Enter; with it, Enter commits the typed text.
-    if (allowCustom || next.trim() === '') setActive(-1);
-    else {
-      const test = filter ?? defaultFilter;
-      const serverFiltered = onQueryChange != null && filter == null;
-      const list = (serverFiltered ? options : options.filter((o) => test(o, next))).slice(0, MAX_SHOWN);
-      setActive(list.findIndex((o) => !o.disabled));
-    }
+    setArmed(!allowCustom && next.trim() !== '');
     if (onQueryChange) {
       window.clearTimeout(debounceRef.current);
       debounceRef.current = window.setTimeout(() => onQueryChange(next), DEBOUNCE_MS);
@@ -161,7 +243,7 @@ export function Combobox({
   /** An emptied input is a clear: the keyboard path to onChange(null, null). */
   function commitEmpty(): boolean {
     if (!dirty || text.trim() !== '' || !hasValue) return false;
-    onChange(null, null);
+    commit(null, null);
     reset();
     close();
     return true;
@@ -170,9 +252,10 @@ export function Combobox({
   function commitCustom(): boolean {
     const t = text.trim();
     if (!allowCustom || !dirty || !t) return false;
-    const exact = options.find((o) => !o.disabled && o.label.toLowerCase() === t.toLowerCase());
-    if (exact) onChange(exact.value, exact);
-    else onChange(t, null);
+    const lower = t.toLowerCase();
+    const exact = indexed.find((it) => !it.option.disabled && it.label === lower)?.option;
+    if (exact) commit(exact.value, exact);
+    else commit(t, null);
     reset();
     close();
     return true;
@@ -185,12 +268,13 @@ export function Combobox({
       case 'ArrowUp': {
         e.preventDefault();
         const dir = e.key === 'ArrowDown' ? 1 : -1;
+        setArmed(false);
         if (!open) {
           setOpen(true);
-          const at = selected ? visible.findIndex((o) => o.value === selected.value) : -1;
+          const at = selectedAt();
           setActive(at >= 0 ? at : edge(dir));
         } else {
-          setActive(active < 0 ? edge(dir) : step(active, dir));
+          setActive(current < 0 ? edge(dir) : step(current, dir));
         }
         break;
       }
@@ -198,13 +282,14 @@ export function Combobox({
       case 'End':
         if (open) {
           e.preventDefault();
+          setArmed(false);
           setActive(edge(e.key === 'Home' ? 1 : -1));
         }
         break;
       case 'Enter':
-        if (open && active >= 0 && visible[active]) {
+        if (open && current >= 0 && visible[current]) {
           e.preventDefault();
-          select(visible[active]);
+          select(visible[current]);
         } else if (commitEmpty() || commitCustom()) {
           e.preventDefault();
         } else if (open) {
@@ -230,18 +315,27 @@ export function Combobox({
   }
 
   function clear() {
-    onChange(null, null);
+    commit(null, null);
     reset();
     close();
     inputRef.current?.focus();
   }
 
-  const activeId = open && active >= 0 && visible[active] ? `${listId}-opt-${active}` : undefined;
+  const activeId = open && current >= 0 && visible[current] ? `${listId}-opt-${current}` : undefined;
+  const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true';
 
   return (
-    <div className={cn('relative w-full min-w-0', className)}>
+    <div
+      {...rest}
+      data-state={open ? 'open' : 'closed'}
+      data-disabled={disabled ? '' : undefined}
+      className={cn('relative w-full min-w-0', className)}
+    >
       <input
-        ref={inputRef}
+        ref={(node) => {
+          inputRef.current = node;
+          setRef(ref, node);
+        }}
         id={inputId}
         type="text"
         role="combobox"
@@ -250,6 +344,11 @@ export function Combobox({
         aria-autocomplete="list"
         aria-activedescendant={activeId}
         aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={isInvalid || undefined}
+        aria-required={required || undefined}
+        required={required}
         autoComplete="off"
         autoCapitalize="off"
         spellCheck={false}
@@ -265,16 +364,17 @@ export function Combobox({
             reset();
           }
         }}
-        className={fieldClass({ size, className: 'pr-11' })}
+        className={fieldClass({ size, className: 'pe-11' })}
       />
+      {name != null ? <input ref={hiddenRef} type="hidden" name={name} value={value ?? ''} form={form} disabled={disabled} /> : null}
       {hasValue && !disabled ? (
         <button
           type="button"
-          aria-label="Clear"
+          aria-label={clearLabel ?? strings.clear}
           tabIndex={-1}
           onMouseDown={(e) => e.preventDefault()}
           onClick={clear}
-          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-th-hi3 hover:text-th-hi"
+          className="absolute inset-y-0 end-0 flex w-11 items-center justify-center text-th-hi3 hover:text-th-hi"
         >
           <span className="flex size-8 items-center justify-center rounded-md hover:bg-th-elevated">
             <XIcon size={16} />
@@ -282,7 +382,7 @@ export function Combobox({
         </button>
       ) : null}
       <div role="status" aria-live="polite" className="sr-only">
-        {open ? (loading ? 'Searching…' : visible.length === 0 ? emptyText : `${visible.length} ${visible.length === 1 ? 'result' : 'results'}`) : ''}
+        {open ? (loading ? searching : visible.length === 0 ? empty : resultsText(visible.length)) : ''}
       </div>
       {open ? (
         <ul
@@ -290,8 +390,8 @@ export function Combobox({
           id={listId}
           role="listbox"
           aria-label={ariaLabel}
-          aria-labelledby={ariaLabel ? undefined : inputId}
-          className="absolute left-0 right-0 top-full z-40 mt-1 max-h-[min(16rem,40dvh)] overflow-auto rounded-xl border border-th-line bg-th-elevated shadow-pop"
+          aria-labelledby={ariaLabel ? undefined : (ariaLabelledBy ?? inputId)}
+          className="absolute inset-x-0 top-full z-[var(--nish-z-dropdown,40)] mt-1 max-h-[min(16rem,40dvh)] overflow-auto rounded-xl border border-th-line bg-th-elevated shadow-pop"
         >
           {visible.map((o, i) => {
             const isSelected = selected?.value === o.value;
@@ -301,15 +401,21 @@ export function Combobox({
                 id={`${listId}-opt-${i}`}
                 role="option"
                 data-index={i}
+                data-state={i === current ? 'active' : 'inactive'}
+                data-disabled={o.disabled ? '' : undefined}
                 aria-selected={isSelected}
                 aria-disabled={o.disabled || undefined}
                 onMouseDown={(e) => e.preventDefault()}
-                onMouseMove={() => !o.disabled && active !== i && setActive(i)}
+                onMouseMove={() => {
+                  if (o.disabled || (!armed && active === i)) return;
+                  setArmed(false);
+                  setActive(i);
+                }}
                 onClick={() => select(o)}
                 className={cn(
                   'flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm text-th-hi2',
-                  i === active && 'bg-th-accent-soft text-th-hi',
-                  o.disabled && 'cursor-not-allowed opacity-50',
+                  i === current && 'bg-th-accent-soft text-th-hi forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
+                  o.disabled && 'cursor-not-allowed opacity-50 forced-colors:text-[color:GrayText]',
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">{o.label}</span>
@@ -321,11 +427,11 @@ export function Combobox({
           {loading ? (
             <li role="presentation" className="flex min-h-11 items-center gap-2 px-3 text-sm text-th-hi3">
               <Spinner size="sm" />
-              Searching…
+              {searching}
             </li>
           ) : visible.length === 0 ? (
             <li role="presentation" className="flex min-h-11 items-center px-3 text-sm text-th-hi3">
-              {emptyText}
+              {empty}
             </li>
           ) : null}
         </ul>

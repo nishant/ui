@@ -5,11 +5,11 @@ import { PageHeader, Prose, Section } from '../lib/ui';
 
 const TYPE_STEPS = ['4xl', '3xl', '2xl', 'xl', 'lg', 'base', 'sm', 'xs', '2xs', '3xs'] as const;
 const TYPE_SAMPLE: Record<string, string> = {
-  '4xl': 'Display: the hub',
+  '4xl': 'Display: a page title',
   '3xl': 'Page title: Positions',
   '2xl': 'Section: Open orders',
   xl: 'Card title: Weekly digest',
-  lg: 'Lead: the front door to everything on nish.software.',
+  lg: 'Lead: the opening paragraph of a page.',
   base: 'Body: secondary text sits one step back so headings and numbers lead.',
   sm: 'Small: table cells, form fields and most UI text.',
   xs: 'Caption: labels, metadata and timestamps.',
@@ -351,7 +351,7 @@ export function ZIndexPage() {
         </Card>
         <CodeBlock
           title="in JS"
-          code={`import { SCALE } from '@nish/ui';
+          code={`import { SCALE } from 'nish-ui';
 const wide = matchMedia(\`(min-width: \${SCALE['bp-md']})\`).matches;`}
         />
         <Prose>

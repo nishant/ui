@@ -5,7 +5,7 @@ import { Device } from './bottom-nav';
 import type { ComponentDoc } from './types';
 
 // --- Static parity --------------------------------------------------------------------------
-// The new classes in nish-components.css and the helpers in @nish/ui/theme, used the way a
+// The new classes in nish-components.css and the helpers in nish-ui/theme, used the way a
 // static page (the hub, mc, trips) uses them: plain markup plus one mount call.
 
 function Loading() {
@@ -197,8 +197,8 @@ export const staticParity: ComponentDoc = {
   exports: [],
   source: 'src/css/components.css',
   summary:
-    'The same new pieces for pages without React (the hub, mc, trips): skeletons, spinners and busy buttons, bottom sheets, checkboxes and switches, a scrollspy subnav, link cards, sticky bars, a bottom nav and persistent checklists. Plain markup with nish-components.css, plus small helpers from @nish/ui/theme (window.nishTheme in classic scripts).',
-  importLine: "import { openSheet, mountScrollspy, mountStuck, mountChecklist, mountHeightVar } from '@nish/ui/theme';",
+    'The same new pieces for pages without React (the hub, mc, trips): skeletons, spinners and busy buttons, bottom sheets, checkboxes and switches, a scrollspy subnav, link cards, sticky bars, a bottom nav and persistent checklists. Plain markup with nish-components.css, plus small helpers from nish-ui/theme (window.nishTheme in classic scripts).',
+  importLine: "import { openSheet, mountScrollspy, mountStuck, mountChecklist, mountHeightVar } from 'nish-ui/theme';",
   controls: [],
   initial: {},
   render: () => <Loading />,

@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react';
+'use client';
+import { useEffect, useSyncExternalStore, type HTMLAttributes, type Ref } from 'react';
 import { cn } from '../cn';
+import { DEFAULT_THEME } from '../tokens.mjs';
 import {
   PRESETS,
+  applyTheme,
   getThemeChoice,
+  isThemeName,
   onThemeChange,
   resolveTheme,
   schemeOf,
@@ -13,6 +17,7 @@ import {
 } from '../theme';
 import { MonitorIcon, MoonIcon, SunIcon } from './icons';
 import { IconButton } from './primitives';
+import { useNishStrings } from './provider';
 import { Segmented } from './segmented';
 
 export interface ThemeState {
@@ -26,25 +31,56 @@ export interface ThemeState {
   setChoice: (choice: ThemeChoice) => void;
 }
 
-/** The current theme choice and what it renders as, kept in sync across tabs and
- *  subdomains. */
-export function useTheme(): ThemeState {
-  const [state, setState] = useState(() => {
-    const choice = typeof document === 'undefined' ? 'system' : getThemeChoice();
-    return { choice, theme: typeof document === 'undefined' ? ('dark' as ThemeName) : resolveTheme(choice) };
-  });
-  useEffect(() => onThemeChange((choice, theme) => setState({ choice, theme })), []);
-  return { ...state, scheme: schemeOf(state.theme), setChoice: setThemeChoice };
+interface ThemeSnapshot {
+  choice: ThemeChoice;
+  theme: ThemeName;
 }
 
-const MODES: { id: ThemeChoice; label: string; Icon: typeof SunIcon }[] = [
-  { id: 'system', label: 'System', Icon: MonitorIcon },
-  { id: 'light', label: 'Light', Icon: SunIcon },
-  { id: 'dark', label: 'Dark', Icon: MoonIcon },
-];
+/** What the server renders, and the first client render while hydrating. */
+const SERVER_SNAPSHOT: ThemeSnapshot = { choice: 'system', theme: DEFAULT_THEME };
 
-const nameOf = (choice: ThemeChoice) =>
-  MODES.find((m) => m.id === choice)?.label ?? PRESETS.find((p) => p.id === choice)?.label ?? String(choice);
+let lastSnapshot: ThemeSnapshot = SERVER_SNAPSHOT;
+
+/** The applied theme, read from <html> (theme-init.js and applyTheme() write it) and, when the
+ *  attributes are missing or unknown, from the saved choice. Returns the same object while
+ *  nothing changed, as useSyncExternalStore requires. */
+function readSnapshot(): ThemeSnapshot {
+  const root = document.documentElement;
+  const attrChoice = root.getAttribute('data-theme-choice');
+  const attrTheme = root.getAttribute('data-theme');
+  let choice: ThemeChoice;
+  let theme: ThemeName;
+  if ((attrChoice === 'system' || isThemeName(attrChoice)) && isThemeName(attrTheme)) {
+    choice = attrChoice as ThemeChoice;
+    theme = attrTheme;
+  } else {
+    choice = getThemeChoice();
+    theme = resolveTheme(choice);
+  }
+  if (lastSnapshot.choice !== choice || lastSnapshot.theme !== theme) lastSnapshot = { choice, theme };
+  return lastSnapshot;
+}
+
+const subscribeTheme = (notify: () => void): (() => void) => onThemeChange(notify);
+const getServerSnapshot = (): ThemeSnapshot => SERVER_SNAPSHOT;
+
+/** The current theme choice and what it renders as, kept in sync across tabs and
+ *  subdomains. Server render and hydration see { choice: 'system', theme: 'dark' }; the real
+ *  value follows right after. If a hydration pass wiped <html data-theme>, it is applied
+ *  again on mount. */
+export function useTheme(): ThemeState {
+  const { choice, theme } = useSyncExternalStore(subscribeTheme, readSnapshot, getServerSnapshot);
+  useEffect(() => {
+    if (!document.documentElement.hasAttribute('data-theme')) applyTheme();
+  }, []);
+  return { choice, theme, scheme: schemeOf(theme), setChoice: setThemeChoice };
+}
+
+const MODES: { id: ThemeChoice; Icon: typeof SunIcon }[] = [
+  { id: 'system', Icon: MonitorIcon },
+  { id: 'light', Icon: SunIcon },
+  { id: 'dark', Icon: MoonIcon },
+];
 
 export interface ThemeToggleProps {
   /** Also offer the extra presets (slate, terminal, …) in a select. */
@@ -72,11 +108,18 @@ export interface ThemeToggleProps {
    *  width, for a drawer or settings page that has the room. */
   collapse?: 'sm' | 'never';
   className?: string;
+  /** The words after a preset saved on another site in the button label: "Theme: Mocha (set on
+   *  another site). Switch to System". Default "set on another site". */
+  elsewhereLabel?: string;
+  /** The root element: the segmented group, or the button of the compact and pill variants. */
+  ref?: Ref<HTMLElement>;
 }
 
 /** System / Light / Dark as a Segmented radio group, optionally with a preset picker,
- *  or one cycling icon button when compact. */
+ *  or one cycling icon button when compact. Words come from `useNishStrings()`. Other props
+ *  (id, data-*, aria-*, style) go on the root element. */
 export function ThemeToggle({
+  ref,
   presets = false,
   labels = false,
   block = false,
@@ -86,21 +129,30 @@ export function ThemeToggle({
   phone = 'compact',
   collapse = 'sm',
   className,
-}: ThemeToggleProps) {
+  elsewhereLabel = 'set on another site',
+  ...rest
+}: ThemeToggleProps & Omit<HTMLAttributes<HTMLElement>, 'children' | 'onChange'>) {
+  const strings = useNishStrings();
   const { choice, theme, scheme, setChoice } = useTheme();
   const extra = PRESETS.filter((p) => p.id !== 'dark' && p.id !== 'light');
   const isPreset = extra.some((p) => p.id === choice);
+  const modeLabel = (id: ThemeChoice): string =>
+    id === 'system' ? strings.themeSystem : id === 'light' ? strings.themeLight : id === 'dark' ? strings.themeDark : '';
+  const nameOf = (c: ThemeChoice): string => modeLabel(c) || PRESETS.find((p) => p.id === c)?.label || String(c);
 
   if (compact || variant === 'pill') {
     const i = TOGGLE_ORDER.indexOf(choice);
-    const next = TOGGLE_ORDER[(i + 1) % TOGGLE_ORDER.length];
+    const next = TOGGLE_ORDER[(i + 1) % TOGGLE_ORDER.length]!;
     const mode = MODES.find((m) => m.id === choice);
     const Icon = mode ? mode.Icon : scheme === 'light' ? SunIcon : MoonIcon;
-    const elsewhere = mode ? '' : ' (set on another site)';
-    const text = `Theme: ${nameOf(mode ? choice : theme)}${elsewhere}. Switch to ${nameOf(next)}`;
+    const elsewhere = mode ? '' : ` (${elsewhereLabel})`;
+    const text = strings.themeToggleLabel(`${nameOf(mode ? choice : theme)}${elsewhere}`, nameOf(next));
+    const buttonRest = rest as HTMLAttributes<HTMLButtonElement>;
     if (variant === 'pill') {
       return (
         <button
+          {...buttonRest}
+          ref={ref as Ref<HTMLButtonElement>}
           type="button"
           aria-label={text}
           title={text}
@@ -108,7 +160,7 @@ export function ThemeToggle({
           onClick={() => setChoice(next)}
           className={cn(
             'inline-flex h-11 shrink-0 items-center justify-center rounded-full border border-th-line-strong transition-colors duration-150 hover:bg-th-elevated hover:text-th-hi',
-            labels ? 'gap-2 pl-3 pr-3.5 text-sm font-medium text-th-hi' : 'w-11 text-th-hi3',
+            labels ? 'gap-2 ps-3 pe-3.5 text-sm font-medium text-th-hi' : 'w-11 text-th-hi3',
             className,
           )}
         >
@@ -118,31 +170,43 @@ export function ThemeToggle({
       );
     }
     return (
-      <IconButton label={text} size={size === 'md' ? 'md' : 'sm'} data-choice={choice} onClick={() => setChoice(next)} className={className}>
+      <IconButton
+        {...buttonRest}
+        ref={ref as Ref<HTMLButtonElement>}
+        label={text}
+        size={size === 'md' ? 'md' : 'sm'}
+        data-choice={choice}
+        onClick={() => setChoice(next)}
+        className={className}
+      >
         <Icon size={size === 'md' ? 16 : 14} />
       </IconButton>
     );
   }
 
-  const options = MODES.map(({ id, label, Icon }) => ({
+  const options = MODES.map(({ id, Icon }) => ({
     value: id,
     label: labels ? (
       <>
         <Icon size={14} />
-        {label}
+        {modeLabel(id)}
       </>
     ) : (
       <Icon size={14} />
     ),
-    ariaLabel: labels ? undefined : label,
-    title: labels ? undefined : label,
+    ariaLabel: labels ? undefined : modeLabel(id),
+    title: labels ? undefined : modeLabel(id),
   }));
 
   const twin = collapse === 'sm' && phone === 'compact' && !block;
   const group = (
-    <div className={cn('items-center gap-2', block ? 'flex w-full' : 'inline-flex', className, twin && 'max-sm:hidden')}>
+    <div
+      {...(rest as HTMLAttributes<HTMLDivElement>)}
+      ref={ref as Ref<HTMLDivElement>}
+      className={cn('items-center gap-2', block ? 'flex w-full' : 'inline-flex', className, twin && 'max-sm:hidden')}
+    >
       <Segmented
-        label="Theme"
+        label={strings.theme}
         options={options}
         value={choice}
         onChange={setChoice}
@@ -153,15 +217,15 @@ export function ThemeToggle({
       />
       {presets ? (
         <select
-          aria-label="Theme preset"
+          aria-label={strings.themePreset}
           value={isPreset ? choice : ''}
           onChange={(e) => e.target.value && setChoice(e.target.value as ThemeChoice)}
           className={cn(
-            'rounded-lg border border-th-line bg-th-elevated px-2 text-xs text-th-hi2 pointer-coarse:min-h-11',
+            'rounded-lg border border-th-line-control bg-th-elevated px-2 text-xs text-th-hi2 pointer-coarse:min-h-11',
             size === 'md' ? 'h-9 text-sm' : 'h-8',
           )}
         >
-          <option value="">Preset…</option>
+          <option value="">{strings.themePresetPlaceholder}</option>
           {extra.map((p) => (
             <option key={p.id} value={p.id}>
               {p.label}
@@ -175,7 +239,7 @@ export function ThemeToggle({
   // Phones get the cycling button; three 44px touch segments crowd a header row.
   return (
     <>
-      <ThemeToggle compact size={size} className={cn(className, 'sm:hidden')} />
+      <ThemeToggle compact size={size} elsewhereLabel={elsewhereLabel} className={cn(className, 'sm:hidden')} />
       {group}
     </>
   );

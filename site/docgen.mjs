@@ -110,7 +110,7 @@ export const COMPONENTS = [
   'MediaThumb',
 ];
 const FUNCTIONS = [
-  'toast', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
+  'toast', 'setDefaultLocale', 'getDefaultLocale', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
   'buttonClass', 'iconButtonClass', 'cardClass', 'badgeClass', 'fieldClass', 'tabClass', 'chipClass', 'menuItemClass', 'showToast', 'confirmDialog', 'mountTooltips',
   'signTone', 'toneFor', 'copyText', 'seriesColor', 'chartTheme', 'useChartTheme',
   'revealClass', 'linkClass', 'useHeightVar', 'useStuck', 'useScrollEdges', 'useScrollSpy', 'useOnline', 'useCommandHotkey',

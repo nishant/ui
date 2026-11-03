@@ -170,3 +170,85 @@ test('a toast is announced in the polite live region', async ({ page }) => {
   await page.getByRole('button', { name: 'Toast' }).click();
   await expect(page.locator('[role=status][aria-live=polite]').filter({ hasText: 'Saved to the harness' })).toHaveCount(1, { timeout: 1000 });
 });
+
+test('Tooltip: hover, focus and Escape, with no extra Tab stop and a tip the pointer can reach', async ({ page }) => {
+  await open(page);
+  const button = page.getByRole('button', { name: 'Hover target' });
+  const tip = page.getByRole('tooltip');
+
+  // The button is the only tab stop: the wrapper has no tabindex, and the button describes itself with the tip.
+  expect(await button.evaluate((el) => el.parentElement?.hasAttribute('tabindex'))).toBe(false);
+
+  await button.hover();
+  await expect(tip).toHaveText('Saves your work');
+  await expect(button).toHaveAttribute('aria-describedby', (await tip.getAttribute('id')) ?? '');
+
+  // Escape dismisses a hover-opened tip.
+  await page.keyboard.press('Escape');
+  await expect(tip).toHaveCount(0);
+
+  // The pointer can travel onto the tip without it closing.
+  await page.mouse.move(0, 0);
+  await button.hover();
+  await expect(tip).toBeVisible();
+  const box = (await tip.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
+  await page.waitForTimeout(300);
+  await expect(tip).toBeVisible();
+  await page.mouse.move(0, 0);
+  await expect(tip).toHaveCount(0);
+
+  // Keyboard focus shows it, blur hides it.
+  await page.mouse.move(0, 0);
+  await button.focus();
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Tab');
+  await expect(tip).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(tip).toHaveCount(0);
+});
+
+test('DropdownMenu: arrows, Home, End, typeahead that skips disabled rows, and Escape returns focus', async ({ page }) => {
+  await open(page);
+  const trigger = page.getByRole('button', { name: 'Fruit' });
+  await trigger.focus();
+  await page.keyboard.press('ArrowDown');
+  const menu = page.getByRole('menu', { name: 'Fruit menu' });
+  await expect(menu).toBeVisible();
+  const focused = () => page.evaluate(() => document.activeElement?.textContent);
+  await expect.poll(focused).toBe('Apple');
+  await page.keyboard.press('ArrowDown');
+  await expect.poll(focused).toBe('Banana');
+  // The disabled row is skipped.
+  await page.keyboard.press('ArrowDown');
+  await expect.poll(focused).toBe('Blueberry');
+  await page.keyboard.press('End');
+  await expect.poll(focused).toBe('Cherry');
+  await page.keyboard.press('ArrowDown');
+  await expect.poll(focused).toBe('Apple');
+  await page.keyboard.press('ArrowUp');
+  await expect.poll(focused).toBe('Cherry');
+  await page.keyboard.press('Home');
+  await expect.poll(focused).toBe('Apple');
+  // Typeahead: b, b cycles Banana then Blueberry; the disabled Blocked row is never the target.
+  await page.keyboard.press('b');
+  await expect.poll(focused).toBe('Banana');
+  await page.keyboard.press('b');
+  await expect.poll(focused).toBe('Blueberry');
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+test('Popover flips above its anchor when there is no room below', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: 'Flip anchor' }).click();
+  const panel = page.getByRole('dialog', { name: 'Flip panel' });
+  await expect(panel).toBeVisible();
+  await expect(panel).toHaveAttribute('data-side', 'top');
+  const anchorBox = (await page.getByRole('button', { name: 'Flip anchor' }).boundingBox())!;
+  const panelBox = (await panel.boundingBox())!;
+  expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(anchorBox.y);
+  await page.keyboard.press('Escape');
+  await expect(panel).toHaveCount(0);
+});

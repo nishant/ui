@@ -115,6 +115,7 @@ const [moreOpen, setMoreOpen] = useState(false);
   ]}
 />`,
   guidelines: [
+    'The title and the Theme row come from the NishProvider more and theme strings; title overrides the title per sheet. Items whose href is not safe are not rendered.',
     'Render it next to BottomNav and drive it with the same state as the More button, so aria-expanded stays true.',
     'Choosing a row runs its onSelect or follows its href and closes the sheet; you do not close it yourself.',
     'Use the hint line for what the page is for, not for its name. Keep it to one line.',

@@ -1,5 +1,8 @@
-import { memo, useLayoutEffect, useRef, type CSSProperties } from 'react';
+'use client';
+import { memo, useRef, type CSSProperties } from 'react';
+import { useIsoLayoutEffect } from '../client';
 import { TickerText } from '../flow';
+import { useNishStrings } from '../provider';
 import { KIND_ICON, Svg } from './icons';
 import type { CanvasHue, CanvasNode } from './types';
 
@@ -29,7 +32,7 @@ export const clamp01 = (n: number | undefined) => (n == null || !Number.isFinite
 function usePing(active: boolean) {
   const ref = useRef<HTMLButtonElement>(null);
   const prev = useRef(active);
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     const was = prev.current;
     prev.current = active;
     const el = ref.current;
@@ -45,6 +48,7 @@ function usePing(active: boolean) {
 
 export const NodeView = memo(
   function NodeView({ node, groupTitle, hue, box, selected, dim, delay, onSelect }: NodeViewProps) {
+    const strings = useNishStrings();
     const active = !!node.active;
     const heat = clamp01(node.heat);
     const ref = usePing(active);
@@ -64,7 +68,10 @@ export const NodeView = memo(
       vars['--nish-canvas-heat-line'] = `color-mix(in srgb, var(--c) ${Math.round(heat * 70)}%, var(--nish-line))`;
       vars['--nish-canvas-heat-glow'] = `0 0 ${Math.round(6 + heat * 16)}px color-mix(in srgb, var(--c) ${Math.round(heat * 60)}%, transparent)`;
     }
-    const aria = `${node.label}, ${groupTitle}${active ? (node.note ? `, active: ${node.note}` : ', active') : ''}`;
+    // The name starts with the text the card shows (label, then the note or detail, then the count), so it
+    // contains the visible text (WCAG 2.5.3), then adds the group and the live state.
+    const shown = active && node.note ? node.note : node.detail;
+    const aria = `${node.label}${shown ? ` ${shown}` : ''}${count > 1 ? ` ${count}` : ''}, ${groupTitle}${active ? `, ${strings.live}` : ''}`;
     return (
       <div className="nish-canvas-slot" style={style} data-active={active || undefined} data-dim={dim || undefined}>
         <button

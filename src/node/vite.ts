@@ -17,6 +17,9 @@ export interface NishThemeInitOptions {
   /** An old localStorage key (e.g. 'theme') whose value is copied to 'nish-theme' once, when there is no
    *  nish-theme cookie or localStorage value yet. Runs before theme-init. */
   legacyKey?: string;
+  /** CSP nonce for the injected inline script: a string, or a function called for every page (one nonce per
+   *  response). The script tag gets `nonce="…"`. Default: no nonce attribute. */
+  nonce?: string | (() => string);
 }
 
 /** Structurally compatible with Vite's `Plugin` for the one hook this plugin uses. */
@@ -24,7 +27,7 @@ export interface NishThemeInitPlugin {
   name: string;
   transformIndexHtml: {
     order: 'pre';
-    handler: (html: string) => string | { tag: string; children: string; injectTo: 'head-prepend' }[];
+    handler: (html: string) => string | { tag: string; attrs?: Record<string, string>; children: string; injectTo: 'head-prepend' }[];
   };
 }
 
@@ -42,17 +45,27 @@ export function nishThemeInit(o: NishThemeInitOptions = {}): NishThemeInitPlugin
 
   const position = o.position ?? 'auto';
   const charset = /<meta\s+charset[^>]*>/i;
+  // Read per page, so a function can hand out a fresh nonce for every response.
+  const nonceAttr = (): string | undefined => {
+    const n = typeof o.nonce === 'function' ? o.nonce() : o.nonce;
+    return n ? n : undefined;
+  };
   return {
     name: 'nish-theme-init',
     transformIndexHtml: {
       order: 'pre',
       handler: (html) => {
+        const nonce = nonceAttr();
         if (position === 'head-prepend' || (position === 'auto' && !charset.test(html))) {
-          return [{ tag: 'script', children: code, injectTo: 'head-prepend' }];
+          return [{ tag: 'script', ...(nonce ? { attrs: { nonce } } : {}), children: code, injectTo: 'head-prepend' }];
         }
         if (!charset.test(html)) throw new Error('@nish/ui/vite: no <meta charset> in index.html');
-        return html.replace(charset, (m) => m + '<script>' + code + '</script>');
+        return html.replace(charset, (m) => m + (nonce ? `<script nonce="${escapeAttr(nonce)}">` : '<script>') + code + '</script>');
       },
     },
   };
+}
+
+function escapeAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }

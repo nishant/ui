@@ -24,14 +24,15 @@ export const relativeTime: ComponentDoc = {
   controls: [
     { key: 'when', label: 'Moment', type: 'select', options: Object.keys(AGO) },
     { key: 'style', label: 'Style', type: 'select', options: ['short', 'long'] },
+    { key: 'locale', label: 'Locale', type: 'select', options: ['en-US', 'fr-FR', 'de-DE', 'ja-JP'] },
   ],
-  initial: { when: '3 minutes', style: 'short' },
+  initial: { when: '3 minutes', style: 'short', locale: 'en-US' },
   render: (a) => (
     <span key={`${a.when}`} className="text-sm text-th-hi2">
-      Updated <RelativeTime value={at(String(a.when))} style={a.style as 'short'} />
+      Updated <RelativeTime value={at(String(a.when))} style={a.style as 'short'} locale={String(a.locale)} />
     </span>
   ),
-  code: (a) => `<span>Updated ${jsx('RelativeTime', { value: '{updatedAt}', style: a.style === 'short' ? undefined : a.style })}</span>`,
+  code: (a) => `<span>Updated ${jsx('RelativeTime', { value: '{updatedAt}', style: a.style === 'short' ? undefined : a.style, locale: a.locale === 'en-US' ? undefined : a.locale })}</span>`,
   stories: [
     {
       id: 'all',
@@ -69,5 +70,7 @@ export const relativeTime: ComponentDoc = {
     'The visible text is relative; the tooltip and the dateTime attribute carry the exact moment for everyone else.',
     'Many instances are fine: each ticks only every refreshMs (30 seconds by default) and pauses in a hidden tab.',
     'Invalid dates render an en dash instead of "NaN ago".',
+    'locale defaults to the NishProvider locale, then setDefaultLocale() (en-US). English output is "3m ago"; other languages come from Intl.RelativeTimeFormat.',
+    'It takes the usual time attributes and a ref, except style, which here is the text style (use className).',
   ],
 };

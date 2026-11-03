@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process';
 
 const dist = 'dist';
 const BUDGET = 20480;
+// elements-all.js is every element in one file (one Lit copy), so it gets a larger budget of its own.
+const budgetFor = (entry) => (entry === 'elements-all.js' ? 51200 : entry === 'elements-data.js' ? 24576 : BUDGET); // data carries the strings store + palette hardening
 
 const fail = (msg) => {
   console.error(`elements-check: ${msg}`);
@@ -21,7 +23,7 @@ for (const entry of entries) {
   const code = readFileSync(join(dist, entry), 'utf8');
 
   const gz = gzipSync(code).length;
-  if (gz > BUDGET) fail(`dist/${entry} is ${gz} bytes gzipped, over the ${BUDGET} byte budget`);
+  if (gz > budgetFor(entry)) fail(`dist/${entry} is ${gz} bytes gzipped, over the ${budgetFor(entry)} byte budget`);
 
   // A static import or export-from means a second file has to load. Dynamic import() is also out:
   // the bundle must work as one vendored file.
@@ -63,4 +65,4 @@ for (const name of readdirSync(dist)) {
   }
 }
 
-for (const [entry, gz] of ok) console.log(`elements-check ok: dist/${entry} ${gz} bytes gzipped (budget ${BUDGET})`);
+for (const [entry, gz] of ok) console.log(`elements-check ok: dist/${entry} ${gz} bytes gzipped (budget ${budgetFor(entry)})`);

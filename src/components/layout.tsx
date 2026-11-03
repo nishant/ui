@@ -1,17 +1,22 @@
+'use client';
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
+  type ComponentPropsWithoutRef,
   type CSSProperties,
   type ElementType,
   type ReactNode,
+  type Ref,
 } from 'react';
 import { cn } from '../cn';
+import { mergeRefs } from './data-classes';
 import { Callout } from './display';
 import { useHeightVar, useStuck } from './layout-vars';
 import { Button } from './primitives';
+import { useNishStrings } from './provider';
 
 // Page-level layout pieces: sticky bars, the bottom action bar, the top loading bar, the
 // page container and the connection banner. They read and write the layout contract
@@ -21,7 +26,9 @@ import { Button } from './primitives';
 // StickyBar
 // =====================================================================================
 
-export interface StickyBarProps {
+export interface StickyBarProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  /** The bar element. */
+  ref?: Ref<HTMLElement>;
   /** The bar's content: a filter row, a toolbar, a SectionNav. */
   children?: ReactNode;
   /** CSS `top` offset. Defaults to just under the app header (`var(--nish-header-h, 0px)`). */
@@ -30,7 +37,6 @@ export interface StickyBarProps {
   elevate?: boolean;
   /** The element to render. Default `div`. */
   as?: ElementType;
-  className?: string;
 }
 
 /**
@@ -38,17 +44,28 @@ export interface StickyBarProps {
  * background reaches the screen edges (it bleeds through the page gutter). Publishes its
  * height as `--nish-sticky-extra` while mounted, so anchor links scroll clear of it.
  */
-export function StickyBar({ children, top = 'var(--nish-header-h, 0px)', elevate = true, as = 'div', className }: StickyBarProps) {
+export function StickyBar({
+  children,
+  top = 'var(--nish-header-h, 0px)',
+  elevate = true,
+  as = 'div',
+  className,
+  style,
+  ref: refProp,
+  ...rest
+}: StickyBarProps) {
   const ref = useRef<HTMLElement | null>(null);
   const stuck = useStuck(ref);
   useHeightVar(ref, '--nish-sticky-extra');
   const Tag = as as ElementType;
   return (
     <Tag
-      ref={ref}
-      style={{ top } satisfies CSSProperties}
+      {...rest}
+      ref={mergeRefs<HTMLElement>(ref, refProp)}
+      data-nish-bar=""
+      style={{ top, ...style } satisfies CSSProperties}
       className={cn(
-        'sticky z-20 -mx-[var(--nish-page-gutter)] border-b bg-th-bg px-[var(--nish-page-gutter)]',
+        'sticky z-[var(--nish-z-sticky,20)] -mx-[var(--nish-page-gutter)] border-b bg-th-bg px-[var(--nish-page-gutter)]',
         elevate && stuck ? 'border-th-line shadow-card' : 'border-transparent',
         className,
       )}
@@ -62,41 +79,56 @@ export function StickyBar({ children, top = 'var(--nish-header-h, 0px)', elevate
 // StickyActionBar
 // =====================================================================================
 
-export interface StickyActionBarProps {
+export interface StickyActionBarProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  /** The bar element. */
+  ref?: Ref<HTMLDivElement>;
   /** Shows the bar. Closed, it renders nothing and publishes no height. */
   open: boolean;
-  /** Short text on the left, e.g. "3 changes". Truncates to one line. */
+  /** Short text at the start, e.g. "3 changes". Truncates to one line. */
   message?: ReactNode;
   /** The main action, usually a primary Button. */
   primary: ReactNode;
   /** A second action, usually a ghost or secondary Button (Discard, Cancel). */
   secondary?: ReactNode;
-  /** Accessible name of the region. Default "Actions". */
+  /** Accessible name of the region. Default: the provider's `actions` string. */
   label?: string;
-  className?: string;
 }
 
 /**
  * A bar fixed to the bottom of the screen for the actions of an unsaved form or a
  * selection. Sits above a BottomNav when there is one, and publishes `--nish-bottom-bar-h`
  * while open so page padding and toasts clear it. From sm it floats as a pill at the
- * bottom right.
+ * bottom end.
  */
-export function StickyActionBar({ open, message, primary, secondary, label = 'Actions', className }: StickyActionBarProps) {
+export function StickyActionBar({
+  open,
+  message,
+  primary,
+  secondary,
+  label,
+  className,
+  ref: refProp,
+  ...rest
+}: StickyActionBarProps) {
+  const strings = useNishStrings();
   const ref = useRef<HTMLDivElement | null>(null);
   useHeightVar(ref, '--nish-bottom-bar-h', open);
   if (!open) return null;
   return (
     <div
-      ref={ref}
+      {...rest}
+      ref={mergeRefs<HTMLDivElement>(ref, refProp)}
       role="region"
-      aria-label={label}
+      aria-label={label ?? strings.actions}
+      data-state="open"
+      data-nish-bar=""
+      data-nish-print="hide"
       className={cn(
-        'fixed inset-x-0 bottom-[var(--nish-bottom-nav-h,0px)] z-30 flex items-center gap-3 border-t border-th-line bg-th-elevated px-4 pt-3 shadow-[var(--nish-shadow-pop)]',
+        'fixed inset-x-0 bottom-[var(--nish-bottom-nav-h,0px)] z-[calc(var(--nish-z-sticky,20)+10)] flex items-center gap-3 border-t border-th-line bg-th-elevated px-4 pt-3 shadow-[var(--nish-shadow-pop)]',
         // The nav already covers the home-indicator inset; only pad for what it leaves.
         'pb-[max(0.75rem,calc(env(safe-area-inset-bottom)_-_var(--nish-bottom-nav-h,0px)))]',
         'animate-[nish-bar-in_220ms_var(--nish-ease-out)] motion-reduce:animate-none',
-        'sm:inset-x-auto sm:right-6 sm:bottom-[calc(var(--nish-bottom-nav-h,0px)_+_1.5rem)] sm:rounded-[var(--nish-radius-lg)] sm:border sm:pb-3',
+        'sm:inset-x-auto sm:end-6 sm:bottom-[calc(var(--nish-bottom-nav-h,0px)_+_1.5rem)] sm:rounded-[var(--nish-radius-lg)] sm:border sm:pb-3',
         className,
       )}
     >
@@ -113,21 +145,36 @@ export function StickyActionBar({ open, message, primary, secondary, label = 'Ac
 // LoadingBar
 // =====================================================================================
 
-export interface LoadingBarProps {
+export interface LoadingBarProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  /** The bar element (rendered after the delay). */
+  ref?: Ref<HTMLDivElement>;
   /** True while something loads (a route change, a refetch). */
   active: boolean;
   /** Waits this long before showing, so quick loads never flash a bar. Default 200. */
   delayMs?: number;
   /** CSS `top`. Defaults to just under the app header. */
   top?: string;
-  className?: string;
+  /** Text for screen readers ("Loading page…"). With it set, the bar renders a persistent
+   *  polite live region that holds the text while the bar shows (after `delayMs`) and is
+   *  emptied when loading ends, so the start is announced. Without it nothing is announced. */
+  announce?: string;
 }
 
 /**
  * A thin indeterminate progress bar fixed under the app header. Appears only after
  * `delayMs` of being active. With reduced motion it is a static partial bar.
  */
-export function LoadingBar({ active, delayMs = 200, top = 'var(--nish-header-h, 0px)', className }: LoadingBarProps) {
+export function LoadingBar({
+  active,
+  delayMs = 200,
+  top = 'var(--nish-header-h, 0px)',
+  announce,
+  className,
+  style,
+  ref,
+  ...rest
+}: LoadingBarProps) {
+  const strings = useNishStrings();
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (!active) {
@@ -138,17 +185,31 @@ export function LoadingBar({ active, delayMs = 200, top = 'var(--nish-header-h, 
     const id = setTimeout(() => setShown(true), delayMs);
     return () => clearTimeout(id);
   }, [active, delayMs]);
-  if (!active || !shown) return null;
+  const visible = active && shown;
   return (
-    <div
-      role="progressbar"
-      aria-busy="true"
-      aria-label="Loading"
-      style={{ top } satisfies CSSProperties}
-      className={cn('pointer-events-none fixed inset-x-0 z-40 h-0.5 overflow-hidden', className)}
-    >
-      <div className="h-full w-2/5 bg-th-accent animate-[nish-loading-bar_1.2s_linear_infinite] motion-reduce:animate-none" />
-    </div>
+    <>
+      {announce !== undefined ? (
+        <div role="status" aria-live="polite" className="sr-only" data-nish-loading-announce="">
+          {visible ? announce : ''}
+        </div>
+      ) : null}
+      {visible ? (
+        <div
+          aria-label={strings.loading}
+          {...rest}
+          ref={ref}
+          role="progressbar"
+          aria-busy="true"
+          data-state="active"
+          data-nish-bar=""
+          data-nish-print="hide"
+          style={{ top, ...style } satisfies CSSProperties}
+          className={cn('pointer-events-none fixed inset-x-0 z-[var(--nish-z-dropdown,40)] h-0.5 overflow-hidden', className)}
+        >
+          <div className="h-full w-2/5 bg-th-accent animate-[nish-loading-bar_1.2s_linear_infinite] motion-reduce:animate-none forced-colors:forced-color-adjust-none forced-colors:bg-[Highlight]" />
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -163,7 +224,9 @@ const CONTAINER_SIZE = {
   full: 'max-w-none',
 } as const;
 
-export interface PageContainerProps {
+export interface PageContainerProps extends Omit<ComponentPropsWithoutRef<'main'>, 'children'> {
+  /** The container element. */
+  ref?: Ref<HTMLElement>;
   /** Max width: narrow 42rem, default 56rem, wide 80rem, full none. */
   size?: keyof typeof CONTAINER_SIZE;
   children?: ReactNode;
@@ -171,17 +234,28 @@ export interface PageContainerProps {
   padBottom?: boolean;
   /** The element to render. Default `main`. */
   as?: ElementType;
-  className?: string;
 }
 
 /**
  * The page's content column: centered, with the shared side gutter and vertical padding,
  * and bottom padding that keeps the last row clear of fixed bottom bars.
  */
-export function PageContainer({ size = 'default', children, padBottom = true, as = 'main', className }: PageContainerProps) {
+export function PageContainer({
+  size = 'default',
+  children,
+  padBottom = true,
+  as = 'main',
+  className,
+  ref,
+  ...rest
+}: PageContainerProps) {
   const Tag = as as ElementType;
   return (
-    <Tag className={cn('mx-auto w-full px-[var(--nish-page-gutter)] py-6', CONTAINER_SIZE[size], padBottom && 'nish-pad-bottom-inset', className)}>
+    <Tag
+      ref={ref}
+      className={cn('mx-auto w-full px-[var(--nish-page-gutter)] py-6', CONTAINER_SIZE[size], padBottom && 'nish-pad-bottom-inset', className)}
+      {...rest}
+    >
       {children}
     </Tag>
   );
@@ -200,7 +274,8 @@ function subscribeOnline(onChange: () => void): () => void {
   };
 }
 
-/** Whether the browser reports a network connection (`navigator.onLine`). True on the server. */
+/** Whether the browser reports a network connection (`navigator.onLine`). True on the server
+ *  and in the first client render. */
 export function useOnline(): boolean {
   return useSyncExternalStore(
     subscribeOnline,
@@ -209,7 +284,9 @@ export function useOnline(): boolean {
   );
 }
 
-export interface ConnectionBannerProps {
+export interface ConnectionBannerProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'title' | 'onClick'> {
+  /** The banner's root element. */
+  ref?: Ref<HTMLDivElement>;
   /** A URL to probe with `fetch` (cache: no-store). When it fails or returns a non-2xx
    *  status the banner shows. Leave out to react to the browser's online/offline state only. */
   healthUrl?: string;
@@ -217,8 +294,10 @@ export interface ConnectionBannerProps {
   intervalMs?: number;
   /** Shown when the probe fails. Default "Can't reach the server". */
   message?: string;
-  /** Shown when the browser is offline. Default "You're offline". */
+  /** Shown when the browser is offline. Default: the provider's `offline` string. */
   offlineMessage?: string;
+  /** Retry button text. Default: the provider's `retry` string. */
+  retryLabel?: string;
   /** Called after the Retry button re-probes. */
   onRetry?: () => void;
 }
@@ -232,9 +311,12 @@ export function ConnectionBanner({
   healthUrl,
   intervalMs = 30000,
   message = "Can't reach the server",
-  offlineMessage = "You're offline",
+  offlineMessage,
+  retryLabel,
   onRetry,
+  ...rest
 }: ConnectionBannerProps) {
+  const strings = useNishStrings();
   const online = useOnline();
   const [reachable, setReachable] = useState(true);
   const [retrying, setRetrying] = useState(false);
@@ -317,13 +399,14 @@ export function ConnectionBanner({
       sticky
       live
       compact
+      {...rest}
       action={
         <Button size="sm" variant="secondary" loading={retrying} onClick={() => void retry()}>
-          Retry
+          {retryLabel ?? strings.retry}
         </Button>
       }
     >
-      {online ? message : offlineMessage}
+      {online ? message : (offlineMessage ?? strings.offline)}
     </Callout>
   );
 }

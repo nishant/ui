@@ -1,7 +1,7 @@
 // @nish/ui/server/hono: Hono adapters over the framework-free @nish/ui/server code.
 // Imports only types from 'hono', so there is no runtime dependency on it.
 import type { Context, Env, ErrorHandler, Handler, Hono, MiddlewareHandler } from 'hono';
-import { clientIp } from './client-ip';
+import { clientIp, type TrustProxy } from './client-ip';
 import { isCrossSiteWrite, type CrossSiteOptions } from './cross-site';
 import { INBOX_ACTION_PATH, isInboxCall, parseInboxActionCall } from './inbox/action';
 import type { InboxActionCall, InboxData } from './inbox/types';
@@ -19,9 +19,14 @@ export function remoteAddressOf(c: Context): string | undefined {
   return typeof address === 'string' ? address : undefined;
 }
 
-export function clientIpOf(c: Context): string {
-  return clientIp((name) => c.req.header(name), remoteAddressOf(c));
+/** The client address for c (see clientIp), or null when there is none. `trust` defaults to 'none':
+ *  forwarding headers are ignored and the socket address is used. */
+export function clientIpOf(c: Context, trust: TrustProxy = 'none'): string | null {
+  return clientIp((name) => c.req.header(name), remoteAddressOf(c), { trust });
 }
+
+/** The limiter key of every request that has no address at all (no socket, nothing trusted). */
+export const NO_ADDRESS_KEY = 'no-address';
 
 export function isAuthed(c: Context, auth: SessionAuth): boolean {
   return auth.isAuthed(c.req.header('cookie'));
@@ -49,7 +54,10 @@ export interface LoginOptions {
   password: string | (() => string);
   limiter: Limiter;
   secure: boolean | ((c: Context) => boolean);
-  caseInsensitive?: boolean; // true
+  /** Trims and lowercases both sides before comparing. Default false: an exact match. */
+  caseInsensitive?: boolean;
+  /** Which forwarding headers name the client for rate limiting. Default 'none': only the socket. */
+  trustProxy?: TrustProxy;
   failDelayMs?: number; // 0
   messages?: { tooMany?: string; wrong?: string }; // 'Too many tries. Wait a minute and try again.' / 'That password is not right.'
   /** Body of the 429 and 401 answers. Default (kind, message) => ({ error: message }). */
@@ -58,16 +66,18 @@ export interface LoginOptions {
   onSuccess?: (c: Context) => Response | Promise<Response>;
 }
 
-/** POST handler: limiter key clientIpOf(c); not allowed -> 429; body via c.req.json() (failure = {});
- *  password must be a string of at most 1024 chars and match, else limiter.fail, wait failDelayMs, 401;
- *  success -> limiter.reset, startSession, onSuccess. */
+/** POST handler: limiter key clientIpOf(c, trustProxy), or NO_ADDRESS_KEY (one shared bucket) when the
+ *  request has no address; limiter.hit(key) first, before any await, false -> 429; body via
+ *  c.req.json() (failure = {}); password must be a string of at most 1024 chars and match (exact
+ *  unless caseInsensitive), else wait failDelayMs, 401; success -> limiter.reset, startSession,
+ *  onSuccess. */
 export function loginHandler(o: LoginOptions): Handler {
   const tooMany = o.messages?.tooMany ?? 'Too many tries. Wait a minute and try again.';
   const wrong = o.messages?.wrong ?? 'That password is not right.';
   const errorBody = o.errorBody ?? ((_kind, message) => ({ error: message }));
   return async (c) => {
-    const key = clientIpOf(c);
-    if (!o.limiter.allowed(key)) return c.json(errorBody('tooMany', tooMany), 429);
+    const key = clientIpOf(c, o.trustProxy) ?? NO_ADDRESS_KEY;
+    if (!o.limiter.hit(key)) return c.json(errorBody('tooMany', tooMany), 429);
     let body: unknown = {};
     try {
       body = await c.req.json();
@@ -79,9 +89,8 @@ export function loginHandler(o: LoginOptions): Handler {
     const ok =
       typeof provided === 'string' &&
       provided.length <= 1024 &&
-      passwordMatches(expected, provided, { caseInsensitive: o.caseInsensitive ?? true });
+      passwordMatches(expected, provided, { caseInsensitive: o.caseInsensitive ?? false });
     if (!ok) {
-      o.limiter.fail(key);
       const delay = o.failDelayMs ?? 0;
       if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
       return c.json(errorBody('wrong', wrong), 401);

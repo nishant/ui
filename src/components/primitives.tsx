@@ -1,5 +1,5 @@
+'use client';
 import {
-  forwardRef,
   useId,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
@@ -10,116 +10,75 @@ import {
 } from 'react';
 import { cn } from '../cn';
 import { ChevronDownIcon, LoaderIcon } from './icons';
+import {
+  BUTTON_DISABLED,
+  DOT_HUE,
+  DOT_TONE,
+  LINK_DISABLED,
+  SELECT_SIZE,
+  badgeClass,
+  buttonClass,
+  cardClass,
+  fieldClass,
+  iconButtonClass,
+  resolvePadding,
+  type BadgeHue,
+  type BadgeTone,
+  type ButtonSize,
+  type ButtonVariant,
+  type CardElement,
+  type CardPadding,
+  type FieldSize,
+  type IconButtonSize,
+  type IconButtonVariant,
+} from './primitives-classes';
 
-// Controls grow to the 44px tap target on touch screens (pointer-coarse) and stay
-// compact under a mouse, so dense desktop tables keep their density.
-//
-// One recipe per look: each component that also has a class form (buttonClass,
-// iconButtonClass, cardClass, fieldClass, badgeClass) renders exactly that function's
-// output, so an <a>, a router <Link> or a one-off control can match it without copying
-// a class string.
+// The class recipes and their size/variant tables live in primitives-classes.ts (no React,
+// no directive) so a server component can call them. They are re-exported here, so
+// existing import paths keep working.
+export {
+  FIELD,
+  badgeClass,
+  buttonClass,
+  cardClass,
+  fieldClass,
+  iconButtonClass,
+  linkClass,
+  revealClass,
+} from './primitives-classes';
+export type {
+  BadgeClassOptions,
+  BadgeHue,
+  BadgeTone,
+  ButtonClassOptions,
+  ButtonSize,
+  ButtonVariant,
+  CardClassOptions,
+  CardElement,
+  CardPadding,
+  FieldClassOptions,
+  FieldSize,
+  IconButtonClassOptions,
+  IconButtonSize,
+  IconButtonVariant,
+  LinkClassOptions,
+} from './primitives-classes';
+
+/** Dev-only console warning, once per message. Bundlers replace `process.env.NODE_ENV`
+ *  in app builds; where nothing does, `globalThis.process` is read so a bare browser
+ *  import does not throw. */
+const warned = new Set<string>();
+function warnOnce(message: string): void {
+  if (globalThis.process?.env?.NODE_ENV === 'production' || warned.has(message)) return;
+  warned.add(message);
+  console.warn(`nish-ui: ${message}`);
+}
 
 // --- Button -------------------------------------------------------------------------
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft' | 'subtle' | 'link';
-export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
-
-const BUTTON_VARIANT: Record<ButtonVariant, string> = {
-  primary: 'bg-th-accent text-th-on-accent hover:bg-th-accent/90 active:bg-th-accent/80',
-  secondary: 'border border-th-line-strong bg-th-surface text-th-hi hover:bg-th-elevated',
-  ghost: 'text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
-  danger: 'bg-th-loss text-th-on-loss hover:bg-th-loss/90 active:bg-th-loss/80',
-  soft: 'bg-th-accent-soft text-th-accent hover:bg-th-accent/20 active:bg-th-accent/25',
-  subtle: 'bg-th-elevated text-th-hi hover:bg-th-overlay',
-  link: 'h-auto p-0 font-medium text-th-accent underline-offset-2 hover:underline',
-};
-
-const BUTTON_SIZE: Record<ButtonSize, string> = {
-  xs: 'h-6 gap-1 px-2 text-2xs pointer-coarse:min-h-11',
-  sm: 'h-7 gap-1.5 px-2.5 text-xs pointer-coarse:min-h-11',
-  md: 'h-9 gap-2 px-3.5 text-sm pointer-coarse:min-h-11',
-  lg: 'h-11 gap-2 px-5 text-base',
-};
-
-// A link button sits inline in text: it keeps the size's type and gap, but has no
-// height, no padding and no touch growth.
-const LINK_SIZE: Record<ButtonSize, string> = {
-  xs: 'gap-1 text-2xs',
-  sm: 'gap-1 text-xs',
-  md: 'gap-1.5 text-sm',
-  lg: 'gap-2 text-base',
-};
-
-const BUTTON_BASE =
-  'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-lg font-medium transition-[color,background-color,border-color,transform] duration-150';
-
-// Touch press feedback for filled buttons and icon buttons; never on a disabled one.
-const PRESS = 'pointer-coarse:not-disabled:active:scale-[0.97]';
-
-// A link button's hit area grows to 44px on touch with an invisible ::after, so the
-// layout does not move.
-const LINK_HIT =
-  "pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-2 pointer-coarse:after:-inset-y-3 pointer-coarse:after:content-['']";
-
-// Disabled reads as disabled in every theme: a flat, quiet fill and faint text, instead
-// of a dimmed copy of the enabled color. A link only fades its text.
-const BUTTON_DISABLED =
-  'disabled:pointer-events-none disabled:border disabled:border-th-line disabled:bg-th-elevated disabled:text-th-ghost disabled:shadow-none';
-const LINK_DISABLED = 'disabled:pointer-events-none disabled:text-th-ghost disabled:no-underline';
-
-export interface ButtonClassOptions {
-  /** Same variants as Button. Default "secondary". */
-  variant?: ButtonVariant;
-  /** Same sizes as Button. Default "md". */
-  size?: ButtonSize;
-  /** Link variant only: skip the 44px touch hit area, for a link inside running text. */
-  inline?: boolean;
-  /** Extra classes, merged last (tailwind-merge resolves conflicts). */
-  className?: string;
-}
-
-/** The classes `<Button>` renders, minus its `disabled:` styles. Use it on `<a>`, router
- *  `<Link>`s and `<a download>` so links that look like buttons match them exactly. */
-export function buttonClass({ variant = 'secondary', size = 'md', inline = false, className }: ButtonClassOptions = {}): string {
-  return cn(
-    BUTTON_BASE,
-    variant === 'link' ? LINK_SIZE[size] : BUTTON_SIZE[size],
-    variant === 'link' ? !inline && LINK_HIT : PRESS,
-    BUTTON_VARIANT[variant],
-    className,
-  );
-}
-
-export interface LinkClassOptions {
-  /** accent: the accent color (default). muted: grey text that lights up on hover. */
-  tone?: 'accent' | 'muted';
-  /** Skip the 44px touch hit area, for a link inside running text. */
-  inline?: boolean;
-  /** Extra classes, merged last. */
-  className?: string;
-}
-
-/** The classes for a text link on a router `<Link>` or `<a>`: tone, underline on hover
- *  and, on touch screens, a 44px hit area that does not move the layout. */
-export function linkClass({ tone = 'accent', inline = false, className }: LinkClassOptions = {}): string {
-  return cn(
-    'font-medium underline-offset-2 transition-colors duration-150 hover:underline',
-    tone === 'accent' ? 'text-th-accent' : 'text-th-hi3 hover:text-th-hi',
-    !inline && LINK_HIT,
-    className,
-  );
-}
-
-/** Classes that hide a row action until its row is hovered or focused, and always show
- *  it on touch screens (there is no hover). Put `group` on the row. */
-export function revealClass(className?: string): string {
-  return cn(
-    'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100',
-    className,
-  );
-}
-
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** The button element. */
+  ref?: Ref<HTMLButtonElement>;
   /** primary: the one main action in a view. secondary: everything else. ghost:
    *  toolbars and quiet actions. danger: destructive actions. soft: an accent action
    *  that is not the main one (replaces "accent outline" buttons). subtle: a filled,
@@ -132,7 +91,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   /** Link variant only: skip the 44px touch hit area, for a link inside running text. */
   inline?: boolean;
-  /** Shows a spinner and disables the button. */
+  /** Shows a spinner, disables the button and sets aria-busy. */
   loading?: boolean;
   /** Icon before the label (16px for md and lg, 12–14px for xs and sm). Replaced by the
    *  spinner while loading. */
@@ -141,16 +100,27 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 /** The standard button. Defaults to type="button", so it never submits a form by
  *  accident; pass type="submit" for the one that should. */
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = 'secondary', size = 'md', inline = false, loading = false, icon, className, children, disabled, type = 'button', ...rest },
+export function Button({
+  variant = 'secondary',
+  size = 'md',
+  inline = false,
+  loading = false,
+  icon,
+  className,
+  children,
+  disabled,
+  type = 'button',
   ref,
-) {
+  ...rest
+}: ButtonProps) {
+  const off = !!disabled || loading;
   return (
     <button
       ref={ref}
       type={type}
-      disabled={disabled || loading}
+      disabled={off}
       aria-busy={loading || undefined}
+      data-disabled={off ? '' : undefined}
       className={buttonClass({
         variant,
         size,
@@ -159,155 +129,89 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       })}
       {...rest}
     >
-      {loading ? <LoaderIcon size={size === 'xs' || size === 'sm' ? 12 : 14} className="animate-spin" /> : icon}
+      {loading ? (
+        <LoaderIcon
+          size={size === 'xs' || size === 'sm' ? 12 : 14}
+          className="animate-spin motion-reduce:animate-pulse"
+          data-nish-spin=""
+        />
+      ) : (
+        icon
+      )}
       {children}
     </button>
   );
-});
+}
 
 // --- IconButton ---------------------------------------------------------------------
 
-export type IconButtonSize = '2xs' | 'xs' | 'sm' | 'md';
-export type IconButtonVariant = 'ghost' | 'subtle' | 'soft';
-
-const ICON_SIZE: Record<IconButtonSize, string> = {
-  '2xs': 'size-5 rounded',
-  xs: 'size-6 rounded-md',
-  sm: 'size-7 rounded-lg',
-  md: 'size-9 rounded-lg',
-};
-
-const ICON_VARIANT: Record<IconButtonVariant, { idle: string; active: string }> = {
-  ghost: { idle: 'text-th-hi3 hover:bg-th-elevated hover:text-th-hi', active: 'bg-th-elevated text-th-hi' },
-  subtle: { idle: 'bg-th-elevated text-th-hi hover:bg-th-overlay', active: 'bg-th-overlay text-th-hi' },
-  soft: { idle: 'bg-th-accent-soft text-th-accent hover:bg-th-accent/20', active: 'bg-th-accent/25 text-th-accent' },
-};
-
-const ICON_DANGER = 'hover:bg-th-loss-soft hover:text-th-loss active:bg-th-loss-soft active:text-th-loss';
-
-export interface IconButtonClassOptions {
-  /** Same sizes as IconButton. Default "md". */
-  size?: IconButtonSize;
-  /** Same variants as IconButton. Default "ghost". */
-  variant?: IconButtonVariant;
-  /** Same tones as IconButton. Default "neutral". */
-  tone?: 'neutral' | 'danger';
-  /** The pressed look (IconButton also sets aria-pressed; set it yourself on a link). */
-  active?: boolean;
-  /** Extra classes, merged last. */
-  className?: string;
-}
-
-/** The classes `<IconButton>` renders. Use it on an icon-only `<a>` or router `<Link>`,
- *  and give that element an aria-label. */
-export function iconButtonClass({
-  size = 'md',
-  variant = 'ghost',
-  tone = 'neutral',
-  active = false,
-  className,
-}: IconButtonClassOptions = {}): string {
-  return cn(
-    'inline-flex shrink-0 items-center justify-center transition-[color,background-color,border-color,transform] duration-150',
-    PRESS,
-    'disabled:pointer-events-none disabled:bg-transparent disabled:text-th-ghost',
-    'pointer-coarse:min-h-11 pointer-coarse:min-w-11',
-    ICON_SIZE[size],
-    ICON_VARIANT[variant].idle,
-    active && ICON_VARIANT[variant].active,
-    tone === 'danger' && ICON_DANGER,
-    active && tone === 'danger' && 'bg-th-loss-soft text-th-loss',
-    className,
-  );
-}
-
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** The button element. */
+  ref?: Ref<HTMLButtonElement>;
   /** Required: an icon-only button needs a name for screen readers and tooltips. It is
    *  also the title, so tests that query by title keep working. */
   label: string;
-  /** 2xs: 20px (row-level reveal actions, 22px widget title bars), xs: 24px (dense
-   *  headers), sm: 28px, md: 36px. All grow to 44px on touch screens. */
+  /** 2xs: 20px (row-level reveal actions, 22px widget title bars; under a mouse its hit
+   *  area is 24px), xs: 24px (dense headers), sm: 28px, md: 36px. All grow to 44px on
+   *  touch screens. */
   size?: IconButtonSize;
   /** Pressed state for toggles (sets aria-pressed). */
   active?: boolean;
   /** ghost: no fill until hover (default). subtle: a quiet filled square for toolbars on
    *  a surface. soft: an accent tint for the highlighted action. */
   variant?: IconButtonVariant;
-  /** danger: hover and pressed turn loss-red, for delete and remove actions. */
+  /** danger: hover and pressed turn loss-red, for delete and remove actions. (Button's
+   *  destructive look is `variant="danger"`; an icon button keeps the tone.) */
   tone?: 'neutral' | 'danger';
 }
 
 /** A square button holding only an icon, with its label as aria-label and title. */
-export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { label, size = 'md', active = false, variant = 'ghost', tone = 'neutral', className, children, type = 'button', ...rest },
+export function IconButton({
+  label,
+  size = 'md',
+  active,
+  variant = 'ghost',
+  tone = 'neutral',
+  className,
+  children,
+  type = 'button',
+  disabled,
   ref,
-) {
+  ...rest
+}: IconButtonProps) {
+  if (!label && !rest['aria-label'] && !rest['aria-labelledby']) {
+    warnOnce('<IconButton> has no `label`. An icon-only button needs an accessible name.');
+  }
+  const pressed = active === true;
   return (
     <button
       ref={ref}
       type={type}
+      disabled={disabled}
       aria-label={label}
       title={label}
-      aria-pressed={active || undefined}
-      className={iconButtonClass({ size, variant, tone, active, className })}
+      aria-pressed={pressed || undefined}
+      data-state={active === undefined ? undefined : pressed ? 'active' : 'inactive'}
+      data-disabled={disabled ? '' : undefined}
+      className={iconButtonClass({ size, variant, tone, active: pressed, className })}
       {...rest}
     >
       {children}
     </button>
   );
-});
+}
 
 // --- Card and CardHeader ------------------------------------------------------------
 
-export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
-export type CardElement = 'div' | 'section' | 'article' | 'aside' | 'li';
-
-const CARD_PADDING: Record<CardPadding, string> = {
-  none: '',
-  sm: 'p-3',
-  md: 'p-4 sm:p-5',
-  lg: 'p-6',
-};
-
-export interface CardClassOptions {
-  /** Inner padding. Default "md". */
-  padding?: CardPadding;
-  /** Kept from v0.2: false is the same as padding="none". */
-  padded?: boolean;
-  /** Hover styles for cards that are links or buttons. */
-  interactive?: boolean;
-  /** surface: the bordered panel (default). inset: a quiet elevated box for use inside
-   *  another card. */
-  variant?: 'surface' | 'inset';
-  /** Extra classes, merged last. */
-  className?: string;
-}
-
-const resolvePadding = (padding: CardPadding | undefined, padded: boolean | undefined): CardPadding =>
-  padding ?? (padded === false ? 'none' : 'md');
-
-/** The classes `<Card>` renders. Use it on a router `<Link>` or `<a>` that is a whole
- *  card: `<Link className={cardClass({ interactive: true })}>`. */
-export function cardClass({ padding, padded, interactive = false, variant = 'surface', className }: CardClassOptions = {}): string {
-  const inset = variant === 'inset';
-  return cn(
-    inset ? 'rounded-lg border border-transparent bg-th-elevated' : 'rounded-xl border border-th-line bg-th-surface shadow-card',
-    CARD_PADDING[resolvePadding(padding, padded)],
-    interactive &&
-      (inset
-        ? 'transition-colors duration-150 hover:bg-th-overlay'
-        : 'transition-colors duration-150 hover:border-th-line-strong hover:bg-th-elevated/60'),
-    className,
-  );
-}
-
 export interface CardHeaderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+  /** The header row element. */
+  ref?: Ref<HTMLDivElement>;
   /** The card's heading. */
   title: ReactNode;
   /** A quieter line under the title. */
   description?: ReactNode;
-  /** Right-aligned slot: a Button, an IconButton, a Badge, a Segmented. It wraps under
-   *  the title on narrow cards. */
+  /** End-aligned slot (right in left-to-right layouts): a Button, an IconButton, a Badge,
+   *  a Segmented. It wraps under the title on narrow cards. */
   action?: ReactNode;
   /** A small icon before the title (16px). */
   icon?: ReactNode;
@@ -330,10 +234,12 @@ export function CardHeader({
   divided = false,
   titleId,
   className,
+  ref,
   ...rest
 }: CardHeaderProps) {
   return (
     <div
+      ref={ref}
       className={cn(
         'flex flex-wrap items-center justify-between gap-x-3 gap-y-2',
         divided && 'border-b border-th-line px-4 py-3',
@@ -360,6 +266,8 @@ export function CardHeader({
 }
 
 export interface CardProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
+  /** The card element (whatever `as` renders). */
+  ref?: Ref<HTMLElement>;
   /** The element to render. Use section or article for a titled region, li inside a list. */
   as?: CardElement;
   /** Inner padding: sm p-3, md p-4 (p-5 from 640px; the default), lg p-6, none for
@@ -378,15 +286,25 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
   title?: ReactNode;
   /** The header's description; only with title. */
   description?: ReactNode;
-  /** The header's right-aligned action slot; only with title. */
+  /** The header's end-aligned action slot; only with title. */
   action?: ReactNode;
 }
 
 /** The surface panel every widget, table and form sits in. */
-export const Card = forwardRef<HTMLElement, CardProps>(function Card(
-  { as = 'div', padding, padded, interactive = false, variant = 'surface', title, description, action, className, children, ...rest },
+export function Card({
+  as = 'div',
+  padding,
+  padded,
+  interactive = false,
+  variant = 'surface',
+  title,
+  description,
+  action,
+  className,
+  children,
   ref,
-) {
+  ...rest
+}: CardProps) {
   const Tag = as as 'div';
   const pad = resolvePadding(padding, padded);
   const headingId = useId();
@@ -411,90 +329,18 @@ export const Card = forwardRef<HTMLElement, CardProps>(function Card(
       {children}
     </Tag>
   );
-});
+}
 
 // --- Badge --------------------------------------------------------------------------
 
-export type BadgeTone = 'neutral' | 'accent' | 'ok' | 'loss' | 'warn' | 'info' | 'on-accent';
-type Tone = BadgeTone;
-export type BadgeHue = 'emerald' | 'indigo' | 'amber' | 'lime' | 'rose' | 'sky' | 'violet' | 'teal';
-
-const BADGE_TONE: Record<Tone, string> = {
-  neutral: 'border-th-line bg-th-elevated text-th-hi2',
-  accent: 'border-th-accent/30 bg-th-accent-soft text-th-accent',
-  ok: 'border-th-ok/30 bg-th-ok-soft text-th-ok',
-  loss: 'border-th-loss/30 bg-th-loss-soft text-th-loss',
-  warn: 'border-th-warn/30 bg-th-warn-soft text-th-warn',
-  info: 'border-th-info/30 bg-th-info-soft text-th-info',
-  // A label on a solid accent fill (inside a primary Button or an accent link).
-  'on-accent': 'border-transparent bg-th-on-accent/20 text-th-on-accent',
-};
-
-// Full literal class names, so Tailwind's scanner finds every one.
-const BADGE_HUE: Record<BadgeHue, string> = {
-  emerald: 'border-th-emerald/30 bg-th-emerald-soft text-th-hi',
-  indigo: 'border-th-indigo/30 bg-th-indigo-soft text-th-hi',
-  amber: 'border-th-amber/30 bg-th-amber-soft text-th-hi',
-  lime: 'border-th-lime/30 bg-th-lime-soft text-th-hi',
-  rose: 'border-th-rose/30 bg-th-rose-soft text-th-hi',
-  sky: 'border-th-sky/30 bg-th-sky-soft text-th-hi',
-  violet: 'border-th-violet/30 bg-th-violet-soft text-th-hi',
-  teal: 'border-th-teal/30 bg-th-teal-soft text-th-hi',
-};
-
-// The dot is StatusDot's xs recipe (6px, the tone's -fill).
-const DOT_TONE: Record<Tone, string> = {
-  neutral: 'bg-th-ghost',
-  accent: 'bg-th-accent',
-  ok: 'bg-th-ok-fill',
-  loss: 'bg-th-loss-fill',
-  warn: 'bg-th-warn-fill',
-  info: 'bg-th-info-fill',
-  'on-accent': 'bg-th-on-accent',
-};
-
-const DOT_HUE: Record<BadgeHue, string> = {
-  emerald: 'bg-th-emerald',
-  indigo: 'bg-th-indigo',
-  amber: 'bg-th-amber',
-  lime: 'bg-th-lime',
-  rose: 'bg-th-rose',
-  sky: 'bg-th-sky',
-  violet: 'bg-th-violet',
-  teal: 'bg-th-teal',
-};
-
-export interface BadgeClassOptions {
-  /** Same tones as Badge. Default "neutral". */
-  tone?: Tone;
-  /** Same hues as Badge; overrides tone. */
-  hue?: BadgeHue;
-  /** Same sizes as Badge. Default "sm". */
-  size?: 'xs' | 'sm';
-  /** Same variants as Badge. Default "pill". */
-  variant?: 'pill' | 'tag';
-  /** Extra classes, merged last. */
-  className?: string;
-}
-
-/** The classes `<Badge>` renders (without the dot), for a badge-shaped link or a
- *  label inside a third-party renderer. */
-export function badgeClass({ tone = 'neutral', hue, size = 'sm', variant = 'pill', className }: BadgeClassOptions = {}): string {
-  return cn(
-    'inline-flex items-center gap-1 whitespace-nowrap rounded-full border font-medium',
-    size === 'xs' ? 'px-1.5 py-0 text-3xs leading-4' : 'px-2 py-0.5 text-xs leading-4',
-    hue ? BADGE_HUE[hue] : BADGE_TONE[tone],
-    variant === 'tag' && 'rounded-sm border-transparent font-semibold uppercase tracking-wide',
-    className,
-  );
-}
-
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  /** The badge element. */
+  ref?: Ref<HTMLSpanElement>;
   /** Text on its own soft tint; every tone clears 4.5:1 in every theme. on-accent: a
    *  small label inside a solid accent fill (a primary Button, an accent link), in the
    *  on-accent color over a 20% on-accent tint. It has no hover state; pair a short
    *  label with sr-only text that says what it means. */
-  tone?: Tone;
+  tone?: BadgeTone;
   /** A color with no meaning (stores, categories, tags): the hue's soft tint with hi
    *  text, so it reads in every theme. Overrides tone. */
   hue?: BadgeHue;
@@ -509,9 +355,19 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /** A small status pill: counts, states, tags. */
-export function Badge({ tone = 'neutral', hue, size = 'sm', variant = 'pill', dot = false, className, children, ...rest }: BadgeProps) {
+export function Badge({
+  tone = 'neutral',
+  hue,
+  size = 'sm',
+  variant = 'pill',
+  dot = false,
+  className,
+  children,
+  ref,
+  ...rest
+}: BadgeProps) {
   return (
-    <span className={badgeClass({ tone, hue, size, variant, className })} {...rest}>
+    <span ref={ref} className={badgeClass({ tone, hue, size, variant, className })} {...rest}>
       {dot ? (
         <span aria-hidden="true" className={cn('inline-block size-1.5 shrink-0 rounded-full', hue ? DOT_HUE[hue] : DOT_TONE[tone])} />
       ) : null}
@@ -520,57 +376,21 @@ export function Badge({ tone = 'neutral', hue, size = 'sm', variant = 'pill', do
   );
 }
 
-// --- Fields: Input, Select (and the shared FIELD recipe) -----------------------------
-
-export type FieldSize = 'xs' | 'sm' | 'md';
-
-/** The field look without size: border, fill, hover, focus ring, disabled and invalid.
- *  Internal to the package (Textarea in forms.tsx builds on it); apps use fieldClass(). */
-export const FIELD =
-  'w-full min-w-0 rounded-lg border border-th-line-strong bg-th-elevated text-th-hi placeholder:text-th-ghost ' +
-  'transition-colors duration-150 hover:border-th-hi3/60 focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/25 ' +
-  'disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-th-loss';
-
-// Touch screens always get 16px text (text-base), so iOS does not zoom on focus. Under a
-// mouse the size's own text size applies at every width, so a narrow popout window
-// driven by a mouse keeps its dense text.
-// Padding is split into pl and pr, so a slot or a select chevron can replace one side
-// without fighting a px class.
-const FIELD_SIZE: Record<FieldSize, { box: string; pad: string; text: string }> = {
-  xs: { box: 'h-7 pointer-coarse:min-h-11', pad: 'pl-2 pr-2', text: 'text-2xs pointer-coarse:text-base' },
-  sm: { box: 'h-8 pointer-coarse:min-h-11', pad: 'pl-2.5 pr-2.5', text: 'text-xs pointer-coarse:text-base' },
-  md: { box: 'h-9 pointer-coarse:min-h-11', pad: 'pl-3 pr-3', text: 'text-sm pointer-coarse:text-base' },
-};
-
-const FIELD_INVALID = 'border-th-loss hover:border-th-loss';
-
-export interface FieldClassOptions {
-  /** md h-9 (default), sm h-8, xs h-7. All grow to 44px on touch screens. */
-  size?: FieldSize;
-  /** The red invalid border, for elements that do not set aria-invalid themselves. */
-  invalid?: boolean;
-  /** Extra classes, merged last. */
-  className?: string;
-}
-
-/** The classes `<Input>` renders: the shared field look at a size. Use it for a one-off
- *  control (a date input, a contenteditable) instead of copying a class string. */
-export function fieldClass({ size = 'md', invalid = false, className }: FieldClassOptions = {}): string {
-  const s = FIELD_SIZE[size];
-  return cn(FIELD, s.box, s.pad, s.text, invalid && FIELD_INVALID, className);
-}
+// --- Fields: Input, Select ----------------------------------------------------------
 
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  /** The input element (not the wrapper, when there are slots). */
+  ref?: Ref<HTMLInputElement>;
   /** Red border and aria-invalid. Pair it with an error message tied by aria-describedby. */
   invalid?: boolean;
   /** md h-9 (default), sm h-8 with 12px text, xs h-7 with 11px text. Touch screens
    *  always get 16px text and a 44px height. (Replaces the native size attribute; set a width with
    *  className instead.) */
   size?: FieldSize;
-  /** A decorative slot inside the left edge: a search icon, a "$" prefix. It ignores
-   *  pointer events, so clicks reach the input. */
+  /** A decorative slot inside the start edge (left in left-to-right layouts): a search
+   *  icon, a "$" prefix. It ignores pointer events, so clicks reach the input. */
   leading?: ReactNode;
-  /** A slot inside the right edge that may be interactive: a clear IconButton, a unit
+  /** A slot inside the end edge that may be interactive: a clear IconButton, a unit
    *  suffix. */
   trailing?: ReactNode;
   /** Classes for the wrapper span that holds the slots (only rendered with leading or
@@ -578,16 +398,14 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   wrapperClassName?: string;
 }
 
-/** Text input. 16px text on touch screens so iOS does not zoom the page on focus. */
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { invalid, size = 'md', leading, trailing, wrapperClassName, className, ...rest },
-  ref,
-) {
+/** Text input. 16px text on touch screens so iOS does not zoom the page on focus. `rest`
+ *  lands on the input, also when the slots add a wrapper. */
+export function Input({ invalid, size = 'md', leading, trailing, wrapperClassName, className, ref, ...rest }: InputProps) {
   const input = (
     <input
       ref={ref}
       aria-invalid={invalid || undefined}
-      className={fieldClass({ size, className: cn(leading != null && 'pl-8', trailing != null && 'pr-8', className) })}
+      className={fieldClass({ size, className: cn(leading != null && 'ps-8', trailing != null && 'pe-8', className) })}
       {...rest}
     />
   );
@@ -595,25 +413,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <span className={cn('relative inline-flex w-full min-w-0 items-center', wrapperClassName)}>
       {leading != null ? (
-        <span className="pointer-events-none absolute inset-y-0 left-0 flex w-8 items-center justify-center text-sm text-th-hi2">
+        <span className="pointer-events-none absolute inset-y-0 start-0 flex w-8 items-center justify-center text-sm text-th-hi2">
           {leading}
         </span>
       ) : null}
       {input}
       {trailing != null ? (
-        <span className="absolute inset-y-0 right-0 flex min-w-8 items-center justify-center pr-0.5 text-sm text-th-hi2">{trailing}</span>
+        <span className="absolute inset-y-0 end-0 flex min-w-8 items-center justify-center pe-0.5 text-sm text-th-hi2">{trailing}</span>
       ) : null}
     </span>
   );
-});
-
-const SELECT_SIZE: Record<FieldSize, { pad: string; chevron: string; icon: number }> = {
-  xs: { pad: 'pl-2 pr-6', chevron: 'right-1.5', icon: 12 },
-  sm: { pad: 'pl-2.5 pr-7', chevron: 'right-2', icon: 13 },
-  md: { pad: 'pl-3 pr-8', chevron: 'right-2.5', icon: 14 },
-};
+}
 
 export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
+  /** The select element (not the wrapper). */
+  ref?: Ref<HTMLSelectElement>;
   /** Red border and aria-invalid. */
   invalid?: boolean;
   /** md h-9 (default), sm h-8, xs h-7, the same as Input. Touch screens get 16px text
@@ -624,11 +438,10 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
   selectClassName?: string;
 }
 
-/** Native select (keeps the platform picker on phones) with the shared field look. */
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { invalid, size = 'md', selectClassName, className, children, ...rest },
-  ref,
-) {
+/** Native select (keeps the platform picker on phones) with the shared field look. The
+ *  wrapper span takes `className`; `rest` and `ref` go to the select, so `name`,
+ *  `value` and `onChange` work as on a native select. */
+export function Select({ invalid, size = 'md', selectClassName, className, children, ref, ...rest }: SelectProps) {
   const s = SELECT_SIZE[size];
   return (
     <span className={cn('relative inline-flex w-full min-w-0', className)}>
@@ -640,14 +453,22 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       >
         {children}
       </select>
-      <ChevronDownIcon size={s.icon} className={cn('pointer-events-none absolute top-1/2 -translate-y-1/2 text-th-hi3', s.chevron)} />
+      <ChevronDownIcon
+        size={s.icon}
+        className={cn('pointer-events-none absolute top-1/2 -translate-y-1/2 text-th-hi3', s.chevron)}
+      />
     </span>
   );
-});
+}
 
 // --- Label --------------------------------------------------------------------------
 
+export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
+  /** The span element. */
+  ref?: Ref<HTMLSpanElement>;
+}
+
 /** Small uppercase label for form fields and section headings. */
-export function Label({ className, ...rest }: HTMLAttributes<HTMLSpanElement>) {
-  return <span className={cn('text-xs font-medium uppercase tracking-wider text-th-hi3', className)} {...rest} />;
+export function Label({ className, ref, ...rest }: LabelProps) {
+  return <span ref={ref} className={cn('text-xs font-medium uppercase tracking-wider text-th-hi3', className)} {...rest} />;
 }

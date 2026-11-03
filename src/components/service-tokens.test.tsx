@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ServiceTokenView } from "../service-token-types";
+import { NishProvider } from "./provider";
 import { ServiceTokensSection, useServiceTokens } from "./service-tokens";
 
 afterEach(() => {
@@ -86,13 +87,13 @@ describe("ServiceTokensSection", () => {
     const onRevoke = vi.fn().mockResolvedValue(undefined);
     render(<ServiceTokensSection tokens={LIST} onRevoke={onRevoke} />);
     fireEvent.click(screen.getByRole("button", { name: "Revoke nish MCP" }));
-    const dialog = screen.getByRole("dialog");
+    const dialog = screen.getByRole("alertdialog");
     expect(within(dialog).getByText("Revoke nish MCP?")).toBeTruthy();
     expect(within(dialog).getByText(/This cannot be undone/)).toBeTruthy();
     expect(onRevoke).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole("button", { name: "Revoke" }));
     await waitFor(() => expect(onRevoke).toHaveBeenCalledWith("mcp"));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
   });
 
   it("Cancel closes without revoking", () => {
@@ -100,11 +101,11 @@ describe("ServiceTokensSection", () => {
     render(<ServiceTokensSection tokens={LIST} onRevoke={onRevoke} />);
     fireEvent.click(screen.getByRole("button", { name: "Revoke nish MCP" }));
     fireEvent.click(
-      within(screen.getByRole("dialog")).getByRole("button", {
+      within(screen.getByRole("alertdialog")).getByRole("button", {
         name: "Cancel",
       }),
     );
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(onRevoke).not.toHaveBeenCalled();
   });
 
@@ -113,13 +114,13 @@ describe("ServiceTokensSection", () => {
     render(<ServiceTokensSection tokens={LIST} onRevoke={onRevoke} />);
     fireEvent.click(screen.getByRole("button", { name: "Revoke nish MCP" }));
     fireEvent.click(
-      within(screen.getByRole("dialog")).getByRole("button", {
+      within(screen.getByRole("alertdialog")).getByRole("button", {
         name: "Revoke",
       }),
     );
     await waitFor(() =>
       expect(
-        within(screen.getByRole("dialog")).getByRole("alert").textContent,
+        within(screen.getByRole("alertdialog")).getByRole("alert").textContent,
       ).toBe("Boom"),
     );
   });
@@ -137,9 +138,9 @@ describe("ServiceTokensSection", () => {
     render(
       <ServiceTokensSection tokens={undefined} onRevoke={async () => {}} />,
     );
-    expect(
-      screen.getByRole("status", { name: "Loading service tokens" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toContain(
+      "Loading service tokens",
+    );
   });
 
   it("shows the error with Try again", () => {
@@ -252,5 +253,66 @@ describe("useServiceTokens", () => {
     await expect(result.current.revoke("zz")).rejects.toThrow(
       "No service token with that id.",
     );
+  });
+});
+
+describe("ServiceTokensSection contract", () => {
+  it("puts ref and rest props on the section, merges className", () => {
+    const ref = { current: null as HTMLElement | null };
+    render(
+      <ServiceTokensSection
+        tokens={LIST}
+        onRevoke={async () => {}}
+        ref={ref}
+        className="mine"
+        data-testid="st"
+        id="tokens-here"
+      />,
+    );
+    const section = screen.getByTestId("st");
+    expect(section.tagName).toBe("SECTION");
+    expect(ref.current).toBe(section);
+    expect(section.id).toBe("tokens-here");
+    expect(section.className).toContain("mine");
+    expect(section.className).toContain("min-w-0");
+  });
+
+  it("takes its texts from the provider and per-instance props win", () => {
+    render(
+      <NishProvider
+        strings={{
+          serviceTokens: "Jetons",
+          tokenRevoke: "Révoquer",
+          tokenRevokeNamed: (n: string) => `Révoquer ${n}`,
+          tokenRevokeTitle: (n: string) => `Révoquer ${n} ?`,
+          tokenRevoked: "Révoqué",
+          cancel: "Annuler",
+        }}
+      >
+        <ServiceTokensSection tokens={LIST} onRevoke={async () => {}} />
+      </NishProvider>,
+    );
+    expect(screen.getByRole("heading", { name: "Jetons" })).toBeTruthy();
+    expect(screen.getByText("Révoqué")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Révoquer nish MCP (handle)" }));
+    const dialog = screen.getByRole("alertdialog");
+    expect(within(dialog).getByText("Révoquer nish MCP (handle) ?")).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Annuler" })).toBeTruthy();
+  });
+
+  it("emptyMessage, createdLabel and envSourceLabel are per-instance", () => {
+    const { rerender } = render(
+      <ServiceTokensSection tokens={[]} onRevoke={async () => {}} emptyMessage="Rien" />,
+    );
+    expect(screen.getByText("Rien")).toBeTruthy();
+    rerender(
+      <ServiceTokensSection
+        tokens={[tok({ id: "e", name: "Env one", source: "env" })]}
+        onRevoke={async () => {}}
+        createdLabel={(w) => `créé ${w}`}
+        envSourceLabel="depuis l'env"
+      />,
+    );
+    expect(screen.getByText(/créé .*depuis l'env/)).toBeTruthy();
   });
 });

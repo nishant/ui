@@ -144,6 +144,8 @@ const [open, setOpen] = useState(false);
     'On a phone there is no keyboard shortcut: show a visible search button that sets open.',
     'Keywords match below the label, so "travel" finds Trips without cluttering the label.',
     'A function for items replaces the built-in ranking: filter and order on your side.',
+    'Item hrefs go through safeUrl: a javascript:, data: or vbscript: href does nothing (a dev warning names it). Relative paths, http(s), mailto and tel work.',
+    'When nothing matches, the empty text is a status message outside the listbox. Placeholder, empty text, result count and the new-tab mark are props (placeholder, emptyText, resultsLabel, externalLabel) or NishProvider strings.',
   ],
   api: { functions: ['useCommandHotkey'], interfaces: [] },
 };

@@ -40,12 +40,32 @@
   ],
   "files": [
     "dist",
+    "!dist/esm/**/*.map",
+    "!dist/**/*.map",
     "tsconfig"
   ],
-  "main": "./dist/index.js",
+  "main": "./dist/esm/index.js",
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
+      "theme": [
+        "./dist/theme.d.ts"
+      ],
+      "tokens": [
+        "./dist/tokens.d.ts"
+      ],
+      "system-canvas": [
+        "./dist/system-canvas.d.ts"
+      ],
+      "chart": [
+        "./dist/chart.d.ts"
+      ],
+      "format": [
+        "./dist/format.d.ts"
+      ],
+      "split-layout": [
+        "./dist/split-layout.d.ts"
+      ],
       "inbox-client": [
         "./dist/inbox-client.d.ts"
       ],
@@ -60,6 +80,9 @@
       ],
       "elements/charts": [
         "./dist/elements-charts.d.ts"
+      ],
+      "elements/all": [
+        "./dist/elements-all.d.ts"
       ],
       "vite": [
         "./dist/node/vite.d.ts"
@@ -81,37 +104,43 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/esm/index.js",
+      "default": "./dist/esm/index.js"
     },
     "./theme": {
       "types": "./dist/theme.d.ts",
-      "import": "./dist/theme.js"
+      "import": "./dist/esm/theme.js",
+      "default": "./dist/esm/theme.js"
     },
     "./tokens": {
       "types": "./dist/tokens.d.ts",
-      "import": "./dist/tokens.js"
+      "import": "./dist/esm/tokens.mjs",
+      "default": "./dist/esm/tokens.mjs"
     },
     "./system-canvas": {
       "types": "./dist/system-canvas.d.ts",
-      "import": "./dist/system-canvas.js"
+      "import": "./dist/esm/system-canvas.js",
+      "default": "./dist/esm/system-canvas.js"
     },
     "./chart": {
       "types": "./dist/chart.d.ts",
-      "import": "./dist/chart.js"
+      "import": "./dist/esm/chart.js",
+      "default": "./dist/esm/chart.js"
     },
     "./format": {
       "types": "./dist/format.d.ts",
-      "import": "./dist/format.js"
+      "import": "./dist/esm/format.js",
+      "default": "./dist/esm/format.js"
     },
     "./split-layout": {
       "types": "./dist/split-layout.d.ts",
-      "import": "./dist/split-layout.js",
-      "default": "./dist/split-layout.js"
+      "import": "./dist/esm/split-layout.js",
+      "default": "./dist/esm/split-layout.js"
     },
     "./inbox-client": {
       "types": "./dist/inbox-client.d.ts",
-      "import": "./dist/inbox-client.js",
-      "default": "./dist/inbox-client.js"
+      "import": "./dist/esm/inbox-client.js",
+      "default": "./dist/esm/inbox-client.js"
     },
     "./elements": {
       "types": "./dist/elements.d.ts",
@@ -132,6 +161,11 @@
       "types": "./dist/elements-charts.d.ts",
       "import": "./dist/elements-charts.js",
       "default": "./dist/elements-charts.js"
+    },
+    "./elements/all": {
+      "types": "./dist/elements-all.d.ts",
+      "import": "./dist/elements-all.js",
+      "default": "./dist/elements-all.js"
     },
     "./vite": {
       "types": "./dist/node/vite.d.ts",
@@ -155,13 +189,17 @@
       "default": "./dist/server/hono.js"
     },
     "./theme-init.js": "./dist/theme-init.js",
+    "./theme-init.sha256": "./dist/theme-init.sha256",
     "./theme.global.js": "./dist/theme.global.js",
     "./tailwind.css": "./dist/tailwind.css",
+    "./tailwind-core.css": "./dist/tailwind-core.css",
     "./nish.css": "./dist/nish.css",
     "./tokens.css": "./dist/tokens.css",
     "./fonts.css": "./dist/fonts.css",
     "./base.css": "./dist/base.css",
     "./nish-components.css": "./dist/nish-components.css",
+    "./tokens.json": "./dist/tokens.json",
+    "./tokens.dtcg.json": "./dist/tokens.dtcg.json",
     "./fonts/*": "./dist/fonts/*",
     "./files.json": "./dist/files.json",
     "./package.json": "./package.json"
@@ -175,16 +213,18 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "contrast": "node tools/contrast.mjs",
-    "check": "npm run typecheck && npm run contrast && npm run build && node tools/format-check.mjs && node tools/elements-check.mjs && node tools/inbox-client-check.mjs &&node tools/canvas-layout-check.mjs && node tools/canvas-route-check.mjs && npm run th-check && npm run lint",
+    "check": "npm run typecheck && npm run contrast && npm run build && node tools/format-check.mjs && node tools/elements-check.mjs && node tools/inbox-client-check.mjs &&node tools/canvas-layout-check.mjs && node tools/canvas-route-check.mjs && npm run th-check && npm run lint && npm run size",
     "visual": "node tools/visual-check.mjs",
     "release": "node scripts/release.mjs",
     "test:tools": "node --test tools/*.test.mjs tools/fanout/*.test.mjs",
     "test:unit": "vitest run",
     "test:overlay": "playwright test",
-    "th-check": "node dist/node/th-check.js src site demo"
+    "th-check": "node dist/node/th-check.js src site demo",
+    "size": "node tools/size-check.mjs",
+    "test:consumers": "node tools/consumer-check.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19"
   },
   "peerDependencies": {
     "hono": ">=4",
@@ -217,12 +257,15 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-v8": "^4.1.12",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "happy-dom": "^21.0.4",
     "hono": "^4.13.14",
     "jiti": "^2.7.0",
+    "lightningcss": "^1.32.0",
     "lit": "^3.3.3",
     "pixelmatch": "^7.2.0",
     "playwright": "^1.64.1",

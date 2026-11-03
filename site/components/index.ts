@@ -96,6 +96,19 @@ import { hooks } from './hooks';
 import { layoutContract } from './layout-contract';
 import { staticParity } from './static-parity';
 import { vitePlugin } from './vite-plugin';
+import { radioGroup } from './radio-group';
+import { slider } from './slider';
+import { tagInput } from './tag-input';
+import { fileDropzone } from './file-dropzone';
+import { pagination } from './pagination';
+import { breadcrumbs } from './breadcrumbs';
+import { accordion } from './accordion';
+import { separator } from './separator';
+import { avatar } from './avatar';
+import { progress } from './progress';
+import { visuallyHidden } from './visually-hidden';
+import { portal } from './portal';
+import { provider } from './provider';
 import type { ComponentDoc } from './types';
 
 export type { Control, Story, ComponentDoc } from './types';
@@ -119,6 +132,10 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   filterBar,
   combobox,
   select,
+  radioGroup,
+  slider,
+  tagInput,
+  fileDropzone,
   label,
   skeleton,
   skeletonRows,
@@ -133,6 +150,10 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   sparkline,
   disclosure,
   kbd,
+  separator,
+  avatar,
+  progress,
+  visuallyHidden,
   copyButton,
   pageHeader,
   appHeader,
@@ -150,6 +171,9 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   segmented,
   chip,
   tabs,
+  pagination,
+  breadcrumbs,
+  accordion,
   inbox,
   themeToggle,
   mountThemeToggleDoc,
@@ -194,6 +218,8 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   relativeTime,
   format,
   hooks,
+  portal,
+  provider,
   layoutContract,
   staticParity,
   vitePlugin,

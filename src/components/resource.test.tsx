@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, apiFetch, configureApi, useResource } from './resource';
 
@@ -140,6 +140,7 @@ describe('useResource', () => {
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
   });
   afterEach(() => {
+    cleanup();
     vi.useRealTimers();
   });
 

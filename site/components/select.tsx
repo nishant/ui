@@ -157,5 +157,6 @@ export const select: ComponentDoc = {
     'Use selectClassName for the inner <select>, never [&>select]:… selectors.',
     'Match the size to the Inputs beside it (sm with sm) so a filter row lines up.',
     'For more than about 15 options, or when people need to search, use an Input with suggestions instead.',
+    'ref, name, value and every other native attribute go to the <select>; only className goes to the wrapper. The chevron sits at the end edge and mirrors in right-to-left layouts.',
   ],
 };

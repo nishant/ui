@@ -161,6 +161,7 @@ export const meter: ComponentDoc = {
 // Lower is worse: loss below warn.
 <Meter value={battery} label="Battery" thresholds={{ warn: 30, loss: 10 }} />`,
   guidelines: [
+    'In forced-colors mode the track gets a text-colored border and the fill the system highlight color, so the value stays readable. ref, id, data-* and aria-* land on the bar (the element with the meter role); className goes on the bar, or on the wrapper row with showValue.',
     'Always pass label: the bar has no text of its own.',
     'Show the number nearby (showValue, or your own text) so the reading never depends on color.',
     'Use kind="progress" for work that finishes, meter for a measurement.',

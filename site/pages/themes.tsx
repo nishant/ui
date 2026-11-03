@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Badge, cn, PRESETS, THEMES, useTheme, type ThemeName } from '../../src';
 import { checkTheme, ON_FILL, ratio, RULES, TEXT, UI } from '../../tools/contrast-rules.mjs';
 import { CodeBlock } from '../lib/code';
+import { href } from '../lib/router';
 import { PageHeader, Prose, Section, ThemeScope } from '../lib/ui';
 
 const SWATCHES = ['bg', 'surface', 'elevated', 'overlay', 'line', 'hi', 'hi2', 'hi3', 'accent', 'accent2', 'ok', 'loss', 'warn', 'info'];
@@ -217,18 +218,19 @@ export function ThemesPage() {
       <Section title="Choosing a theme" note="The choice ('system' or a theme name) is shared across subdomains through one cookie.">
         <Prose>
           <p>
-            <code>setThemeChoice()</code> writes <code>nish-theme</code> to a cookie on <code>.nish.software</code> and to <code>localStorage</code>.
+            <code>setThemeChoice()</code> writes <code>nish-theme</code> to <code>localStorage</code> and, when the page names a shared domain, to a cookie on it.
             theme-init.js reads the cookie first, then localStorage (the only store on localhost and in Electron), then follows the OS. Pick Mocha on
-            jobs.nish.software and trading.nish.software opens in Mocha.
+            one app and a sibling app on the same domain opens in Mocha.
           </p>
           <p>
-            Another site shares the choice across its own subdomains with <code>&lt;html data-nish-domain="example.com"&gt;</code>; it applies only on that
-            domain and its subdomains. Without it, hosts outside nish.software keep the choice in <code>localStorage</code> only.
+            A site shares the choice across its own subdomains with <code>&lt;html data-nish-domain="example.com"&gt;</code>; it applies only on that
+            domain and its subdomains. Without it the choice stays in <code>localStorage</code>. <code>data-nish-storage-key</code> renames the key. See the{' '}
+            <a href={href('/theming-api')}>Theming API</a> for every function.
           </p>
         </Prose>
         <CodeBlock
           title="the cookie"
-          code={`nish-theme=mocha; Domain=.nish.software; Path=/; Max-Age=31536000; SameSite=Lax; Secure`}
+          code={`nish-theme=mocha; Domain=.example.com; Path=/; Max-Age=31536000; SameSite=Lax; Secure`}
         />
         <CodeBlock
           title="an app's own themes"
@@ -236,7 +238,7 @@ export function ThemesPage() {
 <script>window.__nishExtraThemes = { rose: 'dark', paper: 'light' };</script>
 
 // at startup, before initTheme()
-import { registerThemes, initTheme } from '@nish/ui';
+import { registerThemes, initTheme } from 'nish-ui';
 registerThemes({ rose: 'dark', paper: 'light' });
 initTheme();
 

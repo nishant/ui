@@ -130,7 +130,7 @@ export const baseUtilities: ComponentDoc & { source: string } = {
   source: 'src/css/base.css',
   summary:
     'The small shared pieces under every component: hue tints, the two dense type sizes, the canonical radii, and the base.css helpers (skip link, kbd, scrollbar-none, drawer keyframes). Tailwind apps and static pages get the same ones.',
-  importLine: "@import '@nish/ui/tailwind.css';  /* or <link rel=\"stylesheet\" href=\"nish/nish.css\"> */",
+  importLine: "@import 'nish-ui/tailwind.css';  /* or <link rel=\"stylesheet\" href=\"nish/nish.css\"> */",
   controls: [{ key: 'part', label: 'Show', type: 'select', options: ['hue tints', 'small type', 'radii', 'kbd'] }],
   initial: { part: 'hue tints' },
   render: (a) =>

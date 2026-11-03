@@ -120,6 +120,8 @@ export const mountThemeToggleDoc: ComponentDoc & { source: string } = {
     'Use it for every one-button toggle on a static page instead of wiring cycleTheme() by hand; it keeps the label right when a preset was picked on another site ("Theme: Mocha (set on another site). Switch to System").',
     'The button keeps its own classes: style it with .nish-theme-btn (nish-components.css) or your own. Only the current icon is visible; data-choice holds the saved choice for CSS.',
     'Call initTheme() first. The returned function removes the click handler and the theme subscription.',
+    'For another language pass labels (the three words) and strings: { themeToggleLabel: (current, next) => … }; elsewhereLabel replaces "set on another site". The icons are built with createElementNS, so pages with Trusted Types accept it.',
+    'Unknown names passed to setThemeChoice() or cycleTheme() are ignored with a dev warning, and blocked storage or cookies never throw.',
     'React apps use <ThemeToggle compact /> instead.',
   ],
 };
