@@ -150,16 +150,30 @@ describe('useMediaQuery', () => {
     expect(listeners.get(q)?.size).toBe(1);
   });
 
-  it('does not call matchMedia during render', () => {
-    const calls: number[] = [];
+  it('is right in the first client render, so a value read once (defaultOpen) is right', () => {
+    width = 400;
+    const seen: boolean[] = [];
     function Probe() {
-      const before = matchMediaCalls;
-      useMediaQuery('(max-width: 600px)');
-      calls.push(matchMediaCalls - before);
+      seen.push(useMediaQuery('(max-width: 600px)'));
       return null;
     }
     render(<Probe />);
-    expect(calls[0]).toBe(0);
+    expect(seen[0]).toBe(true);
+  });
+
+  it('calls matchMedia once per query, however many components render it', () => {
+    function Probe() {
+      useMediaQuery('(max-width: 600px)');
+      return null;
+    }
+    render(
+      <>
+        <Probe />
+        <Probe />
+        <Probe />
+      </>,
+    );
+    expect(matchMediaCalls).toBe(1);
   });
 
   it('is false on the server and in the first hydration render', () => {

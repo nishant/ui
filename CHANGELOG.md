@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [2.0.2] - 2026-11-03
+
+### Fixed
+
+- `useMediaQuery`, `usePhone`, `useNarrow` and `useBreakpoint` return the real value in the first render of a client-rendered app. In 2.0.0 and 2.0.1 they returned `false` (or `base`) until after the first commit, so a value read once, such as `<Disclosure defaultOpen={!isPhone}>`, came out wrong on phones. Server rendering and hydration still start from `false`.
+
 ## [2.0.1] - 2026-11-03
 
 ### Fixed

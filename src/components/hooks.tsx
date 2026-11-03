@@ -17,11 +17,13 @@ export { BREAKPOINTS, NARROW_QUERY, PHONE_QUERY };
 export type { Breakpoint };
 
 // One MediaQueryList and one listener per query string, shared by every component that asks.
-// An entry exists only while something is subscribed, so nothing runs at import time and
-// matchMedia is never called during render (the snapshot is the cached `matches`).
+// Nothing runs at import time. The first render that asks for a query creates its list (one
+// matchMedia call per query), so a client-rendered app gets the real value from the first render;
+// the change listener is attached while something is subscribed.
 interface QueryEntry {
   mql: MediaQueryList;
   matches: boolean;
+  listening: boolean;
   subs: Set<() => void>;
   onChange: () => void;
 }
@@ -31,40 +33,56 @@ function hasMatchMedia(): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function';
 }
 
-function subscribeQuery(query: string, cb: () => void): () => void {
-  if (!hasMatchMedia()) return () => {};
+function entryFor(query: string): QueryEntry {
   let entry = queries.get(query);
   if (!entry) {
     const mql = window.matchMedia(query);
     const created: QueryEntry = {
       mql,
       matches: mql.matches,
+      listening: false,
       subs: new Set(),
       onChange: () => {
         created.matches = mql.matches;
         created.subs.forEach((fn) => fn());
       },
     };
-    mql.addEventListener('change', created.onChange);
     queries.set(query, created);
     entry = created;
   }
-  const owner = entry;
+  return entry;
+}
+
+function subscribeQuery(query: string, cb: () => void): () => void {
+  if (!hasMatchMedia()) return () => {};
+  const owner = entryFor(query);
+  if (!owner.listening) {
+    owner.listening = true;
+    owner.matches = owner.mql.matches;
+    owner.mql.addEventListener('change', owner.onChange);
+  }
   owner.subs.add(cb);
   return () => {
     owner.subs.delete(cb);
     if (owner.subs.size === 0) {
+      owner.listening = false;
       owner.mql.removeEventListener('change', owner.onChange);
       if (queries.get(query) === owner) queries.delete(query);
     }
   };
 }
 
+/** The query's current value: the cached one while a listener keeps it fresh, else the list's
+ *  live `matches` (the first render of a page with no server rendering), so a value read once
+ *  (`useState(!isPhone)`, `defaultOpen`) is right from the start. */
 function queryMatches(query: string): boolean {
-  return queries.get(query)?.matches ?? false;
+  if (!hasMatchMedia()) return false;
+  const entry = entryFor(query);
+  return entry.listening ? entry.matches : entry.mql.matches;
 }
 
-/** True while the CSS media query matches. False on the server and in the first client render, then follows the query. */
+/** True while the CSS media query matches. False on the server and while hydrating server HTML;
+ *  in a client-rendered app, right from the first render. Then follows the query. */
 export function useMediaQuery(query: string): boolean {
   const subscribe = useCallback((onChange: () => void) => subscribeQuery(query, onChange), [query]);
   const get = useCallback(() => queryMatches(query), [query]);
