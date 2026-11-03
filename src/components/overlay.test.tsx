@@ -660,6 +660,29 @@ function unhover(el: Element) {
 }
 
 describe('Tooltip', () => {
+  it('shows one tip at a time: moving straight to the next trigger closes the last tip at once', () => {
+    render(
+      <>
+        <Tooltip tip="First tip">
+          <button type="button">One</button>
+        </Tooltip>
+        <Tooltip tip="Second tip">
+          <button type="button">Two</button>
+        </Tooltip>
+      </>,
+    );
+    const one = screen.getByRole('button', { name: 'One' }).parentElement!;
+    const two = screen.getByRole('button', { name: 'Two' }).parentElement!;
+    act(() => void one.dispatchEvent(new MouseEvent('mouseenter')));
+    expect(screen.getByRole('tooltip').textContent).toBe('First tip');
+    // mouseleave only starts the grace timer; the second tip must not wait for it.
+    act(() => void one.dispatchEvent(new MouseEvent('mouseleave')));
+    act(() => void two.dispatchEvent(new MouseEvent('mouseenter')));
+    const tips = screen.getAllByRole('tooltip');
+    expect(tips).toHaveLength(1);
+    expect(tips[0]!.textContent).toBe('Second tip');
+  });
+
   it('does not add a Tab stop around a single focusable child, and describes the child', () => {
     render(
       <Tooltip tip="Saves it">

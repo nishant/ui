@@ -1236,6 +1236,10 @@ export interface TooltipProps extends Omit<ComponentPropsWithoutRef<'span'>, 'ch
 
 const TIP_MAX_WIDTH = 320;
 const TIP_GRACE_MS = 100;
+
+/** At most one tip is open on a page: opening one closes the one before it at once, so the
+ *  grace period that lets the pointer reach a tip never leaves two on screen. */
+const openTip = (): { close: (() => void) | null } => shared('tooltip', () => ({ close: null }));
 const FOCUSABLE_HOST_TAGS = new Set(['button', 'a', 'input', 'select', 'textarea', 'summary']);
 
 /** Hover/focus tooltip rendered through a portal (into the dialog it sits in, else the
@@ -1308,6 +1312,21 @@ export function Tooltip({ tip, children, className, side = 'top', as = 'span', f
       el.removeEventListener('focusout', hide);
     };
   }, [triggerRef]);
+
+  // One tip at a time: close the open one, and be the one the next tip closes.
+  useEffect(() => {
+    if (!open) return;
+    const slot = openTip();
+    const close = () => {
+      window.clearTimeout(graceTimer.current);
+      setOpen(false);
+    };
+    if (slot.close && slot.close !== close) slot.close();
+    slot.close = close;
+    return () => {
+      if (slot.close === close) slot.close = null;
+    };
+  }, [open]);
 
   // Escape dismisses a tip however it opened (WCAG 1.4.13), without also closing a dialog.
   useEffect(() => {

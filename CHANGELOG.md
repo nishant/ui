@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [2.0.1] - 2026-11-03
+
+### Fixed
+
+- `Tooltip`: at most one tip is open on a page. Since 2.0 a tip stays open for a moment after the pointer leaves (so the pointer can reach it); moving straight onto another trigger showed two tips until that moment passed. Opening a tip now closes the open one at once.
+
 ## [2.0.0] - 2026-11-03
 
 The production-hardening release: server components, SSR, tree-shaking, one shared runtime, strings, locale and direction, forms that post, accessibility and safer defaults. Moving from 1.x: [docs/MIGRATING-2.0.md](docs/MIGRATING-2.0.md).
