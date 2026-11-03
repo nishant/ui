@@ -71,3 +71,11 @@ tag-push fan-out runs from it); `scripts/release.mjs --ci` dispatches `fanout.ym
   (`fitView`) and the layout pick (`chooseLayout`) share thresholds (`PHONE_K`, `SCROLL_K`): change them together, or
   a narrow canvas opens cut off mid-map. `tools/canvas-layout-check.mjs` and `canvas-route-check.mjs` cover layout and
   routing; check the first view at 360 and 840 in a browser too.
+- CodeQL runs on every PR (`codeql.yml`) and its alerts fail the PR check. Fix the code; dismiss a false positive only with
+  a reason (`gh api -X PATCH repos/nishant/ui/code-scanning/alerts/<n> -f state=dismissed -f dismissed_reason="false positive" -f dismissed_comment=...`).
+  Trim strings with index loops, not an anchored `[...]+$` regex (polynomial ReDoS).
+- A new file in `dist/files.json` `static` breaks taarora/arora-home's `scripts/sync-nish-ui.py` unless it is optional there
+  (`*.min.css`, `elements*.js`); a new literal red or green in vendored CSS fails its colour-blind check. Run
+  `bash scripts/bump-consumers.sh vX.Y.Z` after each release and fix the sync script in arora-home when it refuses.
+- Mutation testing: StrykerJS with the vitest runner needs `disableTypeChecks: false` (its `// @ts-nocheck` header breaks the
+  "use client" first-line test) and `ignoreStatic: true` (static mutants rerun every test).
