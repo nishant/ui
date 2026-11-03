@@ -13,7 +13,7 @@
     { "name": "THEMES", "from": "nish-ui", "import": "THEMES", "maxKB": 3 },
     { "name": "SystemCanvas", "from": "nish-ui", "import": "SystemCanvas", "maxKB": 27.5 },
     { "name": "everything from .", "from": "nish-ui", "import": "*", "maxKB": 117 },
-    { "name": "nish-ui/theme", "from": "nish-ui/theme", "import": "*", "maxKB": 12 },
+    { "name": "nish-ui/theme", "from": "nish-ui/theme", "import": "*", "maxKB": 10 },
     { "name": "nish-ui/format", "from": "nish-ui/format", "import": "*", "maxKB": 4 }
   ]
 }

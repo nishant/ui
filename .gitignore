@@ -9,3 +9,4 @@ site-dist/
 test-results/
 playwright-report/
 visual-out/
+coverage/
