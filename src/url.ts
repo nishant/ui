@@ -6,8 +6,14 @@
  *  not a scheme there either. */
 export function safeUrl(href: string | null | undefined): string | null {
   if (href == null) return null;
-  // eslint-disable-next-line no-control-regex
-  const out = String(href).replace(/^[\u0000- ]+|[\u0000- ]+$/g, '').replace(/[\t\n\r]/g, '');
+  // Trim C0 controls and spaces with index scans: an anchored `[...]+$` regex backtracks
+  // quadratically on a long run of them.
+  const raw = String(href);
+  let start = 0;
+  let end = raw.length;
+  while (start < end && raw.charCodeAt(start) <= 0x20) start++;
+  while (end > start && raw.charCodeAt(end - 1) <= 0x20) end--;
+  const out = raw.slice(start, end).replace(/[\t\n\r]/g, '');
   if (out === '') return null;
   // A relative URL that begins with Unicode whitespace followed by a scheme-like word is refused:
   // some consumers trim() it before use, which would turn it into a live script URL.

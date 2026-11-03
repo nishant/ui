@@ -189,7 +189,8 @@ export interface ServiceTokenRouteOptions {
  *  `service token <id> revoked`; 404 { error: 'No service token with that id.' } when unknown.
  *  Mount behind the app's login (requireSession) and its cross-site write guard. */
 export function mountServiceTokenRoutes<E extends Env>(app: Hono<E>, o: ServiceTokenRouteOptions): void {
-  const base = (o.base ?? '/api/service-tokens').replace(/\/+$/, '');
+  let base = o.base ?? '/api/service-tokens';
+  while (base.endsWith('/')) base = base.slice(0, -1);
   const log = o.log ?? ((line: string) => console.log(line));
   app.get(base, (c) => {
     c.header('Cache-Control', 'no-store');

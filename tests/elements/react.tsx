@@ -597,7 +597,7 @@ function App() {
         />
       );
     default: {
-      const render = WAVE2[c] ?? WAVE3[c];
+      const render = Object.hasOwn(WAVE2, c) ? WAVE2[c] : Object.hasOwn(WAVE3, c) ? WAVE3[c] : undefined;
       return render ? (
         <div id="stage" style={{ padding: 16, maxWidth: '28rem' }}>
           {render()}

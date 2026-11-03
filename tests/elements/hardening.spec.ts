@@ -1,4 +1,8 @@
+import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+
+// The elements strings module as Vite serves it (the harness root is tests/elements, so /@fs/).
+const STRINGS = '/@fs/' + resolve(import.meta.dirname, '../../src/elements/strings.ts').replace(/\\/g, '/').replace(/^\//, '');
 
 // Production-hardening behavior of the custom elements in a real browser: right-to-left arrow keys,
 // late children, configureStrings, and the command palette's refusal of script URLs. The page is
@@ -185,10 +189,10 @@ test.describe('configureStrings', () => {
       '<nish-search id="hs1"></nish-search><nish-search id="hs2" placeholder="Mine"></nish-search><nish-nav-rail id="hbn"><a href="/x">X</a></nish-nav-rail><nish-copy-button id="hcb" value="x"></nish-copy-button>',
     );
     await expect(page.locator('#hs1 input')).toHaveAttribute('placeholder', 'Search');
-    await page.evaluate(async () => {
-      const mod = await import('/@fs/C:/Code/ui-prod-hardening/src/elements/strings.ts');
+    await page.evaluate(async (path) => {
+      const mod = await import(path);
       mod.configureStrings({ search: 'Buscar', sections: 'Secciones', copy: 'Copiar' });
-    });
+    }, STRINGS);
     await expect(page.locator('#hs1 input')).toHaveAttribute('placeholder', 'Buscar');
     await expect(page.locator('#hs2 input')).toHaveAttribute('placeholder', 'Mine');
     await expect(page.locator('#hbn nav')).toHaveAttribute('aria-label', 'Secciones');
@@ -203,10 +207,10 @@ test.describe('configureStrings', () => {
 
   test('a line chart with no data uses the configured empty text', async ({ page }) => {
     await load(page);
-    await page.evaluate(async () => {
-      const mod = await import('/@fs/C:/Code/ui-prod-hardening/src/elements/strings.ts');
+    await page.evaluate(async (path) => {
+      const mod = await import(path);
       mod.configureStrings({ noDataYet: 'Sin datos', noDataNamed: (l: string) => `${l}: sin datos` });
-    });
+    }, STRINGS);
     await add(page, '<nish-line-chart label="Latencia"></nish-line-chart>');
     const empty = page.locator('#box .nish-empty');
     await expect(empty).toHaveText('Sin datos');

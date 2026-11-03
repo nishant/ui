@@ -100,6 +100,8 @@ test('closing the modal returns focus to its opener', async ({ page }) => {
 });
 
 test('Back closes the top layer and leaves history as it was', async ({ page }) => {
+  // A real entry before the harness: Firefox replaces the initial about:blank instead of keeping it.
+  await page.goto(URL + '?before');
   await open(page);
   const url = page.url();
   const lengthBefore = await page.evaluate(() => history.length);

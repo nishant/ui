@@ -95,7 +95,7 @@ test('dist/esm/index.js loads in plain Node without window or document', () => {
 });
 
 test("a 'use client' source module keeps its directive as the first line of its output", () => {
-  const directive = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(['"])use client\1/;
+  const directive = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/))*\s*(['"])use client\1/;
   const src = join(root, 'src');
   const clients = [];
   (function walk(d) {

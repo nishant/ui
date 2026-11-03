@@ -66,7 +66,7 @@ export function plan({ tag, version, distOk, published }) {
 
 /** Versions on npm, or null when the package does not exist there yet. */
 async function publishedVersions(name) {
-  const res = await fetch(`${REGISTRY}/${name.replace('/', '%2f')}`, { headers: { accept: 'application/json' } });
+  const res = await fetch(`${REGISTRY}/${name.replaceAll('/', '%2f')}`, { headers: { accept: 'application/json' } });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`npm registry answered ${res.status} for ${name}`);
   const doc = await res.json();

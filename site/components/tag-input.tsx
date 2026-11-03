@@ -83,7 +83,7 @@ export const tagInput: ComponentDoc = {
           <TagInput
             aria-label="Invite emails"
             placeholder="name@example.com"
-            validate={(t) => (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(t) ? null : 'Enter a valid email address.')}
+            validate={(t) => (/^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$/.test(t) ? null : 'Enter a valid email address.')}
           />
         </div>
       ),

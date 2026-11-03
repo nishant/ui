@@ -297,7 +297,7 @@ async function buildEsm() {
   }
 
   // A source module whose first statement is 'use client' must start its output with "use client";.
-  const directive = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(['"])use client\1/;
+  const directive = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/))*\s*(['"])use client\1/;
   for (const file of seen) {
     if (!directive.test(readFileSync(file, 'utf8'))) continue;
     const dest = join(out, relative(src, file).replace(/\.tsx?$/, '.js'));
