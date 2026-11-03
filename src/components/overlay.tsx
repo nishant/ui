@@ -9,7 +9,6 @@ import {
   useId,
   useRef,
   useState,
-  useSyncExternalStore,
   type ComponentPropsWithoutRef,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -24,6 +23,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../cn';
 import { shared } from '../runtime';
 import { isRtl, useIsClient, useIsoLayoutEffect } from './client';
+import { useMediaQuery } from './hooks';
 import { XIcon } from './icons';
 import { Button, IconButton } from './primitives';
 import { useLatest } from './latest';
@@ -1661,20 +1661,8 @@ export interface DropdownMenuProps extends Omit<ComponentPropsWithoutRef<'div'>,
 
 /** True while the viewport is under 640px (live). False on the server and during hydration. */
 function usePhoneViewport(enabled: boolean): boolean {
-  const subscribe = useCallback(
-    (notify: () => void) => {
-      if (!enabled || typeof window.matchMedia !== 'function') return () => {};
-      const mq = window.matchMedia(PHONE_QUERY);
-      mq.addEventListener('change', notify);
-      return () => mq.removeEventListener('change', notify);
-    },
-    [enabled],
-  );
-  return useSyncExternalStore(
-    subscribe,
-    () => enabled && isPhoneViewport(),
-    () => false,
-  );
+  const phone = useMediaQuery(PHONE_QUERY);
+  return enabled && phone;
 }
 
 /** Renders `element` with `props` merged over its own. A component rather than a

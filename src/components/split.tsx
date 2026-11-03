@@ -11,10 +11,13 @@ import {
   type ReactNode,
 } from 'react';
 import { cn } from '../cn';
+import type { LayoutPresetOption } from './split-classes';
+
+export { presetOptions, type LayoutPresetOption } from './split-classes';
 import {
   computeDividers,
   computeRects,
-  presetsFor,
+
   resizeAt,
   type Divider,
   type LayoutNode,
@@ -462,17 +465,6 @@ export function LayoutPresetIcon({ node, width = 56, height = 36, className, ref
 
 // --- LayoutPresetPicker ----------------------------------------------------------------------
 
-export interface LayoutPresetOption {
-  /** The value passed to `onChange`. */
-  id: string;
-  /** The visible name under the icon. */
-  label: string;
-  /** A short explanation, shown in a tooltip and read as part of the accessible name. */
-  hint: string;
-  /** The layout the icon draws. */
-  node: LayoutNode;
-}
-
 export interface LayoutPresetPickerProps extends Omit<ComponentPropsWithRef<'div'>, 'onChange' | 'children'> {
   /** One radio per option. */
   options: LayoutPresetOption[];
@@ -492,10 +484,6 @@ export interface LayoutPresetPickerProps extends Omit<ComponentPropsWithRef<'div
   label?: string;
 }
 
-/** The preset options for a pane count, from `presetsFor`. */
-export function presetOptions(count: 1 | 2 | 3 | 4): LayoutPresetOption[] {
-  return presetsFor(count).map((p) => ({ id: p.id, label: p.label, hint: p.hint, node: p.build() }));
-}
 
 /** A bar of layout presets: one icon radio per option in a scrolling row, with a tooltip hint on each. */
 export function LayoutPresetPicker({

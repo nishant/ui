@@ -134,3 +134,24 @@ test('dist/esm modules import each other with .js extensions and nothing outside
     }
   })(join(root, 'dist/esm'));
 });
+
+test("a root export that resolves to a 'use client' module is a component or hook, or on the browser-only allow-list", () => {
+  // In a server component every export of a 'use client' module is a client reference, so a plain function or
+  // constant there cannot be called or read. Put such values in a *-classes.ts module instead.
+  const allow = new Set(['toast', 'dismissToast', 'copyText', 'navigateFromLayer', 'isRtl', 'locationAdapter']);
+  const esm = join(root, 'dist/esm');
+  const index = readFileSync(join(esm, 'index.js'), 'utf8');
+  const bad = [];
+  for (const m of index.matchAll(/export\s*\{([^}]*)\}\s*from\s*["'](\.[^"']+)["']/g)) {
+    const file = join(esm, m[2]);
+    if (!existsSync(file)) continue;
+    if (!/^\s*["']use client["']/.test(readFileSync(file, 'utf8'))) continue;
+    for (const part of m[1].split(',')) {
+      const name = part.trim().split(/\s+as\s+/).pop();
+      if (!name || name === 'default') continue;
+      if (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name) || allow.has(name)) continue;
+      bad.push(`${name} (${m[2]})`);
+    }
+  }
+  assert.deepEqual(bad, [], `these exports live in 'use client' modules but are not components or hooks: ${bad.join(', ')}`);
+});

@@ -24,6 +24,14 @@ describe('docs pages vs docgen', () => {
     expect(missing).toEqual([]);
   }, 60000);
 
+  it('every documented component export has a docgen entry (props table and source link)', () => {
+    const missing: string[] = [];
+    for (const doc of COMPONENT_DOCS) {
+      for (const n of doc.exports) if (/^[A-Z]/.test(n) && !data.components[n] && !data.functions[n] && !data.interfaces[n]) missing.push(`${doc.id}: ${n}`);
+    }
+    expect(missing).toEqual([]);
+  }, 60000);
+
   it('split-stage and media-row exports have props tables', () => {
     for (const id of ['split-stage', 'media-row']) {
       const doc = COMPONENT_DOCS.find((d) => d.id === id)!;

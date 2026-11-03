@@ -214,8 +214,14 @@ nonce:
 - Hash: `nish-ui/theme-init.sha256` holds `sha256-...` for the shipped `theme-init.js`. Put it
   in `script-src 'sha256-...'` when you inline the file exactly as shipped. The hash is also in
   `dist/files.json` as `themeInitHash`.
-- Nonce: `nishThemeInit({ nonce: () => makeNonce() })` in `nish-ui/vite` adds `nonce="..."` to
-  the injected tag; in other setups give your own `<script nonce>` the file's contents.
+  `theme-init.sha256` covers only the file as shipped. The Vite plugin changes the script (comments
+  removed, optional prelude and legacyKey code), so for Vite use the plugin's `hash` property
+  (`nishThemeInit().hash`) instead.
+- Nonce: `nishThemeInit({ nonce: '__NISH_CSP_NONCE__' })` in `nish-ui/vite` writes that placeholder
+  into the injected tag at build time; have your server replace it with a fresh random value on every
+  response. Vite runs the transform once per build, so a fixed real nonce (or a function) is baked into
+  the file and gives no protection outside the dev server. In other setups give your own
+  `<script nonce>` the file's contents.
 - The components set no inline styles that need `style-src 'unsafe-inline'` beyond CSS custom
   properties on elements, and build their DOM without `innerHTML`, so a Trusted Types policy
   (`require-trusted-types-for 'script'`) passes.

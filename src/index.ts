@@ -235,7 +235,8 @@ export type {
   LayoutOptions,
   RoutedEdge,
 } from './components/canvas';
-export { Inbox, DEFAULT_INBOX_LABELS } from './components/inbox';
+export { Inbox } from './components/inbox';
+export { DEFAULT_INBOX_LABELS } from './components/inbox-classes';
 export type { InboxProps, InboxLabels } from './components/inbox';
 export { INBOX_SOURCE_LABELS, INBOX_DEFAULT_SETTINGS } from './inbox-types';
 export { INBOX_ACTION_HEADER, INBOX_ACTION_TIMEOUT_MS } from './inbox-types';
@@ -260,7 +261,8 @@ export type { ServiceTokenView, ServiceTokenListResponse } from './service-token
 export { Combobox } from './components/combobox';
 export type { ComboboxProps, ComboboxOption } from './components/combobox';
 export { CheckIcon, ClockIcon, MoreIcon, BellIcon, SettingsIcon } from './components/icons';
-export { SplitStage, SplitDividers, LayoutPresetPicker, LayoutPresetIcon, presetOptions } from './components/split';
+export { SplitStage, SplitDividers, LayoutPresetPicker, LayoutPresetIcon } from './components/split';
+export { presetOptions } from './components/split-classes';
 export type { SplitStageProps, SplitDividersProps, LayoutPresetPickerProps, LayoutPresetIconProps, LayoutPresetOption } from './components/split';
 export * from './split-layout';
 export { MediaThumb, MediaRow, MediaChip } from './components/media';
@@ -273,7 +275,8 @@ export { TagInput } from './components/tag-input';
 export type { TagInputProps } from './components/tag-input';
 export { FileDropzone } from './components/file-dropzone';
 export type { FileDropzoneProps, RejectedFile } from './components/file-dropzone';
-export { Pagination, paginationRange } from './components/pagination';
+export { Pagination } from './components/pagination';
+export { paginationRange } from './components/pagination-classes';
 export type { PaginationProps, PaginationLinkProps, PaginationSize } from './components/pagination';
 export { Breadcrumbs } from './components/breadcrumbs';
 export type { BreadcrumbsProps, BreadcrumbItem, BreadcrumbLinkProps } from './components/breadcrumbs';
@@ -287,7 +290,8 @@ export type {
 } from './components/accordion';
 export { Separator } from './components/separator';
 export type { SeparatorProps } from './components/separator';
-export { Avatar, AvatarGroup, avatarInitials, avatarHueIndex } from './components/avatar';
+export { Avatar, AvatarGroup } from './components/avatar';
+export { avatarInitials, avatarHueIndex } from './components/avatar-classes';
 export type { AvatarProps, AvatarGroupProps, AvatarSize, AvatarShape } from './components/avatar';
 export { Progress } from './components/progress';
 export type { ProgressProps, ProgressTone } from './components/progress';

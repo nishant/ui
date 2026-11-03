@@ -2,6 +2,7 @@
 // index.html, so every app sets data-theme before first paint without copying the script.
 // Node only. Imports nothing from React, and nothing from vite (the plugin type is local,
 // structurally compatible with Vite's Plugin, so this package needs no vite install).
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -17,14 +18,22 @@ export interface NishThemeInitOptions {
   /** An old localStorage key (e.g. 'theme') whose value is copied to 'nish-theme' once, when there is no
    *  nish-theme cookie or localStorage value yet. Runs before theme-init. */
   legacyKey?: string;
-  /** CSP nonce for the injected inline script: a string, or a function called for every page (one nonce per
-   *  response). The script tag gets `nonce="…"`. Default: no nonce attribute. */
+  /** CSP nonce for the injected inline script: a string, or a function called when the HTML is transformed.
+   *  The script tag gets `nonce="…"`. Vite transforms index.html once at build time, so in a production build
+   *  the value is baked into the file and every response carries it: for a real per-response nonce pass a
+   *  placeholder such as `'__NISH_CSP_NONCE__'` and have your server replace it with a fresh random value on
+   *  each response. For static hosting use the `hash` property of the plugin instead. A function gives a
+   *  fresh value per request only in the dev server. Default: no nonce attribute. */
   nonce?: string | (() => string);
 }
 
 /** Structurally compatible with Vite's `Plugin` for the one hook this plugin uses. */
 export interface NishThemeInitPlugin {
   name: string;
+  /** CSP source (`'sha256-...'` without quotes) of the exact script this plugin injects, including any
+   *  prelude or legacyKey code. Differs from dist/theme-init.sha256, which covers only the file as shipped.
+   *  With a `nonce` set, the nonce is what CSP checks, not this hash. */
+  hash: string;
   transformIndexHtml: {
     order: 'pre';
     handler: (html: string) => string | { tag: string; attrs?: Record<string, string>; children: string; injectTo: 'head-prepend' }[];
@@ -52,6 +61,7 @@ export function nishThemeInit(o: NishThemeInitOptions = {}): NishThemeInitPlugin
   };
   return {
     name: 'nish-theme-init',
+    hash: 'sha256-' + createHash('sha256').update(code).digest('base64'),
     transformIndexHtml: {
       order: 'pre',
       handler: (html) => {

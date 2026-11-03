@@ -261,15 +261,17 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
             <code className="min-w-0 truncate font-mono text-[13px] text-th-hi">{nishName(doc.importLine)}</code>
             <CopyButton text={nishName(doc.importLine)} iconOnly label="Copy import line" />
           </div>
-          <a
-            href={`${REPO}/blob/${SOURCE_REF}/${file}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-th-hi2 hover:bg-th-elevated hover:text-th-hi pointer-coarse:min-h-11"
-          >
-            {file}
-            <ExternalIcon size={13} />
-          </a>
+          {file ? (
+            <a
+              href={`${REPO}/blob/${SOURCE_REF}/${file}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-th-hi2 hover:bg-th-elevated hover:text-th-hi pointer-coarse:min-h-11"
+            >
+              {file}
+              <ExternalIcon size={13} />
+            </a>
+          ) : null}
         </div>
         <nav aria-label={`${doc.name} views`} className="flex gap-1 pt-2">
           {tabs.map((t) => (

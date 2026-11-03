@@ -1016,6 +1016,8 @@ export function AppHeader({
   const toggle = themeToggle === false ? null : (themeToggle ?? <ThemeToggle />);
   const hideName = hideNameBelow === 'sm' && icon != null;
   const hubHref = hub ? safeUrl(hub.href) : null;
+  const homeUrl = homeHref == null ? null : safeUrl(homeHref);
+  if (homeHref != null && homeUrl == null) warnDev(`AppHeader: homeHref "${homeHref}" is not a safe URL and was dropped`);
   if (hub && hubHref == null) warnDev(`nish-ui: AppHeader hid the hub pill because its href is not safe (${hub.href.slice(0, 40)}).`);
   const mark = (
     <>
@@ -1064,8 +1066,8 @@ export function AppHeader({
             <span className="sr-only">{name}</span>
             {brand}
           </div>
-        ) : homeHref != null ? (
-          <a href={homeHref} className={cn(markClass, 'min-h-11 min-w-11 rounded-lg', hideName && 'max-sm:justify-center')}>
+        ) : homeUrl != null ? (
+          <a href={homeUrl} className={cn(markClass, 'min-h-11 min-w-11 rounded-lg', hideName && 'max-sm:justify-center')}>
             {mark}
           </a>
         ) : (

@@ -179,7 +179,7 @@ stay for static pages.
 - RadioGroup, Slider, TagInput, FileDropzone, Pagination, Breadcrumbs, Accordion, Separator, Avatar,
   Progress, VisuallyHidden and Portal.
 - Server components: import from `nish-ui` in a Next.js server component.
-- `nishThemeInit({ nonce })` and `nish-ui/theme-init.sha256` for a strict Content Security Policy.
+- `nishThemeInit({ nonce: '__NISH_CSP_NONCE__' })` (a placeholder your server replaces on every response; the build bakes in one value) or `nishThemeInit().hash` for a strict Content Security Policy. `nish-ui/theme-init.sha256` covers only the unmodified file.
 
 ## Check your upgrade
 

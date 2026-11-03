@@ -7,7 +7,6 @@ import {
   useId,
   useRef,
   useState,
-  useSyncExternalStore,
   type ComponentPropsWithoutRef,
   type HTMLAttributes,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -16,6 +15,7 @@ import {
 } from 'react';
 import { cn } from '../cn';
 import { isRtl } from './client';
+import { useMediaQuery } from './hooks';
 import { useScrollEdges } from './layout-vars';
 import { revealInRow } from './nav';
 import { Badge } from './primitives';
@@ -33,17 +33,9 @@ const BREAKPOINT_QUERY: Record<TabsBreakpoint, string> = {
 // A matchMedia hook, not CSS on [hidden]: Tailwind preflight's [hidden] rule is
 // !important, so a breakpoint class cannot show a hidden panel.
 function useBreakpoint(bp: TabsBreakpoint | undefined): boolean {
-  const query = bp ? BREAKPOINT_QUERY[bp] : null;
-  return useSyncExternalStore(
-    (onChange) => {
-      if (!query || typeof window === 'undefined' || !window.matchMedia) return () => {};
-      const m = window.matchMedia(query);
-      m.addEventListener('change', onChange);
-      return () => m.removeEventListener('change', onChange);
-    },
-    () => (query && typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(query).matches : false),
-    () => false,
-  );
+  // A query nothing matches stands in for 'no breakpoint', so the hook is always called.
+  const matches = useMediaQuery(bp ? BREAKPOINT_QUERY[bp] : '(min-width: 100000px)');
+  return bp ? matches : false;
 }
 
 function assignRef<T>(ref: Ref<T> | undefined, el: T | null): void {

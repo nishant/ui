@@ -19,7 +19,7 @@ const CHIP_SIZE = { sm: 'h-7 px-2.5 text-xs', md: 'h-8 px-3 text-sm' } as const;
 const CHIP_LOOK: Record<ChipVariant | 'pressed', string> = {
   toggle: 'border-th-line-control text-th-hi2 hover:bg-th-elevated hover:text-th-hi',
   pressed:
-    'border-th-accent/60 bg-th-accent-soft text-th-accent hover:bg-th-accent/20 forced-colors:border-[color:Highlight] forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
+    'border-th-accent/60 bg-th-accent-soft text-th-accent hover:bg-th-accent/20 forced-colors:border-[color:Highlight] forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
   suggestion: 'border-dashed border-th-line-control text-th-hi3 hover:border-th-hi3 hover:text-th-hi',
   tag: 'border-th-line bg-th-elevated text-th-hi2',
 };
@@ -55,9 +55,9 @@ export type SegmentedTone = 'accent' | 'warn' | 'loss';
 // box-shadow, which forced-colors mode drops, so the selected option also gets Highlight.
 export const SEGMENTED_SELECTED: Record<SegmentedTone, string> = {
   accent:
-    'bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40 forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
-  warn: 'bg-th-warn-soft text-th-warn ring-1 ring-th-warn/40 forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
-  loss: 'bg-th-loss-soft text-th-loss ring-1 ring-th-loss/40 forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
+    'bg-th-accent-soft text-th-accent ring-1 ring-th-accent/40 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
+  warn: 'bg-th-warn-soft text-th-warn ring-1 ring-th-warn/40 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
+  loss: 'bg-th-loss-soft text-th-loss ring-1 ring-th-loss/40 forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
 };
 
 export const SEGMENTED_SIZE = {

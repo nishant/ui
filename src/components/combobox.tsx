@@ -414,12 +414,12 @@ export function Combobox({
                 onClick={() => select(o)}
                 className={cn(
                   'flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm text-th-hi2',
-                  i === current && 'bg-th-accent-soft text-th-hi forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
+                  i === current && 'bg-th-accent-soft text-th-hi forced-colors:forced-color-adjust-none forced-colors:bg-[color:Highlight] forced-colors:text-[color:HighlightText]',
                   o.disabled && 'cursor-not-allowed opacity-50 forced-colors:text-[color:GrayText]',
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">{o.label}</span>
-                {o.hint ? <span className="shrink-0 truncate text-xs text-th-hi3">{o.hint}</span> : null}
+                {o.hint ? <span className={cn('shrink-0 truncate text-xs text-th-hi3', i === current && 'forced-colors:text-[color:HighlightText]')}>{o.hint}</span> : null}
                 {isSelected ? <CheckIcon size={16} className="shrink-0 text-th-accent" /> : null}
               </li>
             );

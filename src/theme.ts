@@ -23,12 +23,17 @@ export interface ThemePreset {
   colors: Record<string, string>;
 }
 
-export const PRESETS: ThemePreset[] = (Object.keys(THEMES) as (keyof typeof THEMES)[]).map((id) => ({
-  id,
-  label: THEMES[id].label,
-  scheme: THEMES[id].scheme,
-  colors: THEMES[id].colors,
-}));
+function buildPresets(): ThemePreset[] {
+  return (Object.keys(THEMES) as (keyof typeof THEMES)[]).map((id) => ({
+    id,
+    label: THEMES[id].label,
+    scheme: THEMES[id].scheme,
+    colors: THEMES[id].colors,
+  }));
+}
+
+// Annotated pure so a bundler drops PRESETS (and the token table it reads) when unused.
+export const PRESETS: ThemePreset[] = /* @__PURE__ */ buildPresets();
 
 const DEFAULT_KEY = 'nish-theme';
 const SHARED_DOMAIN = 'nish.software';
@@ -320,11 +325,13 @@ const TOGGLE_ICONS: Record<'system' | 'light' | 'dark', Shape[]> = {
   dark: [['path', { d: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9' }]],
 };
 
-const DEFAULT_TOGGLE_LABELS = {
+// A function, not an object: reading DEFAULT_STRINGS at module scope would keep the whole
+// strings table in every bundle that imports anything from this file.
+const defaultToggleLabels = () => ({
   system: DEFAULT_STRINGS.themeSystem,
   light: DEFAULT_STRINGS.themeLight,
   dark: DEFAULT_STRINGS.themeDark,
-};
+});
 const DEFAULT_ELSEWHERE = 'set on another site';
 
 /** What a one-button toggle steps to from a choice: the same rule as cycleTheme(). */
@@ -356,7 +363,7 @@ function themeLabel(choice: ThemeChoice, words: Record<'system' | 'light' | 'dar
  *  ```
  */
 export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOptions = {}): () => void {
-  const words = { ...DEFAULT_TOGGLE_LABELS, ...opts.labels };
+  const words = { ...defaultToggleLabels(), ...opts.labels };
   const sentence = opts.strings?.themeToggleLabel ?? DEFAULT_STRINGS.themeToggleLabel;
   const elsewhereWords = opts.elsewhereLabel ?? DEFAULT_ELSEWHERE;
   if (button.tagName === 'BUTTON' && !button.getAttribute('type')) button.setAttribute('type', 'button');

@@ -20,6 +20,10 @@ describe('safeUrl', () => {
 
   it.each([
     '  JaVaScRiPt:alert(1)',
+    ' javascript:alert(1)',
+    '﻿javascript:alert(1)',
+    ' javascript:x',
+    '　javascript:x',
     'javascript:alert(1)',
     'java\tscript:x',
     'java\nscript:x',
