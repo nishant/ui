@@ -19,6 +19,23 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
+      # The release dispatches this run right after `npm publish`, and npm can take minutes to serve
+      # the new tarball. Bump PRs opened before that fail `npm ci` with E404, so wait for it first.
+      - name: Wait until npm serves the tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_INPUT: ${{ github.event_name == 'push' && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.tag || 'latest') }}
+        run: |
+          tag="$TAG_INPUT"
+          if [ "$tag" = latest ]; then tag=$(gh api repos/nishant/ui/releases/latest --jq .tag_name); fi
+          url="https://registry.npmjs.org/nish-ui/-/nish-ui-${tag#v}.tgz"
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$url")
+            if [ "$code" = 200 ]; then echo "npm serves $url"; exit 0; fi
+            echo "npm answered $code for $url, waiting"
+            sleep 15
+          done
+          echo "::warning::npm still does not serve $url after 15 minutes; bump PRs may fail to install"
       - id: plan
         env:
           GH_TOKEN: ${{ secrets.FLEET_TOKEN }}
