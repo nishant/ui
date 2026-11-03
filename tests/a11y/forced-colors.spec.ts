@@ -99,15 +99,9 @@ test.describe('forced colors', () => {
     expect(await style(disabled, 'color')).toBe(await system(page, 'GrayText'));
   });
 
-  // Known defect, found by this spec: FIELD (primitives-classes.ts) and the Slider thumb pair
-  // `focus:outline-none` with `forced-colors:focus:outline forced-colors:focus:outline-2`; cn()
-  // (tailwind-merge) drops the bare `outline` before `outline-2`, so the outline style stays `none`
-  // (the `--tw-outline-style` that outline-none set) and a focused Input, Textarea, Select, Combobox,
-  // NumberField, TagInput and Slider show no ring in forced colors. Writing
-  // `forced-colors:focus:outline-solid` (and the focus-visible twin) fixes it. test.fail() keeps this
-  // green until then and goes red when the fix lands: delete the annotation in the same change.
+  // FIELD, Slider and TagInput pair `focus:outline-none` with `forced-colors:focus:outline-solid`: a bare
+  // `outline` is dropped by tailwind-merge before `outline-2`, so the style must be named.
   test('every control shows a focus ring when tabbed to', async ({ page }) => {
-    test.fail();
     const missing: string[] = [];
     for (let i = 0; i < 80; i++) {
       await page.keyboard.press('Tab');

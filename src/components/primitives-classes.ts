@@ -314,7 +314,7 @@ export type FieldSize = 'xs' | 'sm' | 'md';
 export const FIELD =
   'w-full min-w-0 rounded-lg border border-th-line-control bg-th-elevated text-th-hi placeholder:text-th-hi3 ' +
   'transition-colors duration-150 hover:border-th-hi3/60 focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/25 ' +
-  'forced-colors:focus:outline forced-colors:focus:outline-2 forced-colors:focus:outline-[Highlight] ' +
+  'forced-colors:focus:outline-solid forced-colors:focus:outline-2 forced-colors:focus:outline-[Highlight] ' +
   'disabled:cursor-not-allowed disabled:opacity-50 forced-colors:disabled:border-[GrayText] forced-colors:disabled:text-[GrayText] ' +
   'aria-[invalid=true]:border-th-loss';
 

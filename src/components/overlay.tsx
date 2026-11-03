@@ -608,7 +608,7 @@ function SheetHandle({ onClose, swipe, className }: { onClose: () => void; swipe
         }
       }}
       className={cn(
-        'flex h-5 min-h-11 w-full shrink-0 cursor-grab touch-none items-center justify-center rounded-t-2xl outline-none focus-visible:bg-th-overlay forced-colors:focus-visible:outline forced-colors:focus-visible:outline-2',
+        'flex h-5 min-h-11 w-full shrink-0 cursor-grab touch-none items-center justify-center rounded-t-2xl outline-none focus-visible:bg-th-overlay forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-2',
         className,
       )}
     >

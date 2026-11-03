@@ -5,7 +5,7 @@ import { cn } from '../cn';
 
 /** Base classes of one menu row (MenuItem, MenuSubHeader, menuItemClass). */
 export const MENU_ROW =
-  'flex w-full select-none items-center gap-2 px-3 py-1.5 text-start text-xs outline-none transition-colors pointer-coarse:min-h-11 pointer-coarse:gap-3 pointer-coarse:text-sm forced-colors:focus:outline forced-colors:focus:outline-2 forced-colors:focus:-outline-offset-2';
+  'flex w-full select-none items-center gap-2 px-3 py-1.5 text-start text-xs outline-none transition-colors pointer-coarse:min-h-11 pointer-coarse:gap-3 pointer-coarse:text-sm forced-colors:focus:outline-solid forced-colors:focus:outline-2 forced-colors:focus:-outline-offset-2';
 
 export interface MenuItemClassOptions {
   /** The current choice: the highlighted look (set aria-current on the row too). */

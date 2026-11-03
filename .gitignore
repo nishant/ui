@@ -10,3 +10,5 @@ test-results/
 playwright-report/
 visual-out/
 coverage/
+.stryker-tmp*/
+reports/mutation/

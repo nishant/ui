@@ -221,7 +221,7 @@ export function TagInput({
           'relative flex h-auto cursor-text flex-wrap items-center gap-1.5 py-1',
           'focus-within:border-th-accent focus-within:ring-2 focus-within:ring-th-accent/25',
           'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50',
-          'forced-colors:focus-within:outline forced-colors:focus-within:outline-2 forced-colors:focus-within:outline-[Highlight]',
+          'forced-colors:focus-within:outline-solid forced-colors:focus-within:outline-2 forced-colors:focus-within:outline-[Highlight]',
           className,
         ),
       })}

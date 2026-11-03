@@ -294,7 +294,7 @@ export function Slider<V extends SliderValue = number>({
                 'focus-visible:ring-2 focus-visible:ring-th-accent/40 data-[dragging]:z-10 data-[dragging]:scale-110',
                 'transition-transform duration-100 motion-reduce:transition-none',
                 'forced-colors:forced-color-adjust-none forced-colors:border-[Highlight] forced-colors:bg-[Canvas]',
-                'forced-colors:focus-visible:border-[CanvasText] forced-colors:focus-visible:outline forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-[Highlight]',
+                'forced-colors:focus-visible:border-[CanvasText] forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-[Highlight]',
               )}
               style={{ insetInlineStart: `${pct(v)}%` }}
             />
