@@ -4,7 +4,7 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
-## [2.0.0] - unreleased
+## [2.0.0] - 2026-11-03
 
 The production-hardening release: server components, SSR, tree-shaking, one shared runtime, strings, locale and direction, forms that post, accessibility and safer defaults. Moving from 1.x: [docs/MIGRATING-2.0.md](docs/MIGRATING-2.0.md).
 
