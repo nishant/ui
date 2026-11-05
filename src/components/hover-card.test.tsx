@@ -79,6 +79,17 @@ describe('HoverCard', () => {
     expect(card()).toBeNull();
   });
 
+  it('stays open when the pointer moves straight from the trigger onto the card', () => {
+    const { wrapper } = setup({ defaultOpen: true });
+    // Browsers fire the card's pointer and React enter events before the trigger's native mouseleave.
+    act(() => {
+      card()!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, relatedTarget: wrapper }));
+      wrapper.dispatchEvent(new MouseEvent('mouseleave', { relatedTarget: card() }));
+    });
+    wait(1000);
+    expect(card()).not.toBeNull();
+  });
+
   it('opens from keyboard focus, not from pointer focus', () => {
     const { link } = setup();
     const matches = vi.spyOn(Element.prototype, 'matches').mockImplementation(function () {

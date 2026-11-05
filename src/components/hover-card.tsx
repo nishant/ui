@@ -183,7 +183,10 @@ export function HoverCard({
       if (!touch.recent()) show();
     };
     // WCAG 1.4.13: keep the card while the trigger still has keyboard focus; focusout closes it.
-    const onMouseLeave = () => {
+    // Moving onto the card keeps it (1.4.13 hoverable). The trigger's native mouseleave fires after
+    // the card's React enter handlers, so the card cannot cancel this close itself.
+    const onMouseLeave = (e: MouseEvent) => {
+      if (e.relatedTarget instanceof Node && cardRef.current?.contains(e.relatedTarget)) return;
       const active = document.activeElement;
       if (active && el.contains(active) && keyboardFocused(active)) return;
       hide();
