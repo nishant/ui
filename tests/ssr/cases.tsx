@@ -150,6 +150,11 @@ export const cases: Record<string, Case> = {
   CommandPalette: () => <ui.CommandPalette open onOpenChange={noop} items={[{ id: '1', label: 'Open' }]} />,
   ConfirmDialog: () => <ui.ConfirmDialog open title="Sure?" confirmLabel="Yes" onConfirm={noop} onCancel={noop} />,
   ConnectionBanner: () => <ui.ConnectionBanner />,
+  ContextMenu: () => (
+    <ui.ContextMenu menu={<ui.MenuItem>Rename</ui.MenuItem>}>
+      <div>Area</div>
+    </ui.ContextMenu>
+  ),
   CopyButton: () => <ui.CopyButton text="x" />,
   Disclosure: () => <ui.Disclosure summary="More">hidden</ui.Disclosure>,
   Drawer: () => (
@@ -189,6 +194,11 @@ export const cases: Record<string, Case> = {
         { id: '2', label: 'Two', status: 'active' },
       ]}
     />
+  ),
+  HoverCard: () => (
+    <ui.HoverCard content="Apple Inc.">
+      <a href="/aapl">AAPL</a>
+    </ui.HoverCard>
   ),
   IconButton: () => (
     <ui.IconButton label="Bell">
@@ -418,6 +428,13 @@ export const cases: Record<string, Case> = {
       <button type="button">t</button>
     </ui.Tooltip>
   ),
+  TreeView: () => (
+    <ui.TreeView
+      aria-label="Files"
+      items={[{ id: 'src', label: 'src', children: [{ id: 'a', label: 'a.ts' }] }, { id: 'b', label: 'b.ts' }]}
+      defaultExpanded={['src']}
+    />
+  ),
   Tr: () => (
     <table>
       <tbody>
@@ -426,6 +443,15 @@ export const cases: Record<string, Case> = {
         </ui.Tr>
       </tbody>
     </table>
+  ),
+  VirtualList: () => <ui.VirtualList aria-label="Rows" count={1000} itemSize={40} height={200} renderItem={(i) => <span>Row {i}</span>} />,
+  VirtualTable: () => (
+    <ui.VirtualTable
+      label="Rows"
+      rows={[{ id: '1', n: 1 }, { id: '2', n: 2 }]}
+      rowKey={(r) => r.id}
+      columns={[{ key: 'n', header: 'N', cell: (r) => r.n, numeric: true }]}
+    />
   ),
   VisuallyHidden: () => <ui.VisuallyHidden>hidden</ui.VisuallyHidden>,
   WorkflowBoard: () => (
