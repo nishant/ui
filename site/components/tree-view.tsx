@@ -49,6 +49,39 @@ const OUTLINE: TreeNode[] = [
   { id: 'settings', label: 'Settings' },
 ];
 
+const DEEP: TreeNode[] = [
+  {
+    id: 'l1',
+    label: 'Level one',
+    trailing: 12,
+    children: [
+      {
+        id: 'l2',
+        label: 'Level two',
+        trailing: 8,
+        children: [
+          {
+            id: 'l3',
+            label: 'Level three',
+            trailing: 5,
+            children: [
+              {
+                id: 'l4',
+                label: 'Level four',
+                trailing: 3,
+                children: [
+                  { id: 'long', label: 'quarterly-portfolio-rebalancing-notes-2026.md', icon: <span aria-hidden>#</span>, trailing: 1 },
+                  { id: 'short', label: 'notes.md', icon: <span aria-hidden>#</span>, trailing: 2 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
 function Outline() {
   const [last, setLast] = useState('nothing yet');
   return (
@@ -106,6 +139,16 @@ export const treeView: ComponentDoc = {
       ),
     },
     { id: 'outline', name: 'Navigation outline', render: () => <Outline /> },
+    {
+      id: 'deep-long',
+      name: 'Deep nesting, long labels, icons and counts',
+      note: 'Long labels truncate; the count stays visible, also on a 360px screen.',
+      render: () => (
+        <div className="w-full max-w-xs">
+          <TreeView items={DEEP} defaultExpanded={['l1', 'l2', 'l3', 'l4']} aria-label="Deep tree" />
+        </div>
+      ),
+    },
     {
       id: 'chevron-only',
       name: 'Open folders with the chevron only',

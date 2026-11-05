@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -106,9 +107,10 @@ export function TreeView(props: TreeViewProps) {
   const flat = useMemo(() => visibleNodes(items, expandedSet), [items, expandedSet]);
   const parents = useMemo(() => parentMap(items), [items]);
 
+  const visible = useMemo(() => new Set(flat.map((f) => f.node.id)), [flat]);
+
   let targetId: string | null = null;
   if (flat.length > 0) {
-    const visible = new Set(flat.map((f) => f.node.id));
     let cursor: string | null | undefined = focusedId;
     while (cursor != null && !visible.has(cursor)) cursor = parents.get(cursor);
     if (cursor != null) targetId = cursor;
@@ -198,7 +200,9 @@ export function TreeView(props: TreeViewProps) {
   const onBlur = (e: FocusEvent<HTMLUListElement>) => {
     onBlurProp?.(e);
     const next = e.relatedTarget as Node | null;
-    if (next && !e.currentTarget.contains(next)) focusWithin.current = false;
+    // Blurred to nothing (a click on blank space, the window losing focus) leaves the tree too; a node that was
+    // removed while focused keeps the flag so focus can be put back.
+    if (next ? !e.currentTarget.contains(next) : (e.target as Element).isConnected) focusWithin.current = false;
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLUListElement>) => {
@@ -253,13 +257,15 @@ export function TreeView(props: TreeViewProps) {
     e.preventDefault();
   };
 
-  const itemRef = (id: string) => (el: HTMLLIElement | null) => {
-    if (!el) return undefined;
+  // One stable ref callback for every item (React keeps it attached across renders); the id comes from data-id.
+  const itemRef = useCallback((el: HTMLLIElement | null) => {
+    const id = el?.getAttribute('data-id');
+    if (!el || id == null) return undefined;
     elements.current.set(id, el);
     return () => {
       if (elements.current.get(id) === el) elements.current.delete(id);
     };
-  };
+  }, []);
 
   const renderNodes = (nodes: readonly TreeNode[], level: number): ReactNode =>
     nodes.map((node, i) => {
@@ -281,7 +287,7 @@ export function TreeView(props: TreeViewProps) {
       return (
         <li
           key={node.id}
-          ref={itemRef(node.id)}
+          ref={itemRef}
           role="treeitem"
           data-id={node.id}
           aria-labelledby={labelId}

@@ -12,6 +12,7 @@ import {
   type Ref,
   type RefObject,
 } from 'react';
+import { flushSync } from 'react-dom';
 import { cn } from '../cn';
 import {
   buildOffsets,
@@ -87,8 +88,15 @@ export function useVirtualRows(options: VirtualRowsOptions): VirtualRows {
   const [observer, setObserver] = useState<ResizeObserver | null>(null);
 
   const offsets = useMemo(
-    () => buildOffsets(count, (i) => measured.get(getKey(i)) ?? (typeof itemSize === 'number' ? itemSize : itemSize(i)), gap),
-    [count, itemSize, getKey, gap, measured],
+    () =>
+      buildOffsets(
+        count,
+        (i) => (measured.size === 0 ? undefined : measured.get(getKey(i))) ?? (typeof itemSize === 'number' ? itemSize : itemSize(i)),
+        gap,
+      ),
+    // getKey only matters once something is measured, so an unstable getKey must not rebuild fixed-size offsets
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [count, itemSize, measure ? getKey : null, gap, measured],
   );
   const total = offsets[count];
   const offsetOf = useCallback((i: number) => offsets[i], [offsets]);
@@ -182,15 +190,18 @@ export function useVirtualRows(options: VirtualRowsOptions): VirtualRows {
         if (Math.abs(size - oldSize) >= 0.01 && v && o[index] + oldSize <= v.top) delta += size - oldSize;
       }
       if (changes.size === 0) return;
-      setMeasured((prev) => {
-        let next: Map<string | number, number> | null = null;
-        for (const [k, s] of changes) {
-          if (prev.get(k) !== s) {
-            next ??= new Map(prev);
-            next.set(k, s);
+      // Commit the new heights before moving the scroll position, or one frame paints rows at their old offsets.
+      flushSync(() => {
+        setMeasured((prev) => {
+          let next: Map<string | number, number> | null = null;
+          for (const [k, s] of changes) {
+            if (prev.get(k) !== s) {
+              next ??= new Map(prev);
+              next.set(k, s);
+            }
           }
-        }
-        return next ?? prev;
+          return next ?? prev;
+        });
       });
       if (delta !== 0) {
         const scroller = scrollRef?.current;

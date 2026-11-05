@@ -114,10 +114,10 @@ export function ContextMenu({
     y: number,
     el: Element,
     swallowNative: boolean,
-  ) => {
-    if (disabled) return;
+  ): boolean => {
+    if (disabled) return false;
     const content = typeof menu === "function" ? menu(el) : menu;
-    if (content == null || content === false) return;
+    if (content == null || content === false) return false;
     const root = rootRef.current;
     const active = document.activeElement;
     const focusable =
@@ -129,6 +129,7 @@ export function ContextMenu({
     setTarget(el);
     if (swallowNative) lastOpen.current = Date.now();
     setOpen(true);
+    return true;
   };
 
   const handleContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -165,8 +166,9 @@ export function ContextMenu({
     pressTimer.current = window.setTimeout(() => {
       pressTimer.current = undefined;
       pressStart.current = null;
-      suppressClickUntil.current = Date.now() + SWALLOW_CLICK_MS;
-      openAt(start.x, start.y, el, true);
+      // Only a long press that opened the menu swallows the click that follows.
+      if (openAt(start.x, start.y, el, true))
+        suppressClickUntil.current = Date.now() + SWALLOW_CLICK_MS;
     }, longPressMs);
   };
 
@@ -253,6 +255,9 @@ export function ContextMenu({
     >
       {children}
       <DropdownMenu
+        // Keyed by the spot so each open measures a fresh anchor already at that point
+        // (the anchor moves without any ResizeObserver event, e.g. with reduced motion).
+        key={point ? `${point.x},${point.y}` : "none"}
         trigger={
           <span
             aria-hidden="true"
@@ -267,7 +272,7 @@ export function ContextMenu({
             }}
           />
         }
-        open={shown}
+        open={shown && point !== null}
         onOpenChange={(next, reason) => setOpen(next, reason)}
         aria-label={menuLabel ?? t.contextMenu}
         sheetBelow={sheetBelow}

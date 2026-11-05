@@ -16,16 +16,16 @@ import {
 import { cn } from '../cn';
 import { useIsoLayoutEffect } from './client';
 import type { Column, Sort } from './data';
-import { sortRows, warnOnce } from './data-classes';
-import { EmptyState, ErrorState, SkeletonRows } from './feedback';
+import { sortRows } from './data-classes';
 import { useNishStrings } from './provider';
+import { useLatest } from './latest';
 import { Table, TableWrap, Td, Th, Tr } from './table';
 import { useVirtualRows, type VirtualListHandle } from './virtual';
 
 const HIDE_BELOW = { sm: 'hidden sm:table-cell', md: 'hidden md:table-cell', lg: 'hidden lg:table-cell' } as const;
 
 const ROW_FOCUS =
-  'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-th-accent forced-colors:focus-visible:outline-[Highlight]';
+  'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-th-accent';
 
 const INTERACTIVE_CHILD = 'a,button,input,select,textarea,[role=button]';
 
@@ -34,13 +34,13 @@ export interface VirtualTableProps<T> extends Omit<ComponentPropsWithoutRef<'div
   rows: T[];
   /** The columns, in order (the ResponsiveTable Column type; primary and secondary are ignored). Keep the array stable. */
   columns: Column<T>[];
-  /** A stable key for a row. */
+  /** A key for a row. Keep it stable (module-level or useCallback); it is read through a ref, so a new function each render does not rebuild the row offsets. */
   rowKey: (row: T) => string;
   /** The accessible name of the table and its scroll box. */
   label: string;
   /** Height of the scroll box (px or CSS length). Default 480. The box shrinks to fit fewer rows. */
   height?: number | string;
-  /** Row height in px. Default 41 (33 when dense): one line of text-sm with the cell padding and divider. */
+  /** Row height in px. Default 41 (33 when dense), or 44 when onRowClick is set so rows are touch targets. Fixed-height rows stay on one line and truncate; use measure for wrapping cells. */
   rowHeight?: number;
   /** Measures rendered rows and uses their real height (cells that wrap). rowHeight is then the estimate. */
   measure?: boolean;
@@ -111,7 +111,7 @@ export function VirtualTable<T>({
   ...rest
 }: VirtualTableProps<T>) {
   const t = useNishStrings();
-  const size = rowHeight ?? (dense ? 33 : 41);
+  const size = rowHeight ?? (onRowClick ? 44 : dense ? 33 : 41);
   const [innerSort, setInnerSort] = useState<Sort>(null);
   const [announcement, setAnnouncement] = useState('');
   const external = sort !== undefined || onSortChange !== undefined;
@@ -145,7 +145,8 @@ export function VirtualTable<T>({
   const hadFocus = useRef(false);
   const [focusIndex, setFocusIndex] = useState(0);
 
-  const getKey = useMemo(() => (i: number) => rowKey(sorted[i]!), [sorted, rowKey]);
+  const keyRef = useLatest(rowKey);
+  const getKey = useCallback((i: number) => keyRef.current(sorted[i]!), [sorted, keyRef]);
   const coverTop = useCallback(() => headRef.current?.offsetHeight ?? 0, []);
   const initialCount = Math.min(40, Math.ceil((typeof height === 'number' ? height : 480) / size));
 
@@ -165,10 +166,6 @@ export function VirtualTable<T>({
   });
   const { indices, total, offsetOf, sizeOf, measureRef, pin, scrollToIndex } = virtual;
   useImperativeHandle(apiRef, () => ({ scrollToIndex }), [scrollToIndex]);
-
-  useEffect(() => {
-    if (!(size > 0)) warnOnce('virtual-size', 'VirtualTable: rowHeight must be a positive number of pixels.');
-  }, [size]);
 
   const first = indices[0] ?? 0;
   const last = indices[indices.length - 1] ?? -1;
@@ -196,6 +193,7 @@ export function VirtualTable<T>({
     }
     if (hadFocus.current && typeof document !== 'undefined' && document.activeElement === document.body && pendingFocus.current === null) {
       hadFocus.current = false;
+      pin(null);
       scrollRef.current?.focus({ preventScroll: true });
     }
   });
@@ -207,10 +205,7 @@ export function VirtualTable<T>({
   };
   const onBodyBlur = (e: FocusEvent<HTMLTableSectionElement>) => {
     const next = e.relatedTarget as Node | null;
-    if (next && !bodyRef.current?.contains(next)) {
-      hadFocus.current = false;
-      pin(null);
-    } else if (!next && (e.target as Element).isConnected) {
+    if (next ? !bodyRef.current?.contains(next) : (e.target as Element).isConnected) {
       hadFocus.current = false;
       pin(null);
     }
@@ -233,37 +228,18 @@ export function VirtualTable<T>({
 
   const onRowKeyDown = (e: KeyboardEvent<HTMLTableRowElement>, row: T, i: number) => {
     if (e.target !== e.currentTarget) return;
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        goTo(i + 1);
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        goTo(i - 1);
-        break;
-      case 'PageDown':
-        e.preventDefault();
-        goTo(i + pageSize());
-        break;
-      case 'PageUp':
-        e.preventDefault();
-        goTo(i - pageSize());
-        break;
-      case 'Home':
-        e.preventDefault();
-        goTo(0);
-        break;
-      case 'End':
-        e.preventDefault();
-        goTo(count - 1);
-        break;
-      case 'Enter':
-      case ' ':
-        e.preventDefault();
-        onRowClick?.(row, i);
-        break;
+    const key = e.key;
+    if (key === 'Enter' || key === ' ') {
+      e.preventDefault();
+      onRowClick?.(row, i);
+      return;
     }
+    const page = key === 'PageDown' || key === 'PageUp' ? pageSize() : 1;
+    const target =
+      key === 'ArrowDown' || key === 'PageDown' ? i + page : key === 'ArrowUp' || key === 'PageUp' ? i - page : key === 'Home' ? 0 : key === 'End' ? count - 1 : null;
+    if (target === null) return;
+    e.preventDefault();
+    goTo(target);
   };
 
   const onRowClickEvent = (e: MouseEvent<HTMLTableRowElement>, row: T, i: number) => {
@@ -275,11 +251,32 @@ export function VirtualTable<T>({
 
   let content: ReactNode;
   if (error) {
-    content = <ErrorState message={error.message} onRetry={error.onRetry} />;
+    // Lean local markup instead of ./feedback (icons, buttons), to keep the VirtualTable import under its size ceiling.
+    content = (
+      <div role="alert" className="grid justify-items-center gap-2 rounded-xl bg-th-loss-soft p-8">
+        <p className="text-sm">{error.message}</p>
+        {error.onRetry ? (
+          <button
+            type="button"
+            onClick={error.onRetry}
+            className="rounded-full border border-th-line-strong px-3 py-1 pointer-coarse:min-h-11"
+          >
+            {t.retry}
+          </button>
+        ) : null}
+      </div>
+    );
   } else if (loading) {
-    content = <SkeletonRows rows={5} height={44} label={t.loadingNamed(label)} />;
+    content = (
+      <div role="status">
+        <span className="sr-only">{t.loadingNamed(label)}</span>
+        <div className="nish-skeleton h-56 rounded-xl" />
+      </div>
+    );
   } else if (sorted.length === 0) {
-    content = empty ?? <EmptyState title={t.nothingHere} />;
+    content = empty ?? (
+      <p className="rounded-xl border border-dashed border-th-line p-8 text-center text-sm">{t.nothingHere}</p>
+    );
   } else {
     const spacer = (px: number) =>
       px > 0 ? (
@@ -288,7 +285,7 @@ export function VirtualTable<T>({
         </tr>
       ) : null;
     content = (
-      <TableWrap ref={scrollRef} maxHeight={height} stickyHeader minWidth={minWidth} stickyFirstColumn={stickyFirstColumn} label={label}>
+      <TableWrap ref={scrollRef} style={{ overflowAnchor: 'none' }} maxHeight={height} stickyHeader minWidth={minWidth} stickyFirstColumn={stickyFirstColumn} label={label}>
         <Table dense={dense} aria-label={label} aria-rowcount={sorted.length + 1} className="table-fixed">
           <thead ref={headRef}>
             <tr aria-rowindex={1}>
@@ -298,7 +295,7 @@ export function VirtualTable<T>({
                   numeric={c.numeric}
                   sort={c.sortValue ? (current?.key === c.key ? current.dir : false) : undefined}
                   onSort={c.sortValue ? () => toggle(c.key) : undefined}
-                  className={cn(c.hideBelow && HIDE_BELOW[c.hideBelow])}
+                  className={c.hideBelow ? HIDE_BELOW[c.hideBelow] : undefined}
                   style={c.width ? { width: c.width } : undefined}
                 >
                   {c.header}
@@ -318,6 +315,7 @@ export function VirtualTable<T>({
                   tone={rowTone?.(row)}
                   interactive={interactive}
                   data-index={i}
+                  style={measure ? undefined : { height: size }}
                   aria-rowindex={i + 2}
                   tabIndex={interactive ? (i === tabbable ? 0 : -1) : undefined}
                   className={cn(zebra && i % 2 === 1 && 'bg-th-elevated/50', interactive && ROW_FOCUS)}
@@ -325,7 +323,11 @@ export function VirtualTable<T>({
                   onKeyDown={interactive ? (e) => onRowKeyDown(e, row, i) : undefined}
                 >
                   {columns.map((c) => (
-                    <Td key={c.key} numeric={c.numeric} className={cn(c.hideBelow && HIDE_BELOW[c.hideBelow])}>
+                    <Td
+                      key={c.key}
+                      numeric={c.numeric}
+                      className={cn(c.hideBelow && HIDE_BELOW[c.hideBelow], !measure && 'overflow-hidden text-ellipsis whitespace-nowrap')}
+                    >
                       {c.cell(row)}
                     </Td>
                   ))}
@@ -342,7 +344,7 @@ export function VirtualTable<T>({
   return (
     <div {...rest} ref={ref} className={className}>
       {content}
-      <div role="status" aria-live="polite" className="sr-only">
+      <div role="status" className="sr-only">
         {announcement}
       </div>
     </div>

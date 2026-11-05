@@ -182,13 +182,19 @@ export function HoverCard({
     const onMouseEnter = () => {
       if (!touch.recent()) show();
     };
+    // WCAG 1.4.13: keep the card while the trigger still has keyboard focus; focusout closes it.
+    const onMouseLeave = () => {
+      const active = document.activeElement;
+      if (active && el.contains(active) && keyboardFocused(active)) return;
+      hide();
+    };
     const onFocusIn = (e: FocusEvent) => {
       if (e.target instanceof Element && keyboardFocused(e.target)) show();
     };
     el.addEventListener('pointerenter', onPointerEnterTrigger);
     el.addEventListener('pointerdown', onPointerDown);
     el.addEventListener('mouseenter', onMouseEnter);
-    el.addEventListener('mouseleave', hide);
+    el.addEventListener('mouseleave', onMouseLeave);
     el.addEventListener('focusin', onFocusIn);
     el.addEventListener('focusout', hide);
     return () => {
@@ -196,7 +202,7 @@ export function HoverCard({
       el.removeEventListener('pointerenter', onPointerEnterTrigger);
       el.removeEventListener('pointerdown', onPointerDown);
       el.removeEventListener('mouseenter', onMouseEnter);
-      el.removeEventListener('mouseleave', hide);
+      el.removeEventListener('mouseleave', onMouseLeave);
       el.removeEventListener('focusin', onFocusIn);
       el.removeEventListener('focusout', hide);
     };

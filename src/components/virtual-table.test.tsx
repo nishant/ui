@@ -107,6 +107,12 @@ describe('VirtualTable markup', () => {
     expect(root.className).toContain('mine');
   });
 
+  it('turns off browser scroll anchoring on the scroll box', () => {
+    const { container } = render(<VirtualTable label="Rows" rows={makeRows(5)} columns={columns} rowKey={rowKey} height={BOX} />);
+    const box = Array.from(container.querySelectorAll('div')).find(isScroller) as HTMLElement;
+    expect(box.style.overflowAnchor).toBe('none');
+  });
+
   it('sets aria-rowcount and aria-rowindex on the header and rows', () => {
     const { container, getByRole } = render(<VirtualTable label="Rows" rows={makeRows(50)} columns={columns} rowKey={rowKey} height={BOX} />);
     expect(getByRole('table').getAttribute('aria-rowcount')).toBe('51');

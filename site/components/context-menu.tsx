@@ -67,7 +67,7 @@ function FilesPreview({
   );
 }
 
-function BoxPreview({ sheetBelow = "sm" }: { sheetBelow?: Sheet }) {
+function BoxPreview({ sheetBelow = "sm", open }: { sheetBelow?: Sheet; open?: boolean }) {
   const [last, setLast] = useState("none yet");
   const items: ReactNode = (
     <>
@@ -83,6 +83,7 @@ function BoxPreview({ sheetBelow = "sm" }: { sheetBelow?: Sheet }) {
     <div className="w-full max-w-sm self-start">
       <ContextMenu
         menu={items}
+        open={open}
         sheetBelow={sheetBelow}
         className="grid h-40 place-items-center rounded-lg border border-dashed border-th-line text-sm text-th-hi3"
       >
@@ -117,7 +118,8 @@ export const contextMenu: ComponentDoc = {
       max: 1000,
     },
   ],
-  initial: { sheetBelow: "sm", longPressMs: 500 },
+  // The frame is narrower than 640px, so "sm" would open the phone sheet here; start floating to show the desktop look.
+  initial: { sheetBelow: "off", longPressMs: 500 },
   render: (a) => (
     <FilesPreview
       sheetBelow={sheetOf(a.sheetBelow)}
@@ -151,7 +153,7 @@ export const contextMenu: ComponentDoc = {
       id: "open",
       name: "Open",
       note: "Opened from code it sits at the area's start-top corner.",
-      render: () => <FilesPreview open />,
+      render: () => <BoxPreview open />,
     },
     {
       id: "static",

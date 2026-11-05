@@ -57,7 +57,12 @@ function Preview({
         width={260}
         content={note ? <p>{note}</p> : profile ? <ProfilePreview /> : <SymbolPreview />}
       >
-        <a href={profile ? '#nishant' : '#aapl'} className={linkClass}>
+        <a
+          href={profile ? '#nishant' : '#aapl'}
+          className={linkClass}
+          // Demo link: keep the framed preview on this page; it stays a real link for keyboard focus.
+          onClick={(e) => e.preventDefault()}
+        >
           {profile ? '@nishant' : 'AAPL'}
         </a>
       </HoverCard>

@@ -102,7 +102,7 @@ export const virtualTable: ComponentDoc = {
       '  label="Trades"',
       '  rows={trades}',
       '  columns={columns}',
-      '  rowKey={(t) => t.id}',
+      '  rowKey={tradeId}',
       '  height={400}',
       ...(a.dense ? ['  dense'] : []),
       ...(a.zebra ? ['  zebra'] : []),
@@ -154,13 +154,15 @@ const columns: Column<Trade>[] = [
   { key: 'price', header: 'Price', numeric: true, cell: (t) => t.price.toFixed(2), sortValue: (t) => t.price },
 ];
 
+const tradeId = (t: Trade) => t.id; // keep rowKey stable
+
 export function Trades({ trades }: { trades: Trade[] }) {
   return (
     <VirtualTable
       label="Trades"
       rows={trades}
       columns={columns}
-      rowKey={(t) => t.id}
+      rowKey={tradeId}
       height={480}
       stickyFirstColumn
       onRowClick={(t) => navigate(\`/trades/\${t.id}\`)}
@@ -170,7 +172,7 @@ export function Trades({ trades }: { trades: Trade[] }) {
   guidelines: [
     'Under a few hundred rows use ResponsiveTable, which turns into cards on phones. VirtualTable stays a table at every width and scrolls sideways inside its box on a phone; pin the first column with stickyFirstColumn.',
     'Columns keep their width while rows come and go (fixed table layout): give narrow and wide columns a width.',
-    'Rows are 41px (33px dense). Set rowHeight when your cells are taller, or measure when they wrap.',
+    'Rows are 41px (33px dense, 44px when clickable). Fixed-height rows stay on one line. Set rowHeight when your cells are taller, or measure when they wrap.',
     'With onRowClick, one row is in the Tab order: arrow keys, Page Up, Page Down, Home and End move between rows, and Enter or Space opens one.',
     "Screen readers hear the full row count (aria-rowcount) and each row's position (aria-rowindex), even though only nearby rows are in the page.",
   ],
