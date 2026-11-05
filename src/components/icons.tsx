@@ -2,7 +2,10 @@ import type { SVGProps } from 'react';
 
 /** The handful of icons the shared components need, inlined so the package does not
  *  pin apps to one lucide-react version. 24px grid, 2px stroke, lucide geometry. */
-type IconProps = SVGProps<SVGSVGElement> & { size?: number };
+type IconProps = SVGProps<SVGSVGElement> & {
+  /** Width and height in px (default 16). The stroke stays 2px. */
+  size?: number;
+};
 
 function Svg({ size = 16, children, ...rest }: IconProps) {
   return (

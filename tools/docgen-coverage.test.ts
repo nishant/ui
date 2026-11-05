@@ -55,8 +55,8 @@ const UNDOCUMENTED_EXPORTS = new Set<string>([
   'VERSION', 'useIsClient', 'useIsoLayoutEffect', 'isRtl', 'THEMES',
   'COLOR_ROLES', 'SOFT_ROLES', 'SHADOWS', 'DEFAULT_THEME', 'revealClass',
   'linkClass', 'navigateFromLayer', 'usePrefersReducedMotion', 'DEFAULT_CANVAS_LABELS', 'DEFAULT_INBOX_LABELS',
-  'INBOX_SOURCE_LABELS', 'INBOX_DEFAULT_SETTINGS', 'INBOX_ACTION_HEADER', 'INBOX_ACTION_TIMEOUT_MS', 'CheckIcon',
-  'ClockIcon', 'paginationRange', 'avatarInitials', 'avatarHueIndex', 'registerThemes',
+  'INBOX_SOURCE_LABELS', 'INBOX_DEFAULT_SETTINGS', 'INBOX_ACTION_HEADER', 'INBOX_ACTION_TIMEOUT_MS',
+  'paginationRange', 'avatarInitials', 'avatarHueIndex', 'registerThemes',
   'isThemeName', 'getThemeChoice', 'resolveTheme', 'schemeOf', 'applyTheme',
   'readToken', 'TOGGLE_ORDER', 'countLeaves', 'computeRects', 'computeDividers',
   'resizeAt', 'NARROW_MAX', 'NARROW_BREAKPOINT',
@@ -97,8 +97,7 @@ const UNDESCRIBED_PROPS = new Set<string>([
   'NumberField.value', 'NumberField.min', 'NumberField.max', 'NumberField.step',
   'ServiceTokensSection.error', 'ServiceTokensSection.onRetry', 'ServiceTokensSection.className', 'Combobox.options',
   'Combobox.placeholder', 'Combobox.disabled', 'Combobox.loading', 'Combobox.className',
-  'CheckIcon.size', 'ClockIcon.size', 'MoreIcon.size', 'BellIcon.size',
-  'SettingsIcon.size', 'SplitStage.className', 'LayoutPresetIcon.className', 'MediaThumb.className',
+  'SplitStage.className', 'LayoutPresetIcon.className', 'MediaThumb.className',
   'MediaThumb.ref', 'MediaRow.className', 'MediaChip.className', 'MediaChip.ref',
   'TagInput.disabled', 'FileDropzone.disabled', 'FileDropzone.required', 'Pagination.ref',
   'Breadcrumbs.ref', 'Accordion.ref', 'AccordionItem.ref', 'Separator.ref',
@@ -132,6 +131,8 @@ describe('docs coverage of the `.` entry', () => {
     const text = readdirSync(dir)
       .filter((f) => /\.tsx?$/.test(f))
       .map((f) => readFileSync(join(dir, f), 'utf8'))
+      // The Icons page lists every exported icon.
+      .concat(readFileSync(join(root, 'site/pages/icons.tsx'), 'utf8'))
       .join('\n');
     const missing = runtime.map((e) => e.name).filter((n) => !new RegExp(`\\b${n}\\b`).test(text));
     const fresh = missing.filter((n) => !UNDOCUMENTED_EXPORTS.has(n));
