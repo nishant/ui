@@ -160,6 +160,15 @@ describe('openSheet', () => {
     expect(dialog.open).toBe(true);
   });
 
+  it('the closer for an already open dialog closes it', () => {
+    stubMedia(reduced);
+    const { dialog } = makeSheet();
+    dialog.showModal();
+    const close = openSheet(dialog);
+    expect(() => close()).not.toThrow();
+    expect(dialog.open).toBe(false);
+  });
+
   it('with reduced motion the closer closes at once', () => {
     stubMedia(reduced);
     const { dialog } = makeSheet();

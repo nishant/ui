@@ -698,10 +698,11 @@ const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(pr
  *  a function that closes the sheet. Needs nish-components.css. */
 export function openSheet(dialog: HTMLDialogElement): () => void {
   if (typeof document === 'undefined') return () => undefined;
-  if (dialog.open) return () => closeNow();
-  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  // Declared before the early return: the closer handed back for an already open dialog reads them.
   let closing = false;
   let dragging = false;
+  if (dialog.open) return () => closeNow();
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   function closeNow(): void {
     if (closing || !dialog.open) return;
