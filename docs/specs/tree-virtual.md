@@ -523,8 +523,11 @@ utilities, dev warnings through `warnOnce`, no DOM reads in render.
   and `className={itemClassName}`, ref `measureRef` when `measure`. count 0 with `empty`: render
   `empty` inside the root instead of the list. Light and dark: the list adds no colors. 360px: rows
   take the full width; nothing scrolls sideways.
-- **VirtualTable.** `loading`: `<SkeletonRows rows={5} height={44} label={t.loadingNamed(label)} />`.
-  `error`: `<ErrorState message onRetry />`. No rows: `empty ?? <EmptyState title={t.nothingHere} />`.
+- **VirtualTable.** To fit the 16.5 KB ceiling, VirtualTable renders lean local state views instead of
+  SkeletonRows, ErrorState and EmptyState. `loading`: a `role="status"` skeleton block with a sr-only
+  `t.loadingNamed(label)`. `error`: a `role="alert"` box with the message and a `t.retry` button
+  (`onRetry`). No rows: `empty ??` a dashed `t.nothingHere` box. VirtualTable has no size headroom left
+  (the bundle measures exactly 16.50 KB): any addition needs a matching cut or a decision to raise the ceiling.
   Otherwise: `<TableWrap ref={scrollRef} maxHeight={height} stickyHeader minWidth stickyFirstColumn label>` >
   `<Table dense aria-label={label} aria-rowcount={rows.length + 1} className="table-fixed">` >
   `<thead ref={headRef}><tr aria-rowindex={1}>` with one `Th` per column (`numeric`, `sort`,
@@ -534,9 +537,10 @@ utilities, dev warnings through `warnOnce`, no DOM reads in render.
   rendered only when its height is above 0. Row: `Tr` with `tone`, `interactive={!!onRowClick}`,
   `data-index`, `aria-rowindex={i + 2}`, zebra class `bg-th-elevated/50` on odd indices when `zebra`,
   and with `onRowClick` also `tabIndex` (roving) and
-  `focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-th-accent forced-colors:focus-visible:outline-[Highlight]`.
-  Cells: `Td` with `numeric` and the `HIDE_BELOW` class. Then a `div role="status" aria-live="polite" className="sr-only"`
-  with the sort announcement. 360px: the table keeps `minWidth` (640) and scrolls sideways inside its
+  `focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-th-accent` (no
+  forced-colors variant: forced colors already override outline-color).
+  Cells: `Td` with `numeric` and the `HIDE_BELOW` class; with fixed-height rows (no `measure`) cells truncate.
+  Then a `div role="status" className="sr-only"` (role=status implies polite) with the sort announcement. 360px: the table keeps `minWidth` (640) and scrolls sideways inside its
   box (no page scroll); `stickyFirstColumn` keeps the name visible. 840px and desktop: full width.
 - **TreeView.** `<ul role="tree" aria-label className="grid gap-px text-sm">`. Each node:
   `<li role="treeitem" aria-labelledby={labelId} aria-level aria-setsize aria-posinset aria-expanded={parent ? open : undefined} aria-selected={selectable ? isSelected : undefined} aria-disabled={disabled || undefined} data-state={parent ? (open ? 'open' : 'closed') : undefined} data-disabled={disabled ? '' : undefined} tabIndex={isFocusTarget ? 0 : -1}>`
@@ -727,10 +731,10 @@ any other checkout under `C:\Code`.
 - Change:
   1. `'use client'`. Imports: `useVirtualRows`, `VirtualListHandle` (type) from `./virtual`;
      `import type { Column, Sort } from './data'`; `Table, TableWrap, Td, Th, Tr` from `./table`;
-     `sortRows, mergeRefs` from `./data-classes`; `SkeletonRows, EmptyState, ErrorState` from `./feedback`;
+     `sortRows, mergeRefs` from `./data-classes`; nothing from `./feedback` (loading, error and empty views are local, see "UI");
      `useNishStrings` from `./provider`; `cn` from `../cn`. Local
      `const HIDE_BELOW = { sm: 'hidden sm:table-cell', md: 'hidden md:table-cell', lg: 'hidden lg:table-cell' } as const;`
-  2. `VirtualTable<T>(props)`: defaults `height = 480`, `rowHeight = dense ? 33 : 41`, `measure = false`,
+  2. `VirtualTable<T>(props)`: defaults `height = 480`, `rowHeight = onRowClick ? 44 : dense ? 33 : 41`, `measure = false`,
      `minWidth = 640`, `overscan = 8`. Sorting exactly like ResponsiveTable: `innerSort` state, `external = sort !== undefined || onSortChange !== undefined`,
      `sorted = useMemo(...)` keyed on `[rows, sortKey, sortDir, external]` using `sortRows`, `toggle(key)`
      cycles asc → desc → asc, `changeSort` sets the announcement to `t.sortAnnounce(header, dir)`.
@@ -769,10 +773,10 @@ any other checkout under `C:\Code`.
      - `guidelines` (exact):
        - `Under a few hundred rows use ResponsiveTable, which turns into cards on phones. VirtualTable stays a table at every width and scrolls sideways inside its box on a phone; pin the first column with stickyFirstColumn.`
        - `Columns keep their width while rows come and go (fixed table layout): give narrow and wide columns a width.`
-       - `Rows are 41px (33px dense). Set rowHeight when your cells are taller, or measure when they wrap.`
+       - `Rows are 41px (33px dense, 44px when rows are clickable). Set rowHeight when your cells are taller, or measure when they wrap.`
        - `With onRowClick, one row is in the Tab order: arrow keys, Page Up, Page Down, Home and End move between rows, and Enter or Space opens one.`
        - `Screen readers hear the full row count (aria-rowcount) and each row's position (aria-rowindex), even though only nearby rows are in the page.`
-- Edge cases: rows empty (EmptyState), loading and error win over rows; sort controlled vs internal;
+- Edge cases: rows empty (local empty box), loading and error win over rows; sort controlled vs internal;
   `columns` changing identity does not re-sort; `rowKey` duplicates (React key warning only);
   focusIndex beyond count after rows shrink (clamp to `count - 1` in an effect); a row 150 rows away
   from the range while focused (unmounts, focus moves to the scroll box); `hideBelow` columns hidden in

@@ -65,6 +65,41 @@ test('measured list rows do not overlap and sit 8px apart', async ({ page }) => 
     .toBe('ok');
 });
 
+test('scrolling up through measured rows keeps the top visible row steady', async ({ page }) => {
+  await open(page);
+  const list = page.getByRole('list', { name: 'Measured rows' });
+  const scroller = box(list);
+  await scroller.evaluate((n) => {
+    n.scrollTop = 20000;
+  });
+  await frames(page);
+  await frames(page);
+  for (let step = 0; step < 6; step++) {
+    await scroller.evaluate((n) => {
+      n.scrollTop -= 120;
+    });
+    // Sample the first row that is visible at the top over a few animation frames: rows above it get
+    // measured and grow meanwhile, and the row must not jump by that growth.
+    const ys = await scroller.evaluate(
+      (n) =>
+        new Promise<number[]>((resolve) => {
+          const top = n.getBoundingClientRect().top;
+          const rows = Array.from(n.querySelectorAll('[role="listitem"]'));
+          const row = rows.find((r) => r.getBoundingClientRect().bottom > top + 1)!;
+          const out: number[] = [row.getBoundingClientRect().y];
+          let left = 3;
+          const tick = () => {
+            out.push(row.getBoundingClientRect().y);
+            if (--left > 0) requestAnimationFrame(tick);
+            else resolve(out);
+          };
+          requestAnimationFrame(tick);
+        }),
+    );
+    for (const y of ys) expect(Math.abs(y - ys[0]!)).toBeLessThanOrEqual(2);
+  }
+});
+
 test('table keyboard navigation reaches the last row', async ({ page }) => {
   await open(page);
   const table = page.getByRole('table', { name: 'Trades' });
@@ -131,6 +166,32 @@ test('context menu opens by pointer and keyboard', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);
   await expect(area).toBeFocused();
+});
+
+test.describe('reduced motion', () => {
+  test.use({ reducedMotion: 'reduce' });
+
+  test('context menu opens at the click point', async ({ page }) => {
+    await open(page);
+    const area = page.getByText('Right-click here');
+    await area.scrollIntoViewIfNeeded();
+    const b = (await area.boundingBox())!;
+    const menu = page.getByRole('menu', { name: 'Actions' });
+    for (const [dx, dy] of [
+      [30, 30],
+      [150, 70],
+    ] as const) {
+      const px = b.x + dx;
+      const py = b.y + dy;
+      await page.mouse.click(px, py, { button: 'right' });
+      await expect(menu).toBeVisible();
+      const m = (await menu.boundingBox())!;
+      expect(Math.abs(m.x - px)).toBeLessThanOrEqual(4);
+      expect(Math.abs(m.y - py)).toBeLessThanOrEqual(4);
+      await page.keyboard.press('Escape');
+      await expect(menu).toHaveCount(0);
+    }
+  });
 });
 
 test('hover card follows WCAG 1.4.13', async ({ page }) => {

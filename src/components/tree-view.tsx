@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  memo,
   useCallback,
   useEffect,
   useId,
@@ -17,6 +18,7 @@ import {
 import { cn } from '../cn';
 import { isRtl, useIsoLayoutEffect } from './client';
 import { warnOnce } from './data-classes';
+import { useLatest } from './latest';
 import { duplicateIds, hasChildren, parentMap, treeRowClass, visibleNodes, type TreeNode } from './tree-view-classes';
 
 export type { TreeNode } from './tree-view-classes';
@@ -70,6 +72,94 @@ function Chevron({ open }: { open: boolean }) {
     </svg>
   );
 }
+
+interface TreeItemProps {
+  node: TreeNode;
+  level: number;
+  posinset: number;
+  setsize: number;
+  open: boolean;
+  selectable: boolean;
+  selected: boolean;
+  isTarget: boolean;
+  labelId: string;
+  itemRef: (el: HTMLLIElement | null) => void | (() => void);
+  onRowClick: (node: TreeNode) => void;
+  onToggle: (node: TreeNode) => void;
+  children?: ReactNode;
+}
+
+const TreeItem = memo(function TreeItem({
+  node,
+  level,
+  posinset,
+  setsize,
+  open,
+  selectable,
+  selected,
+  isTarget,
+  labelId,
+  itemRef,
+  onRowClick,
+  onToggle,
+  children,
+}: TreeItemProps) {
+  const parent = hasChildren(node);
+  return (
+    <li
+      ref={itemRef}
+      role="treeitem"
+      data-id={node.id}
+      aria-labelledby={labelId}
+      aria-level={level}
+      aria-setsize={setsize}
+      aria-posinset={posinset}
+      aria-expanded={parent ? open : undefined}
+      aria-selected={selectable ? selected : undefined}
+      aria-disabled={node.disabled || undefined}
+      data-state={parent ? (open ? 'open' : 'closed') : undefined}
+      data-disabled={node.disabled ? '' : undefined}
+      tabIndex={isTarget ? 0 : -1}
+      className="outline-none [&:focus-visible>div]:outline-2 [&:focus-visible>div]:-outline-offset-2 [&:focus-visible>div]:outline-th-accent"
+    >
+      <div
+        className={treeRowClass({ selected: selectable && selected, disabled: node.disabled })}
+        style={{ paddingInlineStart: `calc(${level - 1} * 1.25rem + 0.25rem)` }}
+        onClick={() => onRowClick(node)}
+      >
+        <span
+          aria-hidden="true"
+          data-tree-toggle=""
+          onClick={
+            parent
+              ? (e: MouseEvent<HTMLSpanElement>) => {
+                  e.stopPropagation();
+                  onToggle(node);
+                }
+              : undefined
+          }
+          className="inline-flex w-6 shrink-0 self-stretch items-center justify-center text-th-hi3 pointer-coarse:w-11"
+        >
+          {parent ? <Chevron open={open} /> : null}
+        </span>
+        {node.icon ? (
+          <span aria-hidden="true" className="inline-flex shrink-0 text-th-hi3">
+            {node.icon}
+          </span>
+        ) : null}
+        <span id={labelId} className="min-w-0 flex-1 truncate">
+          {node.label}
+        </span>
+        {node.trailing != null ? <span className="ms-auto shrink-0 text-xs text-th-hi3">{node.trailing}</span> : null}
+      </div>
+      {open ? (
+        <ul role="group" className="grid gap-px">
+          {children}
+        </ul>
+      ) : null}
+    </li>
+  );
+});
 
 /** A tree of nested items, like folders or a section outline, following the WAI-ARIA tree view pattern:
  *  open and close branches, select one item, arrow keys, Home, End, type a letter to jump, * to open siblings. */
@@ -267,70 +357,49 @@ export function TreeView(props: TreeViewProps) {
     };
   }, []);
 
+  // Handlers read the current state through a ref so they stay stable and the memo'd TreeItem rows skip re-rendering.
+  const latest = useLatest({ focusNode, select, activate, toggle, toggleOnSelect });
+  const onRowClick = useCallback(
+    (node: TreeNode) => {
+      const l = latest.current;
+      l.focusNode(node.id);
+      l.select(node);
+      l.activate(node);
+      if (hasChildren(node) && l.toggleOnSelect) l.toggle(node.id);
+    },
+    [latest],
+  );
+  const onToggle = useCallback(
+    (node: TreeNode) => {
+      const l = latest.current;
+      l.focusNode(node.id);
+      l.toggle(node.id);
+    },
+    [latest],
+  );
+
+  // An arrow key or focus move re-renders only the rows whose isTarget changed, plus open parents (their children prop is new).
   const renderNodes = (nodes: readonly TreeNode[], level: number): ReactNode =>
     nodes.map((node, i) => {
-      const parent = hasChildren(node);
-      const open = parent && expandedSet.has(node.id);
-      const isSelected = selectedId === node.id;
-      const labelId = `${uid}-${encodeURIComponent(node.id)}`;
-      const onRowClick = () => {
-        focusNode(node.id);
-        select(node);
-        activate(node);
-        if (parent && toggleOnSelect) toggle(node.id);
-      };
-      const onToggleClick = (e: MouseEvent<HTMLSpanElement>) => {
-        e.stopPropagation();
-        focusNode(node.id);
-        toggle(node.id);
-      };
+      const open = hasChildren(node) && expandedSet.has(node.id);
       return (
-        <li
+        <TreeItem
           key={node.id}
-          ref={itemRef}
-          role="treeitem"
-          data-id={node.id}
-          aria-labelledby={labelId}
-          aria-level={level}
-          aria-setsize={nodes.length}
-          aria-posinset={i + 1}
-          aria-expanded={parent ? open : undefined}
-          aria-selected={selectable ? isSelected : undefined}
-          aria-disabled={node.disabled || undefined}
-          data-state={parent ? (open ? 'open' : 'closed') : undefined}
-          data-disabled={node.disabled ? '' : undefined}
-          tabIndex={node.id === targetId ? 0 : -1}
-          className="outline-none [&:focus-visible>div]:outline-2 [&:focus-visible>div]:-outline-offset-2 [&:focus-visible>div]:outline-th-accent"
+          node={node}
+          level={level}
+          posinset={i + 1}
+          setsize={nodes.length}
+          open={open}
+          selectable={selectable}
+          selected={selectedId === node.id}
+          isTarget={node.id === targetId}
+          labelId={`${uid}-${encodeURIComponent(node.id)}`}
+          itemRef={itemRef}
+          onRowClick={onRowClick}
+          onToggle={onToggle}
         >
-          <div
-            className={treeRowClass({ selected: selectable && isSelected, disabled: node.disabled })}
-            style={{ paddingInlineStart: `calc(${level - 1} * 1.25rem + 0.25rem)` }}
-            onClick={onRowClick}
-          >
-            <span
-              aria-hidden="true"
-              data-tree-toggle=""
-              onClick={parent ? onToggleClick : undefined}
-              className="inline-flex w-6 shrink-0 self-stretch items-center justify-center text-th-hi3 pointer-coarse:w-11"
-            >
-              {parent ? <Chevron open={open} /> : null}
-            </span>
-            {node.icon ? (
-              <span aria-hidden="true" className="inline-flex shrink-0 text-th-hi3">
-                {node.icon}
-              </span>
-            ) : null}
-            <span id={labelId} className="min-w-0 flex-1 truncate">
-              {node.label}
-            </span>
-            {node.trailing != null ? <span className="ms-auto shrink-0 text-xs text-th-hi3">{node.trailing}</span> : null}
-          </div>
-          {open ? (
-            <ul role="group" className="grid gap-px">
-              {renderNodes(node.children!, level + 1)}
-            </ul>
-          ) : null}
-        </li>
+          {open ? renderNodes(node.children!, level + 1) : null}
+        </TreeItem>
       );
     });
 
