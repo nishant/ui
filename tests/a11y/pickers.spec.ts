@@ -114,7 +114,7 @@ test.describe('pickers: keyboard', () => {
     await page.getByRole('button', { name: 'Next slide' }).click();
     await page.waitForSelector('[aria-label="2 of 4"][data-state="active"]');
     expect(await page.evaluate(() => window.scrollY)).toBe(before);
-    await page.locator('section[aria-label="Trips"] [aria-live][tabindex="0"]').focus();
+    await page.locator('section[aria-label="Trips"] [role=group][tabindex="0"]').focus();
     await page.keyboard.press('End');
     await page.waitForSelector('[aria-label="4 of 4"][data-state="active"]');
   });
@@ -124,6 +124,84 @@ test.describe('pickers: keyboard', () => {
     await page.locator('#calendar-host [data-date="2026-11-05"]').focus();
     await page.keyboard.press('ArrowLeft');
     expect(await activeDate(page)).toBe('2026-11-06');
+  });
+});
+
+test.describe('pickers: behaviors', () => {
+  test('modal: Escape closes only the listbox, the second closes the modal', async ({ page }) => {
+    await load(page, `${PICKERS}?modal=1`, 'dark', '[role=dialog]');
+    const dialog = page.getByRole('dialog', { name: 'Pickers in a modal' });
+    await dialog.getByRole('combobox', { name: 'Modal states' }).focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(page.getByRole('listbox')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('listbox')).toBeHidden();
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+  });
+
+  test('date picker: Alt+ArrowDown opens the calendar and focuses a day', async ({ page }) => {
+    await load(page, `${PICKERS}?extra=1`, 'dark', 'main h1');
+    await page.getByRole('textbox', { name: 'Form date' }).focus();
+    await page.keyboard.press('Alt+ArrowDown');
+    await expect(page.getByRole('dialog', { name: 'Choose date' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-date'))).toBe(true);
+  });
+
+  test('date picker: Enter on typed text commits it and does not submit the form', async ({ page }) => {
+    await load(page, `${PICKERS}?extra=1`, 'dark', 'main h1');
+    await page.getByRole('textbox', { name: 'Form date' }).focus();
+    await page.keyboard.type('11/20/2026');
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => document.body.dataset.submits ?? '0')).toBe('0');
+    await expect(page.locator('#date-form input[name="when"]')).toHaveValue('2026-11-20');
+  });
+
+  test('calendar: clamps at max, month-end PageDown, disabled day is focusable but not picked', async ({ page }) => {
+    await load(page, `${PICKERS}?extra=1`, 'dark', 'main h1');
+    const lim = page.locator('#limits-host');
+    await lim.locator('[data-date="2026-11-05"]').focus();
+    await page.keyboard.press('PageDown');
+    expect(await activeDate(page)).toBe('2026-11-24');
+    await lim.locator('[data-date="2026-11-10"]').focus();
+    await expect(lim.locator('[data-date="2026-11-10"]')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(lim.locator('[role=gridcell]:has([data-date="2026-11-10"])')).toHaveAttribute('aria-selected', 'false');
+    const jan = page.locator('#jan-host');
+    await jan.locator('[data-date="2026-01-31"]').focus();
+    await page.keyboard.press('PageDown');
+    expect(await activeDate(page)).toBe('2026-02-28');
+  });
+
+  test('carousel: pauses on hover, stop button, previous keeps focus', async ({ page }) => {
+    await load(page, `${PICKERS}?extra=1`, 'dark', 'main h1');
+    const auto = page.locator('section[aria-label="Auto trips"]');
+    await auto.scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    await expect(auto).toHaveAttribute('data-state', 'active');
+    await auto.hover();
+    await expect(auto).toHaveAttribute('data-state', 'inactive');
+    await page.mouse.move(0, 0);
+    await expect(auto).toHaveAttribute('data-state', 'active');
+    await auto.getByRole('button', { name: 'Stop slide rotation' }).click();
+    await page.mouse.move(0, 0);
+    await expect(auto).toHaveAttribute('data-state', 'inactive');
+    await expect(auto.getByRole('button', { name: 'Start slide rotation' })).toBeVisible();
+    await expect(auto.locator('[aria-live]')).toHaveAttribute('aria-live', 'polite');
+    const prev = auto.getByRole('button', { name: 'Previous slide' });
+    await prev.focus();
+    await page.keyboard.press('Enter');
+    await expect(prev).toBeFocused();
+    await expect(auto.locator('[aria-label="1 of 4"]')).toHaveAttribute('data-state', 'active');
+  });
+
+  test('carousel: reduced motion starts stopped', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await load(page, `${PICKERS}?extra=1`, 'dark', 'main h1');
+    const auto = page.locator('section[aria-label="Auto trips"]');
+    await expect(auto.getByRole('button', { name: 'Start slide rotation' })).toBeVisible();
+    await expect(auto).toHaveAttribute('data-state', 'inactive');
   });
 });
 
@@ -145,6 +223,21 @@ test.describe('pickers: phone', () => {
       const b = await days.nth(i).boundingBox();
       expect(b!.width).toBeGreaterThanOrEqual(44);
       expect(b!.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test('360px: carousel dots never overlap the arrows', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await load(page, PICKERS, 'dark', 'main h1');
+    const sec = page.locator('section[aria-label="Trips"]');
+    const prev = (await sec.getByRole('button', { name: 'Previous slide' }).boundingBox())!;
+    const next = (await sec.getByRole('button', { name: 'Next slide' }).boundingBox())!;
+    const dots = sec.getByRole('group', { name: 'Choose slide' }).getByRole('button');
+    const n = await dots.count();
+    for (let i = 0; i < n; i++) {
+      const b = (await dots.nth(i).boundingBox())!;
+      expect(b.x).toBeGreaterThanOrEqual(prev.x + prev.width);
+      expect(b.x + b.width).toBeLessThanOrEqual(next.x);
     }
   });
 

@@ -199,4 +199,11 @@ describe('MultiSelect', () => {
     );
     expect(screen.getByRole('button', { name: 'Alles loeschen' })).toBeTruthy();
   });
+
+  it('keeps the labels of preset values after options change', () => {
+    const { rerender } = render(<MultiSelect aria-label="S" options={OPTIONS} defaultValue={['TX']} />);
+    expect(screen.getByRole('button', { name: /Remove Texas/ })).toBeTruthy();
+    rerender(<MultiSelect aria-label="S" options={[{ value: 'WA', label: 'Washington' }]} defaultValue={['TX']} />);
+    expect(screen.getByRole('button', { name: /Remove Texas/ })).toBeTruthy();
+  });
 });

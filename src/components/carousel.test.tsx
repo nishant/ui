@@ -45,6 +45,10 @@ function slide(n: number, count: number) {
 }
 
 function track(): HTMLElement {
+  return document.querySelector('section [tabindex="0"]') as HTMLElement;
+}
+
+function live(): HTMLElement {
   return document.querySelector('[aria-live]') as HTMLElement;
 }
 
@@ -122,6 +126,26 @@ describe('Carousel structure', () => {
     expect(screen.getByRole('button', { name: 'Weiter' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Back' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Zurück' })).toBeNull();
+  });
+});
+
+describe('Carousel announcements', () => {
+  it('puts the new slide in the live node on next, a dot and a key, not on mount', () => {
+    setup(3);
+    expect(live().textContent).toBe('');
+    fireEvent.click(screen.getByRole('button', { name: 'Next slide' }));
+    expect(live().textContent).toBe('2 of 3');
+    fireEvent.click(screen.getByRole('button', { name: 'Go to slide 3' }));
+    expect(live().textContent).toBe('3 of 3');
+    fireEvent.keyDown(track(), { key: 'Home' });
+    expect(live().textContent).toBe('1 of 3');
+  });
+
+  it('names the focusable track', () => {
+    setup(3);
+    expect(track().getAttribute('aria-label')).toBe('Trips');
+    expect(track().getAttribute('role')).toBe('group');
+    expect(track().hasAttribute('aria-live')).toBe(false);
   });
 });
 
@@ -449,13 +473,13 @@ describe('Carousel auto-rotation', () => {
       vi.advanceTimersByTime(20000);
     });
     expect(slide(1, 3).getAttribute('data-state')).toBe('active');
-    expect(track().getAttribute('aria-live')).toBe('polite');
+    expect(live().getAttribute('aria-live')).toBe('polite');
   });
 
   it('advances after the interval and wraps at the end', () => {
     vi.useFakeTimers();
     setup(3, { autoPlay: 5000 });
-    expect(track().getAttribute('aria-live')).toBe('off');
+    expect(live().getAttribute('aria-live')).toBe('off');
     expect(document.querySelector('section')?.getAttribute('data-state')).toBe('active');
     act(() => {
       vi.advanceTimersByTime(4999);
@@ -486,7 +510,7 @@ describe('Carousel auto-rotation', () => {
     setup(3, { autoPlay: 5000 });
     const section = document.querySelector('section') as HTMLElement;
     fireEvent.pointerEnter(section);
-    expect(track().getAttribute('aria-live')).toBe('polite');
+    expect(live().getAttribute('aria-live')).toBe('polite');
     act(() => {
       vi.advanceTimersByTime(20000);
     });
@@ -536,7 +560,7 @@ describe('Carousel auto-rotation', () => {
     setup(3, { autoPlay: 5000 });
     fireEvent.click(playing());
     const start = screen.getByRole('button', { name: 'Start slide rotation' });
-    expect(track().getAttribute('aria-live')).toBe('polite');
+    expect(live().getAttribute('aria-live')).toBe('polite');
     act(() => {
       vi.advanceTimersByTime(20000);
     });
@@ -586,7 +610,7 @@ describe('Carousel auto-rotation', () => {
     mockReducedMotion();
     setup(3, { autoPlay: 5000 });
     expect(screen.getByRole('button', { name: 'Start slide rotation' })).toBeTruthy();
-    expect(track().getAttribute('aria-live')).toBe('polite');
+    expect(live().getAttribute('aria-live')).toBe('polite');
     act(() => {
       vi.advanceTimersByTime(20000);
     });

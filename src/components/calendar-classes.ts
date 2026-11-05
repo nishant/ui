@@ -185,13 +185,20 @@ export function isoToday(now: Date = new Date()): string {
   return toIso({ y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() });
 }
 
+const resolved = new Map<string, string>();
+
 export function resolveLocale(locale?: string | null): string {
   if (!locale) return 'en-US';
+  const hit = resolved.get(locale);
+  if (hit) return hit;
+  let out = 'en-US';
   try {
-    return Intl.getCanonicalLocales(locale)[0] ?? 'en-US';
+    out = Intl.getCanonicalLocales(locale)[0] ?? 'en-US';
   } catch {
-    return 'en-US';
+    out = 'en-US';
   }
+  resolved.set(locale, out);
+  return out;
 }
 
 const SUNDAY_FIRST = new Set(
@@ -202,7 +209,17 @@ const SUNDAY_FIRST = new Set(
 const SATURDAY_FIRST = new Set('AE AF BH DJ DZ EG IQ IR JO KW LY OM QA SD SY'.split(' '));
 
 /** First day of the week from a small CLDR region table (Intl.Locale#getWeekInfo is missing in Firefox). */
+const weekStarts = new Map<string, WeekDay>();
+
 export function weekStartFor(locale: string): WeekDay {
+  const hit = weekStarts.get(locale);
+  if (hit !== undefined) return hit;
+  const v = computeWeekStart(locale);
+  weekStarts.set(locale, v);
+  return v;
+}
+
+function computeWeekStart(locale: string): WeekDay {
   let region = 'US';
   try {
     region = new Intl.Locale(resolveLocale(locale)).maximize().region ?? 'US';
@@ -218,7 +235,8 @@ export function weekStartFor(locale: string): WeekDay {
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
 function formatter(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
-  const opts: Intl.DateTimeFormatOptions = { ...options, timeZone: 'UTC' };
+  // The grid is Gregorian, so names and titles must be too (th-TH and fa-IR default to other calendars).
+  const opts: Intl.DateTimeFormatOptions = { ...options, timeZone: 'UTC', calendar: 'gregory' };
   const key = `${locale}|${JSON.stringify(opts)}`;
   let f = formatters.get(key);
   if (!f) {
@@ -228,17 +246,20 @@ function formatter(locale: string, options: Intl.DateTimeFormatOptions): Intl.Da
   return f;
 }
 
+// Direction marks (U+200E, U+200F, U+061C) that some locales put around the separators.
+const BIDI_MARKS_RE = /[‎‏؜]/g;
+
 const fieldParts = new Map<string, DateFieldPart[]>();
 
 /** The locale's numeric date field order and separators, e.g. day . month . year for de-DE. */
 export function dateFieldParts(locale: string): DateFieldPart[] {
   const cached = fieldParts.get(locale);
   if (cached) return cached;
-  const parts = formatter(locale, { year: 'numeric', month: '2-digit', day: '2-digit' })
+  const parts = formatter(locale, { year: 'numeric', month: '2-digit', day: '2-digit', numberingSystem: 'latn' })
     .formatToParts(utcDate(2026, 12, 31))
     .map((p): DateFieldPart => {
       if (p.type === 'day' || p.type === 'month' || p.type === 'year') return { type: p.type, value: p.value };
-      return { type: 'literal', value: p.value };
+      return { type: 'literal', value: p.value.replace(BIDI_MARKS_RE, '') };
     });
   fieldParts.set(locale, parts);
   return parts;
@@ -247,7 +268,15 @@ export function dateFieldParts(locale: string): DateFieldPart[] {
 export function formatDateField(iso: string, locale: string): string {
   const p = parseIso(iso);
   if (!p) return '';
-  return formatter(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(utcDate(p.y, p.m, p.d));
+  // Padded Latin digits in the locale's order, so the text parses back to the same day (years under 100 included).
+  return dateFieldParts(locale)
+    .map((part) => {
+      if (part.type === 'year') return String(p.y).padStart(4, '0');
+      if (part.type === 'month') return String(p.m).padStart(2, '0');
+      if (part.type === 'day') return String(p.d).padStart(2, '0');
+      return part.value;
+    })
+    .join('');
 }
 
 const FIELD_JUNK_RE = /[^\d\s/.,-]/;
@@ -256,7 +285,7 @@ const DIGITS_RE = /\d+/g;
 
 /** Parses typed text: ISO, or the locale's numeric order with / . - , or space; null when it is not a real day. */
 export function parseDateField(text: string, locale: string): string | null {
-  const t = text.trim();
+  const t = text.replace(BIDI_MARKS_RE, '').trim();
   if (t === '') return null;
   if (FIELD_JUNK_RE.test(t)) return null;
   if (ISO_FIELD_RE.test(t)) {
@@ -321,11 +350,14 @@ export function monthNames(locale: string): string[] {
 export function weekdayNames(locale: string, weekStartsOn: WeekDay): { short: string; long: string }[] {
   const short = formatter(locale, { weekday: 'short' });
   const long = formatter(locale, { weekday: 'long' });
+  const narrow = formatter(locale, { weekday: 'narrow' });
   const out: { short: string; long: string }[] = [];
   for (let i = 0; i < 7; i++) {
     // 2026-11-01 is a Sunday.
     const t = utcDate(2026, 11, 1 + ((weekStartsOn + i) % 7));
-    out.push({ short: short.format(t), long: long.format(t) });
+    // Some locales (ar) have no abbreviation and "short" is the full name, too wide for a 44px column.
+    const sh = short.format(t);
+    out.push({ short: sh.length > 3 ? narrow.format(t) : sh, long: long.format(t) });
   }
   return out;
 }

@@ -295,6 +295,20 @@ describe("DatePicker form use", () => {
     );
   });
 
+  it("refuses to submit while the typed text is unreadable", () => {
+    const { container } = render(
+      <form>
+        <DatePicker aria-label="Due" name="due" locale="en-US" defaultValue="2026-11-05" />
+      </form>,
+    );
+    const form = container.querySelector("form")!;
+    expect(form.checkValidity()).toBe(true);
+    typeAndBlur("13/40/2026");
+    expect(form.checkValidity()).toBe(false);
+    typeAndBlur("12/25/2026");
+    expect(form.checkValidity()).toBe(true);
+  });
+
   it("posts nothing extra without a name", () => {
     const { container } = render(<DatePicker aria-label="Due" />);
     expect(container.querySelector('input[type="hidden"]')).toBeNull();

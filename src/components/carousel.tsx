@@ -115,16 +115,23 @@ export function Carousel({
   const index = count === 0 ? 0 : Math.min(Math.max(indexProp ?? ownIndex, 0), count - 1);
   const canPrev = loop || index > 0;
   const canNext = loop || index < count - 1;
-  const showDots = indicators ?? count <= CAROUSEL_MAX_DOTS;
+  const coarse = useMediaQuery('(pointer: coarse)');
+  const [slotWidth, setSlotWidth] = useState(0);
+  // Dots are 32px (44px on touch). Past what the middle slot holds they give way to the counter,
+  // so they never run under the arrows. indicators={true} forces them.
+  const dotsFit = slotWidth === 0 || count * (coarse ? 44 : 32) <= slotWidth;
+  const showDots = indicators ?? (count <= CAROUSEL_MAX_DOTS && dotsFit);
+  const [announce, setAnnounce] = useState('');
 
   const trackRef = useRef<HTMLDivElement>(null);
   const indexRef = useRef(index);
   const viewRef = useRef(0); // the slide the track shows or is scrolling to
   const targetRef = useRef<{ index: number; at: number } | null>(null);
   const frameRef = useRef(0);
-  const latest = useRef({ onIndexChange, reduced });
+  const slotCleanup = useRef<(() => void) | null>(null);
+  const latest = useRef({ onIndexChange, reduced, label, count });
   useIsoLayoutEffect(() => {
-    latest.current = { onIndexChange, reduced };
+    latest.current = { onIndexChange, reduced, label, count };
     indexRef.current = index;
   });
 
@@ -154,6 +161,8 @@ export function Carousel({
   const goTo = useCallback(
     (i: number) => {
       setCurrent(i);
+      // Announced from here (buttons, dots, keys, rotation), never from scroll or focus syncing.
+      setAnnounce(latest.current.label(i + 1, latest.current.count));
       scrollToSlide(i, latest.current.reduced ? 'auto' : 'smooth');
     },
     [setCurrent, scrollToSlide],
@@ -273,6 +282,16 @@ export function Carousel({
     onBlur?.(e);
   };
 
+  const slotRef = useCallback((el: HTMLDivElement | null) => {
+    slotCleanup.current?.();
+    slotCleanup.current = null;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setSlotWidth(el.clientWidth));
+    ro.observe(el);
+    setSlotWidth(el.clientWidth);
+    slotCleanup.current = () => ro.disconnect();
+  }, []);
+
   const togglePlay = () => setPlayState(playing ? 'off' : 'on');
   const arrowClass = 'aria-disabled:cursor-not-allowed aria-disabled:opacity-40';
 
@@ -289,6 +308,9 @@ export function Carousel({
       onBlur={handleBlur}
       className={cn('flex w-full min-w-0 flex-col gap-2', className)}
     >
+      <div aria-live={rotating ? 'off' : 'polite'} aria-atomic="true" className="sr-only">
+        {announce}
+      </div>
       <div className="relative min-w-0">
         {autoPlay && count > 1 ? (
           <IconButton
@@ -304,7 +326,8 @@ export function Carousel({
         <div
           ref={trackRef}
           tabIndex={0}
-          aria-live={rotating ? 'off' : 'polite'}
+          role="group"
+          aria-label={ariaLabel}
           onKeyDown={onTrackKey}
           onScroll={onScroll}
           className="flex w-full min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -337,7 +360,7 @@ export function Carousel({
           >
             <ChevronStart className="rtl:-scale-x-100" />
           </IconButton>
-          <div className="flex min-w-0 flex-1 justify-center">
+          <div ref={slotRef} className="flex min-w-0 flex-1 justify-center">
             {showDots ? (
               <div role="group" aria-label={strings.slidePicker} className="flex">
                 {slides.map((_, i) => (
@@ -347,7 +370,7 @@ export function Carousel({
                     aria-label={strings.goToSlide(i + 1)}
                     aria-current={i === index ? 'true' : undefined}
                     onClick={() => goTo(i)}
-                    className="flex size-8 items-center justify-center rounded-full pointer-coarse:size-11"
+                    className="flex size-8 items-center justify-center rounded-full min-w-0 pointer-coarse:size-11"
                   >
                     <span
                       className={cn(

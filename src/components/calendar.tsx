@@ -159,7 +159,8 @@ export function Calendar({
   );
   const shown = monthControlled ?? ownMonth ?? (today ? monthOf(today) : null);
 
-  const setMonth = (next: string) => {
+  const setMonth = (raw: string) => {
+    const next = clampIso(raw, "0001-01", "9999-12");
     if (next === shown) return;
     if (monthProp === undefined) setOwnMonth(next);
     onMonthChange?.(next);
@@ -220,10 +221,18 @@ export function Calendar({
     );
     if (!raw) return;
     e.preventDefault();
-    const target = clampIso(raw, min, max);
+    const target = clampIso(raw, min ?? "0001-01-01", max ?? "9999-12-31");
+    const moved = target !== focusedDate || monthOf(target) !== shown;
     setFocusedDate(target);
     setMonth(monthOf(target));
-    focusPending.current = true;
+    if (moved) {
+      focusPending.current = true;
+    } else {
+      // No render will follow, so focus now; arming the flag would steal focus on a later render.
+      e.currentTarget
+        .querySelector<HTMLElement>(`[data-date="${target}"]`)
+        ?.focus();
+    }
   };
 
   const grid = shown ? monthGrid(shown, ws) : EMPTY_GRID;
@@ -256,8 +265,9 @@ export function Calendar({
         <IconButton
           size="sm"
           label={previousMonthLabel ?? strings.previousMonth}
-          disabled={prevDisabled}
-          onClick={() => shown && setMonth(shiftMonth(shown, -1))}
+          aria-disabled={prevDisabled || undefined}
+          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
+          onClick={() => !prevDisabled && shown && setMonth(shiftMonth(shown, -1))}
         >
           <ChevronLeftIcon className="rtl:-scale-x-100" />
         </IconButton>
@@ -312,8 +322,9 @@ export function Calendar({
         <IconButton
           size="sm"
           label={nextMonthLabel ?? strings.nextMonth}
-          disabled={nextDisabled}
-          onClick={() => shown && setMonth(shiftMonth(shown, 1))}
+          aria-disabled={nextDisabled || undefined}
+          className="aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
+          onClick={() => !nextDisabled && shown && setMonth(shiftMonth(shown, 1))}
         >
           <ChevronRightIcon className="rtl:-scale-x-100" />
         </IconButton>
@@ -331,7 +342,7 @@ export function Calendar({
                 key={n.long}
                 scope="col"
                 abbr={n.long}
-                className="size-10 p-0 text-center text-xs font-medium text-th-hi3 pointer-coarse:size-11"
+                className="size-10 overflow-hidden px-0.5 py-0 text-center text-xs font-medium text-th-hi3 pointer-coarse:h-11 pointer-coarse:w-[min(2.75rem,calc((100vw_-_2.6rem)/7))]"
               >
                 {n.short}
               </th>
@@ -347,7 +358,7 @@ export function Calendar({
                     <td key={c} className="p-0">
                       <div
                         aria-hidden="true"
-                        className="size-10 pointer-coarse:size-11"
+                        className="size-10 pointer-coarse:h-11 pointer-coarse:w-[min(2.75rem,calc((100vw_-_2.6rem)/7))]"
                       />
                     </td>
                   );
@@ -374,7 +385,7 @@ export function Calendar({
                       data-disabled={isDisabled ? "" : undefined}
                       onClick={() => pick(iso)}
                       className={cn(
-                        "flex size-10 items-center justify-center rounded-lg text-sm tabular-nums text-th-hi2 transition-colors pointer-coarse:size-11",
+                        "flex size-10 items-center justify-center rounded-lg text-sm tabular-nums text-th-hi2 transition-colors pointer-coarse:h-11 pointer-coarse:w-[min(2.75rem,calc((100vw_-_2.6rem)/7))]",
                         !isSelected &&
                           !isDisabled &&
                           "hover:bg-th-elevated hover:text-th-hi",

@@ -155,6 +155,11 @@ export function DatePicker({
     ariaInvalid === "true" ||
     badText;
 
+  // Unreadable text blocks native validation, so form.checkValidity() and submit refuse it.
+  useEffect(() => {
+    inputRef.current?.setCustomValidity(badText ? "Enter a valid date." : "");
+  }, [badText]);
+
   // An uncontrolled picker returns to its default when its form is reset.
   useEffect(() => {
     const f = inputRef.current?.form;

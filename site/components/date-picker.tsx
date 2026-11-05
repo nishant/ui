@@ -15,7 +15,7 @@ function FormDemo() {
     setPosted(typeof due === "string" && due !== "" ? due : "empty");
   };
   return (
-    <form onSubmit={onSubmit} className="grid w-full max-w-xs gap-3">
+    <form onSubmit={onSubmit} className="grid w-full max-w-xs gap-3 self-start">
       <Field label="Due date">
         <DatePicker name="due" defaultValue="2026-11-05" />
       </Field>
@@ -54,7 +54,7 @@ export const datePicker: ComponentDoc = {
     invalid: false,
   },
   render: (a) => (
-    <div className="w-full max-w-xs">
+    <div className="w-full max-w-xs self-start">
       <DatePicker
         aria-label="Due date"
         defaultValue="2026-11-05"
@@ -73,13 +73,13 @@ export const datePicker: ComponentDoc = {
       disabled: a.disabled,
       invalid: a.invalid,
     }),
-  framed: { height: 480 },
+  framed: { height: 620 },
   stories: [
     {
       id: "basic",
       name: "Basic",
       render: () => (
-        <div className="w-full max-w-xs">
+        <div className="w-full max-w-xs self-start">
           <DatePicker aria-label="Due date" />
         </div>
       ),
@@ -88,7 +88,7 @@ export const datePicker: ComponentDoc = {
       id: "field",
       name: "In a Field",
       render: () => (
-        <div className="w-full max-w-xs">
+        <div className="w-full max-w-xs self-start">
           <Field label="Due date" hint="Type it or pick it.">
             <DatePicker />
           </Field>
@@ -100,7 +100,7 @@ export const datePicker: ComponentDoc = {
       name: "Min and max",
       note: "Dates outside the range are disabled in the calendar and refused when typed.",
       render: () => (
-        <div className="w-full max-w-xs">
+        <div className="w-full max-w-xs self-start">
           <DatePicker
             aria-label="Delivery date"
             min="2026-11-03"
@@ -114,7 +114,7 @@ export const datePicker: ComponentDoc = {
       name: "Birth date",
       note: "Month and year selects for far jumps.",
       render: () => (
-        <div className="w-full max-w-xs">
+        <div className="w-full max-w-xs self-start">
           <DatePicker
             aria-label="Birth date"
             captionLayout="dropdowns"

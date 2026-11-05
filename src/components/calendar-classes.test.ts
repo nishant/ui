@@ -250,3 +250,23 @@ describe('names', () => {
     expect(fullDate('bad', 'en-US')).toBe('');
   });
 });
+
+describe('typed field round trips', () => {
+  it.each(['th-TH', 'fa-IR', 'ar-EG', 'en-US', 'de-DE', 'ja-JP'])('formats then parses in %s', (locale) => {
+    const text = formatDateField('2026-11-05', locale);
+    expect(text).toMatch(/2026/);
+    expect(parseDateField(text, locale)).toBe('2026-11-05');
+  });
+
+  it('keeps years under 100', () => {
+    const text = formatDateField('0042-01-05', 'en-US');
+    expect(text).toBe('01/05/0042');
+    expect(parseDateField(text, 'en-US')).toBe('0042-01-05');
+  });
+
+  it('names Gregorian months in fa-IR and th-TH', () => {
+    expect(monthTitle('2026-11', 'th-TH')).toMatch(/2026/);
+    expect(monthTitle('2026-11', 'fa-IR')).toMatch(/2026|۲۰۲۶/);
+    expect(monthNames('fa-IR')).toHaveLength(12);
+  });
+});

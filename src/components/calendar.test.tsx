@@ -247,16 +247,15 @@ describe("Calendar month", () => {
   it("disables previous at the min month and next at the max month", () => {
     render(<Calendar min="2026-11-03" max="2026-11-24" />);
     expect(
-      (
-        screen.getByRole("button", {
-          name: "Previous month",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
+      screen
+        .getByRole("button", { name: "Previous month" })
+        .getAttribute("aria-disabled"),
+    ).toBe("true");
     expect(
-      (screen.getByRole("button", { name: "Next month" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
+      screen
+        .getByRole("button", { name: "Next month" })
+        .getAttribute("aria-disabled"),
+    ).toBe("true");
   });
 
   it("changes month and year through the selects", () => {
@@ -309,12 +308,10 @@ describe("Calendar strings and warnings", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith('Calendar: "min" must be YYYY-MM-DD');
     expect(
-      (
-        screen.getByRole("button", {
-          name: "Previous month",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(false);
+      screen
+        .getByRole("button", { name: "Previous month" })
+        .getAttribute("aria-disabled"),
+    ).toBeNull();
   });
 
   it("uses the locale for names and the week start", () => {
@@ -323,5 +320,45 @@ describe("Calendar strings and warnings", () => {
     expect(document.querySelector("thead th")!.getAttribute("abbr")).toBe(
       "Montag",
     );
+  });
+
+  it("does not steal focus on a later render after a no-op key", () => {
+    function Host() {
+      const [text, setText] = useState("");
+      return (
+        <div>
+          <Calendar defaultValue="2026-11-01" />
+          <input
+            aria-label="other"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+        </div>
+      );
+    }
+    render(<Host />);
+    const sunday = screen
+      .getByRole("grid")
+      .querySelector<HTMLElement>('[data-date="2026-11-01"]')!;
+    sunday.focus();
+    key(sunday, "Home");
+    key(document.activeElement!, "Home");
+    const input = screen.getByLabelText("other") as HTMLInputElement;
+    input.focus();
+    fireEvent.change(input, { target: { value: "a" } });
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("stays inside years 0001 to 9999", () => {
+    render(<Calendar defaultValue="0001-01-01" />);
+    const first = screen
+      .getByRole("grid")
+      .querySelector<HTMLElement>('[data-date="0001-01-01"]')!;
+    first.focus();
+    key(first, "ArrowLeft");
+    expect(document.activeElement?.getAttribute("data-date")).toBe(
+      "0001-01-01",
+    );
+    expect(screen.getByRole("grid").getAttribute("aria-labelledby")).toBeTruthy();
   });
 });

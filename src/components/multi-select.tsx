@@ -65,7 +65,7 @@ export interface MultiSelectProps
   size?: 'sm' | 'md';
   /** Accessible name of the clear-all button. Default "Clear all" (NishProvider strings). */
   clearLabel?: string;
-  /** Extra classes for the field box. */
+  /** Extra classes for the wrapper around the field box and the list. */
   className?: string;
 }
 
@@ -133,6 +133,16 @@ export function MultiSelect({
   const [seen, setSeen] = useState<Record<string, ComboboxOption>>({});
 
   const indexed = useMemo(() => indexComboboxOptions(options), [options]);
+
+  // Remember the labels of current values found in `options`, so preset (default or controlled)
+  // values keep their labels after async results replace `options`.
+  // (State adjusted during render, which React allows for a component's own state.)
+  {
+    const cur = valueProp ?? own;
+    let next: Record<string, ComboboxOption> | null = null;
+    for (const o of options) if (cur.includes(o.value) && seen[o.value]?.label !== o.label) (next ??= { ...seen })[o.value] = o;
+    if (next) setSeen(next);
+  }
 
   const visible = useMemo(() => {
     const serverFiltered = onQueryChange != null && filter == null;
@@ -415,7 +425,7 @@ export function MultiSelect({
             tabIndex={-1}
             onMouseDown={(e) => e.preventDefault()}
             onClick={clearAll}
-            className="absolute inset-y-0 end-0 flex w-11 items-center justify-center text-th-hi3 hover:text-th-hi"
+            className="absolute -inset-y-px -end-px flex w-11 items-center justify-center text-th-hi3 hover:text-th-hi"
           >
             <span className="flex size-8 items-center justify-center rounded-md hover:bg-th-elevated">
               <XIcon size={16} />
