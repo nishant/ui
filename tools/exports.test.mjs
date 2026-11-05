@@ -54,7 +54,7 @@ test('typesVersions covers every JS subpath', () => {
 });
 
 test('bundlers are pointed at dist/esm and sideEffects stays narrow', () => {
-  for (const k of ['.', './theme', './chart', './format', './split-layout', './inbox-client', './system-canvas', './tokens']) {
+  for (const k of ['.', './theme', './chart', './format', './split-layout', './inbox-client', './system-canvas', './inbox', './service-tokens', './tokens']) {
     assert.match(pkg.exports[k].import, /^\.\/dist\/esm\//, `${k} import`);
     assert.match(pkg.exports[k].default, /^\.\/dist\/esm\//, `${k} default`);
   }
@@ -79,6 +79,19 @@ test('require() works for every JS subpath', { skip: !hasRequireEsm && 'needs No
   }
   const { cn } = require(pkg.name);
   assert.equal(cn('a', false, 'b'), 'a b');
+});
+
+test("fleet-only subpaths re-export the root's values", async () => {
+  const rootMod = await import(spec('.'));
+  for (const k of ['./inbox', './service-tokens', './system-canvas']) {
+    const mod = await import(spec(k));
+    const names = Object.keys(mod);
+    assert.ok(names.length > 0, `${spec(k)} exports nothing`);
+    for (const name of names) {
+      assert.ok(name in rootMod, `${spec(k)} exports ${name}, which the root entry does not`);
+      assert.ok(mod[name] === rootMod[name], `${spec(k)} ${name} is not the root's ${name}`);
+    }
+  }
 });
 
 test('dist/esm/index.js loads in plain Node without window or document', () => {

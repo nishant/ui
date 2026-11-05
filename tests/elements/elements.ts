@@ -294,6 +294,7 @@ const mediaRow = (o: { cls?: string; title?: string; meta?: string; detail?: str
   `${o.trailing ?? ''}${CHEVRON}</a>`;
 const RAIL_HOME = ico('M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z', 22);
 const RAIL_LIST = ico('M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', 22);
+const RAIL_SEARCH = ico('M21 21l-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 22);
 const railLinks = `<a class="nish-nav-rail-item" href="/home" aria-current="page">${RAIL_HOME}<span>Home</span></a><a class="nish-nav-rail-item" href="/trips">${RAIL_LIST}<span>Trips</span></a>`;
 const TOPICS = ['All', 'Guides', 'Builds', 'Redstone', 'Farms', 'Mods', 'Seeds', 'Servers'];
 const settingRow = (id: string, label: string, desc: string, mods = '', status = '', tone = '') =>
@@ -355,9 +356,13 @@ const WAVE3: Record<string, string> = {
     '<button type="button" class="nish-media-chip case"><span class="nish-media-chip-thumb"></span><span class="nish-media-chip-label">A rather long recent item title that truncates</span></button>',
   'split-row':
     '<div class="case" style="height:240px;display:flex"><nish-split sizes="50,50" style="flex:1"><div class="pane" style="height:100%;background:var(--nish-surface)"></div><div class="pane" style="height:100%;background:var(--nish-elevated)"></div></nish-split></div>',
+  'split-column':
+    '<div class="case" style="height:240px;display:flex"><nish-split orientation="column" sizes="50,50" style="flex:1"><div class="pane" style="height:100%;background:var(--nish-surface)"></div><div class="pane" style="height:100%;background:var(--nish-elevated)"></div></nish-split></div>',
+  'nav-rail-tools': `<nav class="nish-nav-rail nish-nav-rail--wide case" aria-label="Sections">${railLinks}<div class="nish-nav-rail-tools"><a class="nish-nav-rail-item" href="/search">${RAIL_SEARCH}<span>Search</span></a></div><div class="nish-nav-rail-footer"><nish-theme-toggle pill></nish-theme-toggle></div></nav>`,
   'nav-rail': `<nav class="nish-nav-rail nish-nav-rail--wide case" aria-label="Sections">${railLinks}</nav>`,
   'nav-rail-default': `<nish-nav-rail>${railLinks.replaceAll(' class="nish-nav-rail-item"', '').replace(' aria-current="page"', '')}</nish-nav-rail>`,
   'scroll-row': `<nish-scroll-row label="Topics">${TOPICS.map((t, i) => `<button type="button" class="nish-chip" style="flex:none"${i === 0 ? ' aria-pressed="true"' : ''}>${t}</button>`).join('')}</nish-scroll-row>`,
+  'scroll-row-bleed': `<div style="--nish-page-gutter:${window.innerWidth >= 640 ? '1.5rem' : '1rem'}"><nish-scroll-row label="Topics" bleed>${TOPICS.map((t, i) => `<button type="button" class="nish-chip" style="flex:none"${i === 0 ? ' aria-pressed="true"' : ''}>${t}</button>`).join('')}</nish-scroll-row></div>`,
   'section-nav': '<nish-section-nav sticky="false" update-hash="false" label="Sections"><a href="#sa">Overview</a><a href="#sb">Details</a><a href="#sc">History</a></nish-section-nav>',
   'more-sheet':
     '<nish-sheet open label="More"><header class="nish-sheet-header"><h2 class="nish-sheet-title">More</h2></header><div class="nish-sheet-body"><ul class="nish-list">' +

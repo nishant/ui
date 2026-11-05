@@ -12,3 +12,4 @@ visual-out/
 coverage/
 .stryker-tmp*/
 reports/mutation/
+.site-stats.json

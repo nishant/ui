@@ -294,7 +294,9 @@ Entry points:
 | `nish-ui/chart` | Chart colors for any library |
 | `nish-ui/tokens` | Token data for Node and build tools |
 | `nish-ui/tokens.json` | The same as JSON, and `tokens.dtcg.json` for design tools |
-| `nish-ui/system-canvas` | The node-and-edge canvas component |
+| `nish-ui/system-canvas` | The node-and-edge canvas component (fleet-only) |
+| `nish-ui/inbox` | The inbox list (fleet-only) |
+| `nish-ui/service-tokens` | Service token settings (fleet-only) |
 | `nish-ui/split-layout` | Split-pane layout math, React-free |
 | `nish-ui/elements` | Custom elements; also `/forms`, `/data`, `/charts`, `/all` |
 | `nish-ui/vite` | The theme-init Vite plugin |
@@ -305,6 +307,14 @@ Also `nish-ui/theme-init.js` and `theme-init.sha256`, `nish-ui/theme.global.js`,
 `nish-ui/server`, `nish-ui/server/hono` and `nish-ui/inbox-client` (a login, session and inbox
 kit for Hono servers; other projects can ignore it).
 Details: [Vite plugin and lint](https://design.nish.software/#/components/vite-plugin).
+
+## Fleet-only APIs
+
+`Inbox`, `ServiceTokensSection`, `useServiceTokens`, `SystemCanvas` and the server kit
+(`nish-ui/server`, `nish-ui/server/hono`, `nish-ui/inbox-client`) are built for the nish.software apps. They
+can change in a minor release; patches only fix. Import them from their own entry points
+(`nish-ui/inbox`, `nish-ui/service-tokens`, `nish-ui/system-canvas`); the root entry keeps them through 2.x.
+Everything else follows semver.
 
 ## Bundle size
 

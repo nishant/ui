@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, use, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import docgen from 'virtual:nish-docgen';
-import { Card, cn, CopyButton, Input, PRESETS, Select, SectionNav, Switch, Tabs, tabClass, useTheme, type ThemeName } from '../../src';
-import { COMPONENT_DOCS, RealModalButton, type ComponentDoc, type Control, type Story } from '../components';
+import pkg from 'virtual:nish-pkg';
+import { Callout, Card, cn, CopyButton, Input, PRESETS, Select, SectionNav, Switch, Tabs, tabClass, useTheme, type ThemeName } from '../../src';
+import type { ComponentDoc, Control, Story } from '../components/types';
 import { CodeBlock, nishName } from '../lib/code';
+import { loadDoc, loadDocModule } from '../lib/docs';
 import { ExternalIcon } from '../lib/icons';
 import type { Args } from '../lib/jsx';
 import { href } from '../lib/router';
@@ -11,7 +13,10 @@ import { PageHeader, PropsTable, Section, ThemeColumns } from '../lib/ui';
 const REPO = 'https://github.com/nishant/ui';
 
 /** Source links point at the release the page documents, not at master, so they cannot drift. */
-const SOURCE_REF = `v${docgen.version}`;
+const SOURCE_REF = `v${pkg.version}`;
+
+/** The real Modal demo button lives in the modal doc's file; load it only on the modal page. */
+const RealModalButton = lazy(() => loadDocModule('modal.tsx').then((m) => ({ default: m.RealModalButton as ComponentType })));
 
 /** URL of a preview frame: this same page, routed to #/frame/… */
 export function frameUrl(doc: ComponentDoc, opts: { story?: string; theme?: ThemeName; args?: Args }): string {
@@ -109,7 +114,7 @@ function UsageCode({ doc }: { doc: ComponentDoc }) {
         react
       ) : (
         <>
-          <CodeBlock code={doc.html.code.replaceAll('nish-ui@X.Y.Z', `nish-ui@${docgen.version}`)} title={`${doc.id}.html`} collapseAt={16} />
+          <CodeBlock code={doc.html.code.replaceAll('nish-ui@X.Y.Z', `nish-ui@${pkg.version}`)} title={`${doc.id}.html`} collapseAt={16} />
           <p className="text-sm text-th-hi3">
             Live, with no React. The page links <code className="inline">nish.css</code>, <code className="inline">nish-components.css</code> and{' '}
             the element files (<code className="inline">elements*.js</code>); see{' '}
@@ -179,7 +184,11 @@ function Canvas({ doc }: { doc: ComponentDoc }) {
           {doc.controls.map((c) => (
             <ControlInput key={c.key} c={c} value={args[c.key]} onChange={(v) => setArgs((a) => ({ ...a, [c.key]: v }))} />
           ))}
-          {doc.id === 'modal' ? <RealModalButton /> : null}
+          {doc.id === 'modal' ? (
+            <Suspense fallback={null}>
+              <RealModalButton />
+            </Suspense>
+          ) : null}
         </div>
       </div>
       <div className="border-t border-th-line p-3">
@@ -235,9 +244,8 @@ function ApiDocs({ doc }: { doc: ComponentDoc }) {
 }
 
 export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes' }) {
-  const doc = COMPONENT_DOCS.find((d) => d.id === id);
+  const doc = use(loadDoc(id));
   const { theme } = useTheme();
-  if (!doc) return <p className="text-th-hi2">No component called {id}.</p>;
   const file = doc.source ?? docgen.components[doc.exports[0]]?.file;
   const tabs = [
     { id: 'docs', label: 'Docs', to: `/components/${doc.id}` },
@@ -287,6 +295,13 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
         </nav>
       </PageHeader>
 
+      {doc.fleetOnly ? (
+        <Callout tone="info" title="Fleet-only API">
+          Built for the nish.software apps. It can change in a minor release, so a project outside the fleet should not depend on it. Import it from its own entry point, as in
+          the import line above.
+        </Callout>
+      ) : null}
+
       {view === 'themes' ? (
         <AllThemes doc={doc} />
       ) : (
@@ -335,43 +350,65 @@ export function ComponentPage({ id, view }: { id: string; view: 'docs' | 'themes
 }
 
 function AllThemes({ doc }: { doc: ComponentDoc }) {
+  // A framed component opens one frame per theme, for one story at a time (7 frames, not 7 per story).
+  const [story, setStory] = useState(doc.stories[0]?.id);
   return (
     <Section
       title="All themes"
       note={
-        <>
-          Every story in all seven themes at once. Each column is a <code className="inline">[data-theme]</code> container, so the components inside
-          read that theme&apos;s variables.{doc.framed ? ' This component renders on document.body, so each story runs in its own frame.' : ''}
-        </>
+        doc.framed ? (
+          <>
+            Every story in all seven themes at once. Each column is a <code className="inline">[data-theme]</code> container, so the components inside
+            read that theme&apos;s variables. This component renders on document.body, so each theme runs the story picked below in its own frame.
+          </>
+        ) : (
+          <>
+            Every story in all seven themes at once. Each column is a <code className="inline">[data-theme]</code> container, so the components inside
+            read that theme&apos;s variables.
+          </>
+        )
       }
     >
-      <ThemeColumns
-        min={doc.framed ? 340 : 320}
-        render={(theme) => (
-          <div className="divide-y divide-th-line">
-            {doc.stories.map((s) => (
-              <StoryInTheme key={s.id} doc={doc} story={s} theme={theme} />
-            ))}
-          </div>
-        )}
-      />
+      <div className="space-y-4">
+        {doc.framed ? (
+          <label className="grid w-full max-w-xs gap-1.5">
+            <span className="text-sm font-medium text-th-hi">Story</span>
+            <Select value={story} onChange={(e) => setStory(e.target.value)}>
+              {doc.stories.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </label>
+        ) : null}
+        <ThemeColumns
+          min={doc.framed ? 340 : 320}
+          render={(theme) =>
+            doc.framed ? (
+              <div className="p-3">
+                <div className="overflow-hidden rounded-lg border border-th-line">
+                  <Frame
+                    key={`${story}${theme}`}
+                    src={frameUrl(doc, { story, theme })}
+                    height={doc.framed.height}
+                    title={`${doc.name}: ${doc.stories.find((s) => s.id === story)?.name ?? ''}, ${theme}`}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-th-line">
+                {doc.stories.map((s) => (
+                  <div key={s.id} className="min-w-0">
+                    <p className="px-3.5 pt-3 text-xs font-medium text-th-hi3">{s.name}</p>
+                    <div className="flex min-h-20 items-center p-3.5">{s.render()}</div>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+        />
+      </div>
     </Section>
-  );
-}
-
-function StoryInTheme({ doc, story, theme }: { doc: ComponentDoc; story: Story; theme: ThemeName }): ReactNode {
-  return (
-    <div className="min-w-0">
-      <p className="px-3.5 pt-3 text-xs font-medium text-th-hi3">{story.name}</p>
-      {doc.framed ? (
-        <div className="p-3">
-          <div className="overflow-hidden rounded-lg border border-th-line">
-            <Frame src={frameUrl(doc, { story: story.id, theme })} height={doc.framed.height} title={`${doc.name}: ${story.name}, ${theme}`} />
-          </div>
-        </div>
-      ) : (
-        <div className="flex min-h-20 items-center p-3.5">{story.render()}</div>
-      )}
-    </div>
   );
 }

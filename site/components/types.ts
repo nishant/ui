@@ -34,6 +34,8 @@ export interface ComponentDoc {
   /** Portaled, fixed-position components render in an iframe per story, so each one
    *  gets a whole document (and a whole theme) of its own. */
   framed?: { height: number };
+  /** Built for the nish.software apps only: the page shows the Fleet-only callout. */
+  fleetOnly?: boolean;
   /** The source file the page links to when it documents no component (CSS, a function). */
   source?: string;
   /** The same component without React: the element or nish-* class markup. Shown as an

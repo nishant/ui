@@ -230,7 +230,7 @@ console.log('built dist/');
 async function buildEsm() {
   const esbuild = await import('esbuild');
   const out = join(dist, 'esm');
-  const entries = ['index', 'theme', 'chart', 'format', 'split-layout', 'inbox-client', 'system-canvas']
+  const entries = ['index', 'theme', 'chart', 'format', 'split-layout', 'inbox-client', 'system-canvas', 'inbox', 'service-tokens']
     .map((n) => join(src, `${n}.ts`))
     .filter((f) => existsSync(f));
   const seen = new Set(entries);
@@ -325,7 +325,7 @@ function buildDtcg() {
 /** dist/esm must hold the preserved modules the package exports point at, with the version defined and no maps. */
 async function testEsmBuild() {
   const esm = join(dist, 'esm');
-  for (const f of ['index.js', 'theme.js', 'format.js', 'split-layout.js', 'inbox-client.js', 'system-canvas.js', 'tokens.mjs']) {
+  for (const f of ['index.js', 'theme.js', 'format.js', 'split-layout.js', 'inbox-client.js', 'system-canvas.js', 'inbox.js', 'service-tokens.js', 'tokens.mjs']) {
     if (!existsSync(join(esm, f))) throw new Error(`dist/esm/${f} is missing`);
   }
   const all = [];

@@ -280,7 +280,30 @@ export { MultiSelect } from './components/multi-select';
 export type { MultiSelectProps } from './components/multi-select';
 export { Carousel } from './components/carousel';
 export type { CarouselProps } from './components/carousel';
-export { CheckIcon, ClockIcon, MoreIcon, BellIcon, SettingsIcon } from './components/icons';
+export {
+  XIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  AlertTriangleIcon,
+  InfoIcon,
+  RotateIcon,
+  LoaderIcon,
+  SunIcon,
+  MoonIcon,
+  MonitorIcon,
+  ChevronDownIcon,
+  ClockIcon,
+  MoreIcon,
+  BellIcon,
+  SettingsIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CalendarIcon,
+  PauseIcon,
+  PlayIcon,
+} from './components/icons';
 export { SplitStage, SplitDividers, LayoutPresetPicker, LayoutPresetIcon } from './components/split';
 export { presetOptions } from './components/split-classes';
 export type { SplitStageProps, SplitDividersProps, LayoutPresetPickerProps, LayoutPresetIconProps, LayoutPresetOption } from './components/split';
