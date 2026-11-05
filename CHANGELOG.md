@@ -12,7 +12,7 @@ a minor adds, and a patch fixes.
 
 ### Changed
 
-- `routeEdges` (and SystemCanvas) route large maps much faster: 500 nodes in about 5 ms instead of 100+ ms, with the same lines.
+- `routeEdges` (and SystemCanvas) route large maps much faster: 500 nodes about 20x faster (about 5-15 ms instead of 100+ ms), with the same lines.
 - Inbox, ServiceTokensSection and SystemCanvas are marked fleet-only in the docs; their root exports stay through 2.x.
 
 ## [2.0.2] - 2026-11-03

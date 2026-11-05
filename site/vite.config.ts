@@ -1,7 +1,7 @@
 // The docs site (design.nish.software). Built from this repo's own src and dist, so it
 // always shows exactly the code being released. Plain static output: hash routes and
 // relative asset URLs, so site-dist/ works served from any path.
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, normalizePath, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -42,7 +42,7 @@ function docs(): Plugin {
       return `export default ${JSON.stringify(docgen(root))};`;
     },
     handleHotUpdate({ file, server }) {
-      if (file.startsWith(join(root, 'src'))) {
+      if (normalizePath(file).startsWith(normalizePath(join(root, 'src')) + '/')) {
         const mod = server.moduleGraph.getModuleById(resolved);
         if (mod) server.moduleGraph.invalidateModule(mod);
       }
@@ -71,7 +71,7 @@ function pkgFacts(): Plugin {
 function docsMetaPlugin(): Plugin {
   const id = 'virtual:nish-docs-meta';
   const resolved = '\0' + id;
-  const components = join(root, 'site', 'components');
+  const components = normalizePath(join(root, 'site', 'components')) + '/';
   return {
     name: 'nish-docs-meta',
     resolveId: (s) => (s === id ? resolved : undefined),
@@ -80,7 +80,7 @@ function docsMetaPlugin(): Plugin {
       return `export default ${JSON.stringify(docsMeta(root))};`;
     },
     handleHotUpdate({ file, server }) {
-      if (file.startsWith(components)) {
+      if (normalizePath(file).startsWith(components)) {
         const mod = server.moduleGraph.getModuleById(resolved);
         if (mod) server.moduleGraph.invalidateModule(mod);
       }

@@ -87,6 +87,7 @@ test.describe('44px targets under a coarse pointer', () => {
 });
 
 test.describe('the command input shows no focus ring', () => {
+  // outline-width is not asserted: `outline: none` leaves the computed width at 3px in Chromium; style none draws nothing.
   const ringless = (page: Page, selector: string) =>
     page.locator(selector).evaluate((el) => {
       const cs = getComputedStyle(el);

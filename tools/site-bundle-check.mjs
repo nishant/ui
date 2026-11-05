@@ -75,6 +75,11 @@ for (const name of Object.keys(stats.chunks)) {
 }
 if (biggest.name) console.log(`largest chunk: ${biggest.name}, ${(biggest.size / 1024).toFixed(1)} KB raw`);
 
+if (biggest.size > 500 * 1024) {
+  console.error(`site-bundle-check: ${biggest.name} is ${(biggest.size / 1024).toFixed(1)} KB raw (limit 500)`);
+  failed = true;
+}
+
 if (failed) {
   console.error('site-bundle-check: a route is over its budget');
   process.exit(1);

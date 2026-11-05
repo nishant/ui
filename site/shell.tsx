@@ -318,9 +318,9 @@ function Shell() {
         </aside>
 
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-          <div data-page={route.path} className={cn('mx-auto px-4 pb-16 pt-8 sm:px-8 sm:pt-10', wide ? 'max-w-[1400px]' : 'max-w-4xl')}>
+          <div className={cn('mx-auto px-4 pb-16 pt-8 sm:px-8 sm:pt-10', wide ? 'max-w-[1400px]' : 'max-w-4xl')}>
             <Suspense key={route.path} fallback={<PageLoading />}>
-              {node}
+              <div data-page={route.path}>{node}</div>
             </Suspense>
             {prev || next ? (
               <div className="mt-16 grid gap-3 border-t border-th-line pt-6 sm:grid-cols-2">

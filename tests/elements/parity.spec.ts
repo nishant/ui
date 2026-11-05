@@ -524,10 +524,19 @@ const WAVE3_CASES: Case[] = [
     setup: async (page) => {
       const box = await page.locator('[role="separator"]').boundingBox();
       if (!box) throw new Error('no separator to drag');
+      // React's bar is always accent-coloured and only fades in (opacity), so the colour compare alone cannot see the
+      // drag state. Pin it on both sides: hidden before the press, shown during it.
+      const reactBar = page.locator('[role="separator"] > span');
+      const isReact = (await reactBar.count()) > 0;
+      const elementSep = page.locator('[role="separator"]');
+      if (isReact) await expect(reactBar).toHaveCSS('opacity', '0');
+      else await expect(elementSep).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.down();
       // The fill fades in over 150ms: wait for every transition on the page to end.
       await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
+      if (isReact) await expect(reactBar).toHaveCSS('opacity', '1');
+      else await expect(elementSep).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     },
   },
 ];
