@@ -267,6 +267,33 @@
       "settle": 1000
     },
     {
+      "name": "virtual-list",
+      "url": "http://localhost:5191/#/components/virtual-list",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "virtual-table",
+      "url": "http://localhost:5191/#/components/virtual-table",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "tree-view",
+      "url": "http://localhost:5191/#/components/tree-view",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "context-menu",
+      "url": "http://localhost:5191/#/components/context-menu",
+      "waitFor": "[data-page]",
+      "settle": 1000
+    },
+    {
+      "name": "hover-card",
+      "url": "http://localhost:5191/#/components/hover-card",
+      "waitFor": "[data-page]",
+      "settle": 1000
+    },
+    {
       "name": "list-row",
       "url": "http://localhost:5191/#/components/list-row",
       "waitFor": "[data-page]"

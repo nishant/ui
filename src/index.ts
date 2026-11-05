@@ -129,6 +129,17 @@ export type {
 export { TableWrap, Table, Th, Td, Tr } from './components/table';
 export { tableClass } from './components/data-classes';
 export type { TableWrapProps, TableProps, ThProps, TdProps, TrProps } from './components/table';
+export { VirtualList } from './components/virtual';
+export type { VirtualListProps, VirtualListHandle, ScrollToIndexOptions } from './components/virtual';
+export type { ScrollAlign } from './virtual-range';
+export { VirtualTable } from './components/virtual-table';
+export type { VirtualTableProps } from './components/virtual-table';
+export { TreeView } from './components/tree-view';
+export type { TreeViewProps, TreeNode } from './components/tree-view';
+export { ContextMenu } from './components/context-menu';
+export type { ContextMenuProps } from './components/context-menu';
+export { HoverCard } from './components/hover-card';
+export type { HoverCardProps } from './components/hover-card';
 export { ThemeToggle, useTheme } from './components/theme-toggle';
 export { Segmented } from './components/segmented';
 export type { SegmentedProps, SegmentedOption, SegmentedTone } from './components/segmented';
