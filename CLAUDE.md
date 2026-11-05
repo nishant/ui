@@ -66,7 +66,9 @@ tag-push fan-out runs from it); `scripts/release.mjs --ci` dispatches `fanout.ym
   closes older open bump PRs ("Superseded"), so adopt only the newest.
 - `npx playwright test` reuses a running harness server (`reuseExistingServer` locally); a leftover
   `vite --config tests/overlay/vite.config.ts` keeps a worktree folder locked on Windows. Stop it before
-  `git worktree remove`.
+  `git worktree remove`. The harness, demo and site ports (5190-5195) are fixed, so with several ui worktrees open
+  a local run can test another worktree's server: run `CI=1 npx playwright test` (own server, `--strictPort`) and
+  check a port is free before serving on it.
 - `SystemCanvas` lives in `src/components/canvas/` (layout, route, follow, minimap, legend, node, view). The fit
   (`fitView`) and the layout pick (`chooseLayout`) share thresholds (`PHONE_K`, `SCROLL_K`): change them together, or
   a narrow canvas opens cut off mid-map. `tools/canvas-layout-check.mjs` and `canvas-route-check.mjs` cover layout and
