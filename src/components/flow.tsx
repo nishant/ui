@@ -16,7 +16,7 @@ import { cn } from '../cn';
 import { ago } from '../format';
 import { useIsoLayoutEffect } from './client';
 import { useMediaQuery, useNow } from './hooks';
-import { Tooltip } from './overlay';
+import { Tooltip } from './tooltip';
 import { Badge, type BadgeHue } from './primitives';
 import { useNishStrings } from './provider';
 

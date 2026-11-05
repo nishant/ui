@@ -8,10 +8,22 @@ a minor adds, and a patch fixes.
 
 ### Added
 
+- `AppShell` `navMode="header"`: the nav stays as header tabs at every width, with no bottom bar, rail or sidebar, for apps with two or three pages.
+- `AppShell` `tabs="pill"`: from 1024px the nav is pills in the header row. Header tabs and pills show each item's `badge`.
+- `AppShell` `bottomNav`: the keys of the bottom bar items, instead of the first `primary`.
+- `AppShell` `moreMenu={false}`: `moreItems` stay in the phone More sheet only, for apps that put those actions in the header themselves.
+- `AppShell` `headerInnerClassName`, `containerClassName`, `footer`, `fullHeight` and `navPending` (placeholder tabs while sign-in is checked).
+- `AppShell` `sidebar.brand`: from 1024px the brand, the hub pill, the actions and the theme toggle move into the sidebar and the header goes away.
+- `NavItem` `shortLabel`: a shorter label for the NavRail and the BottomNav.
 - `Calendar`: a month grid that picks one day (YYYY-MM-DD), with the WAI-ARIA date-grid keys (arrows, Home and End, Page Up and Page Down, Shift for years), min and max, disabled days, locale names and first weekday, and optional month and year selects.
 - `DatePicker`: a date field that takes the reader's numeric format or ISO, with a calendar in a Popover; posts YYYY-MM-DD like a native date input.
 - `MultiSelect`: a filterable multi-select combobox with removable tags, a list that stays open while picking, `maxSelected`, async search and one form value per pick.
 - `Carousel`: a scroll-snap carousel (WAI-ARIA carousel pattern) with previous and next buttons, slide dots, arrow keys, `loop`, and optional auto-rotation that pauses on hover and focus and respects reduced motion.
+
+### Changed
+
+- `AppShell` loads its More sheet on demand, and `DropdownMenu` its phone sheet, so `AppShell` is 34.8 KB gzip instead of 37.2 KB and `SystemCanvas` 26.5 KB instead of 27.1 KB. Import paths are unchanged.
+- The overlay components are separate modules inside the package (`modal`, `drawer`, `tooltip`, `popover`, `menu`).
 
 ## [2.0.2] - 2026-11-03
 

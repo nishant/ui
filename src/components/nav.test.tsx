@@ -3,7 +3,6 @@ import { act, cleanup, fireEvent, render, renderHook, screen, within } from '@te
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BottomNav,
-  MoreSheet,
   NavRail,
   NavSidebar,
   revealInRow,
@@ -13,6 +12,7 @@ import {
   visibleNavItems,
   type NavItem,
 } from './nav';
+import { MoreSheet } from './more-sheet';
 import { NishProvider } from './provider';
 
 const icon = createElement('svg', { 'aria-hidden': 'true' });
@@ -241,6 +241,48 @@ describe('MoreSheet', () => {
   });
 });
 
+describe('shortLabel', () => {
+  const items = [item('a', 'Engine Compare', { shortLabel: 'Engines' }), item('b', 'Beta')];
+  const hover = (el: HTMLElement) => act(() => void el.parentElement!.dispatchEvent(new MouseEvent('mouseenter')));
+
+  it('shows the short label in the rail and the bottom bar and the full one in the sheet', () => {
+    render(
+      <>
+        <NavRail items={items} />
+        <BottomNav items={items} />
+        <MoreSheet open onClose={() => {}} items={items} />
+      </>,
+    );
+    const navs = screen.getAllByRole('navigation', { hidden: true });
+    expect(within(navs[0]!).getByText('Engines')).toBeTruthy();
+    expect(within(navs[0]!).queryByText('Engine Compare')).toBeNull();
+    expect(within(navs[1]!).getByText('Engines')).toBeTruthy();
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Engine Compare')).toBeTruthy();
+    expect(within(dialog).queryByText('Engines')).toBeNull();
+  });
+
+  it('makes the rail tooltip the full label without a hint, the hint with one, and nothing when equal', () => {
+    const { unmount } = render(<NavRail items={items} />);
+    hover(screen.getByRole('link', { name: /Engines/, hidden: true }));
+    expect(screen.getByRole('tooltip').textContent).toBe('Engine Compare');
+    unmount();
+    render(<NavRail items={[item('a', 'Engine Compare', { shortLabel: 'Engines', hint: 'Compare engines' })]} />);
+    hover(screen.getByRole('link', { name: /Engines/, hidden: true }));
+    expect(screen.getByRole('tooltip').textContent).toBe('Compare engines');
+    cleanup();
+    render(<NavRail items={[item('a', 'Same', { shortLabel: 'Same' })]} />);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Same', hidden: true }).parentElement?.tagName).toBe('SPAN');
+  });
+
+  it('keeps the full label in the sidebar', () => {
+    render(<NavSidebar items={items} collapsed={false} onCollapsedChange={() => {}} />);
+    expect(screen.getByText('Engine Compare')).toBeTruthy();
+    expect(screen.queryByText('Engines')).toBeNull();
+  });
+});
+
 describe('NavRail', () => {
   it('is a nav named by the sections string, a provider or label, with ref and rest', () => {
     const ref = createRef<HTMLElement>();
@@ -337,6 +379,19 @@ describe('NavSidebar', () => {
     expect(a.className).toContain('forced-colors:bg-[Highlight]');
     expect(screen.getByRole('button', { name: 'Find' })).toBeTruthy();
     expect(screen.getByText('foot')).toBeTruthy();
+  });
+});
+
+describe('NavSidebar header', () => {
+  const base = { items: [item('a', 'Alpha')], collapsed: false, onCollapsedChange: () => {} };
+
+  it('renders above the tools when expanded and nothing when collapsed', () => {
+    const { rerender } = render(<NavSidebar {...base} header={<p>Brand</p>} tools={<button type="button">Find</button>} />);
+    const brand = screen.getByText('Brand');
+    expect(brand.parentElement?.className).toContain('mb-3');
+    expect(brand.parentElement!.compareDocumentPosition(screen.getByRole('button', { name: 'Find' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    rerender(<NavSidebar {...base} collapsed header={<p>Brand</p>} />);
+    expect(screen.queryByText('Brand')).toBeNull();
   });
 });
 

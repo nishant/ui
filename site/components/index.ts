@@ -50,6 +50,8 @@ import { confirmDialog } from './confirm-dialog';
 import { tooltip } from './tooltip';
 import { popover } from './popover';
 import { dropdownMenu } from './dropdown-menu';
+import { contextMenu } from './context-menu';
+import { hoverCard } from './hover-card';
 import { segmented } from './segmented';
 import { chip } from './chip';
 import { tabs } from './tabs';
@@ -73,6 +75,9 @@ import { pageContainer } from './page-container';
 import { appShell } from './app-shell';
 import { connectionBanner } from './connection-banner';
 import { responsiveTable } from './responsive-table';
+import { virtualList } from './virtual-list';
+import { virtualTable } from './virtual-table';
+import { treeView } from './tree-view';
 import { listRow } from './list-row';
 import { mediaRow } from './media-row';
 import { splitStage } from './split-stage';
@@ -175,6 +180,8 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   tooltip,
   popover,
   dropdownMenu,
+  contextMenu,
+  hoverCard,
   segmented,
   chip,
   tabs,
@@ -202,6 +209,9 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   appShell,
   connectionBanner,
   responsiveTable,
+  virtualList,
+  virtualTable,
+  treeView,
   listRow,
   mediaRow,
   splitStage,

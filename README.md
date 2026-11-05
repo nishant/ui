@@ -264,15 +264,15 @@ More than 100 components, each with live stories, props and guidelines on the
   NumberField, Segmented, Chip, SearchInput, Field, FieldGroup, Label
 - **Feedback:** Toast, Callout, Spinner, Skeleton, Progress, EmptyState, ErrorState, StatusDot,
   Meter, LoadingBar, ConnectionBanner, AppErrorBoundary
-- **Overlays:** Modal, Drawer, ConfirmDialog, Popover, DropdownMenu, Tooltip, CommandPalette,
-  Portal
+- **Overlays:** Modal, Drawer, ConfirmDialog, Popover, DropdownMenu, ContextMenu, Tooltip, HoverCard,
+  CommandPalette, Portal
 - **Settings:** SettingsSection, SettingRow, ServiceTokensSection (list and revoke service
   tokens)
 - **Layout and navigation:** AppShell (bottom bar, rail and a collapsible sidebar), AppHeader,
   BottomNav, NavRail, MoreSheet, SectionNav, Tabs, Pagination, Breadcrumbs, Accordion,
   Disclosure, PageHeader, PageContainer, SectionHeader, Card, Separator, StickyBar,
   StickyActionBar, ScrollRow, Carousel
-- **Data and display:** Table, ResponsiveTable, FilterBar, Stat, Badge, Avatar, AvatarGroup,
+- **Data and display:** Table, ResponsiveTable, VirtualList, VirtualTable, TreeView, FilterBar, Stat, Badge, Avatar, AvatarGroup,
   Kbd, KeyValueList, ListRow, LinkCard, Favicon, RelativeTime, CopyButton, LineChart, BarChart,
   Sparkline, ChartLegend, RangeBar, MediaRow, ActivityFeed, Inbox, VisuallyHidden
 - **Flow and canvas:** SplitStage, WorkflowBoard, StepBar, FlowSteps, AgentNode, AnimatedList,

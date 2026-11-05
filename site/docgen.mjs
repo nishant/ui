@@ -128,6 +128,11 @@ export const COMPONENTS = [
   'VisuallyHidden',
   'NishProvider',
   'Portal',
+  'VirtualList',
+  'VirtualTable',
+  'TreeView',
+  'ContextMenu',
+  'HoverCard',
 ];
 const FUNCTIONS = [
   'toast', 'setDefaultLocale', 'getDefaultLocale', 'dismissToast', 'useToast', 'useTheme', 'mountThemeToggle',
@@ -140,7 +145,7 @@ const FUNCTIONS = [
   'apiFetch', 'configureApi', 'useResource', 'useUrlState', 'useSaveStatus', 'usePhone', 'useNarrow', 'nishThemeInit', 'presetOptions', 'useServiceTokens',
   'useNishConfig', 'useNishStrings',
 ];
-const INTERFACES = ['ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem',
+const INTERFACES = ['VirtualListHandle', 'ScrollToIndexOptions', 'TreeNode', 'ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem',
   'ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource', 'FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter', 'SaveStatus', 'NishThemeInitOptions', 'ServiceTokensSectionProps',
 ];
 

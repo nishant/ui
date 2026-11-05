@@ -4,7 +4,7 @@ import { Children, Fragment, cloneElement, isValidElement, useCallback, useRef, 
 import { cn } from '../cn';
 import { safeUrl } from '../url';
 import { useIsoLayoutEffect } from './client';
-import { DropdownMenu, MenuItem } from './overlay';
+import { DropdownMenu, MenuItem } from './menu';
 import { useNishStrings } from './provider';
 
 export interface BreadcrumbItem {

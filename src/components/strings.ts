@@ -10,6 +10,10 @@ export interface NishStrings {
   menu: string;
   /** DropdownMenu sub-menu header, read by screen readers before the parent label. */
   back: string;
+  /** ContextMenu: the menu's accessible name when no menuLabel is given. */
+  contextMenu: string;
+  /** VirtualTable: live-region message after the sort changes (dir null when cleared). */
+  sortAnnounce: (header: string, dir: 'asc' | 'desc' | null) => string;
   /** Toast, Callout: dismiss button. */
   dismiss: string;
   /** Callout: badge label for a repeat count. */
@@ -283,6 +287,8 @@ export const DEFAULT_STRINGS: NishStrings = {
   cancel: 'Cancel',
   menu: 'Menu',
   back: 'Back: ',
+  contextMenu: 'Actions',
+  sortAnnounce: (header, dir) => (dir ? `Sorted by ${header}, ${dir === 'asc' ? 'ascending' : 'descending'}` : 'Sorting cleared'),
   dismiss: 'Dismiss',
   moreCount: (count) => `${count} more`,
   copy: 'Copy',

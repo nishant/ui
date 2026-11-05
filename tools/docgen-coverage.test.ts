@@ -54,7 +54,7 @@ it('docs page ids are unique and every page documents an export, an api name or 
 const UNDOCUMENTED_EXPORTS = new Set<string>([
   'VERSION', 'useIsClient', 'useIsoLayoutEffect', 'isRtl', 'THEMES',
   'COLOR_ROLES', 'SOFT_ROLES', 'SHADOWS', 'DEFAULT_THEME', 'revealClass',
-  'linkClass', 'navigateFromLayer', 'usePrefersReducedMotion', 'DEFAULT_CANVAS_LABELS', 'DEFAULT_INBOX_LABELS',
+  'navigateFromLayer', 'usePrefersReducedMotion', 'DEFAULT_CANVAS_LABELS', 'DEFAULT_INBOX_LABELS',
   'INBOX_SOURCE_LABELS', 'INBOX_DEFAULT_SETTINGS', 'INBOX_ACTION_HEADER', 'INBOX_ACTION_TIMEOUT_MS', 'CheckIcon',
   'ClockIcon', 'paginationRange', 'avatarInitials', 'avatarHueIndex', 'registerThemes',
   'isThemeName', 'getThemeChoice', 'resolveTheme', 'schemeOf', 'applyTheme',

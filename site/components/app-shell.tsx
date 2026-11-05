@@ -28,11 +28,29 @@ interface ShellDemoProps {
   banner?: boolean;
   signedOut?: boolean;
   brand?: boolean;
+  mode?: 'header';
+  pills?: boolean;
+  sidebarBrand?: boolean;
+  pending?: boolean;
+  footer?: boolean;
 }
 
-function ShellDemo({ container = 'default', loading = false, sidebar = false, banner = false, signedOut = false, brand = false }: ShellDemoProps) {
+function ShellDemo({
+  container = 'default',
+  loading = false,
+  sidebar = false,
+  banner = false,
+  signedOut = false,
+  brand = false,
+  mode,
+  pills = false,
+  sidebarBrand = false,
+  pending = false,
+  footer = false,
+}: ShellDemoProps) {
   const [active, setActive] = useState('home');
-  const nav = NAV.map((i) => ({ ...i, active: i.key === active, onSelect: () => setActive(i.key) }));
+  const items = (mode === 'header' ? NAV.slice(0, 3) : NAV).map((i) => (pills && i.key === 'alerts' ? { ...i, badge: 3 } : i));
+  const nav = items.map((i) => ({ ...i, active: i.key === active, onSelect: () => setActive(i.key) }));
   const current = NAV.find((i) => i.key === active);
   if (signedOut) {
     return (
@@ -56,11 +74,37 @@ function ShellDemo({ container = 'default', loading = false, sidebar = false, ba
       }
       hub={HUB}
       homeHref="#"
-      nav={nav}
+      nav={pending ? [] : nav}
+      navMode={mode}
+      tabs={pills ? 'pill' : undefined}
+      navPending={pending ? 3 : undefined}
+      footer={
+        footer ? (
+          <footer className="mt-10 border-t border-th-line pt-4 text-xs text-th-hi3">Checked every five minutes.</footer>
+        ) : undefined
+      }
       loading={loading}
       container={container}
       resetKey={active}
-      sidebar={sidebar ? { storageKey: false, tools: <IconButton label="Search"><InboxIcon size={18} /></IconButton> } : false}
+      sidebar={
+        sidebarBrand
+          ? {
+              storageKey: false,
+              tools: <IconButton label="Search"><InboxIcon size={18} /></IconButton>,
+              brand: ({ collapsed }) =>
+                collapsed ? (
+                  <span className="text-base font-bold tracking-tight text-th-hi">Jobs</span>
+                ) : (
+                  <div>
+                    <span className="text-lg font-bold tracking-tight text-th-hi">Jobs</span>
+                    <p className="text-xs text-th-hi3">Search tracker</p>
+                  </div>
+                ),
+            }
+          : sidebar
+            ? { storageKey: false, tools: <IconButton label="Search"><InboxIcon size={18} /></IconButton> }
+            : false
+      }
       banner={
         banner ? (
           <Callout variant="bar" tone="info" compact>
@@ -175,6 +219,59 @@ export const appShell: ComponentDoc = {
         </Device>
       ),
     },
+    {
+      id: 'header-tabs',
+      name: 'Header tabs at every width',
+      note: "navMode=\"header\" keeps two or three destinations as tabs on the header's second row at every width, with no bottom bar, rail or sidebar. The tabs scroll sideways if they ever outgrow the row.",
+      render: () => (
+        <Device doc="app-shell" story="header-tabs" height={460} title="AppShell with header tabs at 360px">
+          <ShellDemo mode="header" />
+        </Device>
+      ),
+    },
+    {
+      id: 'pills',
+      name: 'Pill tabs with a badge (1440px)',
+      note: "tabs=\"pill\" puts the destinations in the header row as pills from 1024px. An item's badge shows on its pill, in the rail and in the bottom bar.",
+      wide: true,
+      render: () => (
+        <Device doc="app-shell" story="pills" width={1440} height={460} title="AppShell with pill tabs at 1440px">
+          <ShellDemo container="wide" pills />
+        </Device>
+      ),
+    },
+    {
+      id: 'sidebar-brand',
+      name: 'Sidebar without a header (1440px)',
+      note: 'sidebar.brand moves the brand to the top of the sidebar from 1024px and drops the header: the hub pill sits above the brand, the tools under it and the theme toggle at the foot. Collapsed, a slim bar above the page holds the pill and the brand.',
+      wide: true,
+      render: () => (
+        <Device doc="app-shell" story="sidebar-brand" width={1440} height={460} title="AppShell with a sidebar brand at 1440px">
+          <ShellDemo container="wide" sidebarBrand />
+        </Device>
+      ),
+    },
+    {
+      id: 'pending',
+      name: 'Checking sign-in (1440px)',
+      note: 'navPending draws placeholder tabs while the app checks whether someone is signed in, so the header keeps its height.',
+      wide: true,
+      render: () => (
+        <Device doc="app-shell" story="pending" width={1440} height={300} title="AppShell checking sign-in at 1440px">
+          <ShellDemo container="wide" pending />
+        </Device>
+      ),
+    },
+    {
+      id: 'footer',
+      name: 'Footer',
+      note: 'footer renders after the page in the same container, outside the main landmark.',
+      render: () => (
+        <Device doc="app-shell" story="footer" height={460} title="AppShell with a footer at 360px">
+          <ShellDemo footer />
+        </Device>
+      ),
+    },
   ],
   usage: `import { AppShell } from '@nish/ui';
 import { NavLink, Outlet, useLocation } from 'react-router';
@@ -212,5 +309,11 @@ function Root() {
     'Landmarks: the header tabs, the rail, the sidebar nav and the BottomNav share one name (navLabel, default "Sections") because only one shows at a time. Name any extra nav on the page differently (SectionNav defaults to "On this page").',
     'moreItems without renderLink navigate with window.location.assign after safeUrl; an item whose href is javascript: or data: is not rendered (a dev warning names it).',
     'Use sidebar when there are more destinations than fit as header tabs at 1024px, or when the app needs tools beside the nav. Its tools move into the header below 1024px; its footer shows in the sidebar only. Give each item a hint: it is the tooltip in the expanded sidebar and the rail.',
+    'Use navMode="header" for an app with two or three pages that fit as tabs on a 360px screen. It has no More sheet, so moreItems go in the header More menu at every width.',
+    'bottomNav names the bottom bar items by key when the first four are not the right ones. Every other nav item goes in the More sheet, in nav order, before moreItems.',
+    'moreMenu={false} drops the header More menu. Use it only when every moreItem is also in actions from 768px, so nothing is phone-only.',
+    'fullHeight gives the page exactly the height under the header and banners, for a page that scrolls inside its own panes. The container and footer are not used.',
+    'shortLabel is the label in the rail and the bottom bar when the full one does not fit; the full label stays in the sidebar, the header and the More sheet, and is the rail tooltip when there is no hint.',
+    'The More sheet loads on demand (when the page is idle, or on the first tap of More), so it costs nothing at startup.',
   ],
 };
