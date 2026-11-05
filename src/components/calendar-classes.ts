@@ -80,13 +80,19 @@ export function addDays(iso: string, n: number): string {
   if (!p) return iso;
   const t = utcDate(p.y, p.m, p.d);
   t.setUTCDate(t.getUTCDate() + n);
-  return toIso(fromDate(t));
+  const q = fromDate(t);
+  // Saturate: a 5-digit year would sort below 9999 as a string and blank the grid.
+  if (q.y > 9999) return '9999-12-31';
+  if (q.y < 1) return '0001-01-01';
+  return toIso(q);
 }
 
 function addMonthsYmd(p: Ymd, n: number): Ymd {
   const total = p.y * 12 + (p.m - 1) + n;
   const y = Math.floor(total / 12);
   const m = total - y * 12 + 1;
+  if (y > 9999) return { y: 9999, m: 12, d: p.d };
+  if (y < 1) return { y: 1, m: 1, d: p.d };
   return { y, m, d: Math.min(p.d, daysInMonth(y, m)) };
 }
 
@@ -351,15 +357,15 @@ export function weekdayNames(locale: string, weekStartsOn: WeekDay): { short: st
   const short = formatter(locale, { weekday: 'short' });
   const long = formatter(locale, { weekday: 'long' });
   const narrow = formatter(locale, { weekday: 'narrow' });
-  const out: { short: string; long: string }[] = [];
-  for (let i = 0; i < 7; i++) {
-    // 2026-11-01 is a Sunday.
-    const t = utcDate(2026, 11, 1 + ((weekStartsOn + i) % 7));
-    // Some locales (ar) have no abbreviation and "short" is the full name, too wide for a 44px column.
-    const sh = short.format(t);
-    out.push({ short: sh.length > 3 ? narrow.format(t) : sh, long: long.format(t) });
-  }
-  return out;
+  const days: Date[] = [];
+  for (let i = 0; i < 7; i++) days.push(utcDate(2026, 11, 1 + ((weekStartsOn + i) % 7))); // 2026-11-01 is a Sunday.
+  const shorts = days.map((t) => short.format(t));
+  // Decide once for the whole row. Some locales (ar, fa, th, he, vi) have names too wide for a 44px column.
+  const useNarrow = shorts.some((n) => n.length > 4);
+  return days.map((t, i) => ({
+    short: useNarrow ? narrow.format(t) : shorts[i]!,
+    long: long.format(t),
+  }));
 }
 
 export function dayNumber(iso: string, locale: string): string {

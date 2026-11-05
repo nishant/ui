@@ -361,4 +361,23 @@ describe("Calendar strings and warnings", () => {
     );
     expect(screen.getByRole("grid").getAttribute("aria-labelledby")).toBeTruthy();
   });
+
+  it("does not pass year 9999 (PageDown and Next month)", () => {
+    render(<Calendar defaultValue="9999-12-15" />);
+    const day = screen
+      .getByRole("grid")
+      .querySelector<HTMLElement>('[data-date="9999-12-15"]')!;
+    day.focus();
+    key(day, "PageDown");
+    expect(document.activeElement?.getAttribute("data-date")).toBe(
+      "9999-12-15",
+    );
+    expect(screen.getByRole("grid").querySelectorAll("[data-date]").length).toBeGreaterThan(27);
+    const next = screen.getByRole("button", { name: /next month/i });
+    expect(next.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(next);
+    expect(
+      screen.getByRole("grid").querySelector('[data-date="9999-12-15"]'),
+    ).toBeTruthy();
+  });
 });

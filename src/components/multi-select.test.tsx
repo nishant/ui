@@ -206,4 +206,13 @@ describe('MultiSelect', () => {
     rerender(<MultiSelect aria-label="S" options={[{ value: 'WA', label: 'Washington' }]} defaultValue={['TX']} />);
     expect(screen.getByRole('button', { name: /Remove Texas/ })).toBeTruthy();
   });
+
+  it('renders without throwing when options repeat a selected value with different labels', () => {
+    const dupes: ComboboxOption[] = [
+      { value: 'TX', label: 'Texas' },
+      { value: 'TX', label: 'Lone Star' },
+    ];
+    render(<MultiSelect aria-label="S" options={dupes} defaultValue={['TX']} />);
+    expect(screen.getByRole('button', { name: /Remove Texas/ })).toBeTruthy();
+  });
 });

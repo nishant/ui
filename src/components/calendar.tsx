@@ -241,9 +241,13 @@ export function Calendar({
   const shownYear = shown ? Number(shown.slice(0, 4)) : null;
   const shownMonthNo = shown ? Number(shown.slice(5, 7)) : null;
   const prevDisabled =
-    !shown || (min !== null && addDays(firstOfMonth(shown), -1) < min);
+    !shown ||
+    shown <= "0001-01" ||
+    (min !== null && addDays(firstOfMonth(shown), -1) < min);
   const nextDisabled =
-    !shown || (max !== null && firstOfMonth(shiftMonth(shown, 1)) > max);
+    !shown ||
+    shown >= "9999-12" ||
+    (max !== null && firstOfMonth(shiftMonth(shown, 1)) > max);
 
   let years: number[] = [];
   if (dropdowns) {

@@ -244,6 +244,14 @@ describe('names', () => {
     expect(weekdayNames('en-US', 0)[0]!.short).toBe('Sun');
   });
 
+  it('weekdayNames picks short or narrow for the whole row', () => {
+    expect(weekdayNames('fr-FR', 1)[0]!.short).toBe('lun.');
+    expect(weekdayNames('ar-EG', 6).every((d) => [...d.short].length === 1)).toBe(true);
+    const pl = weekdayNames('pl-PL', 1).map((d) => d.short);
+    const lens = new Set(pl.map((n) => n.length === 1));
+    expect(lens.size).toBe(1);
+  });
+
   it('dayNumber and fullDate', () => {
     expect(dayNumber('2026-11-05', 'en-US')).toBe('5');
     expect(fullDate('2026-11-05', 'en-US')).toBe('Thursday, November 5, 2026');

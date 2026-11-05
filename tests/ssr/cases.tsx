@@ -429,12 +429,12 @@ export const cases: Record<string, Case> = {
   ),
 };
 
-/** Exports that look like components (capitalised functions) but are not. */
 /** Calendar with no value and no month: the server renders the null-month path (empty title,
  *  6x7 empty grid); today's ring appears only after hydration. Used by
  *  src/components/calendar.hydration.test.tsx. */
 export const calendarNullMonth: Case = () => <ui.Calendar aria-label="Pick a day" locale="en-US" />;
 
+/** Exports that look like components (capitalised functions) but are not. */
 export const NOT_COMPONENTS = ['ApiError'];
 
 /** Hook probes: the value is printed as text, so a server/client difference shows up as a mismatch. */

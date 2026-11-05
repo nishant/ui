@@ -44,6 +44,8 @@ export interface NishStrings {
   clear: string;
   /** Combobox: loading row. */
   searching: string;
+  /** DatePicker: custom validity message for text that is not a date. */
+  invalidDate: string;
   /** DatePicker: calendar button name while empty. */
   chooseDate: string;
   /** DatePicker: calendar button name once a date is set. */
@@ -298,6 +300,7 @@ export const DEFAULT_STRINGS: NishStrings = {
   noMatches: 'No matches',
   clear: 'Clear',
   searching: 'Searching…',
+  invalidDate: 'Enter a valid date.',
   chooseDate: 'Choose date',
   changeDate: (date) => `Change date, ${date}`,
   previousMonth: 'Previous month',

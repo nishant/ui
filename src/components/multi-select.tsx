@@ -140,7 +140,13 @@ export function MultiSelect({
   {
     const cur = valueProp ?? own;
     let next: Record<string, ComboboxOption> | null = null;
-    for (const o of options) if (cur.includes(o.value) && seen[o.value]?.label !== o.label) (next ??= { ...seen })[o.value] = o;
+    // Only the first option per value counts, to match options.find in toOption.
+    const done = new Set<string>();
+    for (const o of options) {
+      if (done.has(o.value)) continue;
+      done.add(o.value);
+      if (cur.includes(o.value) && seen[o.value]?.label !== o.label) (next ??= { ...seen })[o.value] = o;
+    }
     if (next) setSeen(next);
   }
 
