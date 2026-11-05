@@ -62,6 +62,13 @@ The flow is: release, tag, npm publish, fan-out PRs, Fold check, merge policy, d
    the tag; an open bump PR that missed a folder gets a commit on its branch that moves it. An hourly run catches up on anything missed and
    closes bump PRs that a newer tag replaced. To run it by hand:
    `gh workflow run fanout.yml -R nishant/ui -f tag=vX.Y.Z -f repo=all` (`repo` can be one `owner/name`).
+   **Releases settle first.** No bump PR opens (and none is superseded) until the newest tag is 120
+   minutes old (`--quiet`; the repository variable `FANOUT_QUIET_MIN` changes it), so a burst of
+   releases costs one round of every app's PR, Fold and deploy checks, not one per release. On
+   Nov 2-3, 2026, 15 releases in 37 hours opened ~180 bump PRs and used the month's 3,000
+   private-repo Actions minutes in a day and a half. While releases settle, an already open bump PR
+   is still settled and merged; the summary line says how long is left. The hourly run opens the
+   PRs once it is quiet; `-f now=true` opens them at once (an app that needs the fix now).
 3. **Fold check.** Each bump PR (and each Dependabot PR) runs the repo's checks plus the
    [Fold check](fold-check.md): the PR and its base branch are built, screenshot at 360, 840 and
    1440 wide in light and dark, the Fold rules run on both, and a pixel diff per shot is posted as a PR

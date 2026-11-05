@@ -8,6 +8,7 @@ on:
     inputs:
       tag: { description: 'Tag to fan out, or latest', default: latest, type: string }
       repo: { description: 'One repo (owner/name), or all', default: all, type: string }
+      now: { description: 'Open bump PRs now, without waiting for releases to settle', default: false, type: boolean }
 permissions: { contents: read }
 jobs:
   plan:
@@ -69,6 +70,10 @@ jobs:
       GH_TOKEN: ${{ secrets.FLEET_TOKEN }}
       FAN_TAG: ${{ github.event_name == 'push' && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.tag || 'latest') }}
       FAN_WAIT: ${{ github.event_name == 'schedule' && '0' || '60' }}
+      # Bump PRs open only once the newest release is this many minutes old, so a burst of releases
+      # is one round of app checks, not one per release (15 releases on Nov 2-3, 2026 used a month of
+      # private-repo Actions minutes). The hourly run picks the burst up; now=true skips the wait.
+      FAN_QUIET: ${{ inputs.now == true && '0' || vars.FANOUT_QUIET_MIN || '120' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -87,4 +92,4 @@ jobs:
       - name: Fan out
         env:
           FAN_REPO: ${{ matrix.repo }}
-        run: node tools/fanout/fanout.mjs --catalog catalog.json --repo "$FAN_REPO" --tag "$FAN_TAG" --wait "$FAN_WAIT"
+        run: node tools/fanout/fanout.mjs --catalog catalog.json --repo "$FAN_REPO" --tag "$FAN_TAG" --wait "$FAN_WAIT" --quiet "$FAN_QUIET"
