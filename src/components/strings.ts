@@ -68,8 +68,6 @@ export interface NishStrings {
   monthToken: string;
   /** DatePicker: year token in the placeholder. */
   yearToken: string;
-  /** MultiSelect: how many values are picked. */
-  selectedCount: (count: number) => string;
   /** MultiSelect: announcement after a value is added. */
   optionAdded: (label: string) => string;
   /** MultiSelect: announcement after a value is removed. */
@@ -316,7 +314,6 @@ export const DEFAULT_STRINGS: NishStrings = {
   dayToken: 'DD',
   monthToken: 'MM',
   yearToken: 'YYYY',
-  selectedCount: (n) => `${n} selected`,
   optionAdded: (l) => `Added ${l}`,
   optionRemoved: (l) => `Removed ${l}`,
   clearAll: 'Clear all',

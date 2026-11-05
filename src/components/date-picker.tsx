@@ -1,16 +1,8 @@
-"use client";
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type HTMLAttributes,
-  type KeyboardEvent,
-  type Ref,
-} from "react";
-import { cn } from "../cn";
-import { getDefaultLocale } from "../format";
-import { Calendar } from "./calendar";
+'use client';
+import { useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type Ref } from 'react';
+import { cn } from '../cn';
+import { getDefaultLocale } from '../format';
+import { Calendar } from './calendar';
 import {
   datePlaceholder,
   formatDateField,
@@ -20,26 +12,18 @@ import {
   parseIso,
   resolveLocale,
   type WeekDay,
-} from "./calendar-classes";
-import { setRef } from "./forms-classes";
-import { Popover } from "./overlay";
-import { CalendarIcon } from "./picker-icons";
-import { fieldClass } from "./primitives-classes";
-import { useNishConfig, useNishStrings } from "./provider";
+} from './calendar-classes';
+import { setRef } from './forms-classes';
+import { Popover } from './popover';
+import { CalendarIcon } from './icons';
+import { fieldClass } from './primitives-classes';
+import { useNishConfig, useNishStrings } from './provider';
 
-export type { WeekDay } from "./calendar-classes";
+export type { WeekDay } from './calendar-classes';
 
 export interface DatePickerProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
-  | "onChange"
-  | "defaultValue"
-  | "children"
-  | "id"
-  | "aria-label"
-  | "aria-labelledby"
-  | "aria-describedby"
-  | "aria-invalid"
-  | "role"
+  'onChange' | 'defaultValue' | 'children' | 'id' | 'aria-label' | 'aria-labelledby' | 'aria-describedby' | 'aria-invalid' | 'role'
 > {
   /** The text input. The remaining div attributes go to the wrapper. */
   ref?: Ref<HTMLInputElement>;
@@ -60,17 +44,17 @@ export interface DatePickerProps extends Omit<
   /** First column of the calendar: 0 Sunday to 6 Saturday. Default from the locale's region. */
   weekStartsOn?: WeekDay;
   /** Passed to the Calendar: 'dropdowns' adds month and year selects (birth dates). */
-  captionLayout?: "label" | "dropdowns";
+  captionLayout?: 'label' | 'dropdowns';
   /** Shown while empty. Default the locale's pattern, e.g. "MM/DD/YYYY". */
   placeholder?: string;
   /** Accessible name when there is no visible <label htmlFor={id}>. */
-  "aria-label"?: string;
+  'aria-label'?: string;
   /** Names the field by another element's id. */
-  "aria-labelledby"?: string;
+  'aria-labelledby'?: string;
   /** Ids of help or error text; reaches the input (Field sets it). */
-  "aria-describedby"?: string;
+  'aria-describedby'?: string;
   /** Reaches the input (Field sets it on error). */
-  "aria-invalid"?: boolean | "true" | "false";
+  'aria-invalid'?: boolean | 'true' | 'false';
   /** Same as aria-invalid="true". */
   invalid?: boolean;
   /** The id of the text input, so a <label htmlFor> and Field reach it. */
@@ -84,7 +68,7 @@ export interface DatePickerProps extends Omit<
   /** Turns off the text input and the calendar button. */
   disabled?: boolean;
   /** md h-9 (default) or sm h-8. Both grow to 44px on touch screens. */
-  size?: "sm" | "md";
+  size?: 'sm' | 'md';
   /** Accessible name of the calendar button. Default "Choose date", or "Change date, <date>" once set. */
   calendarLabel?: string;
   /** Extra classes for the wrapper around the input and the calendar button. */
@@ -107,17 +91,17 @@ export function DatePicker({
   weekStartsOn,
   captionLayout,
   placeholder,
-  "aria-label": ariaLabel,
-  "aria-labelledby": ariaLabelledBy,
-  "aria-describedby": ariaDescribedBy,
-  "aria-invalid": ariaInvalid,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
   invalid,
   id,
   name,
   form,
   required,
   disabled = false,
-  size = "md",
+  size = 'md',
   calendarLabel,
   className,
   ...rest
@@ -125,39 +109,29 @@ export function DatePicker({
   const strings = useNishStrings();
   const config = useNishConfig();
   const loc = resolveLocale(locale ?? config.locale ?? getDefaultLocale());
-  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = id ?? `nish-dp-${autoId}`;
 
   const min = parseIso(minProp) ? (minProp as string) : null;
   const max = parseIso(maxProp) ? (maxProp as string) : null;
 
   const controlled = valueProp !== undefined;
-  const [own, setOwn] = useState<string | null>(
-    parseIso(defaultValue) ? defaultValue : null,
-  );
-  const value = controlled
-    ? parseIso(valueProp)
-      ? (valueProp as string)
-      : null
-    : own;
+  const [own, setOwn] = useState<string | null>(parseIso(defaultValue) ? defaultValue : null);
+  const value = controlled ? (parseIso(valueProp) ? (valueProp as string) : null) : own;
 
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
+  const [text, setText] = useState('');
   const [dirty, setDirty] = useState(false);
   const [badText, setBadText] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
-  const shown = dirty ? text : value ? formatDateField(value, loc) : "";
-  const isInvalid =
-    invalid === true ||
-    ariaInvalid === true ||
-    ariaInvalid === "true" ||
-    badText;
+  const shown = dirty ? text : value ? formatDateField(value, loc) : '';
+  const isInvalid = invalid === true || ariaInvalid === true || ariaInvalid === 'true' || badText;
 
   // Unreadable text blocks native validation, so form.checkValidity() and submit refuse it.
   useEffect(() => {
-    inputRef.current?.setCustomValidity(badText ? strings.invalidDate : "");
+    inputRef.current?.setCustomValidity(badText ? strings.invalidDate : '');
   }, [badText, strings.invalidDate]);
 
   // An uncontrolled picker returns to its default when its form is reset.
@@ -169,8 +143,8 @@ export function DatePicker({
       setDirty(false);
       setBadText(false);
     };
-    f.addEventListener("reset", onReset);
-    return () => f.removeEventListener("reset", onReset);
+    f.addEventListener('reset', onReset);
+    return () => f.removeEventListener('reset', onReset);
   }, [name, form, controlled, defaultValue]);
 
   const commit = (v: string | null) => {
@@ -180,7 +154,7 @@ export function DatePicker({
 
   const commitText = () => {
     if (!dirty) return;
-    if (text.trim() === "") {
+    if (text.trim() === '') {
       if (value !== null) commit(null);
       setDirty(false);
       setBadText(false);
@@ -205,15 +179,15 @@ export function DatePicker({
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return;
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       if (dirty) {
         e.preventDefault();
         commitText();
       }
-    } else if (e.key === "ArrowDown" && e.altKey) {
+    } else if (e.key === 'ArrowDown' && e.altKey) {
       e.preventDefault();
       setOpen(true);
-    } else if (e.key === "Escape" && dirty) {
+    } else if (e.key === 'Escape' && dirty) {
       e.preventDefault();
       e.stopPropagation();
       setDirty(false);
@@ -221,16 +195,14 @@ export function DatePicker({
     }
   };
 
-  const buttonLabel =
-    calendarLabel ??
-    (value ? strings.changeDate(fullDate(value, loc)) : strings.chooseDate);
+  const buttonLabel = calendarLabel ?? (value ? strings.changeDate(fullDate(value, loc)) : strings.chooseDate);
 
   return (
     <div
       {...rest}
-      data-state={open ? "open" : "closed"}
-      data-disabled={disabled ? "" : undefined}
-      className={cn("relative w-full min-w-0", className)}
+      data-state={open ? 'open' : 'closed'}
+      data-disabled={disabled ? '' : undefined}
+      className={cn('relative w-full min-w-0', className)}
     >
       <input
         ref={(node) => {
@@ -267,18 +239,10 @@ export function DatePicker({
         className={fieldClass({
           size,
           invalid: isInvalid,
-          className: "pe-11 tabular-nums",
+          className: 'pe-11 tabular-nums',
         })}
       />
-      {name != null ? (
-        <input
-          type="hidden"
-          name={name}
-          value={value ?? ""}
-          form={form}
-          disabled={disabled}
-        />
-      ) : null}
+      {name != null ? <input type="hidden" name={name} value={value ?? ''} form={form} disabled={disabled} /> : null}
       <button
         ref={buttonRef}
         type="button"
@@ -293,14 +257,7 @@ export function DatePicker({
           <CalendarIcon size={16} />
         </span>
       </button>
-      <Popover
-        open={open}
-        onOpenChange={(o) => setOpen(o)}
-        anchor={buttonRef}
-        align="end"
-        aria-label={strings.chooseDate}
-        className="p-3"
-      >
+      <Popover open={open} onOpenChange={(o) => setOpen(o)} anchor={buttonRef} align="end" aria-label={strings.chooseDate} className="p-3">
         <Calendar
           value={value}
           onValueChange={pickFromCalendar}

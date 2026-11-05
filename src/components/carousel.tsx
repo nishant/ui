@@ -11,12 +11,12 @@ import {
   type PointerEvent,
   type ReactNode,
   type Ref,
-  type SVGProps,
 } from 'react';
 import { cn } from '../cn';
 import { isRtl, useIsoLayoutEffect } from './client';
 import { CAROUSEL_MAX_DOTS, CAROUSEL_MIN_INTERVAL, nearestSlide, stepIndex } from './carousel-classes';
 import { useMediaQuery } from './hooks';
+import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon } from './icons';
 import { IconButton } from './primitives';
 import { useNishStrings } from './provider';
 
@@ -53,33 +53,6 @@ export interface CarouselProps extends Omit<HTMLAttributes<HTMLElement>, 'childr
 
 /** How long a button, key or focus move outranks the scroll position while the browser animates. */
 const SETTLE_MS = 700;
-
-type IconProps = SVGProps<SVGSVGElement>;
-
-function PathIcon({ d, fill, ...props }: IconProps & { d: string }) {
-  return (
-    <svg
-      width={16}
-      height={16}
-      viewBox="0 0 24 24"
-      fill={fill ?? 'none'}
-      stroke={fill ? 'none' : 'currentColor'}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-      {...props}
-    >
-      <path d={d} />
-    </svg>
-  );
-}
-
-const ChevronStart = (p: IconProps) => <PathIcon d="m15 18-6-6 6-6" {...p} />;
-const ChevronEnd = (p: IconProps) => <PathIcon d="m9 18 6-6-6-6" {...p} />;
-const PauseIcon = (p: IconProps) => <PathIcon d="M8 5v14M16 5v14" {...p} />;
-const PlayIcon = (p: IconProps) => <PathIcon d="M7 4v16l13-8z" fill="currentColor" {...p} />;
 
 /** A scroll-snap carousel: swipe, previous and next buttons, slide dots, arrow keys and optional auto-rotation. */
 export function Carousel({
@@ -358,7 +331,7 @@ export function Carousel({
             onClick={() => canPrev && goTo(stepIndex(index, -1, count, loop))}
             className={arrowClass}
           >
-            <ChevronStart className="rtl:-scale-x-100" />
+            <ChevronLeftIcon className="rtl:-scale-x-100" />
           </IconButton>
           <div ref={slotRef} className="flex min-w-0 flex-1 justify-center">
             {showDots ? (
@@ -396,7 +369,7 @@ export function Carousel({
             onClick={() => canNext && goTo(stepIndex(index, 1, count, loop))}
             className={arrowClass}
           >
-            <ChevronEnd className="rtl:-scale-x-100" />
+            <ChevronRightIcon className="rtl:-scale-x-100" />
           </IconButton>
         </div>
       ) : null}

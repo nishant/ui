@@ -143,3 +143,36 @@ export const PanelLeftOpenIcon = (p: IconProps) => (
     <path d="m14 9 3 3-3 3" />
   </Svg>
 );
+
+export const ChevronLeftIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m15 18-6-6 6-6" />
+  </Svg>
+);
+
+export const ChevronRightIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m9 18 6-6-6-6" />
+  </Svg>
+);
+
+export const CalendarIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M8 2v4M16 2v4" />
+    <rect width="18" height="18" x="3" y="4" rx="2" />
+    <path d="M3 10h18" />
+  </Svg>
+);
+
+export const PauseIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="14" y="4" width="4" height="16" rx="1" />
+    <rect x="6" y="4" width="4" height="16" rx="1" />
+  </Svg>
+);
+
+export const PlayIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <polygon points="6 3 20 12 6 21 6 3" />
+  </Svg>
+);
