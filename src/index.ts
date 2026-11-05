@@ -137,12 +137,13 @@ export { useHeightVar, useStuck, useScrollEdges } from './components/layout-vars
 export type { LinkClassOptions } from './components/primitives';
 export { SkeletonCard, StatGridSkeleton, CardListSkeleton } from './components/feedback';
 export type { SkeletonCardProps, StatGridSkeletonProps, CardListSkeletonProps } from './components/feedback';
-export { BottomNav, MoreSheet, NavRail, ScrollRow, SectionNav, useScrollSpy } from './components/nav';
+export { BottomNav, NavRail, ScrollRow, SectionNav, useScrollSpy } from './components/nav';
+export { MoreSheet } from './components/more-sheet';
+export type { MoreSheetProps } from './components/more-sheet';
 export type {
   NavItem,
   RenderLink,
   BottomNavProps,
-  MoreSheetProps,
   NavRailProps,
   ScrollRowProps,
   SectionNavProps,

@@ -11,21 +11,21 @@ import {
   type RefObject,
 } from 'react';
 import { cn } from '../cn';
-import { safeUrl } from '../url';
-import { isRtl, useIsoLayoutEffect } from './client';
-import { navigateFromLayer } from './command';
 import { mergeRefs } from './data-classes';
-import { FORCED_MARK, warnDev } from './display-classes';
+import { FORCED_MARK } from './display-classes';
 import { chipClass } from './forms';
 import { useMediaQuery } from './hooks';
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from './icons';
 import { useHeightVar, useScrollEdges } from './layout-vars';
-import { Drawer, Tooltip } from './overlay';
+import { NavBadge, FOCUS, renderItem, useEndSide, visibleNavItems } from './nav-items';
 import { IconButton } from './primitives';
-import { useNishConfig, useNishStrings } from './provider';
-import { ThemeToggle } from './theme-toggle';
+import { useNishStrings } from './provider';
+import { Tooltip } from './tooltip';
 
 export { useScrollEdges };
+// visibleNavItems lives in nav-items so more-sheet can import it without importing nav. MoreSheet is exported from
+// more-sheet and the package index, not here: nav must not reach more-sheet or drawer, or AppShell would load them eagerly.
+export { visibleNavItems };
 
 // ---------------------------------------------------------------------------------
 // Shared bits
@@ -47,6 +47,9 @@ export interface NavItem {
   badge?: number | boolean;
   /** One line of explanation: shown in MoreSheet rows and as the NavRail tooltip. */
   hint?: string;
+  /** A shorter label for the NavRail and the BottomNav, where the cell is narrow ("Engines" for "Engine
+   *  Compare"). The full label stays everywhere else and is the rail tooltip when there is no hint. */
+  shortLabel?: string;
 }
 
 /** Renders a router link for an item (React Router's `<Link>` and so on). Spread the given
@@ -77,147 +80,6 @@ const MAX_QUERY: Record<NavBreakpoint, string> = {
 const HIDE_FROM: Record<NavBreakpoint, string> = { md: 'md:hidden', lg: 'lg:hidden' };
 const RAIL_SHOW: Record<'sm' | 'md' | 'lg', string> = { sm: 'sm:flex', md: 'md:flex', lg: 'lg:flex' };
 const RAIL_HIDE: Record<'md' | 'lg' | 'xl', string> = { md: 'md:hidden', lg: 'lg:hidden', xl: 'xl:hidden' };
-
-/** Keeps the items whose `href` is safe to navigate to; warns (dev) about each one dropped.
- *  Items with no href are buttons and always stay. */
-export function visibleNavItems(items: readonly NavItem[]): NavItem[] {
-  return items.filter((item) => {
-    if (item.href == null || safeUrl(item.href) !== null) return true;
-    warnDev(`nish-ui: nav item "${item.key}" was not rendered because its href is not safe (${item.href.slice(0, 40)}).`);
-    return false;
-  });
-}
-
-/** The tooltip side that points away from the nav toward the page: right, or left in RTL. The
- *  provider's `dir` wins; without one the element's computed direction decides. */
-function useEndSide(ref: RefObject<HTMLElement | null>): 'left' | 'right' {
-  const dir = useNishConfig().dir;
-  const [rtl, setRtl] = useState(dir === 'rtl');
-  useIsoLayoutEffect(() => {
-    setRtl(dir ? dir === 'rtl' : isRtl(ref.current));
-  }, [dir, ref]);
-  return rtl ? 'left' : 'right';
-}
-
-function CountBadge({ value }: { value: number | boolean | undefined }) {
-  const strings = useNishStrings();
-  if (value === undefined || value === false || value === 0) return null;
-  if (value === true) {
-    return (
-      <span
-        aria-hidden="true"
-        className="absolute -end-0.5 -top-0.5 size-2 rounded-full bg-th-loss ring-2 ring-th-surface forced-colors:forced-color-adjust-none forced-colors:bg-[Highlight]"
-      />
-    );
-  }
-  return (
-    <span
-      aria-label={strings.newCount(value)}
-      className="absolute -end-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-th-loss px-1 text-3xs font-semibold leading-none tabular-nums text-th-on-loss ring-2 ring-th-surface forced-colors:border forced-colors:border-[CanvasText]"
-    >
-      {value > 99 ? '99+' : value}
-    </span>
-  );
-}
-
-const layerOf = (): string | undefined => (history.state as { nishLayer?: string } | null)?.nishLayer;
-
-/** Closes a closeOnBack sheet after a renderLink row was clicked. Closing drops the sheet's
- *  history entry with history.back(); a router that navigates asynchronously (React Router's
- *  data routers) would then write its entry before that back lands, and the back would undo
- *  the navigation. So when the router took the click (default prevented), wait until it has
- *  replaced the sheet's entry, after which closing issues no back. A click the browser
- *  handles itself (a plain anchor, a new-tab click) closes at once, as before. */
-function closeAfterRouterLink(onAfter: () => void): void {
-  const layer = layerOf();
-  if (typeof window === 'undefined' || !layer) {
-    onAfter();
-    return;
-  }
-  let decided = false;
-  const decide = (routerTookIt: boolean) => {
-    if (decided) return;
-    decided = true;
-    window.removeEventListener('click', onWindowClick);
-    if (!routerTookIt) {
-      onAfter();
-      return;
-    }
-    const t0 = Date.now();
-    const wait = () => {
-      if (layerOf() !== layer || Date.now() - t0 > 3000) onAfter();
-      else window.setTimeout(wait, 16);
-    };
-    wait();
-  };
-  // Runs for this same click once it bubbles past the router's handler (React's root).
-  const onWindowClick = (e: Event) => decide(e.defaultPrevented);
-  window.addEventListener('click', onWindowClick);
-  // Propagation stopped before window: assume a router.
-  window.setTimeout(() => decide(true), 0);
-}
-
-/** An item as a link or a button, with the caller's look. */
-function renderItem(item: NavItem, className: string, children: ReactNode, renderLink: RenderLink | undefined, onAfter?: () => void): ReactNode {
-  const current = item.active ? ('page' as const) : undefined;
-  const state = item.active ? ('active' as const) : ('inactive' as const);
-  if (item.href != null) {
-    const href = safeUrl(item.href);
-    if (href === null) return null;
-    if (renderLink) {
-      return renderLink(item, {
-        className,
-        children,
-        'aria-current': current,
-        'data-state': state,
-        ...(onAfter ? { replace: true } : {}),
-        onClick: () => {
-          item.onSelect?.();
-          if (onAfter) closeAfterRouterLink(onAfter);
-        },
-      });
-    }
-    return (
-      <a
-        href={href}
-        className={className}
-        aria-current={current}
-        data-state={state}
-        onClick={(e) => {
-          item.onSelect?.();
-          const inLayer = !!(history.state as { nishLayer?: string } | null)?.nishLayer;
-          const plain = e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.defaultPrevented;
-          if (onAfter && inLayer && plain) {
-            // Closing the sheet runs history.back(), which would race the default navigation.
-            e.preventDefault();
-            onAfter();
-            navigateFromLayer(href);
-            return;
-          }
-          onAfter?.();
-        }}
-      >
-        {children}
-      </a>
-    );
-  }
-  return (
-    <button
-      type="button"
-      className={className}
-      aria-current={current}
-      data-state={state}
-      onClick={() => {
-        item.onSelect?.();
-        onAfter?.();
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-th-accent';
 
 // ---------------------------------------------------------------------------------
 // BottomNav
@@ -307,9 +169,9 @@ export function BottomNav({
             <span className={pill(!!item.active)}>
               <span className="relative inline-flex size-6 items-center justify-center">
                 {item.icon}
-                <CountBadge value={item.badge} />
+                <NavBadge value={item.badge} />
               </span>
-              <span className="max-w-full truncate px-1">{item.label}</span>
+              <span className="max-w-full truncate px-1">{item.shortLabel ?? item.label}</span>
             </span>,
             renderLink,
           )}
@@ -337,77 +199,6 @@ export function BottomNav({
         </>
       ) : null}
     </nav>
-  );
-}
-
-// ---------------------------------------------------------------------------------
-// MoreSheet
-// ---------------------------------------------------------------------------------
-
-export interface MoreSheetProps {
-  open: boolean;
-  /** Called on Escape, a scrim click, the swipe, Android back and after a row is chosen. */
-  onClose: () => void;
-  items: NavItem[];
-  /** Default: the provider's `more` string. */
-  title?: string;
-  /** Pinned under the list. Defaults to a "Theme" row (the provider's `theme` string) with a
-   *  segmented ThemeToggle. */
-  footer?: ReactNode;
-  renderLink?: RenderLink;
-}
-
-/** The overflow sheet behind BottomNav's More button: a bottom Drawer lifted above the bar,
- *  so the bar stays visible and tappable. Rows are 52px with an icon, a label and a
- *  one-line hint. Choosing a row navigates and closes the sheet. */
-export function MoreSheet({ open, onClose, items, title, footer, renderLink }: MoreSheetProps) {
-  const strings = useNishStrings();
-  if (!open) return null;
-  const shown = visibleNavItems(items);
-  const row = (active: boolean) =>
-    cn(
-      'flex min-h-[52px] w-full items-center gap-3 rounded-lg px-3 text-start transition-colors',
-      active ? cn('bg-th-accent-soft text-th-accent', FORCED_MARK) : 'text-th-hi hover:bg-th-elevated',
-      FOCUS,
-    );
-  return (
-    <Drawer
-      side="bottom"
-      title={title ?? strings.more}
-      onClose={onClose}
-      bottomOffset="var(--nish-bottom-nav-h, 0px)"
-      footer={
-        footer ?? (
-          <div className="flex items-center justify-between gap-3 px-5 py-3">
-            <span className="text-sm font-medium text-th-hi">{strings.theme}</span>
-            <ThemeToggle phone="segmented" />
-          </div>
-        )
-      }
-    >
-      <ul className="m-0 list-none p-2">
-        {shown.map((item) => (
-          <li key={item.key}>
-            {renderItem(
-              item,
-              row(!!item.active),
-              <>
-                <span className="relative inline-flex size-6 shrink-0 items-center justify-center">
-                  {item.icon}
-                  <CountBadge value={item.badge} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{item.label}</span>
-                  {item.hint ? <span className={cn('block truncate text-xs', item.active ? 'text-th-accent/80' : 'text-th-hi3')}>{item.hint}</span> : null}
-                </span>
-              </>,
-              renderLink,
-              onClose,
-            )}
-          </li>
-        ))}
-      </ul>
-    </Drawer>
   );
 }
 
@@ -475,14 +266,15 @@ export function NavRail({
               )}
             >
               {item.icon}
-              <CountBadge value={item.badge} />
+              <NavBadge value={item.badge} />
             </span>
-            <span className="max-w-full truncate px-1">{item.label}</span>
+            <span className="max-w-full truncate px-1">{item.shortLabel ?? item.label}</span>
           </>,
           renderLink,
         );
-        return item.hint ? (
-          <Tooltip key={item.key} tip={item.hint} side={side} focusable={false} className="block w-full">
+        const tip = item.hint ?? (item.shortLabel != null && item.shortLabel !== item.label ? item.label : undefined);
+        return tip ? (
+          <Tooltip key={item.key} tip={tip} side={side} focusable={false} className="block w-full">
             {node}
           </Tooltip>
         ) : (
@@ -516,6 +308,8 @@ export interface NavSidebarProps extends Omit<ComponentPropsWithoutRef<'aside'>,
   tools?: ReactNode;
   /** Beside the collapse button at the bottom. */
   footer?: ReactNode;
+  /** Above the tools row, expanded only (AppShell's sidebar.brand). */
+  header?: ReactNode;
   /** Names the nav inside the sidebar. Default: the provider's `sections` string. The
    *  `aside` itself is named by `aria-label` (default: the provider's `sidebar` string). */
   label?: string;
@@ -531,6 +325,7 @@ export function NavSidebar({
   onCollapsedChange,
   tools,
   footer,
+  header,
   label,
   renderLink,
   className,
@@ -553,6 +348,7 @@ export function NavSidebar({
         className,
       )}
     >
+      {header != null && !collapsed ? <div className="mb-3 flex flex-col items-start gap-2 px-3">{header}</div> : null}
       {tools ? (
         <div className={cn('mb-2 flex gap-1 border-b border-th-line pb-2', collapsed ? 'flex-col items-center' : 'flex-wrap px-3')}>{tools}</div>
       ) : null}
@@ -571,7 +367,7 @@ export function NavSidebar({
             <>
               <span className="relative inline-flex size-5 shrink-0 items-center justify-center [&>svg]:size-5">
                 {item.icon}
-                <CountBadge value={item.badge} />
+                <NavBadge value={item.badge} />
               </span>
               <span className={collapsed ? 'sr-only' : 'min-w-0 truncate'}>{item.label}</span>
             </>,

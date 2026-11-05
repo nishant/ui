@@ -4,15 +4,24 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
-## [2.1.0] - 2026-11-05
+## [Unreleased]
 
 ### Added
 
+- `AppShell` `navMode="header"`: the nav stays as header tabs at every width, with no bottom bar, rail or sidebar, for apps with two or three pages.
+- `AppShell` `tabs="pill"`: from 1024px the nav is pills in the header row. Header tabs and pills show each item's `badge`.
+- `AppShell` `bottomNav`: the keys of the bottom bar items, instead of the first `primary`.
+- `AppShell` `moreMenu={false}`: `moreItems` stay in the phone More sheet only, for apps that put those actions in the header themselves.
+- `AppShell` `headerInnerClassName`, `containerClassName`, `footer`, `fullHeight` and `navPending` (placeholder tabs while sign-in is checked).
+- `AppShell` `sidebar.brand`: from 1024px the brand, the hub pill, the actions and the theme toggle move into the sidebar and the header goes away.
+- `NavItem` `shortLabel`: a shorter label for the NavRail and the BottomNav.
 - `nish-ui/inbox` and `nish-ui/service-tokens` entry points with the same values as the root exports (`Inbox`, `ServiceTokensSection`, `useServiceTokens` and their types).
 - The rest of the package's inlined icons are exported from the root: `XIcon`, `CheckCircleIcon`, `AlertTriangleIcon`, `InfoIcon`, `RotateIcon`, `LoaderIcon`, `SunIcon`, `MoonIcon`, `MonitorIcon`, `ChevronDownIcon`, `PanelLeftCloseIcon` and `PanelLeftOpenIcon`. lucide-react is the official icon set for apps; the Icons page on design.nish.software has the sizes, the standard icon for each common action and the rule for a new glyph.
 
 ### Changed
 
+- `AppShell` loads its More sheet on demand, and `DropdownMenu` its phone sheet, so `AppShell` is 34.8 KB gzip instead of 37.2 KB and `SystemCanvas` 26.5 KB instead of 27.1 KB. Import paths are unchanged.
+- The overlay components are separate modules inside the package (`modal`, `drawer`, `tooltip`, `popover`, `menu`).
 - `routeEdges` (and SystemCanvas) route large maps much faster: 500 nodes about 20x faster (about 5-15 ms instead of 100+ ms), with the same lines.
 - Inbox, ServiceTokensSection and SystemCanvas are marked fleet-only in the docs; their root exports stay through 2.x.
 
