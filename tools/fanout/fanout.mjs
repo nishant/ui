@@ -92,23 +92,40 @@ export function explainError(r) {
  * PR that could not be listed or opened, a revert that did not merge), so the run shows red.
  * Held, checking, skipped and current are outcomes, not errors.
  */
+/**
+ * Minutes left before bump PRs may open for `newest`, released at `releasedSec` (unix seconds):
+ * the fan-out waits until no release has followed for `quietMin` minutes, so a burst of releases
+ * costs one round of bump PRs (each round runs every app's PR, Fold and deploy checks) instead of one
+ * per release. 0 when settled or when the wait is off.
+ */
+export function quietLeft(releasedSec, nowMs, quietMin) {
+  if (!quietMin || !Number.isFinite(releasedSec)) return 0;
+  return Math.max(0, Math.ceil(quietMin - (nowMs - releasedSec * 1000) / 60_000));
+}
+
+/** The job summary line while releases settle. */
+export const quietLine = (tag, left, quietMin) =>
+  `Waiting for releases to settle: ${tag} is newer than ${quietMin} min, so bump PRs open in about ${left} min (dispatch with now=true to skip the wait)`;
+
 export function exitCode(results, failed = false) {
   return failed || results.some((r) => r.result === 'error') ? 1 : 0;
 }
 
 function parseArgs(argv) {
-  const a = { fleet: null, tag: null, repo: 'all', wait: 0, dry: false };
+  const a = { fleet: null, tag: null, repo: 'all', wait: 0, quiet: 0, dry: false };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--catalog' || k === '--fleet') a.fleet = argv[++i];
     else if (k === '--tag') a.tag = argv[++i];
     else if (k === '--repo') a.repo = argv[++i] || 'all';
     else if (k === '--wait') a.wait = Number(argv[++i]);
+    else if (k === '--quiet') a.quiet = Number(argv[++i]);
     else if (k === '--dry-run') a.dry = true;
     else throw new Error(`Unknown argument ${k}`);
   }
-  if (!a.fleet || !a.tag) throw new Error('usage: fanout.mjs --catalog <catalog.json> --tag <vX.Y.Z|latest> [--repo owner/name|all] [--wait <minutes>] [--dry-run]');
+  if (!a.fleet || !a.tag) throw new Error('usage: fanout.mjs --catalog <catalog.json> --tag <vX.Y.Z|latest> [--repo owner/name|all] [--wait <minutes>] [--quiet <minutes>] [--dry-run]');
   if (!Number.isFinite(a.wait) || a.wait < 0) throw new Error('--wait needs a number of minutes');
+  if (!Number.isFinite(a.quiet) || a.quiet < 0) throw new Error('--quiet needs a number of minutes');
   return a;
 }
 
@@ -267,6 +284,8 @@ export class Run {
   constructor(args) {
     this.dry = args.dry;
     this.waitMin = args.wait;
+    this.quietMin = args.quiet ?? 0;
+    this.nowMs = args.nowMs ?? Date.now;
     this.lines = [];
     this.failed = false;
     this.checkRunsForbidden = false;
@@ -302,6 +321,17 @@ export class Run {
   }
 
   // ---- ui bump ----------------------------------------------------------------------
+
+  /** When `tag` was released (tagger date, or the commit date of a lightweight tag), unix seconds. */
+  tagTime(tag) {
+    const out = git(['for-each-ref', '--format=%(creatordate:unix)', `refs/tags/${tag}`], { cwd: this.ui, allowFail: true }).stdout;
+    return Number(String(out).trim());
+  }
+
+  /** Minutes until the newest release has been quiet for --quiet minutes (0: open bump PRs now). */
+  quietFor(newest) {
+    return quietLeft(this.tagTime(newest), this.nowMs(), this.quietMin);
+  }
 
   tagExists(tag) {
     return git(['rev-parse', '-q', '--verify', `refs/tags/${tag}`], { cwd: this.ui, allowFail: true }).code === 0;
@@ -689,11 +719,25 @@ export class Run {
     const out = [];
     try {
       if (entry.ui !== 'none') {
-        const tag = tagArg === 'latest' ? latestTag(git(['tag', '-l', 'v*'], { cwd: this.ui }).stdout.split(/\r?\n/)) : tagArg;
+        const newest = latestTag(git(['tag', '-l', 'v*'], { cwd: this.ui }).stdout.split(/\r?\n/));
+        const tag = tagArg === 'latest' ? newest : tagArg;
         if (!tag) out.push({ repo: entry.repo, result: 'error', detail: 'No tag found' });
         else {
-          const r = await this.uiBump(entry, tag);
-          if (r) out.push(r);
+          const left = newest ? this.quietFor(newest) : 0;
+          if (left > 0) {
+            // Releases are still landing: open and supersede nothing, but keep settling the bump PR
+            // that is already open, so a green one still merges.
+            const openTags = listPrs(entry.repo, ['--state', 'open'])
+              .filter((p) => isBumpPr(entry.repo, p))
+              .map((p) => p.headRefName.slice(3))
+              .sort(compare);
+            const current = openTags.at(-1);
+            const r = current ? await this.uiBump(entry, current) : { repo: entry.repo, result: 'skipped', detail: quietLine(newest, left, this.quietMin) };
+            if (r) out.push(r);
+          } else {
+            const r = await this.uiBump(entry, tag);
+            if (r) out.push(r);
+          }
         }
       }
       out.push(...(await this.settleDeps(entry)));

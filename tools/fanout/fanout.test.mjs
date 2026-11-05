@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { redact } from './gh.mjs';
-import { bumpTree, latestTag, notOnNpmLine, npmHas, prBody, resultLine } from './fanout.mjs';
+import { bumpTree, latestTag, notOnNpmLine, npmHas, prBody, quietLeft, quietLine, resultLine } from './fanout.mjs';
 
 test('prBody: patch, no behavior changes', () => {
   const body = prBody({ pin: 'v0.7.0', tag: 'v0.7.1', behaviorChanges: false, markdown: '### [0.7.1]\n\nDocs.' });
@@ -26,6 +26,26 @@ test('prBody: minor with behavior changes', () => {
 test('latestTag picks the highest version', () => {
   assert.equal(latestTag(['v0.9.0', 'v0.10.0', 'v0.2.1', 'junk', '']), 'v0.10.0');
   assert.equal(latestTag([]), null);
+});
+
+test('quietLeft: waits until the newest release is --quiet minutes old', () => {
+  const released = 1_000_000; // unix seconds
+  const at = (min) => released * 1000 + min * 60_000;
+  assert.equal(quietLeft(released, at(0), 120), 120);
+  assert.equal(quietLeft(released, at(30.5), 120), 90);
+  assert.equal(quietLeft(released, at(119.9), 120), 1);
+  assert.equal(quietLeft(released, at(120), 120), 0);
+  assert.equal(quietLeft(released, at(600), 120), 0);
+  // Off, or a tag whose date could not be read: never wait.
+  assert.equal(quietLeft(released, at(0), 0), 0);
+  assert.equal(quietLeft(NaN, at(0), 120), 0);
+});
+
+test('quietLine', () => {
+  assert.equal(
+    quietLine('v2.0.2', 45, 120),
+    'Waiting for releases to settle: v2.0.2 is newer than 120 min, so bump PRs open in about 45 min (dispatch with now=true to skip the wait)',
+  );
 });
 
 test('resultLine', () => {
