@@ -70,7 +70,11 @@ tag-push fan-out runs from it); `scripts/release.mjs --ci` dispatches `fanout.ym
 - `SystemCanvas` lives in `src/components/canvas/` (layout, route, follow, minimap, legend, node, view). The fit
   (`fitView`) and the layout pick (`chooseLayout`) share thresholds (`PHONE_K`, `SCROLL_K`): change them together, or
   a narrow canvas opens cut off mid-map. `tools/canvas-layout-check.mjs` and `canvas-route-check.mjs` cover layout and
-  routing; check the first view at 360 and 840 in a browser too.
+  routing; `tools/canvas-route-bench.mjs` times routing and `route-golden.test.ts` pins its output: a routing change
+  that is meant to change lines regenerates the hashes with `NISH_ROUTE_GOLDEN_PRINT=1`. Check the first view at 360
+  and 840 in a browser too.
+- Docs site docs are lazy chunks: `site/docs-meta.mjs` reads each doc's id, name, summary, exports, framed and fleetOnly
+  from the source, so they must be literals.
 - CodeQL runs on every PR (`codeql.yml`) and its alerts fail the PR check. Fix the code; dismiss a false positive only with
   a reason (`gh api -X PATCH repos/nishant/ui/code-scanning/alerts/<n> -f state=dismissed -f dismissed_reason="false positive" -f dismissed_comment=...`).
   Trim strings with index loops, not an anchored `[...]+$` regex (polynomial ReDoS).

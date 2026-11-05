@@ -36,7 +36,14 @@ export default defineConfig({
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.test.{ts,tsx}', 'src/**/*.d.ts', 'src/elements/**'],
       reporter: ['text-summary', 'json-summary'],
-      thresholds: { statements: 81, branches: 79, functions: 85, lines: 84 },
+      thresholds: {
+        statements: 81,
+        branches: 79,
+        functions: 85,
+        lines: 84,
+        // theme.ts has its own floor (the ui-leftovers tests); raise it, never lower it.
+        'src/theme.ts': { lines: 90, statements: 88, branches: 80, functions: 90 },
+      },
     },
   },
 });

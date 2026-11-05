@@ -1,6 +1,6 @@
-import docgen from 'virtual:nish-docgen';
+import pkg from 'virtual:nish-pkg';
 import { Badge, Card, COLOR_ROLES, PRESETS } from '../../src';
-import { COMPONENT_DOCS } from '../components';
+import { DOCS } from '../lib/docs';
 import { ArrowRightIcon } from '../lib/icons';
 import { href } from '../lib/router';
 import { PageHeader, Prose, Section, ThemeScope } from '../lib/ui';
@@ -32,7 +32,7 @@ export function OverviewPage() {
           <>
             <code className="inline">nish-ui</code> holds the design tokens, the seven themes, the theme switching that follows one choice across
             tabs and subdomains, and accessible React components that also work from server components and plain HTML. This site is built from the same source, so what you
-            see here is exactly what ships in v{docgen.version}.
+            see here is exactly what ships in v{pkg.version}.
           </>
         }
       >
@@ -56,7 +56,7 @@ export function OverviewPage() {
         {[
           [String(PRESETS.length), 'themes', '/themes'],
           [String(colorCount), 'color roles', '/color'],
-          [String(COMPONENT_DOCS.length), 'components', '/components/button'],
+          [String(DOCS.length), 'components', '/components/button'],
           [String(WHERE.length), 'ways to use it', '/getting-started'],
         ].map(([n, label, to]) => (
           <a key={label} href={href(to)} className="block rounded-xl">

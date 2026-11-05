@@ -43,6 +43,8 @@ import { applyTheme, onThemeChange, type ThemeName } from 'nish-ui/theme';
 import { seriesColor, useChartTheme } from 'nish-ui/chart';
 import { THEMES } from 'nish-ui/tokens';
 import { SystemCanvas } from 'nish-ui/system-canvas';
+import { Inbox } from 'nish-ui/inbox';
+import { ServiceTokensSection } from 'nish-ui/service-tokens';
 import { computeRects, type LayoutNode } from 'nish-ui/split-layout';
 import * as inbox from 'nish-ui/inbox-client';
 import { toast as elToast } from 'nish-ui/elements';
@@ -81,7 +83,7 @@ export function App() {
   applyTheme();
   const off = onThemeChange(() => {});
   off();
-  void [t, layout, chart, THEMES, SystemCanvas, computeRects, inbox, seriesColor(0), strings.close, pct(0.1)];
+  void [t, layout, chart, THEMES, SystemCanvas, Inbox, ServiceTokensSection, computeRects, inbox, seriesColor(0), strings.close, pct(0.1)];
 
   return (
     <NishProvider locale="en-US" dir="ltr" strings={{ close: 'Close' }}>

@@ -22,6 +22,9 @@ Other gates:
 | `node --test tools/exports.test.mjs` | every export imports and `require()`s on Node 20.19+; `dist/esm/index.js` loads with no DOM; `"use client"` stays on the right modules |
 | `node --test tools/api-surface.test.mjs` | a removed export or `.nish-*` class fails; `UPDATE_API_SURFACE=1` rewrites `tools/api-surface.snapshot.json` after a build, so removals are deliberate |
 | `npx vitest run tools/docgen-coverage.test.ts` | every runtime export of `.` has a docs page or mention and every prop of an exported component has a description; today's gaps are allow-listed by name and the lists can only shrink (`NISH_DOCGEN_DUMP=1` prints them) |
+| `node tools/canvas-route-bench.mjs` | routing time at 100-1000 nodes; `--check` (in `check`) fails over 60 ms at 500 nodes |
+| `node tools/site-bundle-check.mjs` | JS per docs route from `.site-stats.json`; run by `build:site` |
+| `npm run mutation` | Stryker on src/theme.ts, local only; installs Stryker without saving it; report in reports/mutation/. theme.ts: 77.9% on 2026-11-05 (1,010 killed, 263 survived, 23 no coverage) |
 | `node tools/consumer-check.mjs` | packs the package and builds a Next.js App Router app (port 5320), a Vite + Tailwind app and a TypeScript matrix against it |
 | `npx playwright test tests/a11y tests/ssr` | axe (zero serious or critical), forced colors, strict CSP with Trusted Types, hydration |
 | `node tools/visual-check.mjs tools/site.visual.json` | screenshot and layout check of the docs site at 360, 840 and desktop |
@@ -41,7 +44,9 @@ npm run preview:site  # serves site-dist/ at http://localhost:5191
 served from any path. Props tables are generated from the TypeScript source at build time
 (`site/docgen.mjs`), so add JSDoc to a prop and it shows up there. Component pages,
 stories and controls live in `site/components/<id>.tsx`, one file per component;
-`site/components/index.ts` lists them in `COMPONENT_DOCS`. Write import lines and code samples as
+`site/components/index.ts` lists them in `COMPONENT_DOCS`. Docs load per page, each as its own chunk:
+a doc's `id`, `name`, `summary`, `exports`, `framed` and `fleetOnly` must be literals, because
+`site/docs-meta.mjs` reads them from the source at build time and the build fails naming the file otherwise. Write import lines and code samples as
 `@nish/ui`: the site shows them as `nish-ui` (the npm name) through `nishName()` in
 `site/lib/code.tsx`, and Getting started explains the alias the nish.software apps use.
 

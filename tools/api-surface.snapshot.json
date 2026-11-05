@@ -280,6 +280,18 @@
       "pickLayout",
       "routeEdges"
     ],
+    "./inbox": [
+      "DEFAULT_INBOX_LABELS",
+      "INBOX_ACTION_HEADER",
+      "INBOX_ACTION_TIMEOUT_MS",
+      "INBOX_DEFAULT_SETTINGS",
+      "INBOX_SOURCE_LABELS",
+      "Inbox"
+    ],
+    "./service-tokens": [
+      "ServiceTokensSection",
+      "useServiceTokens"
+    ],
     "./chart": [
       "CHART",
       "chartTheme",

@@ -4,6 +4,17 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [2.1.0] - 2026-11-05
+
+### Added
+
+- `nish-ui/inbox` and `nish-ui/service-tokens` entry points with the same values as the root exports (`Inbox`, `ServiceTokensSection`, `useServiceTokens` and their types).
+
+### Changed
+
+- `routeEdges` (and SystemCanvas) route large maps much faster: 500 nodes in about 5 ms instead of 100+ ms, with the same lines.
+- Inbox, ServiceTokensSection and SystemCanvas are marked fleet-only in the docs; their root exports stay through 2.x.
+
 ## [2.0.2] - 2026-11-03
 
 ### Fixed

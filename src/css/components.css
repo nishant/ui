@@ -4520,6 +4520,7 @@
     font-weight: var(--nish-weight-semibold);
   }
   :where(.nish-command-empty) {
+    margin-inline: 8px;
     padding: 32px 12px;
     color: var(--nish-hi3);
     font-size: var(--nish-text-sm);
@@ -4598,6 +4599,7 @@
     box-shadow: var(--nish-shadow-pop);
     color: var(--nish-hi);
     font-size: 12px;
+    line-height: 1.5;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     pointer-events: none;

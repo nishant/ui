@@ -6,7 +6,10 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 // each wave 2 class and element in each state that changes its look (WAVE2_CASES: fields, switch,
 // chip, tabs in every variant, open combobox, list rows, callouts, dots, ...) and each wave 3 one
 // (WAVE3_CASES: tables and rows, filter bar, media thumb/row/chip, settings, split, nav rail, scroll row,
-// section nav, more sheet, command palette, charts, range bar), at 360x780 and 1440x900 (840x900 too
+// section nav, more sheet, command palette, charts, range bar) and the wave 3 follow-ups (the pressed filter chip and the
+// trailing select, the media row detail, a column split and its divider, the nav rail's tools item and footer, a bleeding
+// scroll row, the settings section's actions, the command hint and empty message, the line chart tooltip, the bar chart
+// readout and a dragged split divider; the ones that need a pointer state use a case's `setup` step), at 360x780 and 1440x900 (840x900 too
 // where the component changes there), in light and dark:
 //   - the main box has the same width and height (within 1px);
 //   - the box has equal background-color, border-color (when it has a border), border-radius
@@ -48,6 +51,9 @@ interface Case {
   sizes?: readonly (typeof SIZES)[number]['name'][];
   /** Sizes the case runs at: 360 and 1440 by default. At a size that is run but not in `sizes`, both versions must be hidden. */
   run?: readonly (typeof SIZES)[number]['name'][];
+  /** A step that puts the component in the state to measure (type into the palette, hover a chart, press a divider). It
+   *  runs on both pages once the page is ready, before anything is measured. */
+  setup?: (page: Page) => Promise<void>;
 }
 
 const TONES = ['neutral', 'ok', 'warn', 'loss', 'info'] as const;
@@ -286,6 +292,11 @@ const chartParts = (title: string, body?: string) => ({
   element: { box: 'svg[role="img"]', title, ...(body ? { body } : {}) },
 });
 
+/** Hover the middle of the chart, where both versions show their tooltip or readout. */
+async function hoverChart(page: Page): Promise<void> {
+  await page.locator('svg[role="img"]').first().hover();
+}
+
 const WAVE3_CASES: Case[] = [
   wave2('table', T),
   wave2('table-dense', T),
@@ -424,6 +435,101 @@ const WAVE3_CASES: Case[] = [
     react: { box: '.case', title: '.case > div', body: '.case > span' },
     element: { box: '.case', title: '.nish-range-bar-fill', body: '.nish-range-bar-current' },
   }),
+  // --- Follow-ups: more nodes of the wave 3 classes, and the states that need a pointer ---
+  {
+    ...wave2('filter-bar', {
+      react: { box: '.case [role="group"] button[aria-pressed="true"]', title: '.case [role="group"] button[aria-pressed="true"]' },
+      element: { box: '.nish-filter-bar-chips .nish-chip[aria-pressed="true"]', title: '.nish-filter-bar-chips .nish-chip[aria-pressed="true"]' },
+    }),
+    name: 'filter bar chip',
+    sizes: ['1440'],
+  },
+  // Desktop only: on a phone React gives the trailing select a full row (w-full, no ms-auto wrapper) and the element keeps it at its own width.
+  { ...wave2('filter-bar', { react: { box: '.case select[aria-label="View"]' }, element: { box: '.nish-filter-bar-trailing select' } }), name: 'filter bar trailing', run: ['1440'] },
+  {
+    ...wave2('media-row', { react: { box: '.case', body: '.case > span.min-w-0 > span:nth-child(2) > span:nth-child(2)' }, element: { box: '.case', body: '.nish-media-row-detail' } }),
+    name: 'media row detail',
+  },
+  { ...wave2('split-column', { react: { box: '[data-split-pane="a"]' }, element: { box: 'nish-split > .nish-split-pane:first-child' } }), name: 'split column first pane', run: ['1440'] },
+  // The mirror of 'split divider': React's separator is a 24px hit area and .nish-split-divider the 4px gap, so the length
+  // across the split (the height here) is not compared.
+  {
+    ...wave2('split-column', { react: { box: '[role="separator"]' }, element: { box: '[role="separator"]' } }, '', ['box.height', 'box.borderRadius']),
+    name: 'split column divider',
+    run: ['1440'],
+  },
+  {
+    ...wave2('nav-rail-tools', {
+      react: { box: '.case a[href="/search"]', title: '.case a[href="/search"] span.truncate' },
+      element: { box: '.nish-nav-rail-tools .nish-nav-rail-item', title: '.nish-nav-rail-tools .nish-nav-rail-item > span' },
+    }),
+    name: 'nav rail tools item',
+    sizes: ['1440'],
+  },
+  {
+    ...wave2('nav-rail-tools', { react: { box: '.case button[aria-label^="Theme"]' }, element: { box: '.nish-nav-rail-footer button.nish-theme-btn' } }),
+    name: 'nav rail footer',
+    sizes: ['1440'],
+  },
+  wave2('scroll-row-bleed', {
+    react: { box: '.case', title: '.case button[aria-pressed="true"]' },
+    element: { box: 'nish-scroll-row .nish-scroll-row', title: 'nish-scroll-row button[aria-pressed="true"]' },
+  }),
+  { ...wave2('settings-section', { react: { box: '.case > div:first-child button' }, element: { box: '.nish-settings-section-actions .nish-btn' } }), name: 'settings section actions' },
+  {
+    ...wave2('command', {
+      react: { box: '[role="option"][aria-selected="true"] > span:nth-child(2)' },
+      element: { box: '[role="option"][aria-selected="true"] .nish-command-item-hint' },
+    }),
+    name: 'command item hint',
+  },
+  {
+    ...wave2('command', { react: { box: '[role="dialog"] [role="status"]' }, element: { box: '.nish-command-empty' } }),
+    name: 'command empty',
+    setup: async (page) => {
+      await page.locator('input[role="combobox"]').fill('zzzz');
+    },
+  },
+  {
+    ...wave2('line-chart', { react: { box: '#stage div.pointer-events-none.absolute' }, element: { box: '.nish-chart-tooltip' } }),
+    name: 'line chart tooltip',
+    setup: hoverChart,
+  },
+  // A bar chart has no floating tooltip: it prints "label: value" under the chart, and that readout is what hover changes.
+  {
+    ...wave2('bar-chart', { react: { box: '#stage [aria-live="polite"]' }, element: { box: '#stage [aria-live="polite"]' } }),
+    name: 'bar chart readout',
+    setup: async (page) => {
+      await hoverChart(page);
+      await expect(page.locator('#stage [aria-live="polite"]')).not.toHaveText('');
+    },
+  },
+  // While a divider is dragged its bar shows in the accent color: the separator itself in the element, the 4px span inside
+  // the 24px hit area in React. Only that fill is compared.
+  {
+    ...wave2('split-row', { react: { box: '[role="separator"] > span' }, element: { box: '[role="separator"]' } }, '', [
+      'box.width',
+      'box.height',
+      'box.borderColor',
+      'box.borderRadius',
+      'box.color',
+      'box.fontSize',
+      'box.paddingTop',
+      'box.paddingRight',
+      'box.paddingBottom',
+      'box.paddingLeft',
+    ]),
+    name: 'split divider dragging',
+    run: ['1440'],
+    setup: async (page) => {
+      const box = await page.locator('[role="separator"]').boundingBox();
+      if (!box) throw new Error('no separator to drag');
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      // The fill fades in over 150ms: wait for every transition on the page to end.
+      await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
+    },
+  },
 ];
 
 /** Differences that cannot be closed yet: real gaps between the nish-* CSS and the React twin, each with
@@ -501,7 +607,8 @@ async function open(page: Page, file: string, query: string): Promise<void> {
   await page.locator('html[data-ready="1"]').waitFor({ state: 'attached', timeout: 15_000 });
 }
 
-async function parts(page: Page, p: Part): Promise<Record<string, Measured>> {
+async function parts(page: Page, p: Part, setup?: Case['setup']): Promise<Record<string, Measured>> {
+  if (setup) await setup(page);
   const out: Record<string, Measured> = { box: await measure(page, page.locator(p.box), p.box) };
   if (p.title) out.title = await measure(page, page.locator(p.title), p.box);
   if (p.body) out.body = await measure(page, page.locator(p.body), p.box);
@@ -571,9 +678,9 @@ for (const c of [...CASES, ...WAVE2_CASES, ...WAVE3_CASES]) {
             return;
           }
           await open(page, 'react.html', c.query);
-          const react = await parts(page, c.react);
+          const react = await parts(page, c.react, c.setup);
           await open(page, 'index.html', c.query);
-          const el = await parts(page, c.element);
+          const el = await parts(page, c.element, c.setup);
 
           const diffs = compare(react, el).filter((d) => !c.ignore?.includes(d.split(' ')[0]!));
           if (process.env.PARITY_VERBOSE) console.log(`DIFF ${c.name} ${size.name} ${scheme}\n  ${diffs.join('\n  ')}`);

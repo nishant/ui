@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import docgen from 'virtual:nish-docgen';
+import pkg from 'virtual:nish-pkg';
 import { CodeBlock } from '../lib/code';
 import { ExternalIcon } from '../lib/icons';
 import { Tabs } from '../../src';
@@ -20,7 +20,7 @@ export function StaticSitesPage() {
       <Section title="Vendoring the files" note="Copy the files from node_modules/nish-ui/dist (or a release tag) into your site, and keep them in step with one version.">
         <ol className="max-w-2xl list-decimal space-y-2 pl-5 text-[15px] leading-relaxed text-th-hi2 marker:text-th-hi3">
           <li>
-            Pin one version, for example <code className="inline">v{docgen.version}</code>, and copy exactly the files <code className="inline">dist/files.json</code> lists.
+            Pin one version, for example <code className="inline">v{pkg.version}</code>, and copy exactly the files <code className="inline">dist/files.json</code> lists.
             That file also carries the hash of <code className="inline">theme-init.js</code> for a Content Security Policy.
           </li>
           <li>
@@ -28,7 +28,7 @@ export function StaticSitesPage() {
           </li>
           <li>Link the files with a ?v= version, and font files carry a content hash in their names, so the folder can be cached for a year.</li>
         </ol>
-        <CodeBlock title="the files (dist/files.json)" code={docgen.distFiles.join('\n')} />
+        <CodeBlock title="the files (dist/files.json)" code={pkg.distFiles.join('\n')} />
       </Section>
 
       <Section
@@ -83,12 +83,12 @@ export function StaticSitesPage() {
       >
         <CodeBlock
           title="<head>, from jsDelivr"
-          code={`<script src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/theme-init.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/nish.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/nish-components.css">
-<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/elements.js"></script>
+          code={`<script src="https://cdn.jsdelivr.net/npm/nish-ui@${pkg.version}/dist/theme-init.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@${pkg.version}/dist/nish.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@${pkg.version}/dist/nish-components.css">
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@${pkg.version}/dist/elements.js"></script>
 <!-- load only the files whose tags the page uses -->
-<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@${docgen.version}/dist/elements-forms.js"></script>`}
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@${pkg.version}/dist/elements-forms.js"></script>`}
         />
         <div className="grid gap-3 lg:grid-cols-2">
           <CodeBlock

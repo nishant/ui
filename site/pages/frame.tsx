@@ -1,28 +1,25 @@
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { applyTheme, isThemeName, Toaster } from '../../src';
-import { COMPONENT_DOCS } from '../components';
+import type { ComponentDoc } from '../components/types';
+import { docMeta, loadDoc } from '../lib/docs';
 import type { Args } from '../lib/jsx';
 import type { Route } from '../lib/router';
 
-/** A preview frame must not pull focus out of the page around it (Modal focuses its
- *  panel on mount). Focus calls go through only once someone is using the frame. */
-export function guardFrameFocus(): void {
-  const focus = HTMLElement.prototype.focus;
-  HTMLElement.prototype.focus = function (this: HTMLElement, opts?: FocusOptions) {
-    if (document.hasFocus()) focus.call(this, opts);
-  };
-}
-
 /** #/frame/<component>?story=…&theme=…&args=…: one story alone in its own document,
  *  for components that portal to <body> (Modal, Toast, Tooltip). The parent page
- *  sends new canvas args with postMessage. */
+ *  sends new canvas args with postMessage. Focus is guarded before render (lib/frame-guard). */
 export function FramePage({ route }: { route: Route }) {
-  const doc = COMPONENT_DOCS.find((d) => d.id === route.segments[1]);
+  const id = route.segments[1];
+  return id && docMeta(id) ? <FrameBody route={route} id={id} /> : null;
+}
+
+function FrameBody({ route, id }: { route: Route; id: string }) {
+  const doc: ComponentDoc = use(loadDoc(id));
   const [args, setArgs] = useState<Args>(() => {
     try {
-      return { ...doc?.initial, ...JSON.parse(route.query.get('args') ?? '{}') };
+      return { ...doc.initial, ...JSON.parse(route.query.get('args') ?? '{}') };
     } catch {
-      return { ...doc?.initial };
+      return { ...doc.initial };
     }
   });
 
@@ -41,7 +38,6 @@ export function FramePage({ route }: { route: Route }) {
     return () => window.removeEventListener('message', on);
   }, []);
 
-  if (!doc) return null;
   const story = doc.stories.find((s) => s.id === route.query.get('story'));
   return (
     <div className="doc-canvas flex min-h-dvh items-center justify-center p-6">
