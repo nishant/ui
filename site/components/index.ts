@@ -17,6 +17,10 @@ import { switchDoc } from './switch';
 import { searchInput } from './search-input';
 import { filterBar } from './filter-bar';
 import { combobox } from './combobox';
+import { datePicker } from './date-picker';
+import { calendar } from './calendar';
+import { multiSelect } from './multi-select';
+import { carousel } from './carousel';
 import { select } from './select';
 import { label } from './label';
 import { skeleton } from './skeleton';
@@ -136,6 +140,9 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   searchInput,
   filterBar,
   combobox,
+  datePicker,
+  calendar,
+  multiSelect,
   select,
   radioGroup,
   slider,
@@ -193,6 +200,7 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   moreSheet,
   navRail,
   scrollRow,
+  carousel,
   sectionNav,
   stickyBar,
   stickyActionBar,

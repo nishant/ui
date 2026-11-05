@@ -272,6 +272,14 @@ export type { ServiceTokensSectionProps } from './components/service-tokens';
 export type { ServiceTokenView, ServiceTokenListResponse } from './service-token-types';
 export { Combobox } from './components/combobox';
 export type { ComboboxProps, ComboboxOption } from './components/combobox';
+export { Calendar } from './components/calendar';
+export type { CalendarProps, WeekDay } from './components/calendar';
+export { DatePicker } from './components/date-picker';
+export type { DatePickerProps } from './components/date-picker';
+export { MultiSelect } from './components/multi-select';
+export type { MultiSelectProps } from './components/multi-select';
+export { Carousel } from './components/carousel';
+export type { CarouselProps } from './components/carousel';
 export {
   XIcon,
   CheckIcon,
@@ -290,6 +298,11 @@ export {
   SettingsIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CalendarIcon,
+  PauseIcon,
+  PlayIcon,
 } from './components/icons';
 export { SplitStage, SplitDividers, LayoutPresetPicker, LayoutPresetIcon } from './components/split';
 export { presetOptions } from './components/split-classes';

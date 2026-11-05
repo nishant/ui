@@ -17,6 +17,11 @@ a minor adds, and a patch fixes.
 - `NavItem` `shortLabel`: a shorter label for the NavRail and the BottomNav.
 - `nish-ui/inbox` and `nish-ui/service-tokens` entry points with the same values as the root exports (`Inbox`, `ServiceTokensSection`, `useServiceTokens` and their types).
 - The rest of the package's inlined icons are exported from the root: `XIcon`, `CheckCircleIcon`, `AlertTriangleIcon`, `InfoIcon`, `RotateIcon`, `LoaderIcon`, `SunIcon`, `MoonIcon`, `MonitorIcon`, `ChevronDownIcon`, `PanelLeftCloseIcon` and `PanelLeftOpenIcon`. lucide-react is the official icon set for apps; the Icons page on design.nish.software has the sizes, the standard icon for each common action and the rule for a new glyph.
+- `Calendar`: a month grid that picks one day (YYYY-MM-DD), with the WAI-ARIA date-grid keys (arrows, Home and End, Page Up and Page Down, Shift for years), min and max, disabled days, locale names and first weekday, and optional month and year selects.
+- `DatePicker`: a date field that takes the reader's numeric format or ISO, with a calendar in a Popover; posts YYYY-MM-DD like a native date input.
+- `MultiSelect`: a filterable multi-select combobox with removable tags, a list that stays open while picking, `maxSelected`, async search and one form value per pick.
+- `ChevronLeftIcon`, `ChevronRightIcon`, `CalendarIcon`, `PauseIcon` and `PlayIcon`: the inlined icons the new components draw, exported like the rest.
+- `Carousel`: a scroll-snap carousel (WAI-ARIA carousel pattern) with previous and next buttons, slide dots, arrow keys, `loop`, and optional auto-rotation that pauses on hover and focus and respects reduced motion.
 
 ### Changed
 

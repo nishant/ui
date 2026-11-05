@@ -259,9 +259,9 @@ import { NishProvider } from 'nish-ui';
 More than 100 components, each with live stories, props and guidelines on the
 [docs site](https://design.nish.software/#/components):
 
-- **Actions and inputs:** Button, IconButton, Input, Textarea, Select, Combobox, Checkbox,
-  Switch, RadioGroup, Slider, TagInput, FileDropzone, NumberField, Segmented, Chip, SearchInput,
-  Field, FieldGroup, Label
+- **Actions and inputs:** Button, IconButton, Input, Textarea, Select, Combobox, DatePicker,
+  Calendar, MultiSelect, Checkbox, Switch, RadioGroup, Slider, TagInput, FileDropzone,
+  NumberField, Segmented, Chip, SearchInput, Field, FieldGroup, Label
 - **Feedback:** Toast, Callout, Spinner, Skeleton, Progress, EmptyState, ErrorState, StatusDot,
   Meter, LoadingBar, ConnectionBanner, AppErrorBoundary
 - **Overlays:** Modal, Drawer, ConfirmDialog, Popover, DropdownMenu, ContextMenu, Tooltip, HoverCard,
@@ -271,7 +271,7 @@ More than 100 components, each with live stories, props and guidelines on the
 - **Layout and navigation:** AppShell (bottom bar, rail and a collapsible sidebar), AppHeader,
   BottomNav, NavRail, MoreSheet, SectionNav, Tabs, Pagination, Breadcrumbs, Accordion,
   Disclosure, PageHeader, PageContainer, SectionHeader, Card, Separator, StickyBar,
-  StickyActionBar, ScrollRow
+  StickyActionBar, ScrollRow, Carousel
 - **Data and display:** Table, ResponsiveTable, VirtualList, VirtualTable, TreeView, FilterBar, Stat, Badge, Avatar, AvatarGroup,
   Kbd, KeyValueList, ListRow, LinkCard, Favicon, RelativeTime, CopyButton, LineChart, BarChart,
   Sparkline, ChartLegend, RangeBar, MediaRow, ActivityFeed, Inbox, VisuallyHidden

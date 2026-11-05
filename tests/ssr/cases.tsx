@@ -122,10 +122,17 @@ export const cases: Record<string, Case> = {
     />
   ),
   Button: () => <ui.Button>Go</ui.Button>,
+  Calendar: () => <ui.Calendar defaultValue="2026-01-15" locale="en-US" />,
   Callout: () => <ui.Callout>Note</ui.Callout>,
   Card: () => <ui.Card>Card</ui.Card>,
   CardHeader: () => <ui.CardHeader title="Title" />,
   CardListSkeleton: () => <ui.CardListSkeleton />,
+  Carousel: () => (
+    <ui.Carousel aria-label="Slides">
+      <div>one</div>
+      <div>two</div>
+    </ui.Carousel>
+  ),
   ChartLegend: () => <ui.ChartLegend items={[{ label: 'A', tone: 'chart-1' }]} />,
   CheckIcon: () => <ui.CheckIcon />,
   CheckCircleIcon: () => <ui.CheckCircleIcon />,
@@ -139,6 +146,11 @@ export const cases: Record<string, Case> = {
   ChevronDownIcon: () => <ui.ChevronDownIcon />,
   PanelLeftCloseIcon: () => <ui.PanelLeftCloseIcon />,
   PanelLeftOpenIcon: () => <ui.PanelLeftOpenIcon />,
+  ChevronLeftIcon: () => <ui.ChevronLeftIcon />,
+  ChevronRightIcon: () => <ui.ChevronRightIcon />,
+  CalendarIcon: () => <ui.CalendarIcon />,
+  PauseIcon: () => <ui.PauseIcon />,
+  PlayIcon: () => <ui.PlayIcon />,
   Checkbox: () => <ui.Checkbox label="Agree" defaultChecked />,
   Chip: () => <ui.Chip>chip</ui.Chip>,
   ChipGroup: () => (
@@ -167,6 +179,7 @@ export const cases: Record<string, Case> = {
     </ui.ContextMenu>
   ),
   CopyButton: () => <ui.CopyButton text="x" />,
+  DatePicker: () => <ui.DatePicker aria-label="Due" defaultValue="2026-01-15" locale="en-US" name="due" />,
   Disclosure: () => <ui.Disclosure summary="More">hidden</ui.Disclosure>,
   Drawer: () => (
     <ui.Drawer open title="Drawer" onClose={noop}>
@@ -266,6 +279,17 @@ export const cases: Record<string, Case> = {
   ),
   MoreIcon: () => <ui.MoreIcon />,
   MoreSheet: () => <ui.MoreSheet open onClose={noop} items={nav} />,
+  MultiSelect: () => (
+    <ui.MultiSelect
+      aria-label="Fruit"
+      options={[
+        { value: 'a', label: 'Apple' },
+        { value: 'b', label: 'Banana' },
+      ]}
+      defaultValue={['a']}
+      name="fruit"
+    />
+  ),
   NavRail: () => <ui.NavRail items={nav} />,
   NishProvider: () => (
     <ui.NishProvider locale="ar" dir="rtl" strings={{ close: 'Fermer' }}>
@@ -472,6 +496,11 @@ export const cases: Record<string, Case> = {
     />
   ),
 };
+
+/** Calendar with no value and no month: the server renders the null-month path (empty title,
+ *  6x7 empty grid); today's ring appears only after hydration. Used by
+ *  src/components/calendar.hydration.test.tsx. */
+export const calendarNullMonth: Case = () => <ui.Calendar aria-label="Pick a day" locale="en-US" />;
 
 /** Exports that look like components (capitalised functions) but are not. */
 export const NOT_COMPONENTS = ['ApiError'];

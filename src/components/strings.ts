@@ -48,6 +48,52 @@ export interface NishStrings {
   clear: string;
   /** Combobox: loading row. */
   searching: string;
+  /** DatePicker: custom validity message for text that is not a date. */
+  invalidDate: string;
+  /** DatePicker: calendar button name while empty. */
+  chooseDate: string;
+  /** DatePicker: calendar button name once a date is set. */
+  changeDate: (date: string) => string;
+  /** Calendar: previous month button. */
+  previousMonth: string;
+  /** Calendar: next month button. */
+  nextMonth: string;
+  /** Calendar: month select name. */
+  month: string;
+  /** Calendar: year select name. */
+  year: string;
+  /** DatePicker: day token in the placeholder. */
+  dayToken: string;
+  /** DatePicker: month token in the placeholder. */
+  monthToken: string;
+  /** DatePicker: year token in the placeholder. */
+  yearToken: string;
+  /** MultiSelect: announcement after a value is added. */
+  optionAdded: (label: string) => string;
+  /** MultiSelect: announcement after a value is removed. */
+  optionRemoved: (label: string) => string;
+  /** MultiSelect: clear-all button. */
+  clearAll: string;
+  /** MultiSelect: announcement when the pick limit is reached. */
+  maxSelected: (max: number) => string;
+  /** Carousel: role description of the region. */
+  carouselRole: string;
+  /** Carousel: role description of each slide. */
+  slideRole: string;
+  /** Carousel: label of each slide. */
+  slideLabel: (n: number, count: number) => string;
+  /** Carousel: previous slide button. */
+  previousSlide: string;
+  /** Carousel: next slide button. */
+  nextSlide: string;
+  /** Carousel: slide picker dot name. */
+  goToSlide: (n: number) => string;
+  /** Carousel: label of the slide picker group. */
+  slidePicker: string;
+  /** Carousel: start auto-rotation button. */
+  startRotation: string;
+  /** Carousel: stop auto-rotation button. */
+  stopRotation: string;
   /** CommandPalette: input placeholder. */
   searchPlaceholder: string;
   /** CommandPalette: nothing found. */
@@ -258,6 +304,29 @@ export const DEFAULT_STRINGS: NishStrings = {
   noMatches: 'No matches',
   clear: 'Clear',
   searching: 'Searching…',
+  invalidDate: 'Enter a valid date.',
+  chooseDate: 'Choose date',
+  changeDate: (date) => `Change date, ${date}`,
+  previousMonth: 'Previous month',
+  nextMonth: 'Next month',
+  month: 'Month',
+  year: 'Year',
+  dayToken: 'DD',
+  monthToken: 'MM',
+  yearToken: 'YYYY',
+  optionAdded: (l) => `Added ${l}`,
+  optionRemoved: (l) => `Removed ${l}`,
+  clearAll: 'Clear all',
+  maxSelected: (n) => `You can pick up to ${n}`,
+  carouselRole: 'carousel',
+  slideRole: 'slide',
+  slideLabel: (n, c) => `${n} of ${c}`,
+  previousSlide: 'Previous slide',
+  nextSlide: 'Next slide',
+  goToSlide: (n) => `Go to slide ${n}`,
+  slidePicker: 'Choose slide',
+  startRotation: 'Start slide rotation',
+  stopRotation: 'Stop slide rotation',
   searchPlaceholder: 'Search…',
   noResults: 'No results',
   results: 'Results',
