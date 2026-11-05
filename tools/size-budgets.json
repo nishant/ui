@@ -39,6 +39,36 @@
       "maxKB": 14
     },
     {
+      "name": "VirtualList",
+      "from": "nish-ui",
+      "import": "VirtualList",
+      "maxKB": 12
+    },
+    {
+      "name": "VirtualTable",
+      "from": "nish-ui",
+      "import": "VirtualTable",
+      "maxKB": 16.5
+    },
+    {
+      "name": "TreeView",
+      "from": "nish-ui",
+      "import": "TreeView",
+      "maxKB": 12
+    },
+    {
+      "name": "ContextMenu",
+      "from": "nish-ui",
+      "import": "ContextMenu",
+      "maxKB": 19.5
+    },
+    {
+      "name": "HoverCard",
+      "from": "nish-ui",
+      "import": "HoverCard",
+      "maxKB": 13
+    },
+    {
       "name": "AppShell",
       "from": "nish-ui",
       "import": "AppShell",
@@ -96,7 +126,7 @@
       "name": "everything from .",
       "from": "nish-ui",
       "import": "*",
-      "maxKB": 119.5
+      "maxKB": 128
     },
     {
       "name": "nish-ui/theme",

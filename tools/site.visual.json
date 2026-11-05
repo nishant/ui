@@ -49,6 +49,17 @@
       "settle": 1000
     },
     {
+      "name": "virtual-table",
+      "url": "http://localhost:5191/#/components/virtual-table",
+      "waitFor": "[data-page]",
+      "settle": 800
+    },
+    {
+      "name": "tree-view",
+      "url": "http://localhost:5191/#/components/tree-view",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "base-utilities",
       "url": "http://localhost:5191/#/components/base-utilities",
       "waitFor": "[data-page]"
