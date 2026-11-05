@@ -18,7 +18,7 @@ a minor adds, and a patch fixes.
 
 ### Changed
 
-- `AppShell` loads its More sheet on demand, and `DropdownMenu` its phone sheet, so `AppShell` is <AS> KB gzip instead of 37.2 KB and `SystemCanvas` <SC> KB instead of 27.1 KB. Import paths are unchanged.
+- `AppShell` loads its More sheet on demand, and `DropdownMenu` its phone sheet, so `AppShell` is 34.8 KB gzip instead of 37.2 KB and `SystemCanvas` 26.5 KB instead of 27.1 KB. Import paths are unchanged.
 - The overlay components are separate modules inside the package (`modal`, `drawer`, `tooltip`, `popover`, `menu`).
 
 ## [2.0.2] - 2026-11-03

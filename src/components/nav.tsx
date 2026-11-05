@@ -11,21 +11,21 @@ import {
   type RefObject,
 } from 'react';
 import { cn } from '../cn';
-import { safeUrl } from '../url';
 import { mergeRefs } from './data-classes';
-import { FORCED_MARK, warnDev } from './display-classes';
+import { FORCED_MARK } from './display-classes';
 import { chipClass } from './forms';
 import { useMediaQuery } from './hooks';
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from './icons';
 import { useHeightVar, useScrollEdges } from './layout-vars';
-import { NavBadge, FOCUS, renderItem, useEndSide } from './nav-items';
+import { NavBadge, FOCUS, renderItem, useEndSide, visibleNavItems } from './nav-items';
 import { IconButton } from './primitives';
 import { useNishStrings } from './provider';
 import { Tooltip } from './tooltip';
 
 export { useScrollEdges };
-export { MoreSheet } from './more-sheet';
-export type { MoreSheetProps } from './more-sheet';
+// visibleNavItems lives in nav-items so more-sheet can import it without importing nav. MoreSheet is exported from
+// more-sheet and the package index, not here: nav must not reach more-sheet or drawer, or AppShell would load them eagerly.
+export { visibleNavItems };
 
 // ---------------------------------------------------------------------------------
 // Shared bits
@@ -80,16 +80,6 @@ const MAX_QUERY: Record<NavBreakpoint, string> = {
 const HIDE_FROM: Record<NavBreakpoint, string> = { md: 'md:hidden', lg: 'lg:hidden' };
 const RAIL_SHOW: Record<'sm' | 'md' | 'lg', string> = { sm: 'sm:flex', md: 'md:flex', lg: 'lg:flex' };
 const RAIL_HIDE: Record<'md' | 'lg' | 'xl', string> = { md: 'md:hidden', lg: 'lg:hidden', xl: 'xl:hidden' };
-
-/** Keeps the items whose `href` is safe to navigate to; warns (dev) about each one dropped.
- *  Items with no href are buttons and always stay. */
-export function visibleNavItems(items: readonly NavItem[]): NavItem[] {
-  return items.filter((item) => {
-    if (item.href == null || safeUrl(item.href) !== null) return true;
-    warnDev(`nish-ui: nav item "${item.key}" was not rendered because its href is not safe (${item.href.slice(0, 40)}).`);
-    return false;
-  });
-}
 
 // ---------------------------------------------------------------------------------
 // BottomNav

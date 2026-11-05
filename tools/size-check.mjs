@@ -1,10 +1,10 @@
-// Size budgets: bundles each listed import from dist/esm with esbuild and code splitting (minified; react, react-dom and
-// the JSX runtime external, like an app that has them anyway), gzips the initial chunk (the entry plus its static imports;
-// lazy chunks are printed, not budgeted) and fails when a budget in tools/size-budgets.json is exceeded or a
-// `mustNotInclude` module is in the initial chunk. Also checks the unpacked size of `npm pack`. Run after `npm run build`: `npm run size`.
+// Size budgets: bundles each listed import from dist/esm with esbuild as one file with dynamic imports left external
+// (minified; react, react-dom and the JSX runtime external, like an app that has them anyway), gzips it as the initial KB
+// (lazy targets are measured separately, printed, not budgeted) and fails when a budget in tools/size-budgets.json is exceeded or a
+// `mustNotInclude` module is in the initial bundle. Also checks the unpacked size of `npm pack`. Run after `npm run build`: `npm run size`.
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { readFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
@@ -22,71 +22,73 @@ const esbuild = await import('esbuild');
 // nish-ui, nish-ui/theme and the other subpaths resolve to dist/esm like a bundler resolves the exports map.
 const subpath = { 'nish-ui': 'index.js', 'nish-ui/theme': 'theme.js', 'nish-ui/format': 'format.js', 'nish-ui/chart': 'chart.js', 'nish-ui/system-canvas': 'system-canvas.js', 'nish-ui/split-layout': 'split-layout.js', 'nish-ui/inbox-client': 'inbox-client.js' };
 
-const cacheDir = join(root, 'node_modules/.cache/nish-size');
 const slash = (p) => p.split('\\').join('/');
+const common = {
+  bundle: true,
+  splitting: false,
+  format: 'esm',
+  write: false,
+  metafile: true,
+  minify: true,
+  target: 'es2022',
+  platform: 'browser',
+  treeShaking: true,
+  absWorkingDir: root,
+  outdir: join(root, 'node_modules/.cache/nish-size-unused'),
+  external: ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/*'],
+  logLevel: 'error',
+};
+const gz = (outputFiles) => (outputFiles.length ? gzipSync(Buffer.concat(outputFiles.map((f) => Buffer.from(f.contents))), { level: 9 }).length : 0);
 
 /**
- * Builds `import { name } from from` (or `import * as ns`) with code splitting. The initial set is the entry output plus
- * everything it imports statically (what loads before first render); every other output is lazy. Returns gzip bytes of
- * each set and the `mustNotInclude` paths found among the initial set's inputs.
+ * Builds `import { name } from from` (or `import * as ns`) as ONE bundle (no code splitting) in which every dynamic
+ * import() is left external: exactly the entry plus its static imports, what loads before first render. (esbuild's
+ * splitting puts a module that is both statically reachable and an import() target into a shared chunk the entry
+ * imports statically, which inflates every row, so it is not used.) Lazy KB bundles the dynamic targets on their own.
+ * `mustNotInclude` paths fail when they contribute bytes to the initial bundle.
  */
-async function measure({ from, import: name, mustNotInclude = [] }, i) {
+async function measure({ from, import: name, mustNotInclude = [] }) {
   const file = subpath[from];
   if (!file) throw new Error(`size-budgets.json: unknown module ${from}`);
   const target = slash(join(esm, file));
   const contents = name === '*' ? `export * from ${JSON.stringify(target)};` : `export { ${name} } from ${JSON.stringify(target)};`;
-  const entry = join(cacheDir, `entry-${i}.mjs`);
-  mkdirSync(cacheDir, { recursive: true });
-  writeFileSync(entry, contents);
-  const res = await esbuild.build({
-    entryPoints: [entry],
-    bundle: true,
-    splitting: true,
-    format: 'esm',
-    outdir: join(cacheDir, 'out'),
-    write: false,
-    metafile: true,
-    minify: true,
-    target: 'es2022',
-    platform: 'browser',
-    treeShaking: true,
-    absWorkingDir: root,
-    external: ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/*'],
-    logLevel: 'error',
-  });
-  const outputs = res.metafile.outputs;
-  const contentOf = new Map(res.outputFiles.map((f) => [slash(relative(root, f.path)), f.contents]));
-  const entryKey = slash(relative(root, entry));
-  const entryOut = Object.keys(outputs).find((k) => outputs[k].entryPoint && slash(outputs[k].entryPoint) === entryKey);
-  if (!entryOut) throw new Error(`size-check: no output for entry ${i}`);
-  const initial = [];
-  const seen = new Set();
-  const visit = (k) => {
-    if (seen.has(k)) return;
-    seen.add(k);
-    initial.push(k);
-    for (const imp of outputs[k].imports) if (imp.kind === 'import-statement' && !imp.external) visit(slash(imp.path));
+  const dynamic = new Map();
+  const lazyPlugin = {
+    name: 'lazy',
+    setup(b) {
+      b.onResolve({ filter: /.*/ }, (a) => {
+        if (a.kind !== 'dynamic-import') return undefined;
+        if (a.path.startsWith('.')) {
+          const p = join(a.resolveDir, a.path);
+          dynamic.set(a.path + '|' + a.resolveDir, p.endsWith('.js') ? p : `${p}.js`);
+        }
+        return { path: a.path, external: true };
+      });
+    },
   };
-  visit(entryOut);
-  const lazy = Object.keys(outputs).filter((k) => k.endsWith('.js') && !seen.has(k));
-  const gz = (keys) => (keys.length ? gzipSync(Buffer.concat(keys.map((k) => Buffer.from(contentOf.get(k)))), { level: 9 }).length : 0);
-  const inputs = initial.flatMap((k) => Object.keys(outputs[k].inputs).map(slash));
-  const leaked = mustNotInclude.filter((p) => inputs.some((inp) => inp.endsWith(`dist/esm/${p}`)));
-  return { initial: gz(initial), lazy: gz(lazy), leaked };
+  const res = await esbuild.build({ ...common, stdin: { contents, resolveDir: root, loader: 'js' }, plugins: [lazyPlugin] });
+  const out = Object.values(res.metafile.outputs)[0];
+  const used = Object.entries(out.inputs).filter(([, v]) => v.bytesInOutput > 0).map(([k]) => slash(k));
+  const leaked = mustNotInclude.filter((p) => used.some((inp) => inp.endsWith(`dist/esm/${p}`)));
+  // Only targets whose import() survived tree shaking in the initial bundle count as lazy.
+  const kept = new Set(out.imports.filter((i) => i.kind === 'dynamic-import').map((i) => i.path));
+  const targets = [...new Set([...dynamic].filter(([k]) => kept.has(k.split('|')[0])).map(([, v]) => v))];
+  let lazy = 0;
+  if (targets.length) {
+    const lz = await esbuild.build({ ...common, entryPoints: targets, outdir: join(root, 'node_modules/.cache/nish-size-unused'), outbase: root });
+    lazy = gz(lz.outputFiles.filter((f) => f.path.endsWith('.js')));
+  }
+  return { initial: gz(res.outputFiles.filter((f) => f.path.endsWith('.js'))), lazy, leaked };
 }
 
 const rows = [];
 let failed = false;
-try {
-  for (const [i, b] of budgets.imports.entries()) {
-    const m = await measure(b, i);
-    const kb = m.initial / 1024;
-    const over = kb > b.maxKB;
-    if (over || m.leaked.length) failed = true;
-    rows.push({ name: b.name, kb, lazyKb: m.lazy / 1024, max: b.maxKB, over, leaked: m.leaked });
-  }
-} finally {
-  rmSync(cacheDir, { recursive: true, force: true });
+for (const b of budgets.imports) {
+  const m = await measure(b);
+  const kb = m.initial / 1024;
+  const over = kb > b.maxKB;
+  if (over || m.leaked.length) failed = true;
+  rows.push({ name: b.name, kb, lazyKb: m.lazy / 1024, max: b.maxKB, over, leaked: m.leaked });
 }
 
 // npm pack --dry-run --json: unpacked size and file list of the tarball.

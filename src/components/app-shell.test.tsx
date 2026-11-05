@@ -420,6 +420,11 @@ describe('AppShell: layout props', () => {
     const navEl = within(screen.getByRole('banner')).getByRole('navigation', { hidden: true });
     expect(navEl.querySelectorAll('.nish-skeleton')).toHaveLength(2);
     expect(screen.getAllByRole('navigation', { hidden: true })).toHaveLength(1);
+    // Sized like a real tab (40px, 44px on touch) so the header does not grow when nav arrives; hidden from assistive tech.
+    const sk = navEl.querySelector('.nish-skeleton') as HTMLElement;
+    expect(sk.className).toContain('h-10');
+    expect(sk.className).toContain('pointer-coarse:h-11');
+    expect(sk.getAttribute('aria-hidden')).toBe('true');
     unmount();
     render(<AppShell name="S" nav={FIVE} navPending={2}>x</AppShell>);
     expect(document.querySelectorAll('.nish-skeleton')).toHaveLength(0);
@@ -461,7 +466,7 @@ describe('AppShell: sidebar brand', () => {
     expect(brand).toHaveBeenCalledWith({ collapsed: true });
     expect(within(aside()).queryByText('OTA.')).toBeNull();
     const bar = screen.getByText('O').parentElement as HTMLElement;
-    expect(bar.className).toContain('h-11');
+    expect(bar.className).toContain('min-h-14');
     expect(within(bar).getByRole('link', { name: /nish\.software/, hidden: true })).toBeTruthy();
   });
 
@@ -478,6 +483,10 @@ describe('AppShell: sidebar brand', () => {
   });
 });
 
+// The BottomNav's class string as origin/master (2.0.2) renders it with the defaults.
+const BOTTOM_NAV_CLASS =
+  'fixed inset-x-0 bottom-0 z-[var(--nish-z-dropdown,40)] flex items-stretch border-t border-th-line bg-th-surface pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] md:hidden';
+
 describe('AppShell: defaults render as 2.0.2', () => {
   it('keeps the exact class strings of the header, rail wrapper and BottomNav', () => {
     render(<AppShell name="S" nav={SIX}>x</AppShell>);
@@ -488,6 +497,6 @@ describe('AppShell: defaults render as 2.0.2', () => {
     expect(rail.parentElement?.className).toBe(
       'sticky top-[calc(var(--nish-header-h,0px)+var(--nish-banners-h,0px))] h-[calc(100dvh-var(--nish-header-h,0px)-var(--nish-banners-h,0px))] self-start hidden md:block lg:hidden',
     );
-    expect(bottomNav().className).toContain("fixed");
+    expect(bottomNav().className).toBe(BOTTOM_NAV_CLASS);
   });
 });

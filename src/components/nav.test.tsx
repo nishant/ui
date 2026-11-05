@@ -3,7 +3,6 @@ import { act, cleanup, fireEvent, render, renderHook, screen, within } from '@te
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BottomNav,
-  MoreSheet,
   NavRail,
   NavSidebar,
   revealInRow,
@@ -13,7 +12,7 @@ import {
   visibleNavItems,
   type NavItem,
 } from './nav';
-import { MoreSheet as MoreSheetModule } from './more-sheet';
+import { MoreSheet } from './more-sheet';
 import { NishProvider } from './provider';
 
 const icon = createElement('svg', { 'aria-hidden': 'true' });
@@ -393,12 +392,6 @@ describe('NavSidebar header', () => {
     expect(brand.parentElement!.compareDocumentPosition(screen.getByRole('button', { name: 'Find' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     rerender(<NavSidebar {...base} collapsed header={<p>Brand</p>} />);
     expect(screen.queryByText('Brand')).toBeNull();
-  });
-});
-
-describe('MoreSheet module', () => {
-  it('is the same function from ./nav and ./more-sheet', () => {
-    expect(MoreSheet).toBe(MoreSheetModule);
   });
 });
 

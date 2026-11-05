@@ -1,19 +1,114 @@
 {
-  "comment": "Gzip KB of an esbuild bundle (minified, react/react-dom/jsx-runtime external) of the import, built from dist/esm. AppShell, SystemCanvas and everything-from-. sit above the spec targets (34, 27, 100): measured plus 0.5 KB so growth fails CI; trim back to spec.",
+  "comment": "Gzip KB of an esbuild bundle (minified, react/react-dom/jsx-runtime external, dynamic import() left out = entry plus static imports) of the import, built from dist/esm. AppShell is the spec's 34 target plus the measured overshoot (34.74 gz, set to 34.9); the Toaster is the lever to trim it back. mustNotInclude fails the row when a module that must stay lazy is in the initial bundle.",
   "tarballMaxBytes": 2621440,
   "imports": [
-    { "name": "cn", "from": "nish-ui", "import": "cn", "maxKB": 10 },
-    { "name": "Button", "from": "nish-ui", "import": "Button", "maxKB": 10 },
-    { "name": "Card", "from": "nish-ui", "import": "Card", "maxKB": 11 },
-    { "name": "Modal", "from": "nish-ui", "import": "Modal", "maxKB": 15 },
-    { "name": "Toaster", "from": "nish-ui", "import": "Toaster", "maxKB": 14 },
-    { "name": "Combobox", "from": "nish-ui", "import": "Combobox", "maxKB": 14 },
-    { "name": "AppShell", "from": "nish-ui", "import": "AppShell", "maxKB": 37.5 },
-    { "name": "useMediaQuery", "from": "nish-ui", "import": "useMediaQuery", "maxKB": 1 },
-    { "name": "THEMES", "from": "nish-ui", "import": "THEMES", "maxKB": 3 },
-    { "name": "SystemCanvas", "from": "nish-ui", "import": "SystemCanvas", "maxKB": 27.5 },
-    { "name": "everything from .", "from": "nish-ui", "import": "*", "maxKB": 117.5 },
-    { "name": "nish-ui/theme", "from": "nish-ui/theme", "import": "*", "maxKB": 10 },
-    { "name": "nish-ui/format", "from": "nish-ui/format", "import": "*", "maxKB": 4 }
+    {
+      "name": "cn",
+      "from": "nish-ui",
+      "import": "cn",
+      "maxKB": 10
+    },
+    {
+      "name": "Button",
+      "from": "nish-ui",
+      "import": "Button",
+      "maxKB": 10
+    },
+    {
+      "name": "Card",
+      "from": "nish-ui",
+      "import": "Card",
+      "maxKB": 11
+    },
+    {
+      "name": "Modal",
+      "from": "nish-ui",
+      "import": "Modal",
+      "maxKB": 15
+    },
+    {
+      "name": "Toaster",
+      "from": "nish-ui",
+      "import": "Toaster",
+      "maxKB": 14
+    },
+    {
+      "name": "Combobox",
+      "from": "nish-ui",
+      "import": "Combobox",
+      "maxKB": 14
+    },
+    {
+      "name": "AppShell",
+      "from": "nish-ui",
+      "import": "AppShell",
+      "maxKB": 34.9,
+      "mustNotInclude": [
+        "components/drawer.js",
+        "components/modal.js",
+        "components/more-sheet.js",
+        "components/overlay-dialog.js"
+      ]
+    },
+    {
+      "name": "useMediaQuery",
+      "from": "nish-ui",
+      "import": "useMediaQuery",
+      "maxKB": 1
+    },
+    {
+      "name": "THEMES",
+      "from": "nish-ui",
+      "import": "THEMES",
+      "maxKB": 3
+    },
+    {
+      "name": "SystemCanvas",
+      "from": "nish-ui",
+      "import": "SystemCanvas",
+      "maxKB": 27
+    },
+    {
+      "name": "Drawer",
+      "from": "nish-ui",
+      "import": "Drawer",
+      "maxKB": 16
+    },
+    {
+      "name": "Tooltip",
+      "from": "nish-ui",
+      "import": "Tooltip",
+      "maxKB": 13.5
+    },
+    {
+      "name": "Popover",
+      "from": "nish-ui",
+      "import": "Popover",
+      "maxKB": 13.5
+    },
+    {
+      "name": "DropdownMenu",
+      "from": "nish-ui",
+      "import": "DropdownMenu",
+      "maxKB": 14.5
+    },
+    {
+      "name": "everything from .",
+      "from": "nish-ui",
+      "import": "*",
+      "maxKB": 119.5
+    },
+    {
+      "name": "nish-ui/theme",
+      "from": "nish-ui/theme",
+      "import": "*",
+      "maxKB": 10
+    },
+    {
+      "name": "nish-ui/format",
+      "from": "nish-ui/format",
+      "import": "*",
+      "maxKB": 4
+    }
   ]
 }

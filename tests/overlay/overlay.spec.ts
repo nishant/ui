@@ -254,3 +254,19 @@ test('Popover flips above its anchor when there is no room below', async ({ page
   await page.keyboard.press('Escape');
   await expect(panel).toHaveCount(0);
 });
+
+test('the lazily loaded More sheet closes on Back and leaves the URL as it was', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(URL + '?before');
+  await page.goto(URL + '?shell');
+  const url = page.url();
+  // The first tap on More loads the sheet chunk; the sheet still opens from that one tap.
+  await page.getByRole('button', { name: /more/i }).first().click();
+  const sheet = page.getByRole('dialog', { name: 'More' });
+  await expect(sheet).toBeVisible();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reads an untyped history.state inside the page
+  await expect.poll(() => page.evaluate(() => !!(history.state as any)?.nishLayer)).toBe(true);
+  await page.goBack();
+  await expect(sheet).toHaveCount(0);
+  expect(page.url()).toBe(url);
+});

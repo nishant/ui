@@ -11,7 +11,8 @@ import { warnDev } from './display-classes';
 import { Skeleton } from './feedback';
 import { MoreIcon } from './icons';
 import { lazyModule, preloadWhenIdle, useLazyModule } from './lazy-module';
-import { BottomNav, NavRail, NavSidebar, visibleNavItems, type NavItem, type RenderLink } from './nav';
+import { BottomNav, NavRail, NavSidebar, type NavItem, type RenderLink } from './nav';
+import { visibleNavItems } from './nav-items';
 import { NavBadge } from './nav-items';
 import { DropdownMenu, MenuItem } from './menu';
 import { IconButton } from './primitives';
@@ -262,7 +263,7 @@ export function AppShell({
   const showPills = hasNav && !side && !headerMode && tabs === 'pill';
   const headerNav =
     !hasNav && navPending > 0
-      ? Array.from({ length: navPending }, (_, i) => <Skeleton key={i} className="h-9 w-24 rounded-lg" />)
+      ? Array.from({ length: navPending }, (_, i) => <Skeleton key={i} aria-hidden="true" className={cn('w-24 rounded-lg pointer-coarse:h-11', tabs === 'pill' ? 'h-8' : 'h-10')} />)
       : showHeaderTabs
         ? tabNodes(tabs === 'pill' ? 'pill' : 'underline')
         : undefined;
@@ -379,7 +380,7 @@ export function AppShell({
         ) : null}
         <div className="min-w-0 flex-1">
           {brandMode && collapsed ? (
-            <div className="hidden h-11 items-center gap-3 border-b border-th-line px-[var(--nish-page-gutter,1rem)] lg:flex">
+            <div className="hidden min-h-14 items-center gap-3 border-b border-th-line px-[var(--nish-page-gutter,1rem)] py-1.5 lg:flex">
               {hubPill}
               {brandNode(true)}
             </div>
@@ -390,7 +391,7 @@ export function AppShell({
               tabIndex={-1}
               className={cn(
                 'flex min-h-0 flex-col overflow-hidden focus:outline-none h-[calc(100dvh-var(--nish-header-h,0px)-var(--nish-banners-h,0px))] pb-[var(--nish-bottom-inset,0px)]',
-                brandMode && collapsed && 'lg:h-[calc(100dvh-var(--nish-banners-h,0px)-2.75rem)]',
+                brandMode && collapsed && 'lg:h-[calc(100dvh-var(--nish-banners-h,0px)-3.5rem)]',
               )}
             >
               {page}

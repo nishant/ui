@@ -18,7 +18,7 @@ Other gates:
 
 | Command | What it checks |
 |---|---|
-| `npm run size` | bundles each import in `tools/size-budgets.json` from `dist/esm` with code splitting, gzips the initial chunk (what loads before first render) and fails over budget or when a `mustNotInclude` module is in it; also the `npm pack --dry-run` size |
+| `npm run size` | bundles each import in `tools/size-budgets.json` from `dist/esm` as one file with every `import()` left external, gzips it (the initial KB: what loads before first render; lazy targets are printed separately) and fails over budget or when a `mustNotInclude` module is in it; also the `npm pack --dry-run` size |
 | `node --test tools/exports.test.mjs` | every export imports and `require()`s on Node 20.19+; `dist/esm/index.js` loads with no DOM; `"use client"` stays on the right modules |
 | `node --test tools/api-surface.test.mjs` | a removed export or `.nish-*` class fails; `UPDATE_API_SURFACE=1` rewrites `tools/api-surface.snapshot.json` after a build, so removals are deliberate |
 | `npx vitest run tools/docgen-coverage.test.ts` | every runtime export of `.` has a docs page or mention and every prop of an exported component has a description; today's gaps are allow-listed by name and the lists can only shrink (`NISH_DOCGEN_DUMP=1` prints them) |

@@ -3,6 +3,7 @@ import { useState, type ReactNode, type RefObject } from 'react';
 import { safeUrl } from '../url';
 import { isRtl, useIsoLayoutEffect } from './client';
 import { navigateFromLayer } from './command';
+import { warnDev } from './display-classes';
 import { useNishConfig, useNishStrings } from './provider';
 import type { NavItem, RenderLink } from './nav';
 
@@ -138,3 +139,13 @@ export function renderItem(item: NavItem, className: string, children: ReactNode
 
 /** @internal */
 export const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-th-accent';
+
+/** Keeps the items whose `href` is safe to navigate to; warns (dev) about each one dropped.
+ *  Items with no href are buttons and always stay. */
+export function visibleNavItems(items: readonly NavItem[]): NavItem[] {
+  return items.filter((item) => {
+    if (item.href == null || safeUrl(item.href) !== null) return true;
+    warnDev(`nish-ui: nav item "${item.key}" was not rendered because its href is not safe (${item.href.slice(0, 40)}).`);
+    return false;
+  });
+}

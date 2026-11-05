@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { cn } from '../cn';
 import { FORCED_MARK } from './display-classes';
 import { Drawer } from './drawer';
-import { visibleNavItems, type NavItem, type RenderLink } from './nav';
-import { FOCUS, NavBadge, renderItem } from './nav-items';
+import type { NavItem, RenderLink } from './nav';
+import { FOCUS, NavBadge, renderItem, visibleNavItems } from './nav-items';
 import { useNishStrings } from './provider';
 import { ThemeToggle } from './theme-toggle';
 
