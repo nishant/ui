@@ -33,6 +33,17 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "date-picker",
+      "url": "http://localhost:5191/#/components/date-picker",
+      "waitFor": "[data-page]",
+      "settle": 800
+    },
+    {
+      "name": "carousel",
+      "url": "http://localhost:5191/#/components/carousel",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "tabs",
       "url": "http://localhost:5191/#/components/tabs",
       "waitFor": "[data-page]"

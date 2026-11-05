@@ -4,6 +4,15 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [Unreleased]
+
+### Added
+
+- `Calendar`: a month grid that picks one day (YYYY-MM-DD), with the WAI-ARIA date-grid keys (arrows, Home and End, Page Up and Page Down, Shift for years), min and max, disabled days, locale names and first weekday, and optional month and year selects.
+- `DatePicker`: a date field that takes the reader's numeric format or ISO, with a calendar in a Popover; posts YYYY-MM-DD like a native date input.
+- `MultiSelect`: a filterable multi-select combobox with removable tags, a list that stays open while picking, `maxSelected`, async search and one form value per pick.
+- `Carousel`: a scroll-snap carousel (WAI-ARIA carousel pattern) with previous and next buttons, slide dots, arrow keys, `loop`, and optional auto-rotation that pauses on hover and focus and respects reduced motion.
+
 ## [2.0.2] - 2026-11-03
 
 ### Fixed
