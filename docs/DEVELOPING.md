@@ -18,7 +18,7 @@ Other gates:
 
 | Command | What it checks |
 |---|---|
-| `npm run size` | esbuild-bundles each import in `tools/size-budgets.json` from `dist/esm`, gzips it and fails over budget; also the `npm pack --dry-run` size |
+| `npm run size` | bundles each import in `tools/size-budgets.json` from `dist/esm` as one file with every `import()` left external, gzips it (the initial KB: what loads before first render; lazy targets are printed separately) and fails over budget or when a `mustNotInclude` module is in it; also the `npm pack --dry-run` size |
 | `node --test tools/exports.test.mjs` | every export imports and `require()`s on Node 20.19+; `dist/esm/index.js` loads with no DOM; `"use client"` stays on the right modules |
 | `node --test tools/api-surface.test.mjs` | a removed export or `.nish-*` class fails; `UPDATE_API_SURFACE=1` rewrites `tools/api-surface.snapshot.json` after a build, so removals are deliberate |
 | `npx vitest run tools/docgen-coverage.test.ts` | every runtime export of `.` has a docs page or mention and every prop of an exported component has a description; today's gaps are allow-listed by name and the lists can only shrink (`NISH_DOCGEN_DUMP=1` prints them) |
@@ -102,7 +102,7 @@ so two copies of the package on one page agree.
 | `scripts/release.mjs` | The release: check, version, tag with `dist/`, push, dispatch. |
 | `dist/esm/` | The preserved-modules build bundlers use: one file per source module. |
 | `tools/npm-publish.mjs` | Publishes a tag to npm as `nish-ui` (run by `publish.yml`). |
-| `tools/size-check.mjs` | The bundle budgets. |
+| `tools/size-check.mjs` | The bundle budgets (initial chunk; lazy chunks are printed, not budgeted). |
 | `tools/fanout/` | The fan-out that moves every app to a new tag (`fanout.yml`). |
 | `tools/fold-diff.mjs` | The Fold check every app's PRs run: [fold-check.md](fold-check.md). |
 | `tools/contrast.mjs` | The WCAG check; the pairs are in `tools/contrast-rules.mjs`. |

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
-import { Button, ConfirmDialog, Drawer, DropdownMenu, MenuItem, Modal, Popover, Toaster, Tooltip, toast } from '../../src';
+import { AppShell, Button, ConfirmDialog, Drawer, DropdownMenu, MenuItem, Modal, Popover, Toaster, Tooltip, toast } from '../../src';
 
 function Harness() {
   const [modal, setModal] = useState(false);
@@ -92,4 +92,22 @@ function Harness() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(<Harness />);
+// `?shell`: an AppShell with six sections, so the specs can open the lazily loaded More sheet on the phone bottom bar.
+const sections = ['Home', 'Jobs', 'Saved', 'Alerts', 'Reports', 'Settings'].map((label, i) => ({
+  key: label.toLowerCase(),
+  label,
+  icon: <svg aria-hidden="true" width="20" height="20" />,
+  href: `#${label.toLowerCase()}`,
+  active: i === 0,
+}));
+
+const params = new URLSearchParams(location.search);
+createRoot(document.getElementById('root')!).render(
+  params.has('shell') ? (
+    <AppShell name="Shell" nav={sections} toaster={false}>
+      <p>Shell page</p>
+    </AppShell>
+  ) : (
+    <Harness />
+  ),
+);

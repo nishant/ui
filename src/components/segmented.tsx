@@ -3,7 +3,8 @@ import { useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode
 import { cn } from '../cn';
 import { useScrollEdges } from './layout-vars';
 import { revealInRow } from './nav';
-import { FloatingTip, keyboardFocused, touchTracker } from './overlay';
+import { keyboardFocused, touchTracker } from './overlay-classes';
+import { FloatingTip } from './tooltip';
 import { isRtl } from './client';
 import { SEGMENTED_SELECTED, SEGMENTED_SIZE, setRef, type SegmentedTone } from './forms-classes';
 

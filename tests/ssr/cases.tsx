@@ -25,6 +25,28 @@ export const NOW = 1767225600000;
 
 type Case = () => ReactElement;
 
+// The AppShell case also renders these two variants (the case table may only name component exports);
+// each has its own mainId and no Toaster, so the page has one of each.
+/** AppShellHeaderMode: navMode header with three items. */
+export const AppShellHeaderMode = () => (
+  <ui.AppShell name="Header mode" mainId="shell-header-mode" toaster={false} navMode="header" nav={[...nav, { key: 'more', label: 'More', icon: <span>M</span>, href: '/m' }]}>
+    <p>body</p>
+  </ui.AppShell>
+);
+/** AppShellSidebarBrand: a sidebar with a brand function and a hub pill. */
+export const AppShellSidebarBrand = () => (
+  <ui.AppShell
+    name="Sidebar brand"
+    mainId="shell-sidebar-brand"
+    toaster={false}
+    nav={nav}
+    hub={{ href: 'https://nish.software', label: 'nish.software' }}
+    sidebar={{ storageKey: false, brand: ({ collapsed }) => <span>{collapsed ? 'O' : 'OTA.'}</span> }}
+  >
+    <p>body</p>
+  </ui.AppShell>
+);
+
 export const cases: Record<string, Case> = {
   Accordion: () => (
     <ui.Accordion type="single" defaultValue="a" label="FAQ">
@@ -57,9 +79,13 @@ export const cases: Record<string, Case> = {
   ),
   AppHeader: () => <ui.AppHeader name="App" />,
   AppShell: () => (
-    <ui.AppShell name="App" nav={nav}>
-      <p>body</p>
-    </ui.AppShell>
+    <>
+      <ui.AppShell name="App" nav={nav}>
+        <p>body</p>
+      </ui.AppShell>
+      <AppShellHeaderMode />
+      <AppShellSidebarBrand />
+    </>
   ),
   AsyncPanel: () => (
     <ui.AsyncPanel status="ready">
