@@ -11,7 +11,8 @@ import {
 import { cn } from '../cn';
 import { safeUrl } from '../url';
 import { XIcon } from './icons';
-import { Modal, whenHistorySettled } from './overlay';
+import { Modal } from './modal';
+import { whenHistorySettled } from './overlay-core';
 import { useLatest } from './latest';
 import { useNishStrings } from './provider';
 

@@ -1198,7 +1198,20 @@ describe('DropdownMenu', () => {
     expect(html).not.toContain('role="menu"');
   });
 
-  it('opens as a bottom sheet on phones with the provider menu string as its title', () => {
+  it('is a floating panel on a phone until the drawer module has loaded, then the sheet', async () => {
+    phone = true;
+    render(
+      <DropdownMenu defaultOpen sheetBelow="sm" trigger={<button type="button">Actions</button>}>
+        {items}
+      </DropdownMenu>,
+    );
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  it('opens as a bottom sheet on phones with the provider menu string as its title', async () => {
     phone = true;
     render(
       <NishProvider strings={{ menu: 'Menü' }}>
@@ -1207,18 +1220,18 @@ describe('DropdownMenu', () => {
         </DropdownMenu>
       </NishProvider>,
     );
-    expect(screen.getByRole('dialog', { name: 'Menü' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Menü' })).toBeTruthy();
     expect(screen.getByRole('menu')).toBeTruthy();
   });
 
-  it('prefers sheetTitle for the sheet title', () => {
+  it('prefers sheetTitle for the sheet title', async () => {
     phone = true;
     render(
       <DropdownMenu defaultOpen sheetBelow="sm" sheetTitle="Pick one" trigger={<button type="button">Actions</button>}>
         {items}
       </DropdownMenu>,
     );
-    expect(screen.getByRole('dialog', { name: 'Pick one' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Pick one' })).toBeTruthy();
   });
 
   it('stays a floating panel on phones without sheetBelow', () => {
@@ -1320,5 +1333,33 @@ describe('menu rows', () => {
     fireEvent.keyDown(header, { key: 'ArrowLeft' });
     expect(onBack).toHaveBeenCalledTimes(3);
     expect(header.querySelector('svg')?.getAttribute('class')).toContain('rtl:-scale-x-100');
+  });
+});
+
+describe('overlay barrel', () => {
+  it('exports the same functions as the modules it re-exports', async () => {
+    const barrel = await import('./overlay');
+    const modal = await import('./modal');
+    const drawer = await import('./drawer');
+    const tooltip = await import('./tooltip');
+    const popover = await import('./popover');
+    const menu = await import('./menu');
+    const core = await import('./overlay-core');
+    const classes = await import('./overlay-classes');
+    const fns = (o: Record<string, unknown>, names: string[]) => names.map((n) => [n, o[n]] as const);
+    const expected = [
+      ...fns(modal, ['Modal', 'ConfirmDialog']),
+      ...fns(drawer, ['Drawer']),
+      ...fns(tooltip, ['Tooltip', 'FloatingTip']),
+      ...fns(popover, ['Popover']),
+      ...fns(menu, ['DropdownMenu', 'MenuItem', 'MenuLabel', 'MenuSeparator', 'MenuSubHeader']),
+      ...fns(core, ['whenHistorySettled']),
+      ...fns(classes, ['keyboardFocused', 'menuItemClass', 'touchTracker']),
+    ];
+    const barrelFns = Object.keys(barrel)
+      .filter((k) => typeof (barrel as Record<string, unknown>)[k] === 'function')
+      .sort();
+    expect(barrelFns).toEqual(expected.map(([n]) => n).sort());
+    for (const [n, fn] of expected) expect((barrel as Record<string, unknown>)[n]).toBe(fn);
   });
 });

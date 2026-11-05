@@ -26,7 +26,7 @@ import {
 import { isRtl, useIsoLayoutEffect } from './client';
 import { useMediaQuery } from './hooks';
 import { ScrollRow } from './nav';
-import { Tooltip } from './overlay';
+import { Tooltip } from './tooltip';
 import { useNishStrings } from './provider';
 
 // Split panes: a layout tree drawn as flat, absolutely positioned panes, with drag handles

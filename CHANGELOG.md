@@ -4,6 +4,23 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [Unreleased]
+
+### Added
+
+- `AppShell` `navMode="header"`: the nav stays as header tabs at every width, with no bottom bar, rail or sidebar, for apps with two or three pages.
+- `AppShell` `tabs="pill"`: from 1024px the nav is pills in the header row. Header tabs and pills show each item's `badge`.
+- `AppShell` `bottomNav`: the keys of the bottom bar items, instead of the first `primary`.
+- `AppShell` `moreMenu={false}`: `moreItems` stay in the phone More sheet only, for apps that put those actions in the header themselves.
+- `AppShell` `headerInnerClassName`, `containerClassName`, `footer`, `fullHeight` and `navPending` (placeholder tabs while sign-in is checked).
+- `AppShell` `sidebar.brand`: from 1024px the brand, the hub pill, the actions and the theme toggle move into the sidebar and the header goes away.
+- `NavItem` `shortLabel`: a shorter label for the NavRail and the BottomNav.
+
+### Changed
+
+- `AppShell` loads its More sheet on demand, and `DropdownMenu` its phone sheet, so `AppShell` is <AS> KB gzip instead of 37.2 KB and `SystemCanvas` <SC> KB instead of 27.1 KB. Import paths are unchanged.
+- The overlay components are separate modules inside the package (`modal`, `drawer`, `tooltip`, `popover`, `menu`).
+
 ## [2.0.2] - 2026-11-03
 
 ### Fixed

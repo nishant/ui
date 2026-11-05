@@ -15,12 +15,32 @@ import { cn } from '../cn';
 import { sparklineGeometry } from '../sparkline-path';
 import { safeUrl } from '../url';
 import { mergeRefs } from './data-classes';
-import { displayInternals, FORCED_MARK, toneFor, warnDev } from './display-classes';
+import {
+  CALLOUT_CLAMP,
+  CALLOUT_TONE,
+  DOT_SIZE,
+  FILL,
+  FORCED_MARK,
+  GRID_BASE,
+  GRID_MD,
+  HALO,
+  LEGEND_FILL,
+  METER_FILL,
+  METER_THICK,
+  METER_THICK_V,
+  SPARK_TONE,
+  STAT_SKELETON,
+  STAT_TONE,
+  STAT_VALUE_SIZE,
+  toneFor,
+  warnDev,
+} from './display-classes';
 import type { CalloutTone, ChartLegendTone, MeterTone, SparklineTone, StatusTone } from './display-classes';
 import { Skeleton } from './feedback';
 import { AlertTriangleIcon, CheckCircleIcon, ChevronDownIcon, InfoIcon, XIcon } from './icons';
 import { useHeightVar, useStuck } from './layout-vars';
-import { DropdownMenu, Tooltip } from './overlay';
+import { DropdownMenu } from './menu';
+import { Tooltip } from './tooltip';
 import { Badge, Button, Card, IconButton, type ButtonProps } from './primitives';
 import { useNishStrings } from './provider';
 import { ThemeToggle } from './theme-toggle';
@@ -32,24 +52,6 @@ import { ThemeToggle } from './theme-toggle';
 // can import them; they are re-exported here so existing import paths keep working.
 export { signTone, toneFor } from './display-classes';
 export type { CalloutTone, ChartLegendTone, MeterTone, SparklineTone, StatusTone } from './display-classes';
-
-const {
-  FILL,
-  CALLOUT_TONE,
-  CALLOUT_CLAMP,
-  DOT_SIZE,
-  HALO,
-  STAT_VALUE_SIZE,
-  STAT_SKELETON,
-  STAT_TONE,
-  GRID_BASE,
-  GRID_MD,
-  METER_FILL,
-  METER_THICK,
-  METER_THICK_V,
-  SPARK_TONE,
-  LEGEND_FILL,
-} = displayInternals;
 
 // --- icons only this file needs (24px grid, 2px stroke, lucide geometry) -------------
 

@@ -3,7 +3,7 @@ import { useState, type ComponentPropsWithRef, type ReactNode, type SVGProps } f
 import { cn } from '../cn';
 import { SearchInput } from './forms';
 import { NARROW_QUERY, useMediaQuery } from './hooks';
-import { Drawer } from './overlay';
+import { Drawer } from './drawer';
 import { Badge, Button } from './primitives';
 import { useNishStrings } from './provider';
 
