@@ -1,0 +1,1 @@
+import{N as e}from"./index-sIFbfv3a.js";var t=e(),n=typeof window>`u`?t.useEffect:t.useLayoutEffect;function r(e){let r=(0,t.useRef)(e);return n(()=>{r.current=e}),r}export{r as t};
