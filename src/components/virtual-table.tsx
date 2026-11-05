@@ -191,7 +191,7 @@ export function VirtualTable<T>({
         return;
       }
     }
-    if (hadFocus.current && typeof document !== 'undefined' && document.activeElement === document.body && pendingFocus.current === null) {
+    if (hadFocus.current && document.activeElement === document.body && pendingFocus.current === null) {
       hadFocus.current = false;
       pin(null);
       scrollRef.current?.focus({ preventScroll: true });
@@ -295,7 +295,7 @@ export function VirtualTable<T>({
                   numeric={c.numeric}
                   sort={c.sortValue ? (current?.key === c.key ? current.dir : false) : undefined}
                   onSort={c.sortValue ? () => toggle(c.key) : undefined}
-                  className={c.hideBelow ? HIDE_BELOW[c.hideBelow] : undefined}
+                  className={cn(c.hideBelow && HIDE_BELOW[c.hideBelow])}
                   style={c.width ? { width: c.width } : undefined}
                 >
                   {c.header}
@@ -326,7 +326,7 @@ export function VirtualTable<T>({
                     <Td
                       key={c.key}
                       numeric={c.numeric}
-                      className={cn(c.hideBelow && HIDE_BELOW[c.hideBelow], !measure && 'overflow-hidden text-ellipsis whitespace-nowrap')}
+                      className={cn(c.hideBelow && HIDE_BELOW[c.hideBelow], !measure && 'truncate')}
                     >
                       {c.cell(row)}
                     </Td>

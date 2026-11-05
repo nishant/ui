@@ -3,7 +3,7 @@ import { createRef } from 'react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContextMenu } from './context-menu';
-import { MenuItem, MenuLabel } from './overlay';
+import { MenuItem, MenuLabel } from './menu';
 import { NishProvider } from './provider';
 
 let phone = false;
@@ -309,7 +309,7 @@ describe('ContextMenu', () => {
     render(<Area />);
     fireEvent.contextMenu(screen.getByTestId('row'));
     await flush();
-    expect(screen.getByRole('dialog', { name: 'Menu' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Menu' })).toBeTruthy();
   });
 
   it('puts focus back on the row after closing', async () => {

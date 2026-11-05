@@ -21,7 +21,7 @@ import { shared } from '../runtime';
 import { isRtl, useIsClient, useIsoLayoutEffect } from './client';
 import { mergeRefs, warnOnce } from './data-classes';
 import { useLatest } from './latest';
-import { place } from './overlay';
+import { place } from './overlay-position';
 import { keyboardFocused, touchTracker } from './overlay-classes';
 import { useNishConfig } from './provider';
 

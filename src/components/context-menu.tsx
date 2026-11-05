@@ -3,7 +3,8 @@ import { useRef, useState, type ComponentPropsWithoutRef, type MouseEvent as Rea
 import { cn } from '../cn';
 import { isRtl, useIsoLayoutEffect } from './client';
 import { mergeRefs } from './data-classes';
-import { DropdownMenu, type PopoverCloseReason } from './overlay';
+import { DropdownMenu } from './menu';
+import type { PopoverCloseReason } from './overlay-position';
 import { useNishStrings } from './provider';
 
 export interface ContextMenuProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'className'> {
