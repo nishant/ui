@@ -62,8 +62,14 @@ function elementsConfig(name: string, entry: string, types: string): Options {
 
 const configs: Options[] = [
   {
-    // Types of the main entry and of @nish/ui/system-canvas. Their JS is the preserved-modules build in dist/esm.
-    entry: { index: 'src/index.ts', 'system-canvas': 'src/system-canvas.ts' },
+    // Types of the main entry and of the system-canvas, inbox and service-tokens entries. Their JS is the
+    // preserved-modules build in dist/esm.
+    entry: {
+      index: 'src/index.ts',
+      'system-canvas': 'src/system-canvas.ts',
+      inbox: 'src/inbox.ts',
+      'service-tokens': 'src/service-tokens.ts',
+    },
     format: ['esm'],
     dts: { only: true },
     target: 'es2022',

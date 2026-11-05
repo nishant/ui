@@ -105,6 +105,12 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "modal-themes",
+      "url": "http://localhost:5191/#/components/modal/themes",
+      "waitFor": "[data-page]",
+      "settle": 1500
+    },
+    {
       "name": "button-themes",
       "url": "http://localhost:5191/#/components/button/themes",
       "waitFor": "[data-page]",

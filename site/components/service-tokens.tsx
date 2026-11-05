@@ -80,7 +80,8 @@ export const serviceTokensDoc: ComponentDoc = {
   summary:
     "The settings block that lists the service tokens an app accepts (the bearer tokens the nish MCP server uses) with a Revoke button on each. Revoking asks first, takes effect at once and cannot be undone.",
   importLine:
-    "import { ServiceTokensSection, useServiceTokens } from '@nish/ui';",
+    "import { ServiceTokensSection, useServiceTokens } from '@nish/ui/service-tokens'; // also on '@nish/ui' through 2.x",
+  fleetOnly: true,
   controls: [{ key: "failRevoke", label: "Make revoke fail", type: "boolean" }],
   initial: { failRevoke: false },
   render: (a) => (
@@ -149,6 +150,7 @@ app.use('/api/service-tokens/*', requireSession(auth));
 mountServiceTokenRoutes(app, { tokens });
 
 // Client: the settings page
+import { ServiceTokensSection, useServiceTokens } from '@nish/ui/service-tokens';
 const t = useServiceTokens();
 <ServiceTokensSection tokens={t.tokens} error={t.error} onRetry={t.reload} onRevoke={t.revoke} />`,
   guidelines: [

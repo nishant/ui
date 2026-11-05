@@ -133,7 +133,8 @@ export const inbox: ComponentDoc = {
   exports: ['Inbox'],
   summary:
     'One list for events from every app: Open, Snoozed and Handled views, a source filter, and handle, snooze and undo actions on each row. The page owns the data and the calls; Inbox renders it and reports what was picked.',
-  importLine: "import { Inbox } from '@nish/ui';",
+  importLine: "import { Inbox } from '@nish/ui/inbox'; // also on '@nish/ui' through 2.x",
+  fleetOnly: true,
   controls: [
     { key: 'view', label: 'View', type: 'select', options: ['open', 'snoozed', 'handled'] },
     { key: 'state', label: 'State', type: 'select', options: ['ready', 'loading', 'error', 'empty', 'selected'] },
@@ -176,7 +177,7 @@ export const inbox: ComponentDoc = {
     { id: 'empty', name: 'Empty', render: () => <Demo state="empty" /> },
     { id: 'single', name: 'One source, load more', note: 'The source filter hides with one source or fewer.', render: () => <Demo one more mark={false} /> },
   ],
-  usage: `import { Inbox } from '@nish/ui';
+  usage: `import { Inbox } from '@nish/ui/inbox';
 
 <Inbox
   items={data.items}

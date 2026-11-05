@@ -268,20 +268,36 @@ function routeColumns(layout: CanvasLayout, groups: CanvasGroup[], edges: Canvas
   }
 
   // --- horizontal stretches already taken, then corridor tracks -------------------------
-  const taken: HSeg[] = [];
+  // Taken stretches, bucketed by track row, so a free-track test looks at its neighbours only.
+  const buckets = new Map<number, HSeg[]>();
+  const addTaken = (h: HSeg) => {
+    const k = Math.floor(h.y / TRACK_GAP);
+    const list = buckets.get(k);
+    if (list) list.push(h);
+    else buckets.set(k, [h]);
+  };
   for (const w of wires) {
-    taken.push({ y: w.src.y, xa: w.src.x, xb: lanes.get(w.exit)!.x, src: w.src.key, dst: w.dst.key, track: false });
-    taken.push({ y: w.dst.y, xa: lanes.get(w.entry)!.x, xb: w.dst.x, src: w.src.key, dst: w.dst.key, track: false });
+    addTaken({ y: w.src.y, xa: w.src.x, xb: lanes.get(w.exit)!.x, src: w.src.key, dst: w.dst.key, track: false });
+    addTaken({ y: w.dst.y, xa: lanes.get(w.entry)!.x, xb: w.dst.x, src: w.src.key, dst: w.dst.key, track: false });
   }
   const sameLine = (h: HSeg, w: Wire) => h.src === w.src.key || h.dst === w.dst.key;
   const trackFree = (y: number, xa: number, xb: number, w: Wire) => {
-    for (const h of taken) {
-      if (Math.min(xb, h.xb) - Math.max(xa, h.xa) <= 0.5) continue;
-      const dy = Math.abs(h.y - y);
-      if (dy < 0.5 ? !sameLine(h, w) : h.track && dy < TRACK_GAP - 0.5) return false;
+    const lastBucket = Math.floor((y + TRACK_GAP) / TRACK_GAP);
+    for (let k = Math.floor((y - TRACK_GAP) / TRACK_GAP); k <= lastBucket; k++) {
+      const list = buckets.get(k);
+      if (!list) continue;
+      for (const h of list) {
+        if (Math.min(xb, h.xb) - Math.max(xa, h.xa) <= 0.5) continue;
+        const dy = Math.abs(h.y - y);
+        if (dy < 0.5 ? !sameLine(h, w) : h.track && dy < TRACK_GAP - 0.5) return false;
+      }
     }
     return true;
   };
+  // Corridor tracks taken so far, per source and per target port: [y, order taken].
+  let trackSeq = 0;
+  const tracksByPort = new Map<string, [number, number][]>();
+  const noTracks: [number, number][] = [];
   const spanOf = (w: Wire): [number, number] => (w.mode === 'far' ? [w.src.col + 1, w.dst.col - 1] : [w.dst.col, w.src.col]);
   const cardFree = (y: number, c0: number, c1: number) => {
     for (let c = c0; c <= c1; c++) for (const b of cols[c]!.boxes) if (y > b.y - CLEARANCE + 1e-6 && y < b.y + b.h + CLEARANCE - 1e-6) return false;
@@ -321,26 +337,49 @@ function routeColumns(layout: CanvasLayout, groups: CanvasGroup[], edges: Canvas
     const [c0, c1] = spanOf(w);
     const avg = (w.src.y + w.dst.y) / 2;
     const near = (a: number, b: number) => Math.abs(a - avg) - Math.abs(b - avg) || a - b;
-    // Candidates, best first: a track an edge of the same source or target already uses, then
-    // the free bands nearest the ports, then lines above the top group or below the bottom one.
-    const candidates: number[] = [];
-    for (const h of taken) if (h.track && sameLine(h, w) && !candidates.includes(h.y)) candidates.push(h.y);
-    for (const b of [...bandsOf(c0, c1)].sort((p, q) => gap(avg, p) - gap(avg, q) || p[0] - q[0])) {
-      const n = Math.min(Math.floor((b[1] - b[0]) / TRACK_GAP) + 1, wanted.get(`${b[0]}|${b[1]}`) ?? 1);
-      const slots: number[] = [];
-      for (let i = 0; i < n; i++) slots.push((b[0] + b[1]) / 2 + TRACK_GAP * (i - (n - 1) / 2));
-      candidates.push(...slots.sort(near));
-    }
-    const outer: number[] = [];
-    for (let k = 0; k <= wires.length; k++) outer.push(minY - OUTSIDE_GAP - TRACK_GAP * k, maxY + OUTSIDE_GAP + TRACK_GAP * k);
-    candidates.push(...outer.sort(near));
     const xo = lanes.get(w.exit)!.x;
     const xe = lanes.get(w.entry)!.x;
     const xa = Math.min(xo, xe);
     const xb = Math.max(xo, xe);
-    const y = candidates.find((c) => cardFree(c, c0, c1) && trackFree(c, xa, xb, w)) ?? candidates[candidates.length - 1]!;
+    // Candidates, best first: a track an edge of the same source or target already uses, then
+    // the free bands nearest the ports, then lines above the top group or below the bottom one.
+    // They are tried lazily in the order of the old sorted list; route-golden.test.ts pins it.
+    const ok = (c: number) => cardFree(c, c0, c1) && trackFree(c, xa, xb, w);
+    const find = (): number => {
+      const bySrc = tracksByPort.get('s' + w.src.key) ?? noTracks;
+      const byDst = tracksByPort.get('d' + w.dst.key) ?? noTracks;
+      const seen = new Set<number>();
+      for (let i = 0, j = 0; i < bySrc.length || j < byDst.length; ) {
+        const t = j >= byDst.length || (i < bySrc.length && bySrc[i]![1] <= byDst[j]![1]) ? bySrc[i++]! : byDst[j++]!;
+        if (seen.has(t[0])) continue;
+        seen.add(t[0]);
+        if (ok(t[0])) return t[0];
+      }
+      for (const b of [...bandsOf(c0, c1)].sort((p, q) => gap(avg, p) - gap(avg, q) || p[0] - q[0])) {
+        const n = Math.min(Math.floor((b[1] - b[0]) / TRACK_GAP) + 1, wanted.get(`${b[0]}|${b[1]}`) ?? 1);
+        const slots: number[] = [];
+        for (let i = 0; i < n; i++) slots.push((b[0] + b[1]) / 2 + TRACK_GAP * (i - (n - 1) / 2));
+        for (const c of slots.sort(near)) if (ok(c)) return c;
+      }
+      let last = 0;
+      for (let i = 0, j = 0; i <= wires.length || j <= wires.length; ) {
+        const up = minY - OUTSIDE_GAP - TRACK_GAP * i;
+        const down = maxY + OUTSIDE_GAP + TRACK_GAP * j;
+        const c = j > wires.length || (i <= wires.length && near(up, down) <= 0) ? (i++, up) : (j++, down);
+        if (ok(c)) return c;
+        last = c;
+      }
+      return last;
+    };
+    const y = find();
     trackYs.set(w.edge.id, y);
-    taken.push({ y, xa, xb, src: w.src.key, dst: w.dst.key, track: true });
+    addTaken({ y, xa, xb, src: w.src.key, dst: w.dst.key, track: true });
+    for (const key of ['s' + w.src.key, 'd' + w.dst.key]) {
+      const list = tracksByPort.get(key);
+      if (list) list.push([y, trackSeq]);
+      else tracksByPort.set(key, [[y, trackSeq]]);
+    }
+    trackSeq++;
   }
 
   // --- paths ---------------------------------------------------------------------------

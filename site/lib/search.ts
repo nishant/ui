@@ -1,10 +1,8 @@
-// The docs search index: what the header's command palette searches. Pages, components,
-// prop names (from docgen), page section headings come straight away; token names and
-// static class names are read from the built CSS on first open, so the main bundle does
-// not carry them.
-import docgen from 'virtual:nish-docgen';
+// The docs search index: what the header's command palette searches. Pages, components and
+// page section headings come straight away; prop names (from docgen), token names and static
+// class names load on first open, so the shell chunk does not carry them.
 import type { CommandItem } from '../../src';
-import { COMPONENT_DOCS } from '../components';
+import { DOCS } from './docs';
 import { href } from './router';
 
 export interface SearchPage {
@@ -35,7 +33,7 @@ const SECTIONS: { path: string; page: string; headings: string[] }[] = [
 
 const SKIP_PROPS = new Set(['className', 'children']);
 
-const hasDoc = (id: string) => COMPONENT_DOCS.some((d) => d.id === id);
+const hasDoc = (id: string) => DOCS.some((d) => d.id === id);
 
 /** Where a CSS variable is documented. */
 function tokenPath(name: string): string {
@@ -51,7 +49,7 @@ export function baseItems(pages: SearchPage[]): CommandItem[] {
   const items: CommandItem[] = [];
   // Component pages get their own, richer entries below.
   for (const p of pages.filter((x) => !x.path.startsWith('/components/'))) items.push({ id: `page:${p.path}`, label: p.label, group: 'Pages', hint: 'Page', href: href(p.path) });
-  for (const d of COMPONENT_DOCS) {
+  for (const d of DOCS) {
     items.push({
       id: `component:${d.id}`,
       label: d.name,
@@ -60,6 +58,18 @@ export function baseItems(pages: SearchPage[]): CommandItem[] {
       keywords: [d.summary, ...d.exports],
       href: href(`/components/${d.id}`),
     });
+  }
+  for (const s of SECTIONS) {
+    for (const h of s.headings) items.push({ id: `section:${s.path}:${h}`, label: h, group: 'Sections', hint: s.page, href: href(s.path) });
+  }
+  return items;
+}
+
+/** Prop names of every documented component, from the docgen data (its own chunk, loaded on demand). */
+export async function propItems(): Promise<CommandItem[]> {
+  const { default: docgen } = await import('virtual:nish-docgen');
+  const items: CommandItem[] = [];
+  for (const d of DOCS) {
     const seen = new Set<string>();
     for (const name of d.exports) {
       for (const prop of docgen.components[name]?.props ?? []) {
@@ -68,9 +78,6 @@ export function baseItems(pages: SearchPage[]): CommandItem[] {
         items.push({ id: `prop:${d.id}:${prop.name}`, label: prop.name, group: 'Props', hint: d.name, href: href(`/components/${d.id}`) });
       }
     }
-  }
-  for (const s of SECTIONS) {
-    for (const h of s.headings) items.push({ id: `section:${s.path}:${h}`, label: h, group: 'Sections', hint: s.page, href: href(s.path) });
   }
   return items;
 }

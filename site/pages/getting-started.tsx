@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import docgen from 'virtual:nish-docgen';
+import pkg from 'virtual:nish-pkg';
 import { CodeBlock } from '../lib/code';
 import { href } from '../lib/router';
 import { Tabs } from '../../src';
@@ -9,7 +9,7 @@ type Kind = 'vite' | 'next' | 'static' | 'electron';
 
 export function GettingStartedPage() {
   const [kind, setKind] = useState<Kind>('vite');
-  const v = docgen.version;
+  const v = pkg.version;
   return (
     <div className="space-y-10">
       <PageHeader
@@ -256,7 +256,7 @@ export default function Page() {
           <Section title="1. Copy the dist files" note="From node_modules/nish-ui/dist or a release tag. dist/files.json lists exactly what to copy.">
             <CodeBlock
               title="what a static site vendors"
-              code={docgen.distFiles.map((f) => `nish/${f}`).join('\n')}
+              code={pkg.distFiles.map((f) => `nish/${f}`).join('\n')}
             />
           </Section>
           <Section title="2. Link them" note="theme-init.js first, render-blocking, then the stylesheet.">

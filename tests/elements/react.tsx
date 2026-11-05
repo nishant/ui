@@ -421,6 +421,10 @@ const RAIL_ITEMS = [
   { key: 'home', label: 'Home', icon: ico('M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z', 22), href: '/home', active: true },
   { key: 'trips', label: 'Trips', icon: ico('M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', 22), href: '/trips' },
 ];
+const HALVES_COL = { type: 'split', dir: 'col', sizes: [0.5, 0.5], children: [{ type: 'leaf', slot: 0 }, { type: 'leaf', slot: 1 }] } as const;
+// A NavRail item's classes, for the tools slot (React takes any node there, the element version a .nish-nav-rail-item).
+const RAIL_TOOL_LINK =
+  'group flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-2xs leading-tight font-normal text-th-hi3 hover:text-th-hi';
 const TOPICS = ['All', 'Guides', 'Builds', 'Redstone', 'Farms', 'Mods', 'Seeds', 'Servers'];
 const HALVES = { type: 'split', dir: 'row', sizes: [0.5, 0.5], children: [{ type: 'leaf', slot: 0 }, { type: 'leaf', slot: 1 }] } as const;
 const LINE_DATA = [
@@ -495,6 +499,36 @@ const WAVE3: Record<string, () => ReactNode> = {
       />
     </div>
   ),
+  'split-column': () => (
+    <div className="case" style={{ height: 240, position: 'relative', display: 'flex' }}>
+      <SplitStage
+        className="flex-1"
+        layout={HALVES_COL}
+        items={['a', 'b']}
+        slots={['a', 'b']}
+        resizable
+        animate={false}
+        renderPane={(id) => <div className="pane" style={{ height: '100%', background: id === 'a' ? 'var(--nish-surface)' : 'var(--nish-elevated)' }} />}
+      />
+    </div>
+  ),
+  'nav-rail-tools': () => (
+    <NavRail
+      className="case"
+      items={RAIL_ITEMS}
+      showFrom="sm"
+      hideFrom={false}
+      tools={
+        <a className={RAIL_TOOL_LINK} href="/search">
+          <span className="relative inline-flex h-8 w-14 items-center justify-center rounded-full transition-colors group-hover:bg-th-elevated">
+            {ico('M21 21l-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 22)}
+          </span>
+          <span className="max-w-full truncate px-1">Search</span>
+        </a>
+      }
+      footer={<ThemeToggle variant="pill" />}
+    />
+  ),
   'nav-rail': () => <NavRail className="case" items={RAIL_ITEMS} showFrom="sm" hideFrom={false} />,
   'nav-rail-default': () => <NavRail className="case" items={RAIL_ITEMS} />,
   'scroll-row': () => (
@@ -505,6 +539,17 @@ const WAVE3: Record<string, () => ReactNode> = {
         </Chip>
       ))}
     </ScrollRow>
+  ),
+  'scroll-row-bleed': () => (
+    <div style={{ '--nish-page-gutter': window.innerWidth >= 640 ? '1.5rem' : '1rem' } as CSSProperties}>
+      <ScrollRow label="Topics" bleed className="case">
+        {TOPICS.map((t, i) => (
+          <Chip key={t} pressed={i === 0} className="shrink-0">
+            {t}
+          </Chip>
+        ))}
+      </ScrollRow>
+    </div>
   ),
   // The page gutter comes from base.css in an app (this page loads only the Tailwind layer).
   'section-nav': () => (
@@ -537,7 +582,7 @@ const WAVE3: Record<string, () => ReactNode> = {
   'setting-row-inline': () => settings(false, { inline: true }),
   'setting-row-status': () => settings(false, { status: 'Saved', statusTone: 'ok' }),
   'setting-row-error': () => settings(false, { status: 'Failed', statusTone: 'error' }),
-  command: () => <CommandPalette open onOpenChange={noop} hotkey={false} items={PALETTE_ITEMS} placeholder="Jump to…" />,
+  command: () => <CommandPalette open onOpenChange={noop} hotkey={false} items={PALETTE_ITEMS} placeholder="Jump to…" emptyText="Nothing found" />,
   'line-chart': () => <LineChart className="case" label="Latency" height={160} data={LINE_DATA} />,
   'line-chart-area': () => <LineChart className="case" label="Latency" height={160} data={LINE_DATA} area />,
   'line-chart-multi': () => (

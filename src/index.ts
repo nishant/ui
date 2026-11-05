@@ -272,7 +272,25 @@ export type { ServiceTokensSectionProps } from './components/service-tokens';
 export type { ServiceTokenView, ServiceTokenListResponse } from './service-token-types';
 export { Combobox } from './components/combobox';
 export type { ComboboxProps, ComboboxOption } from './components/combobox';
-export { CheckIcon, ClockIcon, MoreIcon, BellIcon, SettingsIcon } from './components/icons';
+export {
+  XIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  AlertTriangleIcon,
+  InfoIcon,
+  RotateIcon,
+  LoaderIcon,
+  SunIcon,
+  MoonIcon,
+  MonitorIcon,
+  ChevronDownIcon,
+  ClockIcon,
+  MoreIcon,
+  BellIcon,
+  SettingsIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+} from './components/icons';
 export { SplitStage, SplitDividers, LayoutPresetPicker, LayoutPresetIcon } from './components/split';
 export { presetOptions } from './components/split-classes';
 export type { SplitStageProps, SplitDividersProps, LayoutPresetPickerProps, LayoutPresetIconProps, LayoutPresetOption } from './components/split';

@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { Input, useTheme } from '../../src';
-import { COMPONENT_DOCS, type ComponentDoc } from '../components';
+import { use, useMemo, useState } from 'react';
+import { Badge, Input, useTheme } from '../../src';
+import type { ComponentDoc } from '../components/types';
+import { loadAllDocs } from '../lib/docs';
 import { href } from '../lib/router';
 import { PageHeader } from '../lib/ui';
 import { frameUrl } from './component';
@@ -11,7 +12,10 @@ function Tile({ doc }: { doc: ComponentDoc }) {
   return (
     <article className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-th-line bg-th-surface">
       <header className="flex items-baseline justify-between gap-3 border-b border-th-line px-4 py-2.5">
-        <h2 className="min-w-0 truncate text-sm font-semibold text-th-hi">{doc.name}</h2>
+        <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-th-hi">
+          <span className="min-w-0 truncate">{doc.name}</span>
+          {doc.fleetOnly ? <Badge tone="info">Fleet-only</Badge> : null}
+        </h2>
         <a href={href(`/components/${doc.id}`)} className="shrink-0 text-xs font-medium text-th-accent hover:underline pointer-coarse:flex pointer-coarse:min-h-11 pointer-coarse:items-center">
           Open <span aria-hidden="true">&rarr;</span>
           <span className="sr-only"> {doc.name}</span>
@@ -29,11 +33,12 @@ function Tile({ doc }: { doc: ComponentDoc }) {
 }
 
 export function WallPage() {
+  const docs = use(loadAllDocs());
   const [q, setQ] = useState('');
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return needle ? COMPONENT_DOCS.filter((d) => `${d.name} ${d.summary}`.toLowerCase().includes(needle)) : COMPONENT_DOCS;
-  }, [q]);
+    return needle ? docs.filter((d) => `${d.name} ${d.summary}`.toLowerCase().includes(needle)) : docs;
+  }, [docs, q]);
 
   return (
     <div className="space-y-8">
@@ -48,7 +53,7 @@ export function WallPage() {
             <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter components" aria-label="Filter components" />
           </label>
           <p className="text-sm text-th-hi3" aria-live="polite">
-            {shown.length} of {COMPONENT_DOCS.length}
+            {shown.length} of {docs.length}
           </p>
         </div>
       </PageHeader>

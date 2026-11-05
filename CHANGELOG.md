@@ -15,11 +15,19 @@ a minor adds, and a patch fixes.
 - `AppShell` `headerInnerClassName`, `containerClassName`, `footer`, `fullHeight` and `navPending` (placeholder tabs while sign-in is checked).
 - `AppShell` `sidebar.brand`: from 1024px the brand, the hub pill, the actions and the theme toggle move into the sidebar and the header goes away.
 - `NavItem` `shortLabel`: a shorter label for the NavRail and the BottomNav.
+- `nish-ui/inbox` and `nish-ui/service-tokens` entry points with the same values as the root exports (`Inbox`, `ServiceTokensSection`, `useServiceTokens` and their types).
+- The rest of the package's inlined icons are exported from the root: `XIcon`, `CheckCircleIcon`, `AlertTriangleIcon`, `InfoIcon`, `RotateIcon`, `LoaderIcon`, `SunIcon`, `MoonIcon`, `MonitorIcon`, `ChevronDownIcon`, `PanelLeftCloseIcon` and `PanelLeftOpenIcon`. lucide-react is the official icon set for apps; the Icons page on design.nish.software has the sizes, the standard icon for each common action and the rule for a new glyph.
 
 ### Changed
 
 - `AppShell` loads its More sheet on demand, and `DropdownMenu` its phone sheet, so `AppShell` is 34.8 KB gzip instead of 37.2 KB and `SystemCanvas` 26.5 KB instead of 27.1 KB. Import paths are unchanged.
 - The overlay components are separate modules inside the package (`modal`, `drawer`, `tooltip`, `popover`, `menu`).
+- `routeEdges` (and SystemCanvas) route large maps much faster: 500 nodes about 20x faster (about 5-15 ms instead of 100+ ms), with the same lines.
+- Inbox, ServiceTokensSection and SystemCanvas are marked fleet-only in the docs; their root exports stay through 2.x.
+
+### Fixed
+
+- `openSheet` on a dialog that is already open returns a closer that closes it. Before, calling that closer threw a ReferenceError.
 
 ## [2.0.2] - 2026-11-03
 
