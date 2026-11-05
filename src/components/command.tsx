@@ -12,9 +12,11 @@ import { cn } from '../cn';
 import { safeUrl } from '../url';
 import { XIcon } from './icons';
 import { Modal } from './modal';
-import { whenHistorySettled } from './overlay-core';
+import { navigateFromLayer, warnUnsafe } from './navigate';
 import { useLatest } from './latest';
 import { useNishStrings } from './provider';
+
+export { navigateFromLayer };
 
 // ---------------------------------------------------------------------------------
 // CommandPalette: a search-and-jump dialog (Ctrl/Cmd+K) over a list of items.
@@ -121,41 +123,6 @@ function matchText(text: string, q: string): { tier: number; idx: number[] } | n
     from = found + 1;
   }
   return { tier: 3, idx };
-}
-
-/** Navigates after the layer that is closing has dropped its own history entry. Running
- *  `history.back()` (the layer's cleanup) right after `location.assign` would cancel the
- *  navigation, so wait for that pop to finish. Call it before closing the layer. */
-export function navigateFromLayer(rawHref: string): void {
-  const href = safeUrl(rawHref);
-  if (href === null) {
-    warnUnsafe(rawHref);
-    return;
-  }
-  const inLayer = !!(history.state as { nishLayer?: string } | null)?.nishLayer;
-  if (!inLayer) {
-    window.location.assign(href);
-    return;
-  }
-  let done = false;
-  const go = () => {
-    if (done) return;
-    done = true;
-    window.location.assign(href);
-  };
-  // The layer's cleanup issues history.back() after this call (on close), so the back is
-  // not pending yet: defer one tick, then wait for the module's pending backs to settle.
-  window.setTimeout(() => whenHistorySettled(go), 0);
-  // Safety net only.
-  window.setTimeout(go, 400);
-}
-
-function warnUnsafe(href: string): void {
-  try {
-    if (process.env.NODE_ENV !== 'production') console.warn(`CommandPalette: ignored an unsafe href (${href.slice(0, 40)}).`);
-  } catch {
-    // No process or no console.
-  }
 }
 
 function rankItems(items: Indexed[], query: string): Ranked[] {

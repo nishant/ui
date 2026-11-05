@@ -263,7 +263,13 @@ export function AppShell({
   const showPills = hasNav && !side && !headerMode && tabs === 'pill';
   const headerNav =
     !hasNav && navPending > 0
-      ? Array.from({ length: navPending }, (_, i) => <Skeleton key={i} aria-hidden="true" className={cn('w-24 rounded-lg pointer-coarse:h-11', tabs === 'pill' ? 'h-8' : 'h-10')} />)
+      ? [
+          // Skeleton is already aria-hidden; this keeps the placeholder landmark from being empty.
+          <span key="loading" className="sr-only">
+            {strings.loading}
+          </span>,
+          ...Array.from({ length: navPending }, (_, i) => <Skeleton key={i} className={cn('w-24 rounded-lg pointer-coarse:h-11', tabs === 'pill' ? 'h-8' : 'h-10')} />),
+        ]
       : showHeaderTabs
         ? tabNodes(tabs === 'pill' ? 'pill' : 'underline')
         : undefined;
@@ -380,7 +386,7 @@ export function AppShell({
         ) : null}
         <div className="min-w-0 flex-1">
           {brandMode && collapsed ? (
-            <div className="hidden min-h-14 items-center gap-3 border-b border-th-line px-[var(--nish-page-gutter,1rem)] py-1.5 lg:flex">
+            <div className="hidden h-14 items-center gap-3 border-b border-th-line px-[var(--nish-page-gutter,1rem)] py-[5px] lg:flex">
               {hubPill}
               {brandNode(true)}
             </div>

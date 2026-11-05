@@ -2,7 +2,7 @@
 import { useState, type ReactNode, type RefObject } from 'react';
 import { safeUrl } from '../url';
 import { isRtl, useIsoLayoutEffect } from './client';
-import { navigateFromLayer } from './command';
+import { navigateFromLayer } from './navigate';
 import { warnDev } from './display-classes';
 import { useNishConfig, useNishStrings } from './provider';
 import type { NavItem, RenderLink } from './nav';

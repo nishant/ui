@@ -10,6 +10,8 @@ const item = (key: string, label: string, active = false): NavItem => ({ key, la
 const SIX = [item('home', 'Home', true), item('jobs', 'Jobs'), item('saved', 'Saved'), item('alerts', 'Alerts'), item('reports', 'Reports'), item('settings', 'Settings')];
 
 let failNext = false;
+// Set once the mocked chunk (more-sheet and its dependencies) has fully loaded.
+let resolved = false;
 let gate: Promise<void> = Promise.resolve();
 let release: () => void = () => {};
 
@@ -21,7 +23,9 @@ async function setup() {
       failNext = false;
       throw new Error('chunk failed');
     }
-    return await vi.importActual<typeof import('./more-sheet')>('./more-sheet');
+    const actual = await vi.importActual<typeof import('./more-sheet')>('./more-sheet');
+    resolved = true;
+    return actual;
   });
   const { AppShell } = await import('./app-shell');
   render(<AppShell name="S" nav={SIX}>x</AppShell>);
@@ -31,6 +35,7 @@ const moreButton = () => screen.getAllByRole('button', { name: /more/i, hidden: 
 
 beforeEach(() => {
   failNext = false;
+  resolved = false;
   gate = Promise.resolve();
   window.matchMedia = ((query: string) => ({
     matches: false,
@@ -80,7 +85,12 @@ describe('AppShell: lazy More sheet', () => {
       release();
       await gate;
     });
-    await waitFor(() => expect(moreButton().getAttribute('aria-expanded')).toBe('false'));
+    // Wait until the lazy import has really landed, then flush the state updates it triggers.
+    await waitFor(() => expect(resolved).toBe(true));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(moreButton().getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByRole('dialog', { name: 'More' })).toBeNull();
   });
 });

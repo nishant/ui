@@ -425,6 +425,8 @@ describe('AppShell: layout props', () => {
     expect(sk.className).toContain('h-10');
     expect(sk.className).toContain('pointer-coarse:h-11');
     expect(sk.getAttribute('aria-hidden')).toBe('true');
+    // The landmark is not empty for assistive tech while pending.
+    expect(navEl.textContent).toContain('Loading');
     unmount();
     render(<AppShell name="S" nav={FIVE} navPending={2}>x</AppShell>);
     expect(document.querySelectorAll('.nish-skeleton')).toHaveLength(0);
@@ -466,7 +468,9 @@ describe('AppShell: sidebar brand', () => {
     expect(brand).toHaveBeenCalledWith({ collapsed: true });
     expect(within(aside()).queryByText('OTA.')).toBeNull();
     const bar = screen.getByText('O').parentElement as HTMLElement;
-    expect(bar.className).toContain('min-h-14');
+    // Fixed height equal to the 3.5rem in the fullHeight calc, so the page never overflows the viewport.
+    expect(bar.className).toContain('h-14');
+    expect(bar.className).not.toContain('min-h-14');
     expect(within(bar).getByRole('link', { name: /nish\.software/, hidden: true })).toBeTruthy();
   });
 
