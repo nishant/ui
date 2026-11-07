@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [2.1.1] - 2026-11-07
+
+### Changed
+
+- The docs site (design.nish.software) has the new Midnight Line app icon: favicon, apple-touch icon and the phone app icons, with a separate maskable icon. No package changes.
+
 ## [2.1.0] - 2026-11-05
 
 ### Added
