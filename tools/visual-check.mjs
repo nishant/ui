@@ -16,6 +16,9 @@
 //   "setTheme": "localStorage.setItem('nish-theme','{theme}')",     // optional; runs before page scripts
 //   "fullPage": true,
 //   "maxHeight": 16000,                                            // optional; full-page shots stop here
+//                                                                  // (also per page: a very tall page at 840px
+//                                                                  // is height x 2.5 device px, and past
+//                                                                  // ~16,000 Chromium on CI can leave bands blank)
 //   "ignoreConsole": ["regex", ...],                                // optional; also per page
 //   "login": { "url": "http://localhost:{port}/login", "body": {} } // optional; POSTed in each browser
 //                                                                  // context before the page loads (the
@@ -298,9 +301,10 @@ for (const pg of config.pages) {
         }
         if (fullPage) {
           const height = await page.evaluate(() => Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0));
-          if (height > MAX_HEIGHT) {
-            opts.clip = { x: 0, y: 0, width: vp.width, height: MAX_HEIGHT };
-            shot.note = `clipped at ${MAX_HEIGHT}px of ${height}px`;
+          const maxHeight = pg.maxHeight ?? MAX_HEIGHT;
+          if (height > maxHeight) {
+            opts.clip = { x: 0, y: 0, width: vp.width, height: maxHeight };
+            shot.note = `clipped at ${maxHeight}px of ${height}px`;
           }
         }
         // A full-page capture draws position:fixed bars (bottom navs, toolbars) where the
