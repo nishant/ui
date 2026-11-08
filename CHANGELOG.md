@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [2.1.2] - 2026-11-07
+
+### Changed
+
+- The docs site header (design.nish.software) shows the art-palette mark from the new app icon instead of the old "N". No package changes.
+
 ## [2.1.1] - 2026-11-07
 
 ### Changed
