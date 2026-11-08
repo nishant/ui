@@ -533,6 +533,7 @@ export function Field({
   const inline = layout === 'inline';
   const labelEl = (
     <label
+      id={`${controlId}-label`}
       htmlFor={controlId}
       className={cn(
         'flex flex-wrap items-baseline gap-x-1.5',

@@ -68,6 +68,24 @@ export interface NishStrings {
   monthToken: string;
   /** DatePicker: year token in the placeholder. */
   yearToken: string;
+  /** DateRangePicker: calendar button name while empty, and the popover name. */
+  chooseDates: string;
+  /** DateRangePicker: calendar button name once a range is set. */
+  changeDates: (range: string) => string;
+  /** RangeCalendar, DateRangePicker: two dates read as a range. */
+  dateRange: (from: string, to: string) => string;
+  /** RangeCalendar: live-region text after the first day is picked. */
+  rangeStarted: (start: string) => string;
+  /** DateRangePicker: custom validity message for text that is not a range. */
+  invalidDateRange: string;
+  /** TimeField: name of the hour box. */
+  hour: string;
+  /** TimeField: name of the minute box. */
+  minute: string;
+  /** TimeField: name of the AM/PM select. */
+  dayPeriod: string;
+  /** TimeField: custom validity message for a time that is incomplete or not allowed. */
+  invalidTime: string;
   /** MultiSelect: announcement after a value is added. */
   optionAdded: (label: string) => string;
   /** MultiSelect: announcement after a value is removed. */
@@ -314,6 +332,15 @@ export const DEFAULT_STRINGS: NishStrings = {
   dayToken: 'DD',
   monthToken: 'MM',
   yearToken: 'YYYY',
+  chooseDates: 'Choose dates',
+  changeDates: (range) => `Change dates, ${range}`,
+  dateRange: (from, to) => `${from} to ${to}`,
+  rangeStarted: (start) => `Start date ${start}. Pick the end date.`,
+  invalidDateRange: 'Enter a valid date range.',
+  hour: 'Hour',
+  minute: 'Minute',
+  dayPeriod: 'AM/PM',
+  invalidTime: 'Enter a valid time.',
   optionAdded: (l) => `Added ${l}`,
   optionRemoved: (l) => `Removed ${l}`,
   clearAll: 'Clear all',

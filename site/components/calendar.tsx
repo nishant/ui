@@ -112,5 +112,6 @@ export const calendar: ComponentDoc = {
     'Values are YYYY-MM-DD strings, the same as <input type="date">, so no timezone can shift the day.',
     'Disabled days stay reachable with the arrow keys and are read as unavailable; give the reason next to the calendar.',
     'The first day of the week follows the locale (Sunday in the US, Monday in most of Europe); weekStartsOn overrides it.',
+    'For a span of days (a trip, a report period), use RangeCalendar.',
   ],
 };

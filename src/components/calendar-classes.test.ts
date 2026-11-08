@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { cn } from '../cn';
 import {
   addDays,
   addMonths,
   addYears,
+  calendarDayClass,
   calendarKeyTarget,
   clampIso,
   dateFieldParts,
@@ -10,8 +12,10 @@ import {
   dayNumber,
   daysInMonth,
   endOfWeek,
+  firstDisabledIn,
   firstOfMonth,
   formatDateField,
+  formatRangeField,
   fullDate,
   inRange,
   isoToday,
@@ -19,13 +23,18 @@ import {
   monthNames,
   monthOf,
   monthTitle,
+  orderRange,
   parseDateField,
   parseIso,
   parseMonth,
+  parseRangeField,
+  rangePlaceholder,
   resolveLocale,
+  sameRange,
   shiftMonth,
   startOfWeek,
   toIso,
+  toRange,
   weekStartFor,
   weekday,
   weekdayNames,
@@ -276,5 +285,126 @@ describe('typed field round trips', () => {
     expect(monthTitle('2026-11', 'th-TH')).toMatch(/2026/);
     expect(monthTitle('2026-11', 'fa-IR')).toMatch(/2026|۲۰۲۶/);
     expect(monthNames('fa-IR')).toHaveLength(12);
+  });
+});
+
+describe('range helpers', () => {
+  const r = { from: '2026-11-05', to: '2026-11-09' };
+  it('orderRange', () => {
+    expect(orderRange('2026-11-05', '2026-11-09')).toEqual(r);
+    expect(orderRange('2026-11-09', '2026-11-05')).toEqual(r);
+    expect(orderRange('2026-11-05', '2026-11-05')).toEqual({ from: '2026-11-05', to: '2026-11-05' });
+  });
+  it('sameRange', () => {
+    expect(sameRange(null, null)).toBe(true);
+    expect(sameRange(r, null)).toBe(false);
+    expect(sameRange(null, r)).toBe(false);
+    expect(sameRange(r, { ...r })).toBe(true);
+    expect(sameRange(r, { from: r.from, to: '2026-11-10' })).toBe(false);
+    expect(sameRange(r, { from: '2026-11-04', to: r.to })).toBe(false);
+  });
+  it('toRange', () => {
+    expect(toRange({ from: '2026-11-09', to: '2026-11-05' })).toEqual(r);
+    expect(toRange({ from: '2026-11-31', to: '2026-12-01' })).toBeNull();
+    expect(toRange({ from: '2026-11-05' })).toBeNull();
+    expect(toRange({ from: 5, to: '2026-11-05' })).toBeNull();
+    expect(toRange(null)).toBeNull();
+    expect(toRange(undefined)).toBeNull();
+    expect(toRange('x' as never)).toBeNull();
+  });
+  it('firstDisabledIn', () => {
+    const off = new Set(['2026-11-07', '2026-11-08']);
+    expect(firstDisabledIn('2026-11-05', '2026-11-09', (d) => off.has(d))).toBe('2026-11-07');
+    expect(firstDisabledIn('2026-11-05', '2026-11-06', (d) => off.has(d))).toBeNull();
+    expect(firstDisabledIn('2026-11-05', '2026-11-05', () => true)).toBe('2026-11-05');
+    expect(firstDisabledIn('2026-11-09', '2026-11-05', () => true)).toBeNull();
+    expect(firstDisabledIn('9999-12-30', '9999-12-31', () => false)).toBeNull();
+    let calls = 0;
+    expect(
+      firstDisabledIn('2000-01-01', '2100-01-01', () => {
+        calls++;
+        return false;
+      }),
+    ).toBeNull();
+    expect(calls).toBe(3660);
+  });
+  it('rangePlaceholder', () => {
+    expect(rangePlaceholder('en-US', { day: 'DD', month: 'MM', year: 'YYYY' })).toBe('MM/DD/YYYY \u2013 MM/DD/YYYY');
+  });
+  it('formatRangeField uses an en dash with spaces', () => {
+    expect(formatRangeField(r, 'en-US')).toBe('11/05/2026 \u2013 11/09/2026');
+  });
+  it('format and parse round trip', () => {
+    for (const loc of ['en-US', 'de-DE', 'ja-JP', 'ar-EG']) {
+      expect(parseRangeField(formatRangeField(r, loc), loc), loc).toEqual(r);
+    }
+  });
+  it('parseRangeField en-US', () => {
+    const one = { from: '2026-11-05', to: '2026-11-05' };
+    expect(parseRangeField('', 'en-US')).toBeNull();
+    expect(parseRangeField('   ', 'en-US')).toBeNull();
+    expect(parseRangeField('11/05/2026', 'en-US')).toEqual(one);
+    expect(parseRangeField('11/09/2026 - 11/05/2026', 'en-US')).toEqual(r);
+    expect(parseRangeField('2026-11-05/2026-11-09', 'en-US')).toEqual(r);
+    expect(parseRangeField('2026-11-05 \u2013 2026-11-09', 'en-US')).toEqual(r);
+    expect(parseRangeField('11052026 11092026', 'en-US')).toEqual(r);
+    expect(parseRangeField('11/05/26 11/9/26', 'en-US')).toEqual(r);
+    expect(parseRangeField('11/05/2026 to 11/09/2026', 'en-US')).toBeNull();
+    expect(parseRangeField('02/30/2026 \u2013 03/01/2026', 'en-US')).toBeNull();
+    expect(parseRangeField('11/05 11/09', 'en-US')).toBeNull();
+    expect(parseRangeField('11/05/2026 11/09', 'en-US')).toBeNull();
+    expect(parseRangeField('1 2 3 4 5', 'en-US')).toBeNull();
+  });
+  it('parseRangeField de-DE', () => {
+    expect(parseRangeField('05.11.2026 \u2013 09.11.2026', 'de-DE')).toEqual(r);
+  });
+});
+
+describe('calendarDayClass', () => {
+  // Expected strings are built from the class strings Calendar 2.1 renders (calendar.tsx), not from calendarDayClass.
+  const base =
+    'flex size-10 items-center justify-center rounded-lg text-sm tabular-nums text-th-hi2 transition-colors pointer-coarse:h-11 pointer-coarse:w-[min(2.75rem,calc((100vw_-_2.6rem)/7))]';
+  const expected = (isSelected: boolean, isToday: boolean, isDisabled: boolean) =>
+    cn(
+      base,
+      !isSelected && !isDisabled && 'hover:bg-th-elevated hover:text-th-hi',
+      isToday && !isSelected && 'font-semibold text-th-accent ring-1 ring-inset ring-th-accent/50',
+      isSelected &&
+        'bg-th-accent font-semibold text-th-on-accent forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:forced-color-adjust-none',
+      isDisabled && 'cursor-not-allowed text-th-ghost line-through forced-colors:text-[GrayText]',
+    );
+  it('matches the 2.1 class for plain, today, selected and disabled', () => {
+    expect(calendarDayClass({ filled: false, today: false, disabled: false })).toBe(expected(false, false, false));
+    expect(calendarDayClass({ filled: false, today: true, disabled: false })).toBe(expected(false, true, false));
+    expect(calendarDayClass({ filled: true, today: false, disabled: false })).toBe(expected(true, false, false));
+    expect(calendarDayClass({ filled: false, today: false, disabled: true })).toBe(expected(false, false, true));
+  });
+  it('draws band ends and middles', () => {
+    const start = calendarDayClass({ filled: true, today: false, disabled: false, band: 'start' });
+    expect(start).toContain('rounded-e-none');
+    expect(start).toContain('bg-th-accent');
+    expect(calendarDayClass({ filled: true, today: false, disabled: false, band: 'end' })).toContain('rounded-s-none');
+    const mid = calendarDayClass({ filled: false, today: false, disabled: false, band: 'middle' });
+    expect(mid).toContain('rounded-none');
+    expect(mid).toContain('bg-th-accent-soft');
+    expect(mid).not.toContain('hover:bg-th-elevated');
+  });
+  it('strengthens the today ring inside a band only', () => {
+    const inBand = calendarDayClass({ filled: false, today: true, disabled: false, band: 'middle' });
+    expect(inBand.split(' ')).toContain('ring-th-accent');
+    expect(inBand).not.toContain('ring-th-accent/50');
+    const plain = calendarDayClass({ filled: false, today: true, disabled: false });
+    expect(plain).toContain('ring-th-accent/50');
+    const filledEnd = calendarDayClass({ filled: true, today: true, disabled: false, band: 'start' });
+    expect(filledEnd.split(' ')).not.toContain('ring-th-accent');
+  });
+  it('outlines filled band ends in forced colors, and nothing else', () => {
+    const outline = 'forced-colors:outline-[CanvasText]';
+    expect(calendarDayClass({ filled: true, today: false, disabled: false, band: 'start' })).toContain(outline);
+    expect(calendarDayClass({ filled: true, today: false, disabled: false, band: 'end' })).toContain(
+      'forced-colors:outline-2 forced-colors:-outline-offset-2',
+    );
+    expect(calendarDayClass({ filled: false, today: false, disabled: false, band: 'middle' })).not.toContain(outline);
+    expect(calendarDayClass({ filled: true, today: false, disabled: false })).not.toContain('outline');
   });
 });

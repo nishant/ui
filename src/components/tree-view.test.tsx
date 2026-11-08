@@ -40,7 +40,8 @@ describe('TreeView structure', () => {
 
   it('renders roles, levels, set sizes and expanded state', () => {
     render(<TreeView items={ITEMS} defaultExpanded={['src', 'components']} aria-label="Files" />);
-    expect(screen.getAllByRole('group')).toHaveLength(2);
+    expect(screen.queryAllByRole('group')).toHaveLength(0);
+    for (const li of screen.getAllByRole('treeitem')) expect(li.parentElement!.getAttribute('role')).toBe('tree');
     const src = item('src');
     expect(src.getAttribute('aria-level')).toBe('1');
     expect(src.getAttribute('aria-setsize')).toBe('5');
