@@ -59,7 +59,9 @@
   .nish-no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  /* Bottom padding that clears bottom bars (the nav already includes the safe area). */
+  /* Bottom padding that clears bottom bars (the nav already includes the safe area). It is in
+     the base layer, so any padding utility on the same element (py-6) beats it; React
+     components use the same value as a pb-[...] utility instead (PageContainer). */
   .nish-pad-bottom-inset {
     padding-bottom: max(calc(var(--nish-bottom-inset) + 1rem), calc(1rem + env(safe-area-inset-bottom)));
   }

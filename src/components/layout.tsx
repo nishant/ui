@@ -253,7 +253,16 @@ export function PageContainer({
   return (
     <Tag
       ref={ref}
-      className={cn('mx-auto w-full px-[var(--nish-page-gutter)] py-6', CONTAINER_SIZE[size], padBottom && 'nish-pad-bottom-inset', className)}
+      className={cn(
+        'mx-auto w-full px-[var(--nish-page-gutter)]',
+        CONTAINER_SIZE[size],
+        // The bottom padding is a utility, not only .nish-pad-bottom-inset: that class is in the
+        // base layer, so a py-6 utility here used to beat it and the page ended under the BottomNav.
+        padBottom
+          ? 'nish-pad-bottom-inset pt-6 pb-[max(calc(var(--nish-bottom-inset,0px)+1rem),calc(1rem+env(safe-area-inset-bottom)))]'
+          : 'py-6',
+        className,
+      )}
       {...rest}
     >
       {children}
