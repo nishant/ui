@@ -16,7 +16,8 @@ import { mergeRefs } from './data-classes';
 import { Callout } from './display';
 import { useHeightVar, useStuck } from './layout-vars';
 import { Button } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { STATUS_STRINGS } from './strings';
 
 // Page-level layout pieces: sticky bars, the bottom action bar, the top loading bar, the
 // page container and the connection banner. They read and write the layout contract
@@ -110,7 +111,7 @@ export function StickyActionBar({
   ref: refProp,
   ...rest
 }: StickyActionBarProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(STATUS_STRINGS);
   const ref = useRef<HTMLDivElement | null>(null);
   useHeightVar(ref, '--nish-bottom-bar-h', open);
   if (!open) return null;
@@ -174,7 +175,7 @@ export function LoadingBar({
   ref,
   ...rest
 }: LoadingBarProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(STATUS_STRINGS);
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (!active) {
@@ -325,7 +326,7 @@ export function ConnectionBanner({
   onRetry,
   ...rest
 }: ConnectionBannerProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(STATUS_STRINGS);
   const online = useOnline();
   const [reachable, setReachable] = useState(true);
   const [retrying, setRetrying] = useState(false);

@@ -66,8 +66,11 @@ Every component module follows these rules; reviewers check them.
 4. **Render is pure on the server and the first client render matches it.** Nothing reads
    `window`, `document`, `localStorage` or `matchMedia` during render. Use `useIsClient`,
    `useSyncExternalStore` with a server snapshot, or effects. Portals go through `Portal`.
-5. **Strings** come from `useNishStrings()`; a per-instance prop wins. Add a typed key with a JSDoc
-   line to `src/components/strings.ts` for every new string.
+5. **Strings** come from `useStrings(GROUP, ...)` (internal, in `provider.tsx`) with the groups in
+   `src/components/strings.ts` that hold the keys the component reads; a per-instance prop wins. A new
+   string gets a typed key with a JSDoc line in `NishStrings` and a value in exactly one group (the
+   completeness check fails otherwise). Never call `useNishStrings()` or read `DEFAULT_STRINGS` in a
+   component: they carry every string.
 6. **RTL.** Logical utilities (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`, `text-start`,
    `border-s`, `rounded-s`), `rtl:` variants for icons that point, and arrow keys swapped when
    `isRtl(el)`.

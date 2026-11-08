@@ -152,7 +152,7 @@ The unchecked border must read in light themes (`border-th-line-strong`). Eviden
 
 ### Switch (new)
 
-`Switch({ checked, onChange, label?, description?, size?: 'sm'|'md', disabled, 'aria-labelledby'? })`:
+`Switch({ checked, onCheckedChange, label?, description?, size?: 'sm'|'md', disabled, 'aria-labelledby'? })`:
 a `<button role="switch" aria-checked>`. Track `h-5 w-9 rounded-full bg-th-line-strong`, on `bg-th-accent`. Knob
 `size-4 rounded-full bg-th-surface shadow-card`, on `bg-th-on-accent`. No `dark:` variants. A visible label is
 linked by `aria-labelledby` (Nishboard's 13 switches have no accessible name today). Evidence: Nishboard 13, trading 1.

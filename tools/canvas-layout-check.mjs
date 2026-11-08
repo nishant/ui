@@ -5,7 +5,7 @@
 // edges overlap on a line unless they share a source port or a target port. Exits non-zero
 // on any failure.
 import assert from "node:assert/strict";
-import { routeEdges } from "../dist/esm/index.js";
+import { routeEdges } from "../dist/esm/system-canvas.js";
 import { buildSync } from "esbuild";
 
 // layout.ts is bundled straight from source so the check sees pickLayout and the layout

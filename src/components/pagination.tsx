@@ -3,7 +3,8 @@
 import { useCallback, useRef, useState, type ComponentPropsWithoutRef, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { cn } from '../cn';
 import { useIsoLayoutEffect } from './client';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { PAGING_STRINGS } from './strings';
 import { paginationRange } from './pagination-classes';
 
 export { paginationRange };
@@ -122,7 +123,7 @@ export function Pagination({
   ref,
   ...rest
 }: PaginationProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(PAGING_STRINGS);
   const [pageState, setPageState] = useState(defaultPage);
   const navRef = useRef<HTMLElement | null>(null);
   const [narrow, setNarrow] = useState(false);

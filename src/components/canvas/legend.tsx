@@ -1,7 +1,8 @@
 'use client';
 import { memo, useEffect, useId, useRef, useState } from 'react';
 import { cn } from '../../cn';
-import { useNishStrings } from '../provider';
+import { useStrings } from '../provider';
+import { CANVAS_STRINGS } from '../strings';
 import { Svg } from './icons';
 import { DEFAULT_CANVAS_LABELS, type CanvasEdgeKind, type CanvasLabels } from './types';
 
@@ -32,7 +33,7 @@ export const EdgeLegend = memo(function EdgeLegend({
   onToggle: (id: string) => void;
   labels?: CanvasLabels;
 }) {
-  const strings = useNishStrings();
+  const strings = useStrings(CANVAS_STRINGS);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

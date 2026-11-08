@@ -81,16 +81,19 @@ test('require() works for every JS subpath', { skip: !hasRequireEsm && 'needs No
   assert.equal(cn('a', false, 'b'), 'a b');
 });
 
-test("fleet-only subpaths re-export the root's values", async () => {
+test("fleet-only names are only on their subpaths", async () => {
   const rootMod = await import(spec('.'));
-  for (const k of ['./inbox', './service-tokens', './system-canvas']) {
+  const expected = {
+    './inbox': ['Inbox', 'INBOX_SOURCE_LABELS'],
+    './service-tokens': ['ServiceTokensSection', 'useServiceTokens'],
+    './system-canvas': ['DEFAULT_CANVAS_LABELS', 'SystemCanvas', 'layoutSystem', 'pickLayout', 'routeEdges'],
+  };
+  for (const [k, must] of Object.entries(expected)) {
     const mod = await import(spec(k));
     const names = Object.keys(mod);
     assert.ok(names.length > 0, `${spec(k)} exports nothing`);
-    for (const name of names) {
-      assert.ok(name in rootMod, `${spec(k)} exports ${name}, which the root entry does not`);
-      assert.ok(mod[name] === rootMod[name], `${spec(k)} ${name} is not the root's ${name}`);
-    }
+    for (const name of must) assert.ok(name in mod, `${spec(k)} does not export ${name}`);
+    for (const name of names) assert.ok(!(name in rootMod), `${spec(k)} exports ${name}, which is still on the root entry`);
   }
 });
 

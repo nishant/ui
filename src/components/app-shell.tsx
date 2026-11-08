@@ -16,7 +16,8 @@ import { visibleNavItems } from './nav-items';
 import { NavBadge } from './nav-items';
 import { DropdownMenu, MenuItem } from './menu';
 import { IconButton } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { SHELL_STRINGS, STATUS_STRINGS } from './strings';
 import { tabClass } from './tabs-classes';
 import { ThemeToggle } from './theme-toggle';
 import { Toaster, type ToasterProps } from './toast';
@@ -163,7 +164,7 @@ export function AppShell({
   navPending = 0,
   children,
 }: AppShellProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SHELL_STRINGS, STATUS_STRINGS);
   const navLabel = navLabelProp ?? strings.sections;
   const nav = visibleNavItems(navProp);
   const moreItems = visibleNavItems(moreItemsProp);

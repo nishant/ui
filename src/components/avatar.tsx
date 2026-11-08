@@ -11,7 +11,8 @@ import {
 import { cn } from '../cn';
 import { safeUrl } from '../url';
 import { StatusDot, type StatusTone } from './display';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { AVATAR_STRINGS } from './strings';
 import { HUES, avatarHueIndex, avatarInitials } from './avatar-classes';
 
 export { avatarHueIndex, avatarInitials };
@@ -55,7 +56,7 @@ export interface AvatarProps extends Omit<ComponentPropsWithoutRef<'span'>, 'chi
 /** A person or entity: their image, or initials on a color taken from their name. */
 export function Avatar({ src, name, alt, size, shape, status, className, ref, ...rest }: AvatarProps) {
   const group = useContext(GroupContext);
-  const strings = useNishStrings();
+  const strings = useStrings(AVATAR_STRINGS);
   const resolvedSize = size ?? group?.size ?? 'md';
   const resolvedShape = shape ?? group?.shape ?? 'circle';
   const url = src ? safeUrl(src) : null;
@@ -121,7 +122,7 @@ export interface AvatarGroupProps extends ComponentPropsWithoutRef<'div'> {
 
 /** Overlapping avatars, with a "+N" badge for the ones past `max`. */
 export function AvatarGroup({ max, size = 'md', shape = 'circle', children, className, ref, ...rest }: AvatarGroupProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(AVATAR_STRINGS);
   const items = Children.toArray(children);
   const limit = max != null && max >= 0 ? Math.floor(max) : items.length;
   const shown = items.slice(0, limit);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Inbox, type InboxItem, type InboxView } from '../../src';
+import { Inbox, type InboxItem, type InboxView } from '../../src/inbox';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 
@@ -133,7 +133,7 @@ export const inbox: ComponentDoc = {
   exports: ['Inbox'],
   summary:
     'One list for events from every app: Open, Snoozed and Handled views, a source filter, and handle, snooze and undo actions on each row. The page owns the data and the calls; Inbox renders it and reports what was picked.',
-  importLine: "import { Inbox } from '@nish/ui/inbox'; // also on '@nish/ui' through 2.x",
+  importLine: "import { Inbox } from '@nish/ui/inbox';",
   fleetOnly: true,
   controls: [
     { key: 'view', label: 'View', type: 'select', options: ['open', 'snoozed', 'handled'] },

@@ -23,7 +23,7 @@ import { mergeRefs, warnOnce } from './data-classes';
 import { useLatest } from './latest';
 import { place } from './overlay-position';
 import { keyboardFocused, touchTracker } from './overlay-classes';
-import { useNishConfig } from './provider';
+import { useNishContext } from './provider';
 
 export interface HoverCardProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'content' | 'className'> {
   /** The trigger: one element, usually a link. It keeps its own click and keyboard behavior. */
@@ -129,7 +129,7 @@ export function HoverCard({
 }: HoverCardProps) {
   const [openState, setOpenState] = useState(defaultOpen ?? false);
   const open = openProp ?? openState;
-  const config = useNishConfig();
+  const config = useNishContext();
   const isClient = useIsClient();
   const autoId = useId();
   const id = rest.id ?? autoId;

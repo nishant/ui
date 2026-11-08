@@ -11,7 +11,7 @@ import {
 import { cn } from '../cn';
 import { ago, dateTime } from '../format';
 import { BREAKPOINTS, NARROW_QUERY, PHONE_QUERY, type Breakpoint } from './hooks-classes';
-import { useNishConfig } from './provider';
+import { useNishContext } from './provider';
 
 export { BREAKPOINTS, NARROW_QUERY, PHONE_QUERY };
 export type { Breakpoint };
@@ -293,7 +293,7 @@ export function RelativeTime({
   ...rest
 }: RelativeTimeProps) {
   const now = useNow(refreshMs);
-  const config = useNishConfig();
+  const config = useNishContext();
   const loc = locale ?? config.locale;
   const d = new Date(value);
   const iso = Number.isNaN(d.getTime()) ? undefined : d.toISOString();

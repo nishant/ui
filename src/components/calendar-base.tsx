@@ -37,7 +37,8 @@ import {
 import { isRtl, useIsoLayoutEffect } from './client';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { IconButton, Select } from './primitives';
-import { useNishConfig, useNishStrings } from './provider';
+import { useNishContext, useStrings } from './provider';
+import { PICKER_STRINGS } from './strings';
 
 /** Props Calendar and RangeCalendar share. */
 export interface CalendarSharedProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange' | 'defaultValue' | 'children'> {
@@ -159,8 +160,8 @@ export function CalendarBase({
   ref,
   ...rest
 }: CalendarBaseProps) {
-  const strings = useNishStrings();
-  const config = useNishConfig();
+  const strings = useStrings(PICKER_STRINGS);
+  const config = useNishContext();
   const loc = resolveLocale(locale ?? config.locale ?? getDefaultLocale());
   const ws: WeekDay = weekStartsOn ?? weekStartFor(loc);
   const titleId = useId();

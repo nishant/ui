@@ -141,6 +141,7 @@ toast.success('Archived', { action: { label: 'Undo', onClick: () => restore(id) 
     'Toasts confirm what just happened. Anything people must act on belongs on the page or in a Modal.',
     'toast.promise(promise, { loading, success, error }) shows a sticky toast while the promise runs and swaps it for the result in the same slot. It returns the promise, so a rejection still reaches your code.',
     'Sticky toasts (duration Infinity or \'sticky\') and errors are never pushed out by newer ones; when more than four are on screen the oldest ordinary toast goes first.',
+    'The cards load on demand (a small chunk, preloaded when the browser is idle). Until it loads, or if it cannot, a plain card shows the same text, action and dismiss button.',
     'The Dismiss label comes from NishProvider strings (dismiss). The Toaster renders nothing on the server.',
     'Errors stay until dismissed, because a failure you did not see is one you will assume succeeded.',
     'Keep the title to a few words; put detail in the body.',

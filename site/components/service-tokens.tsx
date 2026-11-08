@@ -3,10 +3,6 @@ import { ServiceTokensSection } from "../../src/components/service-tokens";
 import type { ServiceTokenView } from "../../src/service-token-types";
 import type { ComponentDoc } from "./types";
 
-// --- ServiceTokensSection -------------------------------------------------------------
-// Imports the block from its file until the integrator adds the exports to src/index.ts and the
-// names to site/docgen.mjs COMPONENTS.
-
 const SEED: ServiceTokenView[] = [
   {
     id: "mcp",
@@ -80,7 +76,7 @@ export const serviceTokensDoc: ComponentDoc = {
   summary:
     "The settings block that lists the service tokens an app accepts (the bearer tokens the nish MCP server uses) with a Revoke button on each. Revoking asks first, takes effect at once and cannot be undone.",
   importLine:
-    "import { ServiceTokensSection, useServiceTokens } from '@nish/ui/service-tokens'; // also on '@nish/ui' through 2.x",
+    "import { ServiceTokensSection, useServiceTokens } from '@nish/ui/service-tokens';",
   fleetOnly: true,
   controls: [{ key: "failRevoke", label: "Make revoke fail", type: "boolean" }],
   initial: { failRevoke: false },

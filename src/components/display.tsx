@@ -42,7 +42,8 @@ import { useHeightVar, useStuck } from './layout-vars';
 import { DropdownMenu } from './menu';
 import { Tooltip } from './tooltip';
 import { Badge, Button, Card, IconButton, type ButtonProps } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { DISPLAY_STRINGS, SHELL_STRINGS } from './strings';
 import { ThemeToggle } from './theme-toggle';
 
 // Read-only display pieces: notices, status marks, numbers, meters, small charts,
@@ -171,7 +172,7 @@ export function Callout({
   ref,
   ...rest
 }: CalloutProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(DISPLAY_STRINGS, SHELL_STRINGS);
   const t = CALLOUT_TONE[tone];
   const shown = icon === false ? null : (icon ?? defaultCalloutIcon(tone, compact ? 14 : 16));
   const href = hrefProp == null ? undefined : (safeUrl(hrefProp) ?? undefined);
@@ -559,7 +560,7 @@ export function Sparkline({
   ref,
   ...rest
 }: SparklineProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(DISPLAY_STRINGS, SHELL_STRINGS);
   const { empty, lines, areas, baseline } = useMemo(
     () => sparklineGeometry(values, width, height, min, max),
     [values, width, height, min, max],
@@ -790,7 +791,7 @@ export function CopyButton({
   ref,
   ...rest
 }: CopyButtonProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(DISPLAY_STRINGS, SHELL_STRINGS);
   const idleText = label ?? strings.copy;
   const doneText = copiedLabel ?? strings.copied;
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
@@ -1002,7 +1003,7 @@ export function AppHeader({
   ref: refProp,
   ...rest
 }: AppHeaderProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(DISPLAY_STRINGS, SHELL_STRINGS);
   const ref = useRef<HTMLElement>(null);
   useHeightVar(ref, '--nish-header-h', sticky);
   const stuck = useStuck(ref) && sticky;
@@ -1260,7 +1261,7 @@ export interface ChartLegendProps extends Omit<ComponentPropsWithoutRef<'ul'>, '
 /** The key for a multi-series chart (uPlot and canvas charts draw none of their own):
  *  each series' color mark and name. The marks are decorative; the names carry it. */
 export function ChartLegend({ items, marker = 'line', label, className, ref, ...rest }: ChartLegendProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(DISPLAY_STRINGS, SHELL_STRINGS);
   return (
     <ul
       ref={ref}

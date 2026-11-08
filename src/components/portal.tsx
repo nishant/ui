@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useIsClient } from './client';
-import { useNishConfig } from './provider';
+import { useNishContext } from './provider';
 
 export interface PortalProps {
   children: ReactNode;
@@ -14,7 +14,7 @@ export interface PortalProps {
  *  hydration matches; the portal mounts right after. */
 export function Portal({ children, container }: PortalProps) {
   const isClient = useIsClient();
-  const config = useNishConfig();
+  const config = useNishContext();
   if (!isClient) return null;
   const target = container ?? config.portalContainer ?? document.body;
   return createPortal(children, target);

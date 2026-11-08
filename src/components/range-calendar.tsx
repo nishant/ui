@@ -13,7 +13,8 @@ import {
   type DateRange,
 } from './calendar-classes';
 import { CalendarBase, type CalendarDayLook, type CalendarSharedProps } from './calendar-base';
-import { useNishConfig, useNishStrings } from './provider';
+import { useStrings, useNishContext } from './provider';
+import { PICKER_STRINGS } from './strings';
 
 export type { DateRange, WeekDay } from './calendar-classes';
 
@@ -57,8 +58,8 @@ export function RangeCalendar({
   allowDisabledInRange = false,
   ...shared
 }: RangeCalendarProps) {
-  const strings = useNishStrings();
-  const config = useNishConfig();
+  const strings = useStrings(PICKER_STRINGS);
+  const config = useNishContext();
   const loc = resolveLocale(shared.locale ?? config.locale ?? getDefaultLocale());
   const { min: minProp, max: maxProp, isDateDisabled } = shared;
   const min = minProp != null && parseIso(minProp) ? minProp : null;

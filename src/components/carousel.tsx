@@ -18,7 +18,8 @@ import { CAROUSEL_MAX_DOTS, CAROUSEL_MIN_INTERVAL, nearestSlide, stepIndex } fro
 import { useMediaQuery } from './hooks';
 import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon } from './icons';
 import { IconButton } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { CAROUSEL_STRINGS } from './strings';
 
 export interface CarouselProps extends Omit<HTMLAttributes<HTMLElement>, 'children' | 'aria-label'> {
   /** The root <section>. */
@@ -76,7 +77,7 @@ export function Carousel({
   onBlur,
   ...rest
 }: CarouselProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(CAROUSEL_STRINGS);
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const slides = Children.toArray(children);
   const count = slides.length;

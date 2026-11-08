@@ -27,7 +27,8 @@ import { isRtl, useIsoLayoutEffect } from './client';
 import { useMediaQuery } from './hooks';
 import { ScrollRow } from './nav';
 import { Tooltip } from './tooltip';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { SPLIT_STRINGS } from './strings';
 
 // Split panes: a layout tree drawn as flat, absolutely positioned panes, with drag handles
 // between them and a preset picker. The math is in `@nish/ui/split-layout` (no React).
@@ -106,7 +107,7 @@ interface DragStart {
  * that is `w` by `h` (`SplitStage` does).
  */
 export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPane, barInset = 0, rtl = false, paneId }: SplitDividersProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SPLIT_STRINGS);
   const coarse = useMediaQuery('(pointer: coarse)');
   const drag = useRef<DragStart | null>(null);
   const hit = coarse ? 44 : 24;
@@ -498,7 +499,7 @@ export function LayoutPresetPicker({
   ref,
   ...rest
 }: LayoutPresetPickerProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SPLIT_STRINGS);
   const label = labelProp ?? strings.layoutPresets;
   const group = useRef<HTMLDivElement>(null);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {

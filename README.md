@@ -302,6 +302,8 @@ Entry points:
 | `nish-ui/vite` | The theme-init Vite plugin |
 | `nish-ui/eslint` | Lint rules for theme classes |
 
+Moving from 2.x: [the 3.0 guide](https://design.nish.software/#/migrating).
+
 Also `nish-ui/theme-init.js` and `theme-init.sha256`, `nish-ui/theme.global.js`,
 `nish-ui/fonts/*`, `nish-ui/tsconfig/*` (strict presets), the `nish-th-check` CLI, and
 `nish-ui/server`, `nish-ui/server/hono` and `nish-ui/inbox-client` (a login, session and inbox
@@ -313,7 +315,8 @@ Details: [Vite plugin and lint](https://design.nish.software/#/components/vite-p
 `Inbox`, `ServiceTokensSection`, `useServiceTokens`, `SystemCanvas` and the server kit
 (`nish-ui/server`, `nish-ui/server/hono`, `nish-ui/inbox-client`) are built for the nish.software apps. They
 can change in a minor release; patches only fix. Import them from their own entry points
-(`nish-ui/inbox`, `nish-ui/service-tokens`, `nish-ui/system-canvas`); the root entry keeps them through 2.x.
+(`nish-ui/inbox`, `nish-ui/service-tokens`, `nish-ui/system-canvas`). Since 3.0 the root entry
+does not export them.
 Everything else follows semver.
 
 ## Bundle size
@@ -325,6 +328,7 @@ Measured with esbuild (minified, React external) from `dist/esm` on every pull r
 |---|---|
 | `cn` | under 10 KB |
 | `Button` | under 11 KB |
+| `AppShell` | under 34 KB |
 | `useMediaQuery` | under 1.5 KB |
 | `nish-ui/theme` | under 12 KB |
 | `nish-ui/format` | under 4 KB |

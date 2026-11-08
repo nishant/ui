@@ -134,7 +134,7 @@ function Page() {
         />
         <NumberField aria-label="Count" value={num} onCommit={(v) => setNum(v ?? 0)} />
         <Checkbox label="Send me the newsletter" defaultChecked />
-        <Switch checked={on} onChange={setOn} aria-label="Notifications on" />
+        <Switch checked={on} onCheckedChange={setOn} aria-label="Notifications on" />
         <RadioGroup
           aria-label="Size"
           defaultValue="m"

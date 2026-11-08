@@ -39,6 +39,19 @@ const fire = <T,>(fn: () => T): T => {
   return out;
 };
 const tick = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
+// The cards load on demand: wait for the chunk, after which the plain fallback card is gone.
+const fullCard = async () => {
+  await act(async () => {
+    await import('./toast-card');
+  });
+  // Flush microtasks without advancing the fake clock, so the toast timers keep their schedule.
+  for (let i = 0; i < 20 && document.querySelector('[data-nish-toast-fallback]'); i++) {
+    await act(async () => {
+      await new Promise<void>((r) => queueMicrotask(r));
+    });
+  }
+  expect(document.querySelector('[data-nish-toast-fallback]')).toBeNull();
+};
 
 describe('toast store', () => {
   it('returns increasing ids and records tone, title, body and action', () => {
@@ -143,12 +156,13 @@ describe('toast store', () => {
     expect(titles()).toEqual(['e1', 'e2', 'e3', 'e4', 'e5']);
   });
 
-  it('pauses the timer on hover and resumes with at least one second left', () => {
+  it('pauses the timer on hover and resumes with at least one second left', async () => {
     vi.useFakeTimers();
     render(<Toaster />);
     tick(0);
     fire(() => toast('hover me', { duration: 4000 }));
     tick(10);
+    await fullCard();
     const card = screen.getByText('hover me').closest('div[class*="rounded-xl"]')!;
     tick(3000);
     fireEvent.pointerEnter(card, { pointerType: 'mouse' });
@@ -162,20 +176,22 @@ describe('toast store', () => {
     expect(titles()).toEqual([]);
   });
 
-  it('ignores touch pointer enter so a tap cannot pin the toast', () => {
+  it('ignores touch pointer enter so a tap cannot pin the toast', async () => {
     render(<Toaster />);
     fire(() => toast('tap'));
     tick(10);
+    await fullCard();
     const card = screen.getByText('tap').closest('div[class*="rounded-xl"]')!;
     fireEvent.pointerEnter(card, { pointerType: 'touch' });
     tick(4000);
     expect(titles()).toEqual([]);
   });
 
-  it('counts overlapping hover and focus pauses', () => {
+  it('counts overlapping hover and focus pauses', async () => {
     render(<Toaster />);
     fire(() => toast('both'));
     tick(10);
+    await fullCard();
     const card = screen.getByText('both').closest('div[class*="rounded-xl"]')!;
     fireEvent.pointerEnter(card, { pointerType: 'mouse' });
     fireEvent.focus(card);
@@ -190,16 +206,6 @@ describe('toast store', () => {
     expect(titles()).toEqual([]);
   });
 
-  it('shares one store between module copies', async () => {
-    fire(() => toast('from copy one'));
-    vi.resetModules();
-    const other = await import('./toast');
-    expect(titles()).toEqual(['from copy one']);
-    const id = other.toast('from copy two');
-    expect(titles()).toEqual(['from copy one', 'from copy two']);
-    dismissToast(id);
-    expect(titles()).toEqual(['from copy one']);
-  });
 });
 
 describe('toast.promise', () => {
@@ -295,7 +301,7 @@ describe('Toaster', () => {
     expect(screen.getByTestId('stack').className).not.toContain('lg:pb-');
   });
 
-  it('shows cards with title, body and the provider Dismiss label, and dismisses on click', () => {
+  it('shows cards with title, body and the provider Dismiss label, and dismisses on click', async () => {
     render(
       <NishProvider strings={{ dismiss: 'Schließen' }}>
         <Toaster />
@@ -303,6 +309,7 @@ describe('Toaster', () => {
     );
     fire(() => toast('Saved', { body: 'All good', duration: Infinity }));
     tick(10);
+    await fullCard();
     expect(screen.getByText('Saved')).toBeTruthy();
     expect(screen.getByText('All good')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Schließen' }));
@@ -310,11 +317,12 @@ describe('Toaster', () => {
     expect(screen.queryByText('Saved')).toBeNull();
   });
 
-  it('runs the action and then dismisses the toast', () => {
+  it('runs the action and then dismisses the toast', async () => {
     const onClick = vi.fn();
     render(<Toaster />);
     fire(() => toast('Archived', { action: { label: 'Undo', onClick }, duration: Infinity }));
     tick(10);
+    await fullCard();
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(titles()).toEqual([]);
@@ -405,5 +413,19 @@ describe('Toaster', () => {
     expect(screen.getByText('card')).toBeTruthy();
     act(() => dismissToast(id));
     expect(screen.queryByText('card')).toBeNull();
+  });
+});
+
+// Last in the file: resetModules gives later dynamic imports (the card chunk) a second copy of the package.
+describe('module copies', () => {
+  it('shares one store between module copies', async () => {
+    fire(() => toast('from copy one'));
+    vi.resetModules();
+    const other = await import('./toast');
+    expect(titles()).toEqual(['from copy one']);
+    const id = other.toast('from copy two');
+    expect(titles()).toEqual(['from copy one', 'from copy two']);
+    dismissToast(id);
+    expect(titles()).toEqual(['from copy one']);
   });
 });

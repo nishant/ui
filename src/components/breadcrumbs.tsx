@@ -5,7 +5,8 @@ import { cn } from '../cn';
 import { safeUrl } from '../url';
 import { useIsoLayoutEffect } from './client';
 import { DropdownMenu, MenuItem } from './menu';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { SHELL_STRINGS, PAGING_STRINGS } from './strings';
 
 export interface BreadcrumbItem {
   /** The crumb's text. */
@@ -118,7 +119,7 @@ export function Breadcrumbs({
   ref,
   ...rest
 }: BreadcrumbsProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SHELL_STRINGS, PAGING_STRINGS);
   const navRef = useRef<HTMLElement | null>(null);
   const [narrow, setNarrow] = useState(false);
 

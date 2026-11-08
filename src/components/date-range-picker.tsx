@@ -21,7 +21,8 @@ import { Popover } from './popover';
 import { CalendarIcon } from './icons';
 import { RangeCalendar } from './range-calendar';
 import { fieldClass } from './primitives-classes';
-import { useNishConfig, useNishStrings } from './provider';
+import { useNishContext, useStrings } from './provider';
+import { PICKER_STRINGS } from './strings';
 
 export type { DateRange, WeekDay } from './calendar-classes';
 
@@ -113,8 +114,8 @@ export function DateRangePicker({
   className,
   ...rest
 }: DateRangePickerProps) {
-  const strings = useNishStrings();
-  const config = useNishConfig();
+  const strings = useStrings(PICKER_STRINGS);
+  const config = useNishContext();
   const loc = resolveLocale(locale ?? config.locale ?? getDefaultLocale());
   const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = id ?? `nish-drp-${autoId}`;

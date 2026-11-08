@@ -5,7 +5,8 @@ import { FORCED_MARK } from './display-classes';
 import { Drawer } from './drawer';
 import type { NavItem, RenderLink } from './nav';
 import { FOCUS, NavBadge, renderItem, visibleNavItems } from './nav-items';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { SHELL_STRINGS, THEME_STRINGS } from './strings';
 import { ThemeToggle } from './theme-toggle';
 
 export interface MoreSheetProps {
@@ -25,7 +26,7 @@ export interface MoreSheetProps {
  *  so the bar stays visible and tappable. Rows are 52px with an icon, a label and a
  *  one-line hint. Choosing a row navigates and closes the sheet. */
 export function MoreSheet({ open, onClose, items, title, footer, renderLink }: MoreSheetProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SHELL_STRINGS, THEME_STRINGS);
   if (!open) return null;
   const shown = visibleNavItems(items);
   const row = (active: boolean) =>

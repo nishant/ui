@@ -279,7 +279,7 @@ describe('Checkbox', () => {
 
 describe('Switch', () => {
   it('is a role=switch button with aria-checked and data-state', () => {
-    render(<Switch checked={false} onChange={() => undefined} aria-label="Auto" />);
+    render(<Switch checked={false} onCheckedChange={() => undefined} aria-label="Auto" />);
     const sw = screen.getByRole('switch', { name: 'Auto' });
     expect(sw.tagName).toBe('BUTTON');
     expect(sw.getAttribute('type')).toBe('button');
@@ -287,22 +287,32 @@ describe('Switch', () => {
     expect(sw.getAttribute('data-state')).toBe('unchecked');
   });
 
-  it('keeps onChange(checked, event) and adds onCheckedChange(checked)', () => {
-    const onChange = vi.fn();
+  it('onCheckedChange gets only the new value', () => {
     const onCheckedChange = vi.fn();
-    render(<Switch checked={false} onChange={onChange} onCheckedChange={onCheckedChange} aria-label="A" />);
+    render(<Switch checked={false} onCheckedChange={onCheckedChange} aria-label="A" />);
     fireEvent.click(screen.getByRole('switch'));
-    expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange.mock.calls[0][0]).toBe(true);
-    expect(onChange.mock.calls[0][1].type).toBe('click');
-    expect(onCheckedChange).toHaveBeenCalledWith(true);
+    expect(onCheckedChange).toHaveBeenCalledTimes(1);
+    expect(onCheckedChange.mock.calls[0]).toEqual([true]);
+  });
+
+  it('a removed onChange prop is not called, not put on the button, and warns once', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const spy = vi.fn();
+    const props = { onChange: spy } as object;
+    const { rerender } = render(<Switch checked={false} {...props} aria-label="A" />);
+    fireEvent.click(screen.getByRole('switch'));
+    rerender(<Switch checked={false} {...props} aria-label="A" />);
+    expect(spy).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith('Switch: onChange was removed in nish-ui 3.0. Use onCheckedChange(checked).');
+    warn.mockRestore();
   });
 
   it('a controlled switch does not flip until the parent does', () => {
-    const { rerender } = render(<Switch checked onChange={() => undefined} aria-label="A" />);
+    const { rerender } = render(<Switch checked onCheckedChange={() => undefined} aria-label="A" />);
     fireEvent.click(screen.getByRole('switch'));
     expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true');
-    rerender(<Switch checked={false} onChange={() => undefined} aria-label="A" />);
+    rerender(<Switch checked={false} onCheckedChange={() => undefined} aria-label="A" />);
     expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
   });
 
@@ -321,14 +331,14 @@ describe('Switch', () => {
 
   it('onClick can prevent the toggle', () => {
     const onChange = vi.fn();
-    render(<Switch checked={false} onChange={onChange} aria-label="A" onClick={(e) => e.preventDefault()} />);
+    render(<Switch checked={false} onCheckedChange={onChange} aria-label="A" onClick={(e) => e.preventDefault()} />);
     fireEvent.click(screen.getByRole('switch'));
     expect(onChange).not.toHaveBeenCalled();
   });
 
   it('disabled does not toggle and sets data-disabled', () => {
     const onChange = vi.fn();
-    render(<Switch checked={false} onChange={onChange} aria-label="A" disabled />);
+    render(<Switch checked={false} onCheckedChange={onChange} aria-label="A" disabled />);
     const sw = screen.getByRole('switch') as HTMLButtonElement;
     fireEvent.click(sw);
     expect(onChange).not.toHaveBeenCalled();
@@ -345,18 +355,18 @@ describe('Switch', () => {
   });
 
   it('labelSide end puts the text after the switch, start before it', () => {
-    const { container, rerender } = render(<Switch checked label="L" labelSide="end" onChange={() => undefined} />);
+    const { container, rerender } = render(<Switch checked label="L" labelSide="end" onCheckedChange={() => undefined} />);
     const row = container.querySelector('label') as HTMLElement;
     expect(row.lastElementChild?.textContent).toBe('L');
     expect(row.className).not.toContain('justify-between');
-    rerender(<Switch checked label="L" labelSide="start" onChange={() => undefined} />);
+    rerender(<Switch checked label="L" labelSide="start" onCheckedChange={() => undefined} />);
     expect(row.firstElementChild?.textContent).toBe('L');
     expect(row.className).toContain('justify-between');
   });
 
   it('forwards ref, id, rest and keeps className on the row when labelled', () => {
     const ref = { current: null as HTMLButtonElement | null };
-    const { container } = render(<Switch ref={ref} id="sw" data-testid="x" className="x-cls" checked label="L" onChange={() => undefined} />);
+    const { container } = render(<Switch ref={ref} id="sw" data-testid="x" className="x-cls" checked label="L" onCheckedChange={() => undefined} />);
     const sw = screen.getByRole('switch');
     expect(ref.current).toBe(sw);
     expect(sw.id).toBe('sw');
@@ -364,25 +374,25 @@ describe('Switch', () => {
     expect((container.querySelector('label') as HTMLElement).className).toContain('x-cls');
     expect(sw.className).not.toContain('x-cls');
     cleanup();
-    render(<Switch className="x-cls" checked aria-label="L" onChange={() => undefined} />);
+    render(<Switch className="x-cls" checked aria-label="L" onCheckedChange={() => undefined} />);
     expect(screen.getByRole('switch').className).toContain('x-cls');
   });
 
   it('size sm uses the small track and travel; RTL mirrors the thumb', () => {
-    const { container } = render(<Switch checked size="sm" aria-label="A" onChange={() => undefined} />);
+    const { container } = render(<Switch checked size="sm" aria-label="A" onCheckedChange={() => undefined} />);
     const track = container.querySelector('[aria-hidden=true]') as HTMLElement;
     expect(track.className).toContain('h-4 w-7');
     const thumb = track.firstElementChild as HTMLElement;
     expect(thumb.className).toContain('translate-x-3');
     expect(thumb.className).toContain('rtl:-translate-x-3');
     cleanup();
-    const md = render(<Switch checked aria-label="A" onChange={() => undefined} />);
+    const md = render(<Switch checked aria-label="A" onCheckedChange={() => undefined} />);
     const mdThumb = (md.container.querySelector('[aria-hidden=true]') as HTMLElement).firstElementChild as HTMLElement;
     expect(mdThumb.className).toContain('rtl:-translate-x-4');
   });
 
   it('draws forced-colors borders and system colors', () => {
-    const { container } = render(<Switch checked aria-label="A" onChange={() => undefined} />);
+    const { container } = render(<Switch checked aria-label="A" onCheckedChange={() => undefined} />);
     const track = container.querySelector('[aria-hidden=true]') as HTMLElement;
     expect(track.className).toContain('forced-colors:border-[color:ButtonText]');
     expect(track.className).toContain('forced-colors:bg-[color:Highlight]');
@@ -391,13 +401,13 @@ describe('Switch', () => {
   });
 
   it('required sets aria-required', () => {
-    render(<Switch checked={false} required aria-label="A" onChange={() => undefined} />);
+    render(<Switch checked={false} required aria-label="A" onCheckedChange={() => undefined} />);
     expect(screen.getByRole('switch').getAttribute('aria-required')).toBe('true');
   });
 
   describe('in a native form', () => {
     it('adds no hidden input without a name', () => {
-      const { container } = render(<Switch checked aria-label="A" onChange={() => undefined} />);
+      const { container } = render(<Switch checked aria-label="A" onCheckedChange={() => undefined} />);
       expect(container.querySelectorAll('input')).toHaveLength(0);
     });
 
@@ -424,7 +434,7 @@ describe('Switch', () => {
       const { container } = render(
         <>
           <form id="f1" />
-          <Switch name="n" value="yes" required form="f1" checked disabled aria-label="A" onChange={() => undefined} />
+          <Switch name="n" value="yes" required form="f1" checked disabled aria-label="A" onCheckedChange={() => undefined} />
         </>,
       );
       const hidden = container.querySelector('input[type=checkbox]') as HTMLInputElement;
@@ -437,14 +447,14 @@ describe('Switch', () => {
     it('follows a controlled value and renders the mirror next to a labelled switch', () => {
       const { container, rerender } = render(
         <form>
-          <Switch name="n" checked={false} label="L" onChange={() => undefined} />
+          <Switch name="n" checked={false} label="L" onCheckedChange={() => undefined} />
         </form>,
       );
       const form = container.querySelector('form') as HTMLFormElement;
       expect(new FormData(form).get('n')).toBeNull();
       rerender(
         <form>
-          <Switch name="n" checked label="L" onChange={() => undefined} />
+          <Switch name="n" checked label="L" onCheckedChange={() => undefined} />
         </form>,
       );
       expect(new FormData(form).get('n')).toBe('on');
@@ -526,7 +536,7 @@ describe('Field', () => {
           <Checkbox label="Box" />
         </Field>
         <Field label="B" error="e">
-          <Switch checked={false} onChange={() => undefined} aria-label="sw" />
+          <Switch checked={false} onCheckedChange={() => undefined} aria-label="sw" />
         </Field>
         <Field label="C" error="e">
           <input />

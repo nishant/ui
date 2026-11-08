@@ -298,30 +298,99 @@ export interface NishStrings {
   progressIndeterminate: string;
 }
 
-export const DEFAULT_STRINGS: NishStrings = {
+/* Groups are module-level constants: `useStrings` memoizes on their identity, so never build one inside a
+ * component. Every key of NishStrings is in exactly one group (checked below and in strings.test.ts). */
+
+/** @internal Defaults for Modal, Drawer, SheetHandle, ConfirmDialog, CommandPalette, DropdownMenu, ContextMenu. */
+export const OVERLAY_STRINGS = {
   close: 'Close',
   cancel: 'Cancel',
   menu: 'Menu',
   back: 'Back: ',
   contextMenu: 'Actions',
-  sortAnnounce: (header, dir) => (dir ? `Sorted by ${header}, ${dir === 'asc' ? 'ascending' : 'descending'}` : 'Sorting cleared'),
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for AppShell, AppHeader, BottomNav, NavRail, MoreSheet, Breadcrumbs, Inbox. */
+export const SHELL_STRINGS = {
+  sections: 'Sections',
+  more: 'More',
+  hubTitle: 'Back to nish.software',
+  hubLabel: '← nish.software',
+  moreActions: 'More actions',
+  skipToContent: 'Skip to content',
+  sidebar: 'Sidebar',
+  expandSidebar: 'Expand sidebar',
+  collapseSidebar: 'Collapse sidebar',
+  newCount: (value) => `${value} new`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Spinner, Skeleton, ErrorState, AsyncPanel, ConnectionBanner, StickyActionBar, ResponsiveTable. */
+export const STATUS_STRINGS = {
+  loading: 'Loading',
+  failedToLoad: 'Failed to load',
+  retry: 'Retry',
+  nothingHere: 'Nothing here yet',
+  loadingNamed: (label) => `Loading ${label}`,
+  offline: "You're offline",
+  actions: 'Actions',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for ThemeToggle, MoreSheet and the React-free theme entry. */
+export const THEME_STRINGS = {
+  theme: 'Theme',
+  themeSystem: 'System',
+  themeLight: 'Light',
+  themeDark: 'Dark',
+  themeToggleLabel: (current, next) => `Theme: ${current}. Switch to ${next}`,
+  themePreset: 'Theme preset',
+  themePresetPlaceholder: 'Preset…',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for AppErrorBoundary and the service-tokens retry button. */
+export const ERROR_STRINGS = {
+  errorStaleTitle: 'A new version is available',
+  errorStaleBody: 'Reload the page to get the latest version.',
+  errorTitle: 'Something went wrong',
+  errorBody: 'An unexpected error occurred.',
+  errorDetails: 'Details',
+  errorTryAgain: 'Try again',
+  errorReload: 'Reload page',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Toast, Callout, CopyButton, ChartLegend, LineChart, BarChart. */
+export const DISPLAY_STRINGS = {
   dismiss: 'Dismiss',
   moreCount: (count) => `${count} more`,
   copy: 'Copy',
   copied: 'Copied',
-  hubTitle: 'Back to nish.software',
-  hubLabel: '← nish.software',
-  moreActions: 'More actions',
-  more: 'More',
   legend: 'Legend',
+  noData: 'No data',
+  noDataNamed: (label) => `${label}: no data`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Field, SearchInput, Chip, Combobox, MultiSelect, TagInput, FilterBar, CommandPalette. */
+export const FIELD_STRINGS = {
   optional: 'Optional',
   search: 'Search',
   clearSearch: 'Clear search',
   remove: 'Remove',
   removeNamed: (name) => `Remove ${name}`,
-  noMatches: 'No matches',
   clear: 'Clear',
+  noMatches: 'No matches',
   searching: 'Searching…',
+  removeTag: (tag) => `Remove ${tag}`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for FilterBar, FilterSheet. */
+export const FILTER_STRINGS = {
+  filters: 'Filters',
+  clearFilters: 'Clear filters',
+  done: 'Done',
+  activeCount: (n) => `${n} active`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Calendar, RangeCalendar, DatePicker, DateRangePicker. */
+export const PICKER_STRINGS = {
   invalidDate: 'Enter a valid date.',
   chooseDate: 'Choose date',
   changeDate: (date) => `Change date, ${date}`,
@@ -337,14 +406,18 @@ export const DEFAULT_STRINGS: NishStrings = {
   dateRange: (from, to) => `${from} to ${to}`,
   rangeStarted: (start) => `Start date ${start}. Pick the end date.`,
   invalidDateRange: 'Enter a valid date range.',
-  hour: 'Hour',
-  minute: 'Minute',
-  dayPeriod: 'AM/PM',
-  invalidTime: 'Enter a valid time.',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for MultiSelect. */
+export const MULTI_SELECT_STRINGS = {
   optionAdded: (l) => `Added ${l}`,
   optionRemoved: (l) => `Removed ${l}`,
   clearAll: 'Clear all',
   maxSelected: (n) => `You can pick up to ${n}`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Carousel. */
+export const CAROUSEL_STRINGS = {
   carouselRole: 'carousel',
   slideRole: 'slide',
   slideLabel: (n, c) => `${n} of ${c}`,
@@ -354,65 +427,70 @@ export const DEFAULT_STRINGS: NishStrings = {
   slidePicker: 'Choose slide',
   startRotation: 'Start slide rotation',
   stopRotation: 'Stop slide rotation',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for CommandPalette. */
+export const COMMAND_STRINGS = {
   searchPlaceholder: 'Search…',
   noResults: 'No results',
   results: 'Results',
-  loading: 'Loading',
-  failedToLoad: 'Failed to load',
-  retry: 'Retry',
-  actions: 'Actions',
-  offline: "You're offline",
-  nothingHere: 'Nothing here yet',
-  loadingNamed: (label) => `Loading ${label}`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for VirtualTable, ResponsiveTable. */
+export const TABLE_STRINGS = {
+  sortAnnounce: (header, dir) => (dir ? `Sorted by ${header}, ${dir === 'asc' ? 'ascending' : 'descending'}` : 'Sorting cleared'),
   sortBy: 'Sort by',
   sortDefault: 'Default',
-  noData: 'No data',
-  noDataNamed: (label) => `${label}: no data`,
-  filters: 'Filters',
-  clearFilters: 'Clear filters',
-  done: 'Done',
-  activeCount: (n) => `${n} active`,
-  newCount: (value) => `${value} new`,
-  sections: 'Sections',
-  theme: 'Theme',
-  sidebar: 'Sidebar',
-  expandSidebar: 'Expand sidebar',
-  collapseSidebar: 'Collapse sidebar',
-  skipToContent: 'Skip to content',
-  themeSystem: 'System',
-  themeLight: 'Light',
-  themeDark: 'Dark',
-  themeToggleLabel: (current, next) => `Theme: ${current}. Switch to ${next}`,
-  themePreset: 'Theme preset',
-  themePresetPlaceholder: 'Preset…',
-  errorStaleTitle: 'A new version is available',
-  errorStaleBody: 'Reload the page to get the latest version.',
-  errorTitle: 'Something went wrong',
-  errorBody: 'An unexpected error occurred.',
-  errorDetails: 'Details',
-  errorTryAgain: 'Try again',
-  errorReload: 'Reload page',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for useSaveStatus, SettingRow, NumberField. */
+export const SETTINGS_STRINGS = {
   saving: 'Saving…',
   saved: 'Saved',
   saveFailed: 'Could not save',
   enterNumber: 'Enter a number',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for SplitDividers, LayoutPresetPicker. */
+export const SPLIT_STRINGS = {
   resizeColumns: 'Resize columns',
   resizeRows: 'Resize rows',
   layoutPresets: 'Layout presets',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for MediaRow, SystemCanvas nodes. */
+export const MEDIA_STRINGS = {
   live: 'Live',
   offlineBadge: 'Offline',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Progress, FlowSteps. */
+export const PROGRESS_STRINGS = {
   progress: 'Progress',
+  progressIndeterminate: 'Loading',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for WorkflowBoard, ActivityFeed. */
+export const FLOW_STRINGS = {
   workflow: 'Workflow',
   activity: 'Activity',
   other: 'Other',
   waiting: 'Waiting',
   noActivity: 'No activity yet',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for SystemCanvas and its legend. */
+export const CANVAS_STRINGS = {
   systemMap: 'System map',
   zoomOut: 'Zoom out',
   zoomIn: 'Zoom in',
   fitToScreen: 'Fit to screen',
   followActivity: 'Follow activity',
   canvasLines: 'Lines',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for ServiceTokens. */
+export const TOKEN_STRINGS = {
   serviceTokens: 'Service tokens',
   serviceTokensIntro:
     'Machine clients, like the nish MCP server, use these tokens to read this app. Revoking one stops it at once.',
@@ -423,6 +501,10 @@ export const DEFAULT_STRINGS: NishStrings = {
   tokenRevokeNamed: (name) => `Revoke ${name}`,
   tokenRevokeTitle: (name) => `Revoke ${name}?`,
   tokenRevokeFailed: 'Could not revoke the token.',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Inbox. */
+export const INBOX_STRINGS = {
   inboxMarkHandled: 'Mark handled',
   inboxSnooze: 'Snooze',
   inboxActions: 'Actions',
@@ -432,19 +514,110 @@ export const DEFAULT_STRINGS: NishStrings = {
   inboxHandled: 'Handled',
   inboxFilterBySource: 'Filter by source',
   inboxHappened: (count) => `Happened ${count} times`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Pagination, Breadcrumbs. */
+export const PAGING_STRINGS = {
   previousPage: 'Previous page',
   nextPage: 'Next page',
   pageLabel: (n) => `Page ${n}`,
   paginationLabel: 'Pagination',
   breadcrumbs: 'Breadcrumbs',
-  removeTag: (tag) => `Remove ${tag}`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for FileDropzone. */
+export const FILE_STRINGS = {
   dropzoneLabel: 'Drop files here or browse',
   browseFiles: 'Browse files',
   removeFile: (name) => `Remove ${name}`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Avatar, AvatarGroup. */
+export const AVATAR_STRINGS = {
   avatar: 'Avatar',
   avatarMore: (count) => `${count} more`,
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Slider. */
+export const SLIDER_STRINGS = {
   sliderMin: 'Minimum',
   sliderMax: 'Maximum',
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for Accordion. */
+export const ACCORDION_STRINGS = {
   accordion: 'Accordion',
-  progressIndeterminate: 'Loading',
-};
+} satisfies Partial<NishStrings>;
+
+/** @internal Defaults for TimeField. */
+export const TIME_STRINGS = {
+  hour: 'Hour',
+  minute: 'Minute',
+  dayPeriod: 'AM/PM',
+  invalidTime: 'Enter a valid time.',
+} satisfies Partial<NishStrings>;
+
+/** Every English default. Built from the groups; components read their own groups through `useStrings`. */
+export const DEFAULT_STRINGS: NishStrings = /* @__PURE__ */ Object.assign(
+  {},
+  OVERLAY_STRINGS,
+  SHELL_STRINGS,
+  STATUS_STRINGS,
+  THEME_STRINGS,
+  ERROR_STRINGS,
+  DISPLAY_STRINGS,
+  FIELD_STRINGS,
+  FILTER_STRINGS,
+  PICKER_STRINGS,
+  MULTI_SELECT_STRINGS,
+  CAROUSEL_STRINGS,
+  COMMAND_STRINGS,
+  TABLE_STRINGS,
+  SETTINGS_STRINGS,
+  SPLIT_STRINGS,
+  MEDIA_STRINGS,
+  PROGRESS_STRINGS,
+  FLOW_STRINGS,
+  CANVAS_STRINGS,
+  TOKEN_STRINGS,
+  INBOX_STRINGS,
+  PAGING_STRINGS,
+  FILE_STRINGS,
+  AVATAR_STRINGS,
+  SLIDER_STRINGS,
+  ACCORDION_STRINGS,
+  TIME_STRINGS,
+) as NishStrings;
+
+/* Compile-time completeness check: a key of NishStrings that no group defines makes this record non-empty and
+ * fails to compile. */
+type AllGroups =
+    typeof OVERLAY_STRINGS
+  & typeof SHELL_STRINGS
+  & typeof STATUS_STRINGS
+  & typeof THEME_STRINGS
+  & typeof ERROR_STRINGS
+  & typeof DISPLAY_STRINGS
+  & typeof FIELD_STRINGS
+  & typeof FILTER_STRINGS
+  & typeof PICKER_STRINGS
+  & typeof MULTI_SELECT_STRINGS
+  & typeof CAROUSEL_STRINGS
+  & typeof COMMAND_STRINGS
+  & typeof TABLE_STRINGS
+  & typeof SETTINGS_STRINGS
+  & typeof SPLIT_STRINGS
+  & typeof MEDIA_STRINGS
+  & typeof PROGRESS_STRINGS
+  & typeof FLOW_STRINGS
+  & typeof CANVAS_STRINGS
+  & typeof TOKEN_STRINGS
+  & typeof INBOX_STRINGS
+  & typeof PAGING_STRINGS
+  & typeof FILE_STRINGS
+  & typeof AVATAR_STRINGS
+  & typeof SLIDER_STRINGS
+  & typeof ACCORDION_STRINGS
+  & typeof TIME_STRINGS;
+const _complete: Record<Exclude<keyof NishStrings, keyof AllGroups>, never> = {};
+void _complete;

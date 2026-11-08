@@ -19,7 +19,8 @@ import { ErrorState, SkeletonRows } from "./feedback";
 import { ConfirmDialog } from "./overlay";
 import { Badge, Button } from "./primitives";
 import { apiFetch } from "./resource";
-import { useNishStrings } from "./provider";
+import { useStrings } from "./provider";
+import { TOKEN_STRINGS, STATUS_STRINGS, ERROR_STRINGS, OVERLAY_STRINGS } from "./strings";
 import { SettingRow, SettingsSection } from "./settings";
 
 // --- useServiceTokens ---------------------------------------------------------------
@@ -39,7 +40,7 @@ export interface UseServiceTokens {
 export function useServiceTokens(
   url = "/api/service-tokens",
 ): UseServiceTokens {
-  const strings = useNishStrings();
+  const strings = useStrings(TOKEN_STRINGS, STATUS_STRINGS, ERROR_STRINGS, OVERLAY_STRINGS);
   const [tokens, setTokens] = useState<ServiceTokenView[] | undefined>(
     undefined,
   );
@@ -155,7 +156,7 @@ export function ServiceTokensSection({
   envSourceLabel = "from SERVICE_TOKENS",
   ...rest
 }: ServiceTokensSectionProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(TOKEN_STRINGS, STATUS_STRINGS, ERROR_STRINGS, OVERLAY_STRINGS);
   const title = titleProp ?? strings.serviceTokens;
   const description = descriptionProp ?? strings.serviceTokensIntro;
   const [target, setTarget] = useState<ServiceTokenView | null>(null);

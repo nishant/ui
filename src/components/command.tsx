@@ -14,7 +14,8 @@ import { XIcon } from './icons';
 import { Modal } from './modal';
 import { navigateFromLayer, warnUnsafe } from './navigate';
 import { useLatest } from './latest';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { COMMAND_STRINGS, FIELD_STRINGS, OVERLAY_STRINGS } from './strings';
 
 export { navigateFromLayer };
 
@@ -262,7 +263,7 @@ export function CommandPalette({
   footer,
   onSubmitQuery,
 }: CommandPaletteProps) {
-  const s = useNishStrings();
+  const s = useStrings(COMMAND_STRINGS, FIELD_STRINGS, OVERLAY_STRINGS);
   useCommandHotkey(() => {
     if (!open) onOpenChange(true);
   }, hotkey);
@@ -295,7 +296,7 @@ interface DialogProps {
 }
 
 function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, externalLabel, onQuery, footer, onSubmitQuery }: DialogProps) {
-  const s = useNishStrings();
+  const s = useStrings(COMMAND_STRINGS, FIELD_STRINGS, OVERLAY_STRINGS);
   const uid = useId();
   const listId = `${uid}-list`;
   const optionId = (i: number) => `${uid}-opt-${i}`;

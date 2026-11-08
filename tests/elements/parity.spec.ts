@@ -614,6 +614,8 @@ async function measure(page: Page, loc: Locator, boxSel: string): Promise<Measur
 async function open(page: Page, file: string, query: string): Promise<void> {
   await page.goto(`${BASE}/${file}?${query}`);
   await page.locator('html[data-ready="1"]').waitFor({ state: 'attached', timeout: 15_000 });
+  // The React toast shows a plain fallback card until its chunk loads; measure the full card.
+  if (file === 'react.html' && query.startsWith('c=toast')) await page.locator('[data-nish-toast-fallback]').waitFor({ state: 'detached', timeout: 15_000 });
 }
 
 async function parts(page: Page, p: Part, setup?: Case['setup']): Promise<Record<string, Measured>> {

@@ -5,11 +5,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import * as ui from '../../src';
+import { Inbox } from '../../src/inbox';
+import { ServiceTokensSection } from '../../src/service-tokens';
+import { SystemCanvas } from '../../src/system-canvas';
 import { cases, hookCases, NOT_COMPONENTS } from './cases';
 
-const componentNames = Object.keys(ui).filter(
-  (k) => /^[A-Z][a-z]/.test(k) && typeof (ui as Record<string, unknown>)[k] === 'function' && !NOT_COMPONENTS.includes(k),
-);
+// The fleet-only components live on their own subpaths since 3.0; they stay covered here.
+const subpathComponents = { Inbox, ServiceTokensSection, SystemCanvas };
+const componentNames = [
+  ...Object.keys(ui).filter(
+    (k) => /^[A-Z][a-z]/.test(k) && typeof (ui as Record<string, unknown>)[k] === 'function' && !NOT_COMPONENTS.includes(k),
+  ),
+  ...Object.keys(subpathComponents),
+];
 
 describe('server environment', () => {
   it('has no DOM globals', () => {

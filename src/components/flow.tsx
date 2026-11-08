@@ -18,7 +18,8 @@ import { useIsoLayoutEffect } from './client';
 import { useMediaQuery, useNow } from './hooks';
 import { Tooltip } from './tooltip';
 import { Badge, type BadgeHue } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { PROGRESS_STRINGS, FLOW_STRINGS } from './strings';
 
 // Animated components for live views of multi-step work: FlowSteps, StepBar, AgentNode,
 // WorkflowBoard, ActivityFeed, TickerText and AnimatedList.
@@ -287,7 +288,7 @@ function StepRow({
  *  shakes, and when the last step finishes a sweep runs along the connectors. Vertical on
  *  narrow containers, horizontal from 640px (up to 8 steps). */
 export function FlowSteps({ steps, orientation = 'auto', label, statusLabels, className, ref, ...rest }: FlowStepsProps) {
-  const s = useNishStrings();
+  const s = useStrings(PROGRESS_STRINGS, FLOW_STRINGS);
   const allDone = steps.length > 0 && steps.every((s) => s.status === 'done');
   const prevAll = useRef<boolean | null>(null);
   const [sweeping, setSweeping] = useState(false);
@@ -342,7 +343,7 @@ export interface StepBarProps extends Omit<ComponentPropsWithoutRef<'div'>, 'chi
 /** A compact progress bar of segments, one per step (a continuous bar above 12). Done
  *  segments fill in, the current one pulses while `active`. */
 export function StepBar({ total, done, active = false, label, className, ref, ...rest }: StepBarProps) {
-  const s = useNishStrings();
+  const s = useStrings(PROGRESS_STRINGS, FLOW_STRINGS);
   const t = Number.isFinite(total) ? Math.max(0, Math.floor(total)) : 0;
   const d = Number.isFinite(done) ? Math.min(t, Math.max(0, Math.floor(done))) : 0;
   const props = {
@@ -635,7 +636,7 @@ function PhaseConnector({ flowing }: { flowing: boolean }) {
  *  agents as AgentNodes. A phase waits, glows while an agent runs and gets a check when
  *  all its agents finish; new agents rise in, staggered. */
 export function WorkflowBoard({ phases, agents, label, otherLabel, waitingLabel, className, ref, ...rest }: WorkflowBoardProps) {
-  const s = useNishStrings();
+  const s = useStrings(PROGRESS_STRINGS, FLOW_STRINGS);
   const otherTitle = otherLabel ?? s.other;
   const fresh = useFreshIds(
     agents.map((a) => a.id),
@@ -790,7 +791,7 @@ const FEED_DOT_FORCED = 'forced-colors:bg-[color:CanvasText]';
 /** A timeline of short updates, newest first. A new update opens its row, fades in and
  *  flashes the accent tint. Items present on the first render do not animate. */
 export function ActivityFeed({ items, max = 50, now, label, empty, className, ref, ...rest }: ActivityFeedProps) {
-  const s = useNishStrings();
+  const s = useStrings(PROGRESS_STRINGS, FLOW_STRINGS);
   const internalNow = useNow(15000);
   const clock = now ?? internalNow;
   const shown = useMemo(() => [...items].sort((a, b) => b.at - a.at).slice(0, Math.max(0, max)), [items, max]);

@@ -5,7 +5,8 @@ import { CheckIcon, XIcon } from './icons';
 import { Spinner } from './feedback';
 import { Chip } from './forms';
 import { fieldClass } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { FIELD_STRINGS, MULTI_SELECT_STRINGS } from './strings';
 import { indexComboboxOptions, setRef } from './forms-classes';
 import { COMBOBOX_DEBOUNCE_MS, COMBOBOX_MAX_SHOWN } from '../combobox-filter';
 import type { ComboboxOption } from './combobox';
@@ -105,7 +106,7 @@ export function MultiSelect({
   className,
   ...rest
 }: MultiSelectProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(FIELD_STRINGS, MULTI_SELECT_STRINGS);
   const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = id ?? `nish-ms-${autoId}`;
   const listId = `nish-ms-list-${autoId}`;

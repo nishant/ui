@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
+import { CodeBlock } from './code';
 
-// Enough Markdown for CHANGELOG.md: headings, paragraphs, lists (one level of nesting),
-// inline code, bold and links. The changelog is ours, so no HTML passthrough.
+// Enough Markdown for CHANGELOG.md and the migration guides: headings, paragraphs, lists (one level of
+// nesting), fenced code blocks, tables, inline code, bold and links. The docs are ours, so no HTML passthrough.
 
-function inline(text: string, key = 0): ReactNode[] {
+export function inline(text: string, key = 0): ReactNode[] {
   const out: ReactNode[] = [];
   const re = /(`[^`]+`)|\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)]+)\)/g;
   let last = 0;
@@ -33,6 +34,8 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
   let target = intro;
   let para: string[] = [];
   let list: { text: string; sub: string[] }[] | null = null;
+  let table: string[] | null = null;
+  let fence: { lang: string; text: string[] } | null = null;
   let k = 0;
 
   const flushPara = () => {
@@ -60,7 +63,63 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
     list = null;
   };
 
+  const flushTable = () => {
+    if (!table) return;
+    const rows = table.map((r) => r.trim().slice(1, r.trim().endsWith('|') ? -1 : undefined).split('|').map((c) => c.trim()));
+    const [head, , ...body] = rows;
+    const cell = 'border-b border-th-line py-2 pe-3 align-top';
+    target.push(
+      <div key={k++} className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr>
+              {head.map((c, i) => (
+                <th key={i} className={cell + ' font-semibold text-th-hi'}>
+                  {inline(c)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {body.map((r, i) => (
+              <tr key={i}>
+                {r.map((c, j) => (
+                  <td key={j} className={cell}>
+                    {inline(c)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>,
+    );
+    table = null;
+  };
+
   for (const line of lines) {
+    if (fence) {
+      if (/^```\s*$/.test(line)) {
+        target.push(<CodeBlock key={k++} code={fence.text.join('\n')} title={fence.lang || undefined} />);
+        fence = null;
+      } else fence.text.push(line);
+      continue;
+    }
+    const open = line.match(/^```(\w*)\s*$/);
+    if (open) {
+      flushPara();
+      flushList();
+      flushTable();
+      fence = { lang: open[1], text: [] };
+      continue;
+    }
+    if (line.startsWith('|')) {
+      flushPara();
+      flushList();
+      (table ??= []).push(line);
+      continue;
+    }
+    flushTable();
     const h = line.match(/^(#{1,4})\s+(.*)$/);
     const li = line.match(/^(\s*)[-*]\s+(.*)$/);
     if (h) {
@@ -97,5 +156,6 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
   }
   flushPara();
   flushList();
+  flushTable();
   return { intro, sections };
 }

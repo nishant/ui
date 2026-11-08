@@ -4,7 +4,8 @@ import { cn } from '../cn';
 import { safeUrl } from '../url';
 import { ListRow } from './data';
 import { Badge } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { MEDIA_STRINGS } from './strings';
 
 // Media rows: a thumbnail, a two-line title, a meta line and status badges. Search results,
 // folders, queues and "recent" chips share them. MediaRow composes ListRow.
@@ -131,7 +132,7 @@ export function MediaRow({
   ref,
   ...rest
 }: MediaRowProps) {
-  const t = useNishStrings();
+  const t = useStrings(MEDIA_STRINGS);
   const small = dense || compact;
   const size = thumbSize ?? (small ? 'sm' : 'md');
   const badgeSize = small ? 'xs' : 'sm';

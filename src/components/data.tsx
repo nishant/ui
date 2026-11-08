@@ -32,7 +32,8 @@ import { useMediaQuery } from './hooks';
 import { StatusDot, type StatusTone } from './display';
 import { CardListSkeleton, EmptyState, ErrorState, SkeletonRows } from './feedback';
 import { useLatest } from './latest';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { STATUS_STRINGS, TABLE_STRINGS } from './strings';
 import { Table, TableWrap, Td, Th, Tr } from './table';
 import { cardClass, IconButton, Select } from './primitives';
 
@@ -277,7 +278,7 @@ export function ResponsiveTable<T>({
   ref,
   ...rest
 }: ResponsiveTableProps<T>) {
-  const t = useNishStrings();
+  const t = useStrings(STATUS_STRINGS, TABLE_STRINGS);
   const text = { ...DEFAULT_SORT_TEXT, ...sortText };
   const [innerSort, setInnerSort] = useState<Sort>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -881,7 +882,7 @@ export interface AsyncPanelProps extends Omit<ComponentPropsWithoutRef<'div'>, '
 
 /** Shows a skeleton, an error, an empty state or its children, from one status value. */
 export function AsyncPanel({ status, skeleton, error, empty, children, className, ref, ...rest }: AsyncPanelProps) {
-  const t = useNishStrings();
+  const t = useStrings(STATUS_STRINGS, TABLE_STRINGS);
   let body: ReactNode;
   if (status === 'loading') body = skeleton ?? <SkeletonRows />;
   else if (status === 'error')

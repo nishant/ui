@@ -498,7 +498,8 @@ export default defineConfig({
             working or keep its look: removing or renaming a token, role, class, export, prop or file; changing a component&apos;s default; changing the cookie or
             storage key. A major means app code must change, a minor adds (new roles, components, props, files), a patch fixes. Color adjustments that keep
             every contrast check passing are minor or patch. Every release is in the <a href={href('/changelog')}>changelog</a>, and a major has a migration
-            guide (<a href="https://github.com/nishant/ui/blob/master/docs/MIGRATING-2.0.md" target="_blank" rel="noreferrer">moving from 1.x to 2.0</a>).
+            guide (<a href={href('/migrating')}>moving from 2.x to 3.0</a>; the older guide covers{' '}
+            <a href="https://github.com/nishant/ui/blob/master/docs/MIGRATING-2.0.md" target="_blank" rel="noreferrer">1.x to 2.0</a>).
           </p>
           <p>
             A deprecated export keeps working for at least one major and is marked <code>@deprecated</code> in its type. Security fixes go to the latest

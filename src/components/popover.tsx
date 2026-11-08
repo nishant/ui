@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../cn';
 import { useIsClient } from './client';
 import { useLatest } from './latest';
-import { useNishConfig } from './provider';
+import { useNishContext } from './provider';
 import { focusables, layerHost, useMergedRef } from './overlay-core';
 import { useAnchoredPosition, floatingStyle, useDismiss, useReturnFocus, type PopoverCloseReason } from './overlay-position';
 
@@ -59,7 +59,7 @@ export function Popover({
   onKeyDown: userKeyDown,
   ...rest
 }: PopoverProps) {
-  const config = useNishConfig();
+  const config = useNishContext();
   const isClient = useIsClient();
   const [panelRef, setPanelRef] = useMergedRef<HTMLDivElement>(ref);
   const pos = useAnchoredPosition(anchor, panelRef, open, side, align);

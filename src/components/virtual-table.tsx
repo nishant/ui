@@ -17,7 +17,8 @@ import { cn } from '../cn';
 import { useIsoLayoutEffect } from './client';
 import type { Column, Sort } from './data';
 import { sortRows } from './data-classes';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { TABLE_STRINGS, STATUS_STRINGS } from './strings';
 import { useLatest } from './latest';
 import { Table, TableWrap, Td, Th, Tr } from './table';
 import { useVirtualRows, type VirtualListHandle } from './virtual';
@@ -110,7 +111,7 @@ export function VirtualTable<T>({
   ref,
   ...rest
 }: VirtualTableProps<T>) {
-  const t = useNishStrings();
+  const t = useStrings(TABLE_STRINGS, STATUS_STRINGS);
   const size = rowHeight ?? (onRowClick ? 44 : dense ? 33 : 41);
   const [innerSort, setInnerSort] = useState<Sort>(null);
   const [announcement, setAnnouncement] = useState('');
