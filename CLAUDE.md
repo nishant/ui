@@ -77,6 +77,7 @@ tag-push fan-out runs from it); `scripts/release.mjs --ci` dispatches `fanout.ym
   and 840 in a browser too.
 - Docs site docs are lazy chunks: `site/docs-meta.mjs` reads each doc's id, name, summary, exports, framed and fleetOnly
   from the source, so they must be literals.
+- The fan-out waits 2 hours after a release for a burst to settle, so the docs site (hosting) stays on the old version that long. To check new docs pages live right away, fan out to hosting only: `gh workflow run fanout.yml -R nishant/ui -f tag=vX.Y.Z -f repo=nishant/hosting -f now=true`; leave the apps on the settle window.
 - CodeQL runs on every PR (`codeql.yml`) and its alerts fail the PR check. Fix the code; dismiss a false positive only with
   a reason (`gh api -X PATCH repos/nishant/ui/code-scanning/alerts/<n> -f state=dismissed -f dismissed_reason="false positive" -f dismissed_comment=...`).
   Trim strings with index loops, not an anchored `[...]+$` regex (polynomial ReDoS).
