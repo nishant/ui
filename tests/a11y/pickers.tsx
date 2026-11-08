@@ -1,8 +1,9 @@
 // A page for the picker specs (Calendar, DatePicker, MultiSelect, Carousel). Query string:
-//   ?open=datepicker|multiselect   opens that one on load
+//   ?open=datepicker|daterange|multiselect   opens that one on load
 //   ?dir=rtl                       right-to-left
 //   ?modal=1                       a MultiSelect and a DatePicker inside an open Modal
-//   ?extra=1                       limits calendar, month-end calendar, form, auto-play carousel
+//   ?extra=1                       limits calendar, month-end calendar, weekends-off range calendar,
+//                                  form (with a time field), auto-play carousel
 // The theme comes from localStorage 'nish-theme' (applyTheme), like an app.
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -10,6 +11,9 @@ import './styles.css';
 import { applyTheme } from '../../src/theme';
 import { Calendar } from '../../src/components/calendar';
 import { DatePicker } from '../../src/components/date-picker';
+import { RangeCalendar } from '../../src/components/range-calendar';
+import { DateRangePicker } from '../../src/components/date-range-picker';
+import { TimeField } from '../../src/components/time-field';
 import { MultiSelect } from '../../src/components/multi-select';
 import { Carousel } from '../../src/components/carousel';
 import { Field } from '../../src/components/forms';
@@ -32,6 +36,12 @@ const STATES = [
   { value: 'NC', label: 'North Carolina' },
 ];
 
+// Saturday or Sunday, by UTC weekday math (no local-time drift).
+const weekend = (iso: string) => {
+  const w = new Date(`${iso}T00:00:00Z`).getUTCDay();
+  return w === 0 || w === 6;
+};
+
 const TRIPS = ['Smoky Mountains', 'Big Bend', 'Olympic', 'Zion'];
 
 function Page() {
@@ -41,6 +51,9 @@ function Page() {
   useEffect(() => {
     if (open === 'datepicker') {
       document.querySelector<HTMLButtonElement>('main button[aria-haspopup="dialog"]')?.click();
+    }
+    if (open === 'daterange') {
+      document.querySelector<HTMLButtonElement>('main button[aria-label^="Change dates"]')?.click();
     }
     if (open === 'multiselect') {
       const input = multiRef.current;
@@ -65,6 +78,25 @@ function Page() {
       <Card className="flex flex-col gap-3 p-4">
         <Field label="Due date">
           <DatePicker defaultValue="2026-11-05" />
+        </Field>
+      </Card>
+
+      <Card className="flex flex-col gap-3 p-4">
+        <h2 className="text-base font-semibold text-th-hi">Range calendar</h2>
+        <div id="range-host">
+          <RangeCalendar defaultMonth="2026-11" />
+        </div>
+      </Card>
+
+      <Card className="flex flex-col gap-3 p-4">
+        <Field label="Trip dates">
+          <DateRangePicker defaultValue={{ from: '2026-11-05', to: '2026-11-09' }} />
+        </Field>
+      </Card>
+
+      <Card className="flex flex-col gap-3 p-4">
+        <Field label="Start time">
+          <TimeField defaultValue="09:30" locale="en-US" />
         </Field>
       </Card>
 
@@ -96,6 +128,9 @@ function Page() {
                 isDateDisabled={(d) => d === '2026-11-10'}
               />
             </div>
+            <div id="range-weekends-host">
+              <RangeCalendar defaultMonth="2026-11" isDateDisabled={weekend} />
+            </div>
             <div id="jan-host">
               <Calendar defaultValue="2026-01-31" />
             </div>
@@ -110,6 +145,9 @@ function Page() {
             >
               <Field label="Form date">
                 <DatePicker name="when" />
+              </Field>
+              <Field label="Form time">
+                <TimeField name="at" locale="en-US" />
               </Field>
               <button type="submit">Save</button>
             </form>
