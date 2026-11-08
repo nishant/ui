@@ -1,0 +1,9 @@
+import{n as e}from"./index-D-iyk81y.js";import{t}from"./jsx-D_XtDQtC.js";import{o as n,r,s as i,t as a}from"./primitives-Cv1AzcoT.js";import{t as o}from"./shared-DuE1zpPL.js";var s=e(),c={id:`label`,name:`Label`,exports:[`Label`],summary:`The small uppercase label above fields and over sections of a card.`,importLine:`import { Label } from '@nish/ui';`,controls:[{key:`text`,label:`Text`,type:`text`}],initial:{text:`Price target`},render:e=>(0,s.jsx)(i,{children:String(e.text)}),code:e=>t(`Label`,{},String(e.text)),html:{height:120,code:`<label class="nish-field" style="max-width:24rem">
+  <span class="nish-label">Server name</span>
+  <input class="nish-input" value="Survival">
+</label>`},stories:[{id:`field`,name:`Field label`,render:()=>(0,s.jsx)(o,{label:`Email`,children:(0,s.jsx)(n,{type:`email`,defaultValue:`me@nish.software`})})},{id:`section`,name:`Section heading in a card`,render:()=>(0,s.jsxs)(r,{className:`w-full space-y-2`,children:[(0,s.jsx)(i,{children:`Upcoming`}),(0,s.jsx)(`p`,{className:`text-sm text-th-hi`,children:`Interview with Linear, Thursday 2 pm`}),(0,s.jsx)(`p`,{className:`text-sm text-th-hi`,children:`Offer call with Vercel, Friday 11 am`})]})},{id:`count`,name:`With a count`,render:()=>(0,s.jsxs)(`div`,{className:`flex items-center gap-2`,children:[(0,s.jsx)(i,{children:`Watchlist`}),(0,s.jsx)(a,{children:`14`})]})}],usage:`import { Label } from '@nish/ui';
+
+<label className="grid gap-1.5">
+  <Label>Email</Label>
+  <Input type="email" />
+</label>`,guidelines:[`Label renders a span. Wrap the Label and the field in a <label> element (or use htmlFor on your own label) so clicking it focuses the field.`,`Label takes ref and any span attribute.`]};export{c as label};
