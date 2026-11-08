@@ -182,9 +182,10 @@ package missing from npm, a refused publish) turns the job red.
   PR is held until a session adopts it (see the fan-out above), so write the app-side change for
   each fleet repo into the PR body or this file. 2.0.0: `hubHref` becomes `hub`, server-kit users
   pass `trustProxy` and keep `caseInsensitive: true` where they relied on it, Favicon and LinkCard
-  users call `configureFavicons({ resolve: googleFavicon })`, `forwardRef`-typed usages get fixed. 3.0.0: apps import Inbox, service tokens and SystemCanvas names from
-  their subpaths and use `Switch onCheckedChange`; both work on 2.1, so the apps moved first (prep PRs) and
-  each 3.0.0 bump PR needed only an adoption commit.
+  users call `configureFavicons({ resolve: googleFavicon })`, `forwardRef`-typed usages get fixed.
+  3.0.0: apps import Inbox, service tokens and SystemCanvas names from their subpaths and use
+  `Switch onCheckedChange`; both work on 2.1, so the apps moved first (prep PRs) and each 3.0.0 bump
+  PR needed only an adoption commit.
 - **A publish run fails.** Read the job summary and log
   (`gh run list -R nishant/ui -w publish.yml`, then `gh run view <id> --log-failed`). Fix the
   cause on master, then rerun for the same tag: `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z`

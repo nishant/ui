@@ -125,6 +125,19 @@ describe('useStrings', () => {
     return null;
   }
 
+  it('does not copy inherited-name overrides such as toString or constructor', () => {
+    const got: { v?: typeof SHELL_STRINGS; n: number } = { n: 0 };
+    const bad = { toString: () => 'x', constructor: 'y', more: 'Plus' } as never;
+    render(
+      <NishProvider strings={bad}>
+        <Grab use={() => useStrings(SHELL_STRINGS)} into={got} />
+      </NishProvider>,
+    );
+    expect(Object.hasOwn(got.v!, 'toString')).toBe(false);
+    expect(Object.hasOwn(got.v!, 'constructor')).toBe(false);
+    expect(got.v!.more).toBe('Plus');
+  });
+
   it('returns the group itself without a provider', () => {
     const got: { v?: typeof SHELL_STRINGS; n: number } = { n: 0 };
     render(<Grab use={() => useStrings(SHELL_STRINGS)} into={got} />);

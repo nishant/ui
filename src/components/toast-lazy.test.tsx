@@ -58,4 +58,61 @@ describe('Toaster when the card chunk cannot load', () => {
       dismissToast(id3);
     });
   });
+
+  it('keeps the fallback for a newly mounted Toaster and does not import again', async () => {
+    const { Toaster, toast, dismissToast } = await setup();
+    const first = render(<Toaster />);
+    let id = 0;
+    act(() => {
+      id = toast('One', { duration: 'sticky' });
+    });
+    await waitFor(() => expect(factoryRuns).toBe(1));
+    await screen.findByText('One');
+    first.unmount();
+
+    render(<Toaster />);
+    expect(screen.getByText('One').closest('[data-nish-toast-fallback]')).not.toBeNull();
+    let id2 = 0;
+    act(() => {
+      id2 = toast('Two', { duration: 'sticky' });
+    });
+    expect(screen.getByText('Two').closest('[data-nish-toast-fallback]')).not.toBeNull();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(factoryRuns).toBe(1);
+    act(() => {
+      dismissToast(id);
+      dismissToast(id2);
+    });
+  });
+});
+
+describe('Toaster when the card chunk arrives late', () => {
+  it('moves focus from the fallback Undo button to the card Undo button', async () => {
+    vi.resetModules();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    vi.doMock('./toast-card', async () => {
+      await gate;
+      return vi.importActual('./toast-card');
+    });
+    const { Toaster, toast, dismissToast } = await import('./toast');
+    render(<Toaster />);
+    let id = 0;
+    act(() => {
+      id = toast('Saved', { duration: 'sticky', action: { label: 'Undo', onClick: () => {} } });
+    });
+    const undo = await screen.findByRole('button', { name: 'Undo' });
+    expect(undo.closest('[data-nish-toast-fallback]')).not.toBeNull();
+    act(() => undo.focus());
+    expect(document.activeElement).toBe(undo);
+    await act(async () => {
+      release();
+      await gate;
+    });
+    await waitFor(() => expect(screen.getByText('Saved').closest('[data-nish-toast-fallback]')).toBeNull());
+    const now = screen.getByRole('button', { name: 'Undo' });
+    expect(now).not.toBe(undo);
+    await waitFor(() => expect(document.activeElement).toBe(now));
+    act(() => dismissToast(id));
+  });
 });

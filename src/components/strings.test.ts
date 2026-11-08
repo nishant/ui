@@ -33,13 +33,11 @@ describe('string groups', () => {
     expect(S.DEFAULT_STRINGS.inboxHappened(3)).toBe('Happened 3 times');
   });
 
-  // (d) Turn on in T6: change `it.todo(` to `it(` and pass `checkNoDirectHooks` as the body.
-  // function checkNoDirectHooks() { ...the helper below... }
   it('(d) no file under src/ other than provider.tsx, strings.ts, index.ts and tests uses the public string hooks', checkNoDirectHooks);
 });
 
-/** The body of test (d): a skipped helper so enabling it is a one-line switch (`it('(d) ...', checkNoDirectHooks)`). */
-export function checkNoDirectHooks(): void {
+/** The body of test (d): no source file outside the allowed few reads the strings hooks or DEFAULT_STRINGS directly. */
+function checkNoDirectHooks(): void {
   const root = join(__dirname, '..');
   const allowed = new Set(['components/provider.tsx', 'components/strings.ts', 'index.ts']);
   const bad: string[] = [];

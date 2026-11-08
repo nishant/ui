@@ -55,7 +55,6 @@ const UNDOCUMENTED_EXPORTS = new Set<string>([
   'VERSION', 'useIsClient', 'useIsoLayoutEffect', 'isRtl', 'THEMES',
   'COLOR_ROLES', 'SOFT_ROLES', 'SHADOWS', 'DEFAULT_THEME', 'revealClass',
   'navigateFromLayer', 'usePrefersReducedMotion',
- 
   'paginationRange', 'avatarInitials', 'avatarHueIndex', 'registerThemes',
   'isThemeName', 'getThemeChoice', 'resolveTheme', 'schemeOf', 'applyTheme',
   'readToken', 'TOGGLE_ORDER', 'countLeaves', 'computeRects', 'computeDividers',
@@ -88,7 +87,6 @@ const UNDESCRIBED_PROPS = new Set<string>([
   'TickerText.text', 'TickerText.as', 'TickerText.className', 'TickerText.ref',
   'AnimatedList.items', 'AnimatedList.getKey', 'AnimatedList.children', 'AnimatedList.as',
   'AnimatedList.className', 'AnimatedList.itemClassName',
- 
   'AppShell.icon', 'AppShell.renderLink',
   'AppShell.children', 'AppErrorBoundary.children', 'FilterBar.className', 'FilterSheet.open',
   'FilterSheet.onClose', 'FilterSheet.children', 'SettingsSection.title', 'SettingsSection.description',

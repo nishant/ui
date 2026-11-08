@@ -59,7 +59,7 @@ function pick(o: Partial<NishStrings>, groups: readonly (Partial<NishStrings> | 
   const out: Record<string, unknown> = {};
   for (const key of Object.keys(o)) {
     for (const g of groups) {
-      if (g && key in g) {
+      if (g && Object.hasOwn(g, key)) {
         out[key] = (o as Record<string, unknown>)[key];
         break;
       }

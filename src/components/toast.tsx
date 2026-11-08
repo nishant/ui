@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type ComponentPropsWithoutRef, type CSSProperties, type Ref } from 'react';
+import { useEffect, useRef, useState, type ComponentPropsWithoutRef, type CSSProperties, type FocusEvent, type Ref } from 'react';
 import { cn } from '../cn';
 import { XIcon } from './icons';
 import { lazyModule, preloadWhenIdle, useLazyModule } from './lazy-module';
@@ -11,7 +11,15 @@ import { dismissToast, useToasts, type ToastItem } from './toast-store';
 export { toast, useToast, dismissToast } from './toast-store';
 export type { ToastTone, ToastAction, ToastOptions, ToastItem, ToastPromiseMessages } from './toast-store';
 
-const cardModule = /* @__PURE__ */ lazyModule(() => import('./toast-card'));
+// Set once the card chunk fails to load (idle preload or on demand). The fallback then carries every toast for
+// the page's life: no Toaster, mounted or remounted, fetches the chunk again.
+let cardFailed = false;
+const cardModule = /* @__PURE__ */ lazyModule(() =>
+  import('./toast-card').catch((e: unknown) => {
+    cardFailed = true;
+    throw e;
+  }),
+);
 
 export interface ToasterProps extends Omit<ComponentPropsWithoutRef<'div'>, 'className' | 'children'> {
   /** Extra classes for the stack, e.g. to lift it above a bottom nav: sm:bottom-20. */
@@ -44,10 +52,23 @@ const DESKTOP_BOTTOM: Record<'sm' | 'md' | 'lg', string> = {
  *  the screen on phones while a sheet or dialog is open (html[data-nish-layer-open]). */
 export function Toaster({ className, offset, offsetUntil = 'md', style: userStyle, ref, ...rest }: ToasterProps) {
   const list = useToasts();
-  const [failed, setFailed] = useState(false);
-  useEffect(() => preloadWhenIdle(cardModule), []);
-  const card = useLazyModule(cardModule, list.length > 0 && !failed, () => setFailed(true));
+  useEffect(() => (cardFailed ? undefined : preloadWhenIdle(cardModule)), []);
+  const card = useLazyModule(cardModule, list.length > 0 && !cardFailed);
   const Card = card?.ToastCard;
+  // Which fallback button had focus when the card chunk arrives: the card replaces the fallback, so focus moves
+  // to the card's button with the same accessible name.
+  const stack = useRef<HTMLDivElement>(null);
+  const focused = useRef<[id: number, name: string | null] | null>(null);
+  useEffect(() => {
+    const f = focused.current;
+    if (!Card || !f || document.activeElement !== document.body) return;
+    const at = list.findIndex((i) => i.id === f[0]);
+    const btn = [...(stack.current?.children[at]?.querySelectorAll('button') ?? [])].find(
+      (b) => (b.getAttribute('aria-label') ?? b.textContent) === f[1],
+    );
+    btn?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the card arrives
+  }, [Card]);
   const [polite, setPolite] = useState({ text: '', seq: 0 });
   const [assertive, setAssertive] = useState({ text: '', seq: 0 });
   const announced = useRef(new Set<number>());
@@ -134,9 +155,9 @@ export function Toaster({ className, offset, offsetUntil = 'md', style: userStyl
         <div role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">
           <span key={assertive.seq}>{assertive.text}</span>
         </div>
-        {list.map((t) => (
-          Card ? <Card key={t.id} t={t} /> : <ToastFallback key={t.id} t={t} />
-        ))}
+        <div ref={stack} className="contents">
+          {list.map((t) => (Card ? <Card key={t.id} t={t} /> : <ToastFallback key={t.id} t={t} focusedRef={focused} />))}
+        </div>
       </div>
     </Portal>
   );
@@ -144,12 +165,15 @@ export function Toaster({ className, offset, offsetUntil = 'md', style: userStyl
 
 // Shown while the card chunk loads, and for the page's life if it cannot load. The live regions
 // announce every toast, so this only has to show the text and keep the action reachable.
-function ToastFallback({ t }: { t: ToastItem }) {
+function ToastFallback({ t, focusedRef }: { t: ToastItem; focusedRef: { current: [number, string | null] | null } }) {
   const strings = useStrings(DISPLAY_STRINGS);
+  const track = (e: FocusEvent<HTMLButtonElement>) => {
+    focusedRef.current = [t.id, e.currentTarget.getAttribute('aria-label') ?? e.currentTarget.textContent];
+  };
   return (
     <div
       data-nish-toast-fallback=""
-      className="pointer-events-auto flex w-full max-w-md items-start gap-2.5 rounded-xl border border-th-line-strong bg-th-elevated px-3.5 py-3 shadow-pop"
+      className="pointer-events-auto flex w-full max-w-md items-start gap-2.5 rounded-xl border border-th-line-strong bg-th-elevated px-3.5 py-3 shadow-pop animate-[nish-rise-in_160ms_var(--nish-ease-out)]"
     >
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium leading-snug text-th-hi">{t.title}</p>
@@ -158,6 +182,7 @@ function ToastFallback({ t }: { t: ToastItem }) {
       {t.action ? (
         <button
           type="button"
+          onFocus={track}
           onClick={() => {
             t.action?.onClick();
             dismissToast(t.id);
@@ -169,6 +194,7 @@ function ToastFallback({ t }: { t: ToastItem }) {
       ) : null}
       <button
         type="button"
+        onFocus={track}
         onClick={() => dismissToast(t.id)}
         aria-label={strings.dismiss}
         className="-m-1 inline-flex shrink-0 items-center justify-center rounded-md p-1 text-th-hi3 transition-colors hover:bg-th-overlay hover:text-th-hi pointer-coarse:-my-2 pointer-coarse:min-h-11 pointer-coarse:min-w-11"

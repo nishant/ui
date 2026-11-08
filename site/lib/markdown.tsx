@@ -11,9 +11,19 @@ export function inline(text: string, key = 0): ReactNode[] {
   let i = key;
   for (const m of text.matchAll(re)) {
     if (m.index > last) out.push(text.slice(last, m.index));
-    if (m[1]) out.push(<code key={i++}>{m[1].slice(1, -1)}</code>);
+    if (m[1]) {
+      // <wbr /> after each "/" lets long paths wrap there only; it adds no characters to copied text.
+      const parts = m[1].slice(1, -1).split('/');
+      const kids: ReactNode[] = [];
+      parts.forEach((part, n) => {
+        kids.push(n < parts.length - 1 ? part + '/' : part);
+        if (n < parts.length - 1) kids.push(<wbr key={n} />);
+      });
+      out.push(<code key={i++}>{kids}</code>);
+    }
     else if (m[2]) out.push(<strong key={i++} className="font-semibold text-th-hi">{m[2]}</strong>);
-    else out.push(<a key={i++} href={m[4]}>{m[3]}</a>);
+    else if (/^(https?:|mailto:|#|\/)/i.test(m[4])) out.push(<a key={i++} href={m[4]}>{m[3]}</a>);
+    else out.push(m[3]);
     last = m.index + m[0].length;
   }
   if (last < text.length) out.push(text.slice(last));
@@ -33,7 +43,7 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
   const sections: MdSection[] = [];
   let target = intro;
   let para: string[] = [];
-  let list: { text: string; sub: string[] }[] | null = null;
+  let list: { ordered: boolean; items: { text: string; sub: string[] }[] } | null = null;
   let table: string[] | null = null;
   let fence: { lang: string; text: string[] } | null = null;
   let k = 0;
@@ -44,9 +54,10 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
   };
   const flushList = () => {
     if (!list) return;
+    const Tag = list.ordered ? 'ol' : 'ul';
     target.push(
-      <ul key={k++} className="list-disc space-y-1.5 pl-5 marker:text-th-ghost">
-        {list.map((item, i) => (
+      <Tag key={k++} className={(list.ordered ? 'list-decimal' : 'list-disc') + ' space-y-1.5 pl-5 marker:text-th-ghost'}>
+        {list.items.map((item, i) => (
           <li key={i}>
             {inline(item.text)}
             {item.sub.length ? (
@@ -58,7 +69,7 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
             ) : null}
           </li>
         ))}
-      </ul>,
+      </Tag>,
     );
     list = null;
   };
@@ -66,8 +77,10 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
   const flushTable = () => {
     if (!table) return;
     const rows = table.map((r) => r.trim().slice(1, r.trim().endsWith('|') ? -1 : undefined).split('|').map((c) => c.trim()));
-    const [head, , ...body] = rows;
-    const cell = 'border-b border-th-line py-2 pe-3 align-top';
+    const isSep = rows.length > 1 && rows[1].every((c) => /^:?-+:?$/.test(c));
+    const [head, ...rest] = rows;
+    const body = isSep ? rest.slice(1) : rest;
+    const cell = 'border-b border-th-line py-2 pe-3 align-top [&_code]:[overflow-wrap:normal]';
     target.push(
       <div key={k++} className="overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -121,7 +134,7 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
     }
     flushTable();
     const h = line.match(/^(#{1,4})\s+(.*)$/);
-    const li = line.match(/^(\s*)[-*]\s+(.*)$/);
+    const li = line.match(/^(\s*)(?:[-*]|(\d+)\.)\s+(.*)$/);
     if (h) {
       flushPara();
       flushList();
@@ -139,14 +152,14 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
       }
     } else if (li) {
       flushPara();
-      list ??= [];
-      if (li[1].length >= 2 && list.length) list[list.length - 1].sub.push(li[2]);
-      else list.push({ text: li[2], sub: [] });
+      list ??= { ordered: li[2] !== undefined, items: [] };
+      if (li[1].length >= 2 && list.items.length) list.items[list.items.length - 1].sub.push(li[3]);
+      else list.items.push({ text: li[3], sub: [] });
     } else if (!line.trim()) {
       flushPara();
       flushList();
     } else if (list && /^\s{2,}/.test(line)) {
-      const last = list[list.length - 1];
+      const last = list.items[list.items.length - 1];
       if (last.sub.length) last.sub[last.sub.length - 1] += ' ' + line.trim();
       else last.text += ' ' + line.trim();
     } else {
@@ -154,6 +167,7 @@ export function renderMarkdown(src: string): { intro: ReactNode[]; sections: MdS
       para.push(line.trim());
     }
   }
+  if (fence) target.push(<CodeBlock key={k++} code={fence.text.join('\n')} title={fence.lang || undefined} />);
   flushPara();
   flushList();
   flushTable();
