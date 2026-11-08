@@ -81,6 +81,65 @@ describe('TimeField typing', () => {
   });
 });
 
+describe('TimeField digit by digit', () => {
+  it('keeps the typed text while typing, then pads after blur', () => {
+    const { h, m, onValueChange } = setup({ defaultValue: '09:00' });
+    h.focus();
+    type(m, '3');
+    expect(m.value).toBe('3');
+    expect(onValueChange).toHaveBeenLastCalledWith('09:03');
+    type(m, '30');
+    expect(m.value).toBe('30');
+    expect(onValueChange).toHaveBeenLastCalledWith('09:30');
+    type(h, '9');
+    fireEvent.blur(h);
+    expect(h.value).toBe('9');
+    type(m, '5');
+    expect(m.value).toBe('5');
+    fireEvent.blur(m);
+    expect(m.value).toBe('05');
+  });
+
+  it('types an hour of 15 on a 24-hour clock with a minute set', () => {
+    const { h, onValueChange } = setup({ hourCycle: 24, defaultValue: '08:20' });
+    h.focus();
+    type(h, '1');
+    expect(h.value).toBe('1');
+    expect(onValueChange).toHaveBeenLastCalledWith('01:20');
+    type(h, '15');
+    expect(h.value).toBe('15');
+    expect(onValueChange).toHaveBeenLastCalledWith('15:20');
+    fireEvent.blur(h);
+    expect(h.value).toBe('15');
+  });
+
+  it('keeps PM chosen first while both boxes are empty', () => {
+    const { h, m, onValueChange } = setup();
+    key(h, 'p');
+    expect(select()!.value).toBe('pm');
+    type(h, '9');
+    type(m, '30');
+    expect(onValueChange).toHaveBeenLastCalledWith('21:30');
+    cleanup();
+    const b = setup();
+    fireEvent.change(select()!, { target: { value: 'pm' } });
+    type(b.h, '9');
+    type(b.m, '30');
+    expect(b.onValueChange).toHaveBeenLastCalledWith('21:30');
+  });
+
+  it('shows a new controlled value from the parent, focused or not', () => {
+    const { rerender } = render(<TimeField aria-label="t" locale="en-US" value="09:30" />);
+    const { h, m } = boxes();
+    h.focus();
+    type(m, '4');
+    rerender(<TimeField aria-label="t" locale="en-US" value="09:30" />);
+    rerender(<TimeField aria-label="t" locale="en-US" value="10:15" />);
+    expect(h.value).toBe('10');
+    expect(m.value).toBe('15');
+  });
+});
+
 describe('TimeField keys', () => {
   it('ArrowUp on an empty hour shows 12 AM (00 on a 24-hour clock)', () => {
     const a = setup();
@@ -193,6 +252,23 @@ describe('TimeField validity', () => {
     expect(h.validationMessage).toBe('Enter a valid time.');
   });
 
+  it('Enter with an incomplete or out-of-range draft is blocked and marked invalid inside a form', () => {
+    render(
+      <form>
+        <TimeField aria-label="t" locale="en-US" defaultValue="09:30" min="09:00" />
+      </form>,
+    );
+    const { h, m } = boxes();
+    expect(key(h, 'Enter')).toBe(true);
+    type(m, '');
+    expect(key(m, 'Enter')).toBe(false);
+    expect(h.getAttribute('aria-invalid')).toBe('true');
+    type(m, '15');
+    expect(key(m, 'Enter')).toBe(true);
+    type(h, '8');
+    expect(key(h, 'Enter')).toBe(false);
+  });
+
   it('invalid and aria-invalid only style', () => {
     const { h } = setup({ invalid: true });
     expect(h.getAttribute('aria-invalid')).toBe('true');
@@ -255,6 +331,18 @@ describe('TimeField value', () => {
     const calls = warn.mock.calls.filter((c) => String(c[0]).includes('"value" must be HH:mm'));
     expect(calls).toHaveLength(1);
     expect(boxes().h.value).toBe('');
+  });
+
+  it('names the prop in the warning, once per prop', async () => {
+    vi.resetModules();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mod = await import('./time-field');
+    render(<mod.TimeField aria-label="t" defaultValue="9:30" />);
+    render(<mod.TimeField aria-label="t" defaultValue="9:30" />);
+    render(<mod.TimeField aria-label="t" value="9:30" />);
+    const msgs = warn.mock.calls.map((c) => String(c[0]));
+    expect(msgs.filter((x) => x === 'TimeField: "defaultValue" must be HH:mm')).toHaveLength(1);
+    expect(msgs.filter((x) => x === 'TimeField: "value" must be HH:mm')).toHaveLength(1);
   });
 
   it('warns once when nothing names the field', async () => {
@@ -406,6 +494,32 @@ describe('TimeField names', () => {
       </>,
     );
     expect(resolves(boxes().h)).toEqual(['Opening', 'Hour']);
+  });
+
+  it('a native label with an id names the boxes', () => {
+    render(
+      <>
+        <label id="lab" htmlFor="t1">
+          Closing
+        </label>
+        <TimeField id="t1" />
+      </>,
+    );
+    expect(resolves(boxes().h)).toEqual(['Closing', 'Hour']);
+    expect(screen.getByRole('group').getAttribute('aria-labelledby')).toBe('lab');
+  });
+
+  it('warns once when a native label has no id', async () => {
+    vi.resetModules();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mod = await import('./time-field');
+    render(
+      <>
+        <label htmlFor="t2">Closing</label>
+        <mod.TimeField id="t2" />
+      </>,
+    );
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes('give it a Field'))).toHaveLength(1);
   });
 
   it('takes the hour and minute names from a provider', () => {

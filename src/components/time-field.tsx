@@ -134,31 +134,47 @@ export function TimeField({
   // The derived "<id>-label" is the label Field renders. Without a Field it does not exist, so it is dropped
   // after the first commit (the first render matches the server).
   const derived = ariaLabelledBy == null && ariaLabel == null && id != null;
-  const [labelFound, setLabelFound] = useState(true);
+  const [labelId, setLabelId] = useState<string | null>(id != null ? `${id}-label` : null);
   useIsoLayoutEffect(() => {
-    if (derived) setLabelFound(!!document.getElementById(`${id}-label`));
+    if (!derived) return;
+    if (document.getElementById(`${id}-label`)) {
+      setLabelId(`${id}-label`);
+      return;
+    }
+    // A plain <label htmlFor>: use its id when it has one (the user's DOM is never changed).
+    const native = (document.getElementById(id as string) as HTMLInputElement | null)?.labels?.[0]?.id || null;
+    setLabelId(native);
+    if (!native) warnOnce('TimeField: give it a Field, an aria-label or aria-labelledby.');
   }, [derived, id]);
-  const src = ariaLabelledBy ?? (ariaLabel != null ? nameId : derived && labelFound ? `${id}-label` : undefined);
+  const src = ariaLabelledBy ?? (ariaLabel != null ? nameId : derived ? (labelId ?? undefined) : undefined);
   const names = (own: string) => [src, own].filter(Boolean).join(' ');
   if (ariaLabel == null && ariaLabelledBy == null && id == null) {
     warnOnce('TimeField: give it a Field, an aria-label or aria-labelledby.');
   }
 
   const controlled = valueProp !== undefined;
-  const okProp = (v: string | null | undefined): string | null => {
+  const okProp = (prop: string, v: string | null | undefined): string | null => {
     if (v == null) return null;
     if (parseTime(v)) return v;
-    warnOnce('TimeField: "value" must be HH:mm');
+    warnOnce(`TimeField: "${prop}" must be HH:mm`);
     return null;
   };
-  const [own, setOwn] = useState<string | null>(() => okProp(defaultValue));
-  const value = controlled ? okProp(valueProp) : own;
+  const [own, setOwn] = useState<string | null>(() => okProp('defaultValue', defaultValue));
+  const value = controlled ? okProp('value', valueProp) : own;
 
-  const [draft, setDraft] = useState<TimeDraft | null>(null);
+  // The boxes as typed, with the value they committed. The text stays as typed while focus is in the group; it is
+  // dropped on blur, or when the value is no longer the one the draft committed (the parent changed it).
+  const [draftState, setDraft] = useState<{ d: TimeDraft; base: string | null } | null>(null);
+  const draft = draftState !== null && draftState.base === value ? draftState.d : null;
   const [bad, setBad] = useState(false);
   const hourRef = useRef<HTMLInputElement | null>(null);
   const minuteRef = useRef<HTMLInputElement | null>(null);
   const shown = draft ?? draftFromTime(value, cycle);
+  const draftBad = (): boolean => {
+    if (draft === null) return false;
+    const t = draftTime(draft, cycle);
+    return t === undefined || (t !== null && !inTimeRange(t, minT, maxT));
+  };
 
   const outside = value !== null && !inTimeRange(value, minT, maxT);
   const isInvalid = invalid === true || ariaInvalid === true || ariaInvalid === 'true' || bad || outside;
@@ -172,13 +188,12 @@ export function TimeField({
     const f = hourRef.current?.form;
     if (!f || controlled) return;
     const onReset = () => {
-      setOwn(okProp(defaultValue));
+      setOwn(okProp('defaultValue', defaultValue));
       setDraft(null);
       setBad(false);
     };
     f.addEventListener('reset', onReset);
     return () => f.removeEventListener('reset', onReset);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, form, controlled, defaultValue]);
 
   const commit = (v: string | null) => {
@@ -190,14 +205,14 @@ export function TimeField({
     const t = draftTime(next, cycle);
     if (t === null) {
       if (value !== null) commit(null);
-      setDraft(null);
+      setDraft({ d: next, base: null });
       setBad(false);
     } else if (typeof t === 'string' && inTimeRange(t, minT, maxT)) {
       if (t !== value) commit(t);
-      setDraft(null);
+      setDraft({ d: next, base: t });
       setBad(false);
     } else {
-      setDraft(next);
+      setDraft({ d: next, base: value });
     }
   };
 
@@ -209,6 +224,13 @@ export function TimeField({
   const onKey = (which: 'h' | 'm') => (e: KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return;
     const key = e.key;
+    if (key === 'Enter') {
+      if (draftBad()) {
+        e.preventDefault();
+        setBad(true);
+      }
+      return;
+    }
     if (key === 'ArrowUp' || key === 'ArrowDown') {
       e.preventDefault();
       const dir = key === 'ArrowUp' ? 1 : -1;
@@ -273,8 +295,9 @@ export function TimeField({
       onBlur={(e) => {
         rest.onBlur?.(e);
         if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
-        const t = draftTime(shown, cycle);
-        setBad(draft !== null && (t === undefined || (t !== null && !inTimeRange(t, minT, maxT))));
+        const isBad = draftBad();
+        setBad(isBad);
+        if (!isBad) setDraft(null);
       }}
     >
       {ariaLabel != null ? (
