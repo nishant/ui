@@ -311,7 +311,7 @@ export function TimeField({
             update({ ...shown, h: d });
             if (hourAdvances(d, cycle)) focusMinute();
           }}
-          onKeyDown={onKey('h')}
+          onKeyDown={(e) => onKey('h')(e)}
         />
         <span aria-hidden="true" className="text-th-hi3">
           :
@@ -325,7 +325,7 @@ export function TimeField({
           aria-valuemax={59}
           aria-valuenow={minuteNow ?? undefined}
           onChange={(e) => update({ ...shown, m: e.target.value.replace(/\D/g, '').slice(0, 2) })}
-          onKeyDown={onKey('m')}
+          onKeyDown={(e) => onKey('m')(e)}
         />
       </span>
       {cycle === 12 ? (

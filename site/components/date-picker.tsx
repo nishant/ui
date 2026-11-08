@@ -130,5 +130,6 @@ export const datePicker: ComponentDoc = {
     'A date that cannot be read, or is outside min and max, marks the field invalid and keeps the text; pair it with a Field error.',
     'The calendar button is the only Tab stop besides the text box; Alt+Down opens it from the text box.',
     'For a date in a filter bar or a table cell, the native <input type="date"> through Input is still fine.',
+    'For a start and an end date use DateRangePicker; for a time of day next to the date, TimeField.',
   ],
 };

@@ -19,6 +19,9 @@ import { filterBar } from './filter-bar';
 import { combobox } from './combobox';
 import { datePicker } from './date-picker';
 import { calendar } from './calendar';
+import { rangeCalendar } from './range-calendar';
+import { dateRangePicker } from './date-range-picker';
+import { timeField } from './time-field';
 import { multiSelect } from './multi-select';
 import { carousel } from './carousel';
 import { select } from './select';
@@ -141,7 +144,10 @@ export const COMPONENT_DOCS: ComponentDoc[] = [
   filterBar,
   combobox,
   datePicker,
+  dateRangePicker,
   calendar,
+  rangeCalendar,
+  timeField,
   multiSelect,
   select,
   radioGroup,

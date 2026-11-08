@@ -1,5 +1,5 @@
 {
-  "comment": "Gzip KB of an esbuild bundle (minified, react/react-dom/jsx-runtime external, dynamic import() left out = entry plus static imports) of the import, built from dist/esm. AppShell is the spec's 34 target plus the measured overshoot (34.76 gz, set to 35, measured + 0.2 rounded up to 0.1); the Toaster is the lever to trim it back. The everything-from-. row sits above its target (100) until the root entry drops SystemCanvas, Inbox and the service tokens (a 3.0 change); measured plus 0.5 so growth fails CI. mustNotInclude fails the row when a module that must stay lazy is in the initial bundle. Calendar, DatePicker, MultiSelect and Carousel are measured plus 0.5 (each carries the 8.8 KB shared runtime); they add 8.4 KB to everything-from-. (127.45 to 135.89). Their 22 strings in DEFAULT_STRINGS add about 0.24 KB to every import that loads the strings, which moved Modal, VirtualTable, HoverCard, AppShell and SystemCanvas (measured plus 0.2, rounded up to 0.1).",
+  "comment": "Gzip KB of an esbuild bundle (minified, react/react-dom/jsx-runtime external, dynamic import() left out = entry plus static imports) of the import, built from dist/esm. AppShell is the spec's 34 target plus the measured overshoot (34.76 gz, set to 35, measured + 0.2 rounded up to 0.1); the Toaster is the lever to trim it back. The everything-from-. row sits above its target (100) until the root entry drops SystemCanvas, Inbox and the service tokens (a 3.0 change); measured plus 0.5 so growth fails CI. mustNotInclude fails the row when a module that must stay lazy is in the initial bundle. Calendar, DatePicker, MultiSelect and Carousel are measured plus 0.5 (each carries the 8.8 KB shared runtime); they add 8.4 KB to everything-from-. (127.45 to 135.89). Their 22 strings in DEFAULT_STRINGS add about 0.24 KB to every import that loads the strings, which moved Modal, VirtualTable, HoverCard, AppShell and SystemCanvas (measured plus 0.2, rounded up to 0.1). RangeCalendar, DateRangePicker and TimeField (2.2.0) are measured plus 0.5 and add 4.42 KB to everything-from-. (136.27 to 140.70); their 9 strings move every row that loads the strings by about 0.1 KB. Calendar and DatePicker grew 0.47 KB each (the shared CalendarBase and the 9 strings), inside their 2.1 budgets.",
   "tarballMaxBytes": 2621440,
   "imports": [
     {
@@ -49,6 +49,24 @@
       "from": "nish-ui",
       "import": "DatePicker",
       "maxKB": 20
+    },
+    {
+      "name": "RangeCalendar",
+      "from": "nish-ui",
+      "import": "RangeCalendar",
+      "maxKB": 17.3
+    },
+    {
+      "name": "DateRangePicker",
+      "from": "nish-ui",
+      "import": "DateRangePicker",
+      "maxKB": 21.2
+    },
+    {
+      "name": "TimeField",
+      "from": "nish-ui",
+      "import": "TimeField",
+      "maxKB": 15
     },
     {
       "name": "MultiSelect",
@@ -150,7 +168,7 @@
       "name": "everything from .",
       "from": "nish-ui",
       "import": "*",
-      "maxKB": 136.5
+      "maxKB": 141.2
     },
     {
       "name": "nish-ui/theme",
