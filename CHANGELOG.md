@@ -4,6 +4,12 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [2.1.3] - 2026-11-07
+
+### Fixed
+
+- `PageContainer` `padBottom` (on by default, and in every `AppShell` page) works again: the bottom padding is now a utility that adds `--nish-bottom-inset`, so the last row of a page clears the phone BottomNav and an open StickyActionBar. Before, the container's `py-6` beat `.nish-pad-bottom-inset`, which is in the base layer, and the page ended under the nav. The bottom padding is 1rem plus the bars' height (1rem on desktop, was 1.5rem); `padBottom={false}` keeps `py-6`. Apps can drop their own `pb-[max(calc(var(--nish-bottom-inset)+1rem),…)]` workaround in `containerClassName`.
+
 ## [2.1.2] - 2026-11-07
 
 ### Changed
