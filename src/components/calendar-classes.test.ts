@@ -389,4 +389,22 @@ describe('calendarDayClass', () => {
     expect(mid).toContain('bg-th-accent-soft');
     expect(mid).not.toContain('hover:bg-th-elevated');
   });
+  it('strengthens the today ring inside a band only', () => {
+    const inBand = calendarDayClass({ filled: false, today: true, disabled: false, band: 'middle' });
+    expect(inBand.split(' ')).toContain('ring-th-accent');
+    expect(inBand).not.toContain('ring-th-accent/50');
+    const plain = calendarDayClass({ filled: false, today: true, disabled: false });
+    expect(plain).toContain('ring-th-accent/50');
+    const filledEnd = calendarDayClass({ filled: true, today: true, disabled: false, band: 'start' });
+    expect(filledEnd.split(' ')).not.toContain('ring-th-accent');
+  });
+  it('outlines filled band ends in forced colors, and nothing else', () => {
+    const outline = 'forced-colors:outline-[CanvasText]';
+    expect(calendarDayClass({ filled: true, today: false, disabled: false, band: 'start' })).toContain(outline);
+    expect(calendarDayClass({ filled: true, today: false, disabled: false, band: 'end' })).toContain(
+      'forced-colors:outline-2 forced-colors:-outline-offset-2',
+    );
+    expect(calendarDayClass({ filled: false, today: false, disabled: false, band: 'middle' })).not.toContain(outline);
+    expect(calendarDayClass({ filled: true, today: false, disabled: false })).not.toContain('outline');
+  });
 });

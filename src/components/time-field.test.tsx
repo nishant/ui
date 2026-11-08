@@ -140,6 +140,43 @@ describe('TimeField digit by digit', () => {
   });
 });
 
+describe('TimeField stale draft', () => {
+  it('a new parent value clears the invalid mark and the old draft', () => {
+    const props = { 'aria-label': 't', locale: 'en-US' } as const;
+    const { rerender } = render(<TimeField {...props} value="10:30" />);
+    const { h, m } = boxes();
+    type(h, '');
+    fireEvent.blur(h);
+    expect(h.getAttribute('aria-invalid')).toBe('true');
+    expect(h.validationMessage).toBe('Enter a valid time.');
+    rerender(<TimeField {...props} value="11:00" />);
+    expect(h.value).toBe('11');
+    expect(m.value).toBe('00');
+    expect(h.getAttribute('aria-invalid')).toBeNull();
+    expect(m.getAttribute('aria-invalid')).toBeNull();
+    expect(h.validationMessage).toBe('');
+    // Back to the old base: the dropped draft does not return.
+    rerender(<TimeField {...props} value="10:30" />);
+    expect(h.value).toBe('10');
+    expect(m.value).toBe('30');
+    expect(h.getAttribute('aria-invalid')).toBeNull();
+    expect(h.validationMessage).toBe('');
+  });
+
+  it('A to B to A does not bring back the old draft text', () => {
+    const props = { 'aria-label': 't', locale: 'en-US', hourCycle: 24 } as const;
+    const { rerender } = render(<TimeField {...props} value="09:30" />);
+    const { h } = boxes();
+    h.focus();
+    type(h, '');
+    expect(h.value).toBe('');
+    rerender(<TimeField {...props} value="12:00" />);
+    expect(h.value).toBe('12');
+    rerender(<TimeField {...props} value="09:30" />);
+    expect(h.value).toBe('09');
+  });
+});
+
 describe('TimeField keys', () => {
   it('ArrowUp on an empty hour shows 12 AM (00 on a 24-hour clock)', () => {
     const a = setup();
@@ -413,6 +450,31 @@ describe('TimeField forms', () => {
     expect((container.querySelector('input[type="hidden"]') as HTMLInputElement).value).toBe('09:30');
   });
 
+  it('resets and validates through an external form named by the form prop', () => {
+    render(
+      <>
+        <TimeField form="f1" name="at" defaultValue="09:30" aria-label="At" locale="en-US" />
+        <form id="f1" data-testid="f1" />
+      </>,
+    );
+    const f1 = screen.getByTestId('f1') as HTMLFormElement;
+    const { h, m } = boxes();
+    expect(h.form).toBe(f1);
+    expect(m.form).toBe(f1);
+    type(h, '4');
+    type(m, '45');
+    expect(h.value).toBe('4');
+    act(() => {
+      f1.reset();
+    });
+    expect(h.value).toBe('9');
+    expect(m.value).toBe('30');
+    expect(f1.checkValidity()).toBe(true);
+    type(h, '');
+    fireEvent.blur(h);
+    expect(f1.checkValidity()).toBe(false);
+  });
+
   it('disables both boxes, the select and the hidden input', () => {
     const { container } = render(<TimeField aria-label="t" locale="en-US" name="s" disabled />);
     const { h, m } = boxes();
@@ -519,7 +581,18 @@ describe('TimeField names', () => {
         <mod.TimeField id="t2" />
       </>,
     );
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes('give it a Field'))).toHaveLength(1);
+    const msgs = warn.mock.calls.map((c) => String(c[0]));
+    expect(msgs.filter((x) => x === 'TimeField: give its <label> an id, or use a Field, an aria-label or aria-labelledby.')).toHaveLength(1);
+    expect(msgs.filter((x) => x.includes('give it a Field'))).toHaveLength(0);
+  });
+
+  it('an id with no label at all gets the generic warning', async () => {
+    vi.resetModules();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mod = await import('./time-field');
+    render(<mod.TimeField id="t3" />);
+    const msgs = warn.mock.calls.map((c) => String(c[0]));
+    expect(msgs.filter((x) => x === 'TimeField: give it a Field, an aria-label or aria-labelledby.')).toHaveLength(1);
   });
 
   it('takes the hour and minute names from a provider', () => {

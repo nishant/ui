@@ -142,9 +142,16 @@ export function TimeField({
       return;
     }
     // A plain <label htmlFor>: use its id when it has one (the user's DOM is never changed).
-    const native = (document.getElementById(id as string) as HTMLInputElement | null)?.labels?.[0]?.id || null;
+    const nativeLabel = (document.getElementById(id as string) as HTMLInputElement | null)?.labels?.[0];
+    const native = nativeLabel?.id || null;
     setLabelId(native);
-    if (!native) warnOnce('TimeField: give it a Field, an aria-label or aria-labelledby.');
+    if (!native) {
+      warnOnce(
+        nativeLabel
+          ? 'TimeField: give its <label> an id, or use a Field, an aria-label or aria-labelledby.'
+          : 'TimeField: give it a Field, an aria-label or aria-labelledby.',
+      );
+    }
   }, [derived, id]);
   const src = ariaLabelledBy ?? (ariaLabel != null ? nameId : derived ? (labelId ?? undefined) : undefined);
   const names = (own: string) => [src, own].filter(Boolean).join(' ');
@@ -165,8 +172,13 @@ export function TimeField({
   // The boxes as typed, with the value they committed. The text stays as typed while focus is in the group; it is
   // dropped on blur, or when the value is no longer the one the draft committed (the parent changed it).
   const [draftState, setDraft] = useState<{ d: TimeDraft; base: string | null } | null>(null);
-  const draft = draftState !== null && draftState.base === value ? draftState.d : null;
   const [bad, setBad] = useState(false);
+  if (draftState !== null && draftState.base !== value) {
+    // The parent changed the value: the old draft (and its invalid mark) can never come back.
+    setDraft(null);
+    setBad(false);
+  }
+  const draft = draftState !== null && draftState.base === value ? draftState.d : null;
   const hourRef = useRef<HTMLInputElement | null>(null);
   const minuteRef = useRef<HTMLInputElement | null>(null);
   const shown = draft ?? draftFromTime(value, cycle);
@@ -278,6 +290,8 @@ export function TimeField({
     placeholder: '--',
     disabled,
     required,
+    // The boxes have no name, so nothing extra posts; this puts them (and their validity) in the same form.
+    form,
     'aria-required': required || undefined,
     'aria-describedby': ariaDescribedBy,
     'aria-invalid': isInvalid || undefined,

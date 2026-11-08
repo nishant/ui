@@ -481,6 +481,7 @@ export function calendarDayClass({ filled, today, disabled, band = null }: DayLo
     DAY_BASE,
     !filled && !band && !disabled && 'hover:bg-th-elevated hover:text-th-hi',
     today && !filled && 'font-semibold text-th-accent ring-1 ring-inset ring-th-accent/50',
+    band && today && !filled && 'ring-th-accent',
     band === 'start' && 'rounded-e-none',
     band === 'end' && 'rounded-s-none',
     band === 'middle' && 'rounded-none',
@@ -489,6 +490,9 @@ export function calendarDayClass({ filled, today, disabled, band = null }: DayLo
       'bg-th-accent-soft font-medium text-th-accent forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:forced-color-adjust-none',
     filled &&
       'bg-th-accent font-semibold text-th-on-accent forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:forced-color-adjust-none',
+    filled &&
+      band &&
+      'forced-colors:outline forced-colors:outline-2 forced-colors:-outline-offset-2 forced-colors:outline-[CanvasText]',
     disabled && 'cursor-not-allowed text-th-ghost line-through forced-colors:text-[GrayText]',
   );
 }
