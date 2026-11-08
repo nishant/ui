@@ -4,6 +4,33 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [2.2.0] - 2026-11-07
+
+### Added
+
+- `RangeCalendar`: a month grid that picks a range of days as `{ from, to }` (YYYY-MM-DD). The first press sets the start, the second the end (an earlier second day swaps them, the same day twice is a one-day range), the days between light up as the pointer or focus moves, and Escape drops a start with no end. A range cannot cover an `isDateDisabled` day unless `allowDisabledInRange` is set. Same keys, captions and 44px touch days as `Calendar`.
+- `DateRangePicker`: one text field for both dates ("11/05/2026 – 11/09/2026" in the reader's numeric order, any separator, or ISO) with a `RangeCalendar` in a Popover. With `name`, a hidden input posts `from/to` (an ISO 8601 interval such as `2026-11-05/2026-11-09`).
+- `TimeField`: an hour box and a minute box (plus AM/PM where the locale uses a 12-hour clock, or `hourCycle`), value `HH:mm` in 24-hour time like `<input type="time">`. Arrow keys step each box (`step` for minutes), typing moves on to the minutes, `min`/`max` mark the field invalid, 44px boxes on touch. Inside a `Field` the label names both boxes.
+- The `DateRange` and `HourCycle` types, and the strings `chooseDates`, `changeDates`, `dateRange`, `rangeStarted`, `invalidDateRange`, `hour`, `minute`, `dayPeriod` and `invalidTime`.
+
+### Changed
+
+- `TreeView` renders its visible rows as one flat list of treeitems (aria-level, aria-setsize and aria-posinset unchanged; the nested `role="group"` lists are gone), and a focus move re-renders only the two rows that change.
+- `Field`'s label has `id="<control id>-label"`.
+- `Calendar` and `DatePicker` are 0.5 KB gzip larger (a shared calendar core and the new strings); their props, markup and behavior are unchanged.
+
+## [2.1.3] - 2026-11-07
+
+### Fixed
+
+- `PageContainer` `padBottom` (on by default, and in every `AppShell` page) works again: the bottom padding is now a utility that adds `--nish-bottom-inset`, so the last row of a page clears the phone BottomNav and an open StickyActionBar. Before, the container's `py-6` beat `.nish-pad-bottom-inset`, which is in the base layer, and the page ended under the nav. The bottom padding is 1rem plus the bars' height (1rem on desktop, was 1.5rem); `padBottom={false}` keeps `py-6`. Apps can drop their own `pb-[max(calc(var(--nish-bottom-inset)+1rem),…)]` workaround in `containerClassName`.
+
+## [2.1.2] - 2026-11-07
+
+### Changed
+
+- The docs site header (design.nish.software) shows the art-palette mark from the new app icon instead of the old "N". No package changes.
+
 ## [2.1.1] - 2026-11-07
 
 ### Changed

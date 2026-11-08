@@ -103,6 +103,9 @@ export const COMPONENTS = [
   'Combobox',
   'DatePicker',
   'Calendar',
+  'DateRangePicker',
+  'RangeCalendar',
+  'TimeField',
   'MultiSelect',
   'Carousel',
   'SplitStage',
@@ -145,7 +148,7 @@ const FUNCTIONS = [
   'apiFetch', 'configureApi', 'useResource', 'useUrlState', 'useSaveStatus', 'usePhone', 'useNarrow', 'nishThemeInit', 'presetOptions', 'useServiceTokens',
   'useNishConfig', 'useNishStrings',
 ];
-const INTERFACES = ['VirtualListHandle', 'ScrollToIndexOptions', 'TreeNode', 'ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem',
+const INTERFACES = ['DateRange', 'VirtualListHandle', 'ScrollToIndexOptions', 'TreeNode', 'ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem',
   'ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource', 'FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter', 'SaveStatus', 'NishThemeInitOptions', 'ServiceTokensSectionProps',
 ];
 

@@ -37,10 +37,10 @@ test.describe('pickers: axe', () => {
     });
   }
 
-  for (const open of ['datepicker', 'multiselect']) {
+  for (const open of ['datepicker', 'daterange', 'multiselect']) {
     for (const theme of ['dark', 'light'] as const) {
       test(`${open} open in ${theme}`, async ({ page }) => {
-        await load(page, `${PICKERS}?open=${open}`, theme, open === 'datepicker' ? '[role=dialog] [data-date]' : '[role=listbox]');
+        await load(page, `${PICKERS}?open=${open}`, theme, open === 'multiselect' ? '[role=listbox]' : '[role=dialog] [data-date]');
         if (open === 'multiselect') await expect(page.getByRole('listbox')).toBeVisible();
         expect(await scan(page)).toEqual([]);
       });
@@ -74,12 +74,12 @@ test.describe('pickers: keyboard', () => {
     await page.keyboard.press('Enter');
     await expect(dialog).toBeHidden();
     await expect(page.getByRole('textbox', { name: 'Due date' })).toHaveValue('11/12/2026');
-    await expect(page.getByRole('button', { name: /^Change date/ })).toBeFocused();
+    await expect(page.getByRole('button', { name: /^Change date,/ })).toBeFocused();
   });
 
   test('date picker closes on Escape and returns focus', async ({ page }) => {
     await load(page, PICKERS, 'dark', 'main h1');
-    const button = page.getByRole('button', { name: /^Change date/ });
+    const button = page.getByRole('button', { name: /^Change date,/ });
     await button.click();
     const dialog = page.getByRole('dialog', { name: 'Choose date' });
     await expect(dialog).toBeVisible();
@@ -205,6 +205,112 @@ test.describe('pickers: behaviors', () => {
   });
 });
 
+test.describe('pickers: ranges and time', () => {
+  test('range calendar: keyboard preview and commit', async ({ page }) => {
+    await load(page, PICKERS, 'dark', 'main h1');
+    const host = page.locator('#range-host');
+    await host.locator('[data-date="2026-11-05"]').focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    for (const d of ['06', '07', '08']) await expect(host.locator(`[data-date="2026-11-${d}"]`)).toHaveAttribute('data-preview', '');
+    await page.keyboard.press('Enter');
+    for (const d of ['05', '06', '07', '08']) {
+      await expect(host.locator(`[role=gridcell]:has([data-date="2026-11-${d}"])`)).toHaveAttribute('aria-selected', 'true');
+    }
+    await expect(host.locator('[role=gridcell]:has([data-date="2026-11-09"])')).toHaveAttribute('aria-selected', 'false');
+    await expect(host.locator('[aria-live=polite].sr-only')).toHaveText('Thursday, November 5, 2026 to Sunday, November 8, 2026');
+  });
+
+  test('range calendar: pointer preview, commit and swapped ends', async ({ page }) => {
+    await load(page, PICKERS, 'dark', 'main h1');
+    const host = page.locator('#range-host');
+    const day = (d: string) => host.locator(`[data-date="2026-11-${d}"]`);
+    await day('10').click();
+    await day('13').hover();
+    for (const d of ['11', '12', '13']) await expect(day(d)).toHaveAttribute('data-preview', '');
+    await day('13').click();
+    await expect(day('10')).toHaveAttribute('data-state', 'active');
+    await expect(day('13')).toHaveAttribute('data-state', 'active');
+    await expect(day('11')).toHaveAttribute('data-range', 'middle');
+    await day('20').click();
+    await day('15').click();
+    for (const d of ['15', '16', '17', '18', '19', '20']) {
+      await expect(host.locator(`[role=gridcell]:has([data-date="2026-11-${d}"])`)).toHaveAttribute('aria-selected', 'true');
+    }
+  });
+
+  test('range calendar: a range cannot cross a disabled weekend', async ({ page }) => {
+    await load(page, `${PICKERS}?extra=1`, 'dark', 'main h1');
+    const host = page.locator('#range-weekends-host');
+    await host.locator('[data-date="2026-11-06"]').click();
+    await host.locator('[data-date="2026-11-09"]').click();
+    await expect(host.locator('[data-date="2026-11-09"]')).toHaveAttribute('data-state', 'active');
+    await expect(host.locator('[data-date="2026-11-06"]')).toHaveAttribute('data-state', 'inactive');
+    for (const d of ['06', '07', '08']) {
+      await expect(host.locator(`[role=gridcell]:has([data-date="2026-11-${d}"])`)).not.toHaveAttribute('aria-selected', 'true');
+    }
+  });
+
+  test('date range picker: open, pick with the keyboard, Escape in two steps', async ({ page }) => {
+    await load(page, PICKERS, 'dark', 'main h1');
+    const button = page.getByRole('button', { name: 'Change dates, Thursday, November 5, 2026 to Monday, November 9, 2026' });
+    await button.click();
+    const dialog = page.getByRole('dialog', { name: 'Choose dates' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('[data-date="2026-11-05"]')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole('textbox', { name: 'Trip dates' })).toHaveValue('11/05/2026 – 11/12/2026');
+    const again = page.getByRole('button', { name: /^Change dates/ });
+    await expect(again).toBeFocused();
+
+    await again.click();
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('[data-preview]')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(again).toBeFocused();
+  });
+
+  test('date range picker: a typed range commits on Enter', async ({ page }) => {
+    await load(page, PICKERS, 'dark', 'main h1');
+    const box = page.getByRole('textbox', { name: 'Trip dates' });
+    await box.fill('');
+    await box.focus();
+    await page.keyboard.type('11/10/2026 - 11/12/2026');
+    await page.keyboard.press('Enter');
+    await expect(box).toHaveValue('11/10/2026 – 11/12/2026');
+  });
+
+  test('time field: typing moves on, reports 24-hour value, arrows step', async ({ page }) => {
+    await load(page, `${PICKERS}?extra=1`, 'dark', 'main h1');
+    await page.getByRole('spinbutton', { name: 'Start time Hour' }).focus();
+    await page.keyboard.type('7');
+    await expect(page.getByRole('spinbutton', { name: 'Start time Minute' })).toBeFocused();
+    await page.keyboard.type('45');
+    await page.keyboard.press('p');
+
+    await page.getByRole('spinbutton', { name: 'Form time Hour' }).focus();
+    await page.keyboard.type('7');
+    const minute = page.getByRole('spinbutton', { name: 'Form time Minute' });
+    await expect(minute).toBeFocused();
+    await page.keyboard.type('45');
+    await page.keyboard.press('p');
+    await expect(page.locator('input[name="at"]')).toHaveValue('19:45');
+    await minute.focus();
+    await page.keyboard.press('ArrowUp');
+    await expect(minute).toHaveValue('46');
+    await expect(page.locator('input[name="at"]')).toHaveValue('19:46');
+  });
+});
+
 test.describe('pickers: phone', () => {
   test.use({ hasTouch: true, isMobile: true });
 
@@ -239,6 +345,41 @@ test.describe('pickers: phone', () => {
       expect(b.x).toBeGreaterThanOrEqual(prev.x + prev.width);
       expect(b.x + b.width).toBeLessThanOrEqual(next.x);
     }
+  });
+
+  test('360px: date range dialog fits, days are 44px; time field boxes are 44px', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await load(page, `${PICKERS}?open=daterange`, 'dark', '[role=dialog] [data-date]');
+    expect(await page.evaluate(() => document.scrollingElement!.scrollWidth <= 360)).toBe(true);
+    const dialog = page.getByRole('dialog', { name: 'Choose dates' });
+    const box = await dialog.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+    const days = dialog.locator('[data-date]');
+    const n = await days.count();
+    expect(n).toBeGreaterThan(27);
+    for (let i = 0; i < n; i++) {
+      const b = await days.nth(i).boundingBox();
+      expect(b!.width).toBeGreaterThanOrEqual(44);
+      expect(b!.height).toBeGreaterThanOrEqual(44);
+    }
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    for (const name of ['Start time Hour', 'Start time Minute']) {
+      const b = (await page.getByRole('spinbutton', { name }).boundingBox())!;
+      expect(b.height).toBeGreaterThanOrEqual(44);
+      expect(b.width).toBeGreaterThanOrEqual(44);
+    }
+    const sel = (await page.getByRole('combobox', { name: /Start time/ }).boundingBox())!;
+    expect(sel.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('840px: date range dialog, no horizontal scroll', async ({ page }) => {
+    await page.setViewportSize({ width: 840, height: 900 });
+    await load(page, `${PICKERS}?open=daterange`, 'dark', '[role=dialog] [data-date]');
+    expect(await page.evaluate(() => document.scrollingElement!.scrollWidth <= 840)).toBe(true);
   });
 
   test('840px: no horizontal scroll', async ({ page }) => {

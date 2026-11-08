@@ -260,7 +260,7 @@ More than 100 components, each with live stories, props and guidelines on the
 [docs site](https://design.nish.software/#/components):
 
 - **Actions and inputs:** Button, IconButton, Input, Textarea, Select, Combobox, DatePicker,
-  Calendar, MultiSelect, Checkbox, Switch, RadioGroup, Slider, TagInput, FileDropzone,
+  DateRangePicker, Calendar, RangeCalendar, TimeField, MultiSelect, Checkbox, Switch, RadioGroup, Slider, TagInput, FileDropzone,
   NumberField, Segmented, Chip, SearchInput, Field, FieldGroup, Label
 - **Feedback:** Toast, Callout, Spinner, Skeleton, Progress, EmptyState, ErrorState, StatusDot,
   Meter, LoadingBar, ConnectionBanner, AppErrorBoundary

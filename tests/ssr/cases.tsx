@@ -180,6 +180,7 @@ export const cases: Record<string, Case> = {
   ),
   CopyButton: () => <ui.CopyButton text="x" />,
   DatePicker: () => <ui.DatePicker aria-label="Due" defaultValue="2026-01-15" locale="en-US" name="due" />,
+  DateRangePicker: () => <ui.DateRangePicker aria-label="Trip" defaultValue={{ from: '2026-01-15', to: '2026-01-18' }} locale="en-US" name="trip" />,
   Disclosure: () => <ui.Disclosure summary="More">hidden</ui.Disclosure>,
   Drawer: () => (
     <ui.Drawer open title="Drawer" onClose={noop}>
@@ -328,6 +329,7 @@ export const cases: Record<string, Case> = {
     />
   ),
   RangeBar: () => <ui.RangeBar min={0} max={10} low={2} high={8} />,
+  RangeCalendar: () => <ui.RangeCalendar aria-label="Trip" defaultValue={{ from: '2026-01-15', to: '2026-01-18' }} locale="en-US" />,
   RelativeTime: () => <ui.RelativeTime value={NOW - 3600000} />,
   ResponsiveTable: () => (
     <ui.ResponsiveTable
@@ -457,6 +459,7 @@ export const cases: Record<string, Case> = {
   ),
   ThemeToggle: () => <ui.ThemeToggle presets />,
   TickerText: () => <ui.TickerText text="Hello" />,
+  TimeField: () => <ui.TimeField aria-label="Start" defaultValue="09:30" locale="en-US" name="start" />,
   Toaster: () => <ui.Toaster />,
   Tooltip: () => (
     <ui.Tooltip tip="tip">

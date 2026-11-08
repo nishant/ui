@@ -12,7 +12,6 @@ import {
   type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
-  type ReactNode,
   type Ref,
 } from 'react';
 import { cn } from '../cn';
@@ -86,7 +85,6 @@ interface TreeItemProps {
   itemRef: (el: HTMLLIElement | null) => void | (() => void);
   onRowClick: (node: TreeNode) => void;
   onToggle: (node: TreeNode) => void;
-  children?: ReactNode;
 }
 
 const TreeItem = memo(function TreeItem({
@@ -102,7 +100,6 @@ const TreeItem = memo(function TreeItem({
   itemRef,
   onRowClick,
   onToggle,
-  children,
 }: TreeItemProps) {
   const parent = hasChildren(node);
   return (
@@ -152,11 +149,6 @@ const TreeItem = memo(function TreeItem({
         </span>
         {node.trailing != null ? <span className="ms-auto shrink-0 text-xs text-th-hi3">{node.trailing}</span> : null}
       </div>
-      {open ? (
-        <ul role="group" className="grid gap-px">
-          {children}
-        </ul>
-      ) : null}
     </li>
   );
 });
@@ -378,34 +370,29 @@ export function TreeView(props: TreeViewProps) {
     [latest],
   );
 
-  // An arrow key or focus move re-renders only the rows whose isTarget changed, plus open parents (their children prop is new).
-  const renderNodes = (nodes: readonly TreeNode[], level: number): ReactNode =>
-    nodes.map((node, i) => {
-      const open = hasChildren(node) && expandedSet.has(node.id);
-      return (
-        <TreeItem
-          key={node.id}
-          node={node}
-          level={level}
-          posinset={i + 1}
-          setsize={nodes.length}
-          open={open}
-          selectable={selectable}
-          selected={selectedId === node.id}
-          isTarget={node.id === targetId}
-          labelId={`${uid}-${encodeURIComponent(node.id)}`}
-          itemRef={itemRef}
-          onRowClick={onRowClick}
-          onToggle={onToggle}
-        >
-          {open ? renderNodes(node.children!, level + 1) : null}
-        </TreeItem>
-      );
-    });
-
+  // Rows are one flat list (aria-level, aria-setsize and aria-posinset carry the structure), so a focus move re-renders only the two rows whose isTarget changed.
   return (
     <ul {...rest} ref={ref} role="tree" className={cn('grid gap-px text-sm', className)} onKeyDown={onKeyDown} onFocus={onFocus} onBlur={onBlur}>
-      {renderNodes(items, 1)}
+      {flat.map((f) => {
+        const open = hasChildren(f.node) && expandedSet.has(f.node.id);
+        return (
+          <TreeItem
+            key={f.node.id}
+            node={f.node}
+            level={f.level}
+            posinset={f.posInSet}
+            setsize={f.setSize}
+            open={open}
+            selectable={selectable}
+            selected={selectedId === f.node.id}
+            isTarget={f.node.id === targetId}
+            labelId={`${uid}-${encodeURIComponent(f.node.id)}`}
+            itemRef={itemRef}
+            onRowClick={onRowClick}
+            onToggle={onToggle}
+          />
+        );
+      })}
     </ul>
   );
 }

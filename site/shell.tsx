@@ -208,8 +208,11 @@ function NavList({ current, onNavigate, collapsible = false }: { current: string
 }
 
 const MARK = (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 18V6l12 12V6" />
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 3C7 3 3 6.8 3 11.6S6.8 21 11.5 21c1.4 0 2-1 1.6-2.1l-.4-1c-.5-1.3.5-2.4 1.8-2.4H17c2.4 0 4-1.8 4-4.2C21 6.6 17 3 12 3Z" />
+    <circle cx="7.5" cy="11.5" r="1.15" fill="currentColor" />
+    <circle cx="9.5" cy="7.25" r="1.15" fill="currentColor" />
+    <circle cx="14.5" cy="7.25" r="1.15" fill="currentColor" />
   </svg>
 );
 

@@ -996,4 +996,14 @@ describe('server rendering', () => {
     expect(html).toContain('name="cb"');
     expect(html).toContain('name="seg"');
   });
+  it('gives the Field label an id of the control id plus -label', () => {
+    const { container } = render(
+      <Field label="Start">
+        <Input id="s" />
+      </Field>,
+    );
+    const label = container.querySelector('label#s-label') as HTMLLabelElement;
+    expect(label).not.toBeNull();
+    expect(label.htmlFor).toBe('s');
+  });
 });

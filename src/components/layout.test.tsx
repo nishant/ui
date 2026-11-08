@@ -261,6 +261,27 @@ describe('PageContainer', () => {
     rerender(<PageContainer size="full" data-testid="pc">x</PageContainer>);
     expect(screen.getByTestId('pc').className).toContain('max-w-none');
   });
+
+  // .nish-pad-bottom-inset lives in base.css's base layer, so any padding utility on the same
+  // element beats it. A `py-6` there left page content under the phone BottomNav.
+  it('pads the bottom with a utility that adds --nish-bottom-inset, not one py-6 overrides', () => {
+    const { rerender } = render(<PageContainer data-testid="pc">x</PageContainer>);
+    const classes = screen.getByTestId('pc').className.split(/\s+/);
+    expect(classes).not.toContain('py-6');
+    expect(classes).toContain('pt-6');
+    expect(classes).toContain('pb-[max(calc(var(--nish-bottom-inset,0px)+1rem),calc(1rem+env(safe-area-inset-bottom)))]');
+    rerender(<PageContainer padBottom={false} data-testid="pc">x</PageContainer>);
+    const off = screen.getByTestId('pc').className.split(/\s+/);
+    expect(off).toContain('py-6');
+    expect(off.some((c) => c.includes('--nish-bottom-inset'))).toBe(false);
+  });
+
+  it('lets a containerClassName bottom padding replace the default one', () => {
+    render(<PageContainer className="pb-10" data-testid="pc">x</PageContainer>);
+    const classes = screen.getByTestId('pc').className.split(/\s+/);
+    expect(classes).toContain('pb-10');
+    expect(classes.some((c) => c.startsWith('pb-[max('))).toBe(false);
+  });
 });
 
 describe('useOnline', () => {

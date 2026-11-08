@@ -39,6 +39,22 @@
       "settle": 800
     },
     {
+      "name": "date-range-picker",
+      "url": "http://localhost:5191/#/components/date-range-picker",
+      "waitFor": "[data-page]",
+      "settle": 800
+    },
+    {
+      "name": "range-calendar",
+      "url": "http://localhost:5191/#/components/range-calendar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "time-field",
+      "url": "http://localhost:5191/#/components/time-field",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "carousel",
       "url": "http://localhost:5191/#/components/carousel",
       "waitFor": "[data-page]"

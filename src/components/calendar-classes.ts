@@ -1,5 +1,7 @@
 // Pure date helpers for Calendar and DatePicker: ISO YYYY-MM-DD days, Intl names and the typed-date parser. No React.
 
+import { cn } from '../cn';
+
 export type WeekDay = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday
 export interface Ymd {
   y: number;
@@ -378,5 +380,119 @@ export function fullDate(iso: string, locale: string): string {
   if (!p) return '';
   return formatter(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(
     utcDate(p.y, p.m, p.d),
+  );
+}
+
+/** A span of days, both ends included, as YYYY-MM-DD. from is never after to. */
+export interface DateRange {
+  /** The first day. */
+  from: string;
+  /** The last day, included; equal to from for a one-day range. */
+  to: string;
+}
+
+/** The two days in order: from is the earlier one. */
+export function orderRange(a: string, b: string): DateRange {
+  return a <= b ? { from: a, to: b } : { from: b, to: a };
+}
+
+/** True when both are null, or both have the same from and to. */
+export function sameRange(a: DateRange | null, b: DateRange | null): boolean {
+  return a === b || (!!a && !!b && a.from === b.from && a.to === b.to);
+}
+
+/** A range from loose input (a prop): both ends real YYYY-MM-DD days, put in order. Anything else is null. */
+export function toRange(v: { from?: unknown; to?: unknown } | null | undefined): DateRange | null {
+  if (!v || typeof v !== 'object') return null;
+  const { from, to } = v;
+  if (typeof from !== 'string' || typeof to !== 'string' || !parseIso(from) || !parseIso(to)) return null;
+  return orderRange(from, to);
+}
+
+/** The first day from `from` to `to` (both included) that isDisabled returns true for, or null.
+ *  Looks at most 3,660 days. */
+export function firstDisabledIn(from: string, to: string, isDisabled: (iso: string) => boolean): string | null {
+  let d = from;
+  for (let n = 0; n < 3660 && d <= to; n++) {
+    if (isDisabled(d)) return d;
+    const next = addDays(d, 1);
+    if (next === d) break; // 9999-12-31 saturates
+    d = next;
+  }
+  return null;
+}
+
+/** "11/05/2026 – 11/09/2026" in the locale's numeric order (an en dash with a space each side). */
+export function formatRangeField(range: DateRange, locale: string): string {
+  return `${formatDateField(range.from, locale)} – ${formatDateField(range.to, locale)}`;
+}
+
+/** The locale's date pattern twice: "MM/DD/YYYY – MM/DD/YYYY". */
+export function rangePlaceholder(locale: string, tokens: { day: string; month: string; year: string }): string {
+  const one = datePlaceholder(locale, tokens);
+  return `${one} – ${one}`;
+}
+
+const RANGE_JUNK_RE = /[^\d\s/.,\-–—]/;
+const DIGIT_RUN_RE = /\d+/g;
+
+/** Parses typed range text: two dates in the locale's numeric order or ISO, with any separator
+ *  between them; one date is a one-day range. Ordered; null when it is not two real days. */
+export function parseRangeField(text: string, locale: string): DateRange | null {
+  const t = text.replace(BIDI_MARKS_RE, '').trim();
+  if (t === '' || RANGE_JUNK_RE.test(t)) return null;
+  const runs = [...t.matchAll(DIGIT_RUN_RE)];
+  let a: string;
+  let b: string;
+  if (runs.length === 6) {
+    a = t.slice(0, runs[2]!.index! + runs[2]![0].length);
+    b = t.slice(runs[3]!.index!);
+  } else if (runs.length === 2 && runs[0]![0].length === 8 && runs[1]![0].length === 8) {
+    a = runs[0]![0];
+    b = runs[1]![0];
+  } else if (runs.length === 3 || (runs.length === 1 && runs[0]![0].length === 8)) {
+    a = t;
+    b = t;
+  } else {
+    return null;
+  }
+  const from = parseDateField(a, locale);
+  const to = parseDateField(b, locale);
+  return from && to ? orderRange(from, to) : null;
+}
+
+/** Where a day sits in a band of more than one day. */
+export type DayBand = 'start' | 'middle' | 'end' | null;
+
+export interface DayLook {
+  /** Accent fill: Calendar's picked day, a range end, the first pick of a range. */
+  filled: boolean;
+  today: boolean;
+  disabled: boolean;
+  band?: DayBand;
+}
+
+const DAY_BASE =
+  'flex size-10 items-center justify-center rounded-lg text-sm tabular-nums text-th-hi2 transition-colors pointer-coarse:h-11 pointer-coarse:w-[min(2.75rem,calc((100vw_-_2.6rem)/7))]';
+
+/** Classes of one day button. With band null this is exactly Calendar's 2.1 day class. */
+export function calendarDayClass({ filled, today, disabled, band = null }: DayLook): string {
+  return cn(
+    DAY_BASE,
+    !filled && !band && !disabled && 'hover:bg-th-elevated hover:text-th-hi',
+    today && !filled && 'font-semibold text-th-accent ring-1 ring-inset ring-th-accent/50',
+    band && today && !filled && 'ring-th-accent',
+    band === 'start' && 'rounded-e-none',
+    band === 'end' && 'rounded-s-none',
+    band === 'middle' && 'rounded-none',
+    band &&
+      !filled &&
+      'bg-th-accent-soft font-medium text-th-accent forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:forced-color-adjust-none',
+    filled &&
+      'bg-th-accent font-semibold text-th-on-accent forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:forced-color-adjust-none',
+    filled &&
+      band &&
+      'forced-colors:outline forced-colors:outline-2 forced-colors:-outline-offset-2 forced-colors:outline-[CanvasText]',
+    disabled && 'cursor-not-allowed text-th-ghost line-through forced-colors:text-[GrayText]',
   );
 }
