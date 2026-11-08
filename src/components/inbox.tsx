@@ -12,11 +12,14 @@ import { CheckIcon, ClockIcon, MoreIcon } from './icons';
 import { DropdownMenu, MenuItem, MenuLabel, MenuSeparator } from './menu';
 import { ConfirmDialog } from './modal';
 import { Button, Card, IconButton } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { INBOX_STRINGS, SHELL_STRINGS, STATUS_STRINGS, OVERLAY_STRINGS } from './strings';
 import { Tabs, type TabItem } from './tabs';
 import { DEFAULT_INBOX_LABELS, type InboxLabels } from './inbox-classes';
 
 export { DEFAULT_INBOX_LABELS, type InboxLabels } from './inbox-classes';
+
+const useInboxStrings = () => useStrings(INBOX_STRINGS, SHELL_STRINGS, STATUS_STRINGS, OVERLAY_STRINGS);
 
 
 export interface InboxProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'onChange'> {
@@ -105,7 +108,7 @@ function looksClamped(body: string): boolean {
 
 interface RowProps {
   labels: InboxLabels;
-  strings: ReturnType<typeof useNishStrings>;
+  strings: ReturnType<typeof useInboxStrings>;
   item: InboxItem;
   view: InboxView;
   label: string;
@@ -275,7 +278,7 @@ export function Inbox({
   ref,
   ...rest
 }: InboxProps) {
-  const strings = useNishStrings();
+  const strings = useInboxStrings();
   const labels: InboxLabels = { ...DEFAULT_INBOX_LABELS, ...labelOverrides };
   const idBase = useId().replace(/:/g, '');
   const wide = useMediaQuery('(min-width: 480px)');

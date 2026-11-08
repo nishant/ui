@@ -155,7 +155,7 @@ const INTERFACES = ['DateRange', 'VirtualListHandle', 'ScrollToIndexOptions', 'T
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');
 
 export function docgen(root) {
-  const entries = [join(root, 'src/index.ts'), join(root, 'src/chart.ts'), join(root, 'src/format.ts'), join(root, 'src/node/vite.ts')];
+  const entries = [join(root, 'src/index.ts'), join(root, 'src/inbox.ts'), join(root, 'src/service-tokens.ts'), join(root, 'src/system-canvas.ts'), join(root, 'src/chart.ts'), join(root, 'src/format.ts'), join(root, 'src/node/vite.ts')];
   const program = ts.createProgram(entries, {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,

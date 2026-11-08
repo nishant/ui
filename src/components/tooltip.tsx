@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../cn';
 import { shared } from '../runtime';
 import { useIsoLayoutEffect } from './client';
-import { useNishConfig } from './provider';
+import { useNishContext } from './provider';
 import { keyboardFocused, touchTracker } from './overlay-classes';
 import { FOCUSABLE, layerHost, useMergedRef } from './overlay-core';
 import { type Side, EDGE, useAnchoredPosition, floatingStyle } from './overlay-position';
@@ -217,7 +217,7 @@ export function FloatingTip({
   onPointerEnter?: () => void;
   onPointerLeave?: () => void;
 }) {
-  const config = useNishConfig();
+  const config = useNishContext();
   const tipRef = useRef<HTMLSpanElement>(null);
   const pos = useAnchoredPosition(anchor, tipRef, true, side, 'center');
   return createPortal(

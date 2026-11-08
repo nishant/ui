@@ -14,7 +14,8 @@ import {
 import { cn } from '../cn';
 import { Chip } from './forms';
 import { fieldClass } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { FIELD_STRINGS } from './strings';
 
 export interface TagInputProps
   extends Omit<ComponentPropsWithoutRef<'div'>, 'defaultValue' | 'onChange' | 'children' | 'placeholder'> {
@@ -86,7 +87,7 @@ export function TagInput({
   'aria-invalid': ariaInvalid,
   ...rest
 }: TagInputProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(FIELD_STRINGS);
   const auto = useId();
   const input = useRef<HTMLInputElement | null>(null);
   const controlled = value !== undefined;

@@ -19,7 +19,8 @@ import { PanelLeftCloseIcon, PanelLeftOpenIcon } from './icons';
 import { useHeightVar, useScrollEdges } from './layout-vars';
 import { NavBadge, FOCUS, renderItem, useEndSide, visibleNavItems } from './nav-items';
 import { IconButton } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { SHELL_STRINGS } from './strings';
 import { Tooltip } from './tooltip';
 
 export { useScrollEdges };
@@ -135,7 +136,7 @@ export function BottomNav({
   ref: refProp,
   ...rest
 }: BottomNavProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SHELL_STRINGS);
   const ref = useRef<HTMLElement>(null);
   const visible = useMediaQuery(MAX_QUERY[hideFrom]);
   useHeightVar(ref, '--nish-bottom-nav-h', visible);
@@ -238,7 +239,7 @@ export function NavRail({
   ref: refProp,
   ...rest
 }: NavRailProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SHELL_STRINGS);
   const ref = useRef<HTMLElement>(null);
   const side = useEndSide(ref);
   const shown = visibleNavItems(items);
@@ -332,7 +333,7 @@ export function NavSidebar({
   ref: refProp,
   ...rest
 }: NavSidebarProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SHELL_STRINGS);
   const ref = useRef<HTMLElement>(null);
   const side = useEndSide(ref);
   const shown = visibleNavItems(items);

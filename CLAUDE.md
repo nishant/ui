@@ -33,7 +33,9 @@ export or token change: the README is the npm page, so absolute links only, no t
 
 - Components follow the contract in [docs/DEVELOPING.md](docs/DEVELOPING.md#the-component-contract):
   `'use client'` per module, pure helpers in `*-classes.ts`, `ref` as a prop (no `forwardRef`), strings
-  from `useNishStrings()`, shared state through `shared()` in `src/runtime.ts`.
+  from `useStrings(GROUP)` (never `useNishStrings()` inside the package), shared state through `shared()` in `src/runtime.ts`.
+- 3.0: the fleet-only names are only on `nish-ui/inbox`, `nish-ui/service-tokens` and
+  `nish-ui/system-canvas`; `Switch` has only `onCheckedChange`.
 - Bundlers load `dist/esm/` (one file per module). The standalone files at the old `dist/` paths stay for
   static pages. `npm run size` and `tools/api-surface.test.mjs` run in `check`; regenerate the snapshot
   (`UPDATE_API_SURFACE=1`) after the final build.

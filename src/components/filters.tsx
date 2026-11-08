@@ -5,7 +5,8 @@ import { SearchInput } from './forms';
 import { NARROW_QUERY, useMediaQuery } from './hooks';
 import { Drawer } from './drawer';
 import { Badge, Button } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { FILTER_STRINGS, FIELD_STRINGS } from './strings';
 
 const LG_QUERY = '(max-width: 1023.98px)';
 
@@ -46,7 +47,7 @@ export interface FilterSheetProps {
 /** A bottom sheet for the filter controls of a FilterBar on a phone. Footer: Clear and a
  *  primary button that closes the sheet. */
 export function FilterSheet({ open, onClose, title, children, onClear, activeCount, resultLabel }: FilterSheetProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(FILTER_STRINGS, FIELD_STRINGS);
   if (!open) return null;
   return (
     <Drawer
@@ -110,7 +111,7 @@ export function FilterBar({
   ref,
   ...rest
 }: FilterBarProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(FILTER_STRINGS, FIELD_STRINGS);
   const compact = useMediaQuery(sheetBelow === 'lg' ? LG_QUERY : NARROW_QUERY);
   const [open, setOpen] = useState(false);
   const hasChildren = children != null && children !== false;

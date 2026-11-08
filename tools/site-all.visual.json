@@ -22,6 +22,11 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "migrating",
+      "url": "http://localhost:5191/#/migrating",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "themes",
       "url": "http://localhost:5191/#/themes",
       "waitFor": "[data-page]"

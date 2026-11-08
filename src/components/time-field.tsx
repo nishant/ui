@@ -7,7 +7,8 @@ import { useIsoLayoutEffect } from './client';
 import { setRef } from './forms-classes';
 import { fieldClass } from './primitives-classes';
 import { Select } from './primitives';
-import { useNishConfig, useNishStrings } from './provider';
+import { useStrings, useNishContext } from './provider';
+import { TIME_STRINGS } from './strings';
 import {
   dayPeriodNames,
   draftFromTime,
@@ -116,8 +117,8 @@ export function TimeField({
   className,
   ...rest
 }: TimeFieldProps) {
-  const strings = useNishStrings();
-  const config = useNishConfig();
+  const strings = useStrings(TIME_STRINGS);
+  const config = useNishContext();
   const loc = resolveLocale(locale ?? config.locale ?? getDefaultLocale());
   const cycle = hourCycle ?? hourCycleFor(loc);
   const st = normalizeStep(step);

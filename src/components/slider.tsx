@@ -11,7 +11,8 @@ import {
 import { cn } from '../cn';
 import { isRtl, useIsoLayoutEffect } from './client';
 import { useLatest } from './latest';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { SLIDER_STRINGS } from './strings';
 
 export type SliderValue = number | [number, number];
 
@@ -112,7 +113,7 @@ export function Slider<V extends SliderValue = number>({
   onPointerCancel,
   ...rest
 }: SliderProps<V>) {
-  const strings = useNishStrings();
+  const strings = useStrings(SLIDER_STRINGS);
   const auto = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);

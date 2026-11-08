@@ -4,7 +4,8 @@ import { cn } from '../cn';
 import { CheckIcon, XIcon } from './icons';
 import { Spinner } from './feedback';
 import { fieldClass } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { FIELD_STRINGS } from './strings';
 import { indexComboboxOptions, setRef } from './forms-classes';
 import { COMBOBOX_DEBOUNCE_MS, COMBOBOX_MAX_SHOWN } from '../combobox-filter';
 
@@ -111,7 +112,7 @@ export function Combobox({
   className,
   ...rest
 }: ComboboxProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(FIELD_STRINGS);
   const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = id ?? `nish-cb-${autoId}`;
   const listId = `nish-cb-list-${autoId}`;

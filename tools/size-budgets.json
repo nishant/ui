@@ -1,5 +1,5 @@
 {
-  "comment": "Gzip KB of an esbuild bundle (minified, react/react-dom/jsx-runtime external, dynamic import() left out = entry plus static imports) of the import, built from dist/esm. AppShell is the spec's 34 target plus the measured overshoot (34.76 gz, set to 35, measured + 0.2 rounded up to 0.1); the Toaster is the lever to trim it back. The everything-from-. row sits above its target (100) until the root entry drops SystemCanvas, Inbox and the service tokens (a 3.0 change); measured plus 0.5 so growth fails CI. mustNotInclude fails the row when a module that must stay lazy is in the initial bundle. Calendar, DatePicker, MultiSelect and Carousel are measured plus 0.5 (each carries the 8.8 KB shared runtime); they add 8.4 KB to everything-from-. (127.45 to 135.89). Their 22 strings in DEFAULT_STRINGS add about 0.24 KB to every import that loads the strings, which moved Modal, VirtualTable, HoverCard, AppShell and SystemCanvas (measured plus 0.2, rounded up to 0.1). RangeCalendar, DateRangePicker and TimeField (2.2.0) are measured plus 0.5 and add 4.60 KB to everything-from-. (136.27 to 140.87); their 9 strings move every row that loads the strings by about 0.1 KB. Calendar and DatePicker grew 0.5 KB each (the shared CalendarBase and the 9 strings), inside their 2.1 budgets.",
+  "comment": "Gzip KB of an esbuild bundle (minified, react/react-dom/jsx-runtime external, dynamic import() left out = entry plus static imports) of the import, built from dist/esm. 3.0: the fleet names (SystemCanvas, Inbox, ServiceTokensSection) are measured from their own subpaths (nish-ui/system-canvas, nish-ui/inbox, nish-ui/service-tokens) and are off the root; each component carries only its own default strings (useStrings with groups) instead of all of them; the Toaster loads its cards lazily (components/toast-card.js, listed in AppShell mustNotInclude); the AppShell target of 34 is met (33.6 gz). The everything-from-. row is measured plus 0.5 so growth fails CI. It is not 100: the rest is the general components. What 100 KB would take, from the 3.0 spec: flow 5.4, split 5.0, forms extras 5.1, charts 4.8, Calendar+DatePicker 4.4, VirtualList+VirtualTable 4.2 KB off the root. mustNotInclude fails the row when a module that must stay lazy is in the initial bundle. Other rows are measured plus 0.2 rounded up to 0.1 where 3.0 shrank them, and unchanged elsewhere.",
   "tarballMaxBytes": 2621440,
   "imports": [
     {
@@ -24,61 +24,61 @@
       "name": "Modal",
       "from": "nish-ui",
       "import": "Modal",
-      "maxKB": 15.4
+      "maxKB": 14
     },
     {
       "name": "Toaster",
       "from": "nish-ui",
       "import": "Toaster",
-      "maxKB": 14
+      "maxKB": 11.7
     },
     {
       "name": "Combobox",
       "from": "nish-ui",
       "import": "Combobox",
-      "maxKB": 14
+      "maxKB": 12.4
     },
     {
       "name": "Calendar",
       "from": "nish-ui",
       "import": "Calendar",
-      "maxKB": 16.5
+      "maxKB": 15.1
     },
     {
       "name": "DatePicker",
       "from": "nish-ui",
       "import": "DatePicker",
-      "maxKB": 20
+      "maxKB": 18.7
     },
     {
       "name": "RangeCalendar",
       "from": "nish-ui",
       "import": "RangeCalendar",
-      "maxKB": 17.3
+      "maxKB": 15.7
     },
     {
       "name": "DateRangePicker",
       "from": "nish-ui",
       "import": "DateRangePicker",
-      "maxKB": 21.2
+      "maxKB": 19.5
     },
     {
       "name": "TimeField",
       "from": "nish-ui",
       "import": "TimeField",
-      "maxKB": 15
+      "maxKB": 13.4
     },
     {
       "name": "MultiSelect",
       "from": "nish-ui",
       "import": "MultiSelect",
-      "maxKB": 16
+      "maxKB": 14.2
     },
     {
       "name": "Carousel",
       "from": "nish-ui",
       "import": "Carousel",
-      "maxKB": 15
+      "maxKB": 13
     },
     {
       "name": "VirtualList",
@@ -90,7 +90,7 @@
       "name": "VirtualTable",
       "from": "nish-ui",
       "import": "VirtualTable",
-      "maxKB": 16.9
+      "maxKB": 15.6
     },
     {
       "name": "TreeView",
@@ -102,24 +102,25 @@
       "name": "ContextMenu",
       "from": "nish-ui",
       "import": "ContextMenu",
-      "maxKB": 19.5
+      "maxKB": 14.3
     },
     {
       "name": "HoverCard",
       "from": "nish-ui",
       "import": "HoverCard",
-      "maxKB": 13.3
+      "maxKB": 11.8
     },
     {
       "name": "AppShell",
       "from": "nish-ui",
       "import": "AppShell",
-      "maxKB": 35.3,
+      "maxKB": 34,
       "mustNotInclude": [
         "components/drawer.js",
         "components/modal.js",
         "components/more-sheet.js",
-        "components/overlay-dialog.js"
+        "components/overlay-dialog.js",
+        "components/toast-card.js"
       ]
     },
     {
@@ -136,45 +137,57 @@
     },
     {
       "name": "SystemCanvas",
-      "from": "nish-ui",
+      "from": "nish-ui/system-canvas",
       "import": "SystemCanvas",
-      "maxKB": 27.2
+      "maxKB": 25.9
+    },
+    {
+      "name": "Inbox",
+      "from": "nish-ui/inbox",
+      "import": "Inbox",
+      "maxKB": 27.4
+    },
+    {
+      "name": "ServiceTokensSection",
+      "from": "nish-ui/service-tokens",
+      "import": "ServiceTokensSection",
+      "maxKB": 19.3
     },
     {
       "name": "Drawer",
       "from": "nish-ui",
       "import": "Drawer",
-      "maxKB": 16
+      "maxKB": 14.5
     },
     {
       "name": "Tooltip",
       "from": "nish-ui",
       "import": "Tooltip",
-      "maxKB": 13.5
+      "maxKB": 11.7
     },
     {
       "name": "Popover",
       "from": "nish-ui",
       "import": "Popover",
-      "maxKB": 13.5
+      "maxKB": 11.7
     },
     {
       "name": "DropdownMenu",
       "from": "nish-ui",
       "import": "DropdownMenu",
-      "maxKB": 14.5
+      "maxKB": 13.1
     },
     {
       "name": "everything from .",
       "from": "nish-ui",
       "import": "*",
-      "maxKB": 141.2
+      "maxKB": 122.5
     },
     {
       "name": "nish-ui/theme",
       "from": "nish-ui/theme",
       "import": "*",
-      "maxKB": 10
+      "maxKB": 8.6
     },
     {
       "name": "nish-ui/format",

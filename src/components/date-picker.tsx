@@ -17,7 +17,8 @@ import { setRef } from './forms-classes';
 import { Popover } from './popover';
 import { CalendarIcon } from './icons';
 import { fieldClass } from './primitives-classes';
-import { useNishConfig, useNishStrings } from './provider';
+import { useNishContext, useStrings } from './provider';
+import { PICKER_STRINGS } from './strings';
 
 export type { WeekDay } from './calendar-classes';
 
@@ -106,8 +107,8 @@ export function DatePicker({
   className,
   ...rest
 }: DatePickerProps) {
-  const strings = useNishStrings();
-  const config = useNishConfig();
+  const strings = useStrings(PICKER_STRINGS);
+  const config = useNishContext();
   const loc = resolveLocale(locale ?? config.locale ?? getDefaultLocale());
   const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = id ?? `nish-dp-${autoId}`;

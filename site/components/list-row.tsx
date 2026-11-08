@@ -97,7 +97,7 @@ export const listRow: ComponentDoc = {
       note: 'A row with no href or onClick is plain, so a Switch can sit in it as the trailing control.',
       render: () => (
         <ul className="m-0 w-full list-none rounded-xl border border-th-line bg-th-surface p-1">
-          <ListRow as="li" icon={<BellIcon size={20} />} title="Price alerts" subtitle="Notify me when a target is hit" trailing={<Switch aria-label="Price alerts" checked onChange={() => undefined} />} />
+          <ListRow as="li" icon={<BellIcon size={20} />} title="Price alerts" subtitle="Notify me when a target is hit" trailing={<Switch aria-label="Price alerts" checked onCheckedChange={() => undefined} />} />
           <ListRow as="li" title="Delete all data" tone="danger" onClick={() => undefined} />
         </ul>
       ),

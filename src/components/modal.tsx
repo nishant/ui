@@ -5,7 +5,8 @@ import { XIcon } from './icons';
 import { Button } from './primitives';
 import { useLatest } from './latest';
 import { Portal } from './portal';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { OVERLAY_STRINGS } from './strings';
 import { CLOSE_BUTTON, MODAL_SIZE, SHEET_HEIGHT_CLASS } from './overlay-classes';
 import { isPhoneViewport, closeVetoes, warnDev, useMergedRef, useScrollable } from './overlay-core';
 import { useDialog, useSheetExit, useSheetSwipe, SheetHandle } from './overlay-dialog';
@@ -102,7 +103,7 @@ function ModalPanel({
   ref,
   ...rest
 }: Omit<ModalProps, 'open'>) {
-  const strings = useNishStrings();
+  const strings = useStrings(OVERLAY_STRINGS);
   const titleId = useId();
   const [panelRef, setPanelRef] = useMergedRef<HTMLDivElement>(ref);
   const scrimRef = useRef<HTMLDivElement>(null);
@@ -238,7 +239,7 @@ export function ConfirmDialog({
   open,
   onOpenChange,
 }: ConfirmDialogProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(OVERLAY_STRINGS);
   const bodyId = useId();
   const pendingRef = useLatest(pending);
   const onOpenChangeRef = useLatest(onOpenChange);

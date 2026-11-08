@@ -4,13 +4,14 @@ import { safeUrl } from '../url';
 import { isRtl, useIsoLayoutEffect } from './client';
 import { navigateFromLayer } from './navigate';
 import { warnDev } from './display-classes';
-import { useNishConfig, useNishStrings } from './provider';
+import { useStrings, useNishContext } from './provider';
+import { SHELL_STRINGS } from './strings';
 import type { NavItem, RenderLink } from './nav';
 
 /** @internal The tooltip side that points away from the nav toward the page: right, or left in RTL. The
  *  provider's `dir` wins; without one the element's computed direction decides. */
 export function useEndSide(ref: RefObject<HTMLElement | null>): 'left' | 'right' {
-  const dir = useNishConfig().dir;
+  const dir = useNishContext().dir;
   const [rtl, setRtl] = useState(dir === 'rtl');
   useIsoLayoutEffect(() => {
     setRtl(dir ? dir === 'rtl' : isRtl(ref.current));
@@ -20,7 +21,7 @@ export function useEndSide(ref: RefObject<HTMLElement | null>): 'left' | 'right'
 
 /** @internal The dot or count pill drawn on a nav icon. */
 export function NavBadge({ value }: { value: number | boolean | undefined }) {
-  const strings = useNishStrings();
+  const strings = useStrings(SHELL_STRINGS);
   if (value === undefined || value === false || value === 0) return null;
   if (value === true) {
     return (

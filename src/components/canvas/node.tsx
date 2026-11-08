@@ -2,7 +2,8 @@
 import { memo, useRef, type CSSProperties } from 'react';
 import { useIsoLayoutEffect } from '../client';
 import { TickerText } from '../flow';
-import { useNishStrings } from '../provider';
+import { useStrings } from '../provider';
+import { MEDIA_STRINGS } from '../strings';
 import { KIND_ICON, Svg } from './icons';
 import type { CanvasHue, CanvasNode } from './types';
 
@@ -48,7 +49,7 @@ function usePing(active: boolean) {
 
 export const NodeView = memo(
   function NodeView({ node, groupTitle, hue, box, selected, dim, delay, onSelect }: NodeViewProps) {
-    const strings = useNishStrings();
+    const strings = useStrings(MEDIA_STRINGS);
     const active = !!node.active;
     const heat = clamp01(node.heat);
     const ref = usePing(active);

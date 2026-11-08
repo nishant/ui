@@ -132,7 +132,7 @@ function UsageCode({ doc }: { doc: ComponentDoc }) {
 
 function ControlInput({ c, value, onChange }: { c: Control; value: Args[string]; onChange: (v: Args[string]) => void }) {
   if (c.type === 'boolean') {
-    return <Switch checked={!!value} onChange={onChange} label={c.label} size="sm" className="w-full justify-between" />;
+    return <Switch checked={!!value} onCheckedChange={onChange} label={c.label} size="sm" className="w-full justify-between" />;
   }
   return (
     <label className="grid gap-1.5">

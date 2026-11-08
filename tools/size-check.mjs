@@ -20,7 +20,7 @@ if (!existsSync(join(esm, 'index.js'))) {
 const esbuild = await import('esbuild');
 
 // nish-ui, nish-ui/theme and the other subpaths resolve to dist/esm like a bundler resolves the exports map.
-const subpath = { 'nish-ui': 'index.js', 'nish-ui/theme': 'theme.js', 'nish-ui/format': 'format.js', 'nish-ui/chart': 'chart.js', 'nish-ui/system-canvas': 'system-canvas.js', 'nish-ui/split-layout': 'split-layout.js', 'nish-ui/inbox-client': 'inbox-client.js' };
+const subpath = { 'nish-ui': 'index.js', 'nish-ui/theme': 'theme.js', 'nish-ui/format': 'format.js', 'nish-ui/chart': 'chart.js', 'nish-ui/system-canvas': 'system-canvas.js', 'nish-ui/split-layout': 'split-layout.js', 'nish-ui/inbox-client': 'inbox-client.js', 'nish-ui/inbox': 'inbox.js', 'nish-ui/service-tokens': 'service-tokens.js' };
 
 const slash = (p) => p.split('\\').join('/');
 const common = {

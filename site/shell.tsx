@@ -11,6 +11,7 @@ const OverviewPage = lazy(() => import('./pages/overview').then((m) => ({ defaul
 const GettingStartedPage = lazy(() => import('./pages/getting-started').then((m) => ({ default: m.GettingStartedPage })));
 const StaticSitesPage = lazy(() => import('./pages/static-sites').then((m) => ({ default: m.StaticSitesPage })));
 const ChangelogPage = lazy(() => import('./pages/changelog').then((m) => ({ default: m.ChangelogPage })));
+const MigratingPage = lazy(() => import('./pages/migrating').then((m) => ({ default: m.MigratingPage })));
 const ThemesPage = lazy(() => import('./pages/themes').then((m) => ({ default: m.ThemesPage })));
 const ThemingApiPage = lazy(() => import('./pages/theming-api').then((m) => ({ default: m.ThemingApiPage })));
 const ColorPage = lazy(() => import('./pages/color').then((m) => ({ default: m.ColorPage })));
@@ -49,6 +50,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { path: '/getting-started', label: 'Getting started' },
       { path: '/static-sites', label: 'Static sites' },
       { path: '/changelog', label: 'Changelog' },
+      { path: '/migrating', label: 'Moving to 3.0' },
     ],
   },
   {
@@ -84,6 +86,8 @@ function page(route: Route): { title: string; node: ReactNode; wide?: boolean } 
       return { title: 'Static sites', node: <StaticSitesPage /> };
     case 'changelog':
       return { title: 'Changelog', node: <ChangelogPage /> };
+    case 'migrating':
+      return { title: 'Moving to 3.0', node: <MigratingPage /> };
     case 'themes':
       return { title: 'Themes', node: <ThemesPage /> };
     case 'theming-api':

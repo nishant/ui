@@ -17,7 +17,8 @@ import {
 } from '../theme';
 import { MonitorIcon, MoonIcon, SunIcon } from './icons';
 import { IconButton } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { THEME_STRINGS } from './strings';
 import { Segmented } from './segmented';
 
 export interface ThemeState {
@@ -116,7 +117,7 @@ export interface ThemeToggleProps {
 }
 
 /** System / Light / Dark as a Segmented radio group, optionally with a preset picker,
- *  or one cycling icon button when compact. Words come from `useNishStrings()`. Other props
+ *  or one cycling icon button when compact. Words come from `useStrings(THEME_STRINGS)`. Other props
  *  (id, data-*, aria-*, style) go on the root element. */
 export function ThemeToggle({
   ref,
@@ -132,7 +133,7 @@ export function ThemeToggle({
   elsewhereLabel = 'set on another site',
   ...rest
 }: ThemeToggleProps & Omit<HTMLAttributes<HTMLElement>, 'children' | 'onChange'>) {
-  const strings = useNishStrings();
+  const strings = useStrings(THEME_STRINGS);
   const { choice, theme, scheme, setChoice } = useTheme();
   const extra = PRESETS.filter((p) => p.id !== 'dark' && p.id !== 'light');
   const isPreset = extra.some((p) => p.id === choice);

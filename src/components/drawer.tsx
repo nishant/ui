@@ -4,7 +4,8 @@ import { cn } from '../cn';
 import { XIcon } from './icons';
 import { IconButton } from './primitives';
 import { Portal } from './portal';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { OVERLAY_STRINGS } from './strings';
 import { DRAWER_SHEET_HEIGHT, DRAWER_WIDTH } from './overlay-classes';
 import { warnDev, useMergedRef, useScrollable } from './overlay-core';
 import { useDialog, useSheetExit, useSheetSwipe, SheetHandle } from './overlay-dialog';
@@ -93,7 +94,7 @@ function DrawerPanel({
   ref,
   ...rest
 }: Omit<DrawerProps, 'open'>) {
-  const strings = useNishStrings();
+  const strings = useStrings(OVERLAY_STRINGS);
   const titleId = useId();
   const [panelRef, setPanelRef] = useMergedRef<HTMLDivElement>(ref);
   const scrimRef = useRef<HTMLDivElement>(null);

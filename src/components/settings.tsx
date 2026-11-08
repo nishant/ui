@@ -17,7 +17,8 @@ import {
 import { cn } from '../cn';
 import { Spinner } from './feedback';
 import { Card, Input, type InputProps } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { SETTINGS_STRINGS } from './strings';
 
 // --- SettingsSection ----------------------------------------------------------------
 
@@ -167,7 +168,7 @@ export function useSaveStatus(): {
   tone: 'muted' | 'ok' | 'error';
   run: <T>(p: Promise<T>) => Promise<T | undefined>;
 } {
-  const strings = useNishStrings();
+  const strings = useStrings(SETTINGS_STRINGS);
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -255,7 +256,7 @@ export function NumberField({
   ref,
   ...rest
 }: NumberFieldProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(SETTINGS_STRINGS);
   const auto = useId();
   const errId = `${id ?? auto}-error`;
   const [draft, setDraftState] = useState(fmt(value));

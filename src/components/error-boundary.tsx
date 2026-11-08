@@ -1,8 +1,8 @@
 'use client';
 import { Component, type ReactNode } from 'react';
 import { Button, Card } from './primitives';
-import { useNishStrings } from './provider';
-import type { NishStrings } from './strings';
+import { useStrings } from './provider';
+import { ERROR_STRINGS } from './strings';
 
 export interface AppErrorBoundaryProps {
   children: ReactNode;
@@ -41,8 +41,10 @@ function isDevelopment(): boolean {
   }
 }
 
+const useErrorStrings = () => useStrings(ERROR_STRINGS);
+
 interface BoundaryProps extends AppErrorBoundaryProps {
-  strings: NishStrings;
+  strings: ReturnType<typeof useErrorStrings>;
 }
 
 class Boundary extends Component<BoundaryProps, State> {
@@ -103,6 +105,6 @@ class Boundary extends Component<BoundaryProps, State> {
 /** Catches render errors below it and shows a themed fallback with a way to recover. The
  *  default fallback shows the message and stack only outside production or with `showDetails`. */
 export function AppErrorBoundary(props: AppErrorBoundaryProps) {
-  const strings = useNishStrings();
+  const strings = useErrorStrings();
   return <Boundary {...props} strings={strings} />;
 }

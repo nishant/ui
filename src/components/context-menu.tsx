@@ -5,7 +5,8 @@ import { isRtl, useIsoLayoutEffect } from './client';
 import { mergeRefs } from './data-classes';
 import { DropdownMenu } from './menu';
 import type { PopoverCloseReason } from './overlay-position';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { OVERLAY_STRINGS } from './strings';
 
 export interface ContextMenuProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'className'> {
   /** The area that opens the menu: right-click, a long press on touch screens, or Shift+F10 or the Menu key while focus is inside. */
@@ -70,7 +71,7 @@ export function ContextMenu({
   onClickCapture,
   ...rest
 }: ContextMenuProps) {
-  const t = useNishStrings();
+  const t = useStrings(OVERLAY_STRINGS);
   const [openState, setOpenState] = useState(false);
   const [point, setPoint] = useState<Point | null>(null);
   const [target, setTarget] = useState<Element | null>(null);

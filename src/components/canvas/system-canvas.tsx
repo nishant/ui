@@ -16,7 +16,8 @@ import { cn } from '../../cn';
 import { useIsoLayoutEffect } from '../client';
 import { usePrefersReducedMotion } from '../flow';
 import { IconButton } from '../primitives';
-import { useNishStrings } from '../provider';
+import { useStrings } from '../provider';
+import { CANVAS_STRINGS } from '../strings';
 import { FollowCaption } from './follow-caption';
 import { useFollow } from './follow';
 import { FitIcon, FollowIcon, MinusIcon, PlusIcon } from './icons';
@@ -73,7 +74,7 @@ export function SystemCanvas({
   ref: forwardedRef,
   ...rest
 }: SystemCanvasProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(CANVAS_STRINGS);
   const label = labelProp ?? strings.systemMap;
   const labels: CanvasLabels = useMemo(() => ({ ...DEFAULT_CANVAS_LABELS, ...labelOverrides }), [labelOverrides]);
   const reduced = usePrefersReducedMotion();

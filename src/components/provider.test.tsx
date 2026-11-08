@@ -3,8 +3,8 @@ import { useEffect } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { isRtl, useIsClient, useIsoLayoutEffect } from './client';
-import { NishProvider, useNishConfig, useNishStrings } from './provider';
-import { DEFAULT_STRINGS } from './strings';
+import { NishProvider, useNishConfig, useNishContext, useNishStrings, useStrings } from './provider';
+import { DEFAULT_STRINGS, SHELL_STRINGS, STATUS_STRINGS } from './strings';
 
 afterEach(cleanup);
 
@@ -115,6 +115,121 @@ describe('NishProvider', () => {
     expect(DEFAULT_STRINGS.removeFile('f.txt')).toBe('Remove f.txt');
     expect(DEFAULT_STRINGS.moreCount(4)).toBe('4 more');
     expect(DEFAULT_STRINGS.themeToggleLabel('System', 'Light')).toBe('Theme: System. Switch to Light');
+  });
+});
+
+describe('useStrings', () => {
+  function Grab<T>({ use, into }: { use: () => T; into: { v?: T; n: number } }) {
+    into.v = use();
+    into.n++;
+    return null;
+  }
+
+  it('does not copy inherited-name overrides such as toString or constructor', () => {
+    const got: { v?: typeof SHELL_STRINGS; n: number } = { n: 0 };
+    const bad = { toString: () => 'x', constructor: 'y', more: 'Plus' } as never;
+    render(
+      <NishProvider strings={bad}>
+        <Grab use={() => useStrings(SHELL_STRINGS)} into={got} />
+      </NishProvider>,
+    );
+    expect(Object.hasOwn(got.v!, 'toString')).toBe(false);
+    expect(Object.hasOwn(got.v!, 'constructor')).toBe(false);
+    expect(got.v!.more).toBe('Plus');
+  });
+
+  it('returns the group itself without a provider', () => {
+    const got: { v?: typeof SHELL_STRINGS; n: number } = { n: 0 };
+    render(<Grab use={() => useStrings(SHELL_STRINGS)} into={got} />);
+    expect(got.v).toBe(SHELL_STRINGS);
+  });
+
+  it('keeps several groups stable across renders without a provider', () => {
+    const got: { v?: unknown; n: number } = { n: 0 };
+    const use = () => useStrings(SHELL_STRINGS, STATUS_STRINGS);
+    const { rerender } = render(<Grab use={use} into={got} />);
+    const first = got.v;
+    rerender(<Grab use={use} into={got} />);
+    expect(got.n).toBe(2);
+    expect(got.v).toBe(first);
+    expect(got.v).toMatchObject({ more: 'More', loading: 'Loading' });
+  });
+
+  it('applies only the overrides whose key is in a passed group', () => {
+    const got: { v?: Record<string, unknown>; n: number } = { n: 0 };
+    render(
+      <NishProvider strings={{ more: 'Plus', close: 'X' }}>
+        <Grab use={() => useStrings(SHELL_STRINGS) as Record<string, unknown>} into={got} />
+      </NishProvider>,
+    );
+    expect(got.v!.more).toBe('Plus');
+    expect(got.v!.sections).toBe('Sections');
+    expect('close' in got.v!).toBe(false);
+    expect(Object.keys(got.v!).sort()).toEqual(Object.keys(SHELL_STRINGS).sort());
+  });
+
+  it('nests key by key and overrides function strings', () => {
+    const got: { v?: { more: string; sections: string; hubTitle: string }; n: number } = { n: 0 };
+    render(
+      <NishProvider strings={{ more: 'A', sections: 'B' }}>
+        <NishProvider strings={{ sections: 'C' }}>
+          <Grab use={() => useStrings(SHELL_STRINGS)} into={got} />
+        </NishProvider>
+      </NishProvider>,
+    );
+    expect(got.v!.more).toBe('A');
+    expect(got.v!.sections).toBe('C');
+    expect(got.v!.hubTitle).toBe('Back to nish.software');
+    cleanup();
+    const f: { v?: { newCount: (v: string | number) => string }; n: number } = { n: 0 };
+    render(
+      <NishProvider strings={{ newCount: (v) => `${v} nouveaux` }}>
+        <Grab use={() => useStrings(SHELL_STRINGS)} into={f} />
+      </NishProvider>,
+    );
+    expect(f.v!.newCount(2)).toBe('2 nouveaux');
+  });
+
+  it('strings={undefined} passes the outer overrides through (same identity)', () => {
+    const seen: unknown[] = [];
+    function Spy() {
+      seen.push(useNishContext().strings);
+      return null;
+    }
+    render(
+      <NishProvider strings={{ more: 'Plus' }}>
+        <Spy />
+        <NishProvider strings={undefined}>
+          <Spy />
+        </NishProvider>
+      </NishProvider>,
+    );
+    expect(seen).toHaveLength(2);
+    expect(seen[1]).toBe(seen[0]);
+  });
+
+  it('the public hooks still return every key with overrides applied', () => {
+    const got: { s?: ReturnType<typeof useNishStrings>; c?: ReturnType<typeof useNishConfig> } = {};
+    const collect = (s: ReturnType<typeof useNishStrings>, c: ReturnType<typeof useNishConfig>) => {
+      got.s = s;
+      got.c = c;
+    };
+    function Both() {
+      collect(useNishStrings(), useNishConfig());
+      return null;
+    }
+    render(
+      <NishProvider strings={{ more: 'Plus', hour: 'Heure' }} locale="fr">
+        <Both />
+      </NishProvider>,
+    );
+    expect(Object.keys(got.s!).sort()).toEqual(Object.keys(DEFAULT_STRINGS).sort());
+    expect(got.s!.more).toBe('Plus');
+    expect(got.s!.hour).toBe('Heure');
+    expect(got.s!.close).toBe('Close');
+    expect(Object.keys(got.c!.strings).sort()).toEqual(Object.keys(DEFAULT_STRINGS).sort());
+    expect(got.c!.strings.more).toBe('Plus');
+    expect(got.c!.locale).toBe('fr');
   });
 });
 

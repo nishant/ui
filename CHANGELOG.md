@@ -4,6 +4,36 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [3.0.0] - 2026-11-07
+
+Two things 2.x kept for compatibility are gone, and the main entry and AppShell are smaller. TypeScript finds every
+line an app has to change. Moving from 2.x: [the 3.0 guide](https://design.nish.software/#/migrating)
+([on GitHub](https://github.com/nishant/ui/blob/master/docs/MIGRATING-3.0.md)).
+
+### Breaking
+
+- `Inbox`, `ServiceTokensSection`, `useServiceTokens`, `SystemCanvas` and their helpers and types are no longer
+  exported from `nish-ui`. Import them from `nish-ui/inbox`, `nish-ui/service-tokens` and `nish-ui/system-canvas`
+  (there since 2.1).
+- `Switch` has no `onChange(checked, event)`; use `onCheckedChange(checked)` (there since 2.0), and `onClick` if you
+  need the event.
+
+### Behavior changes
+
+- `Toaster` loads its cards on demand, preloaded when the browser is idle. Until the chunk loads, or if it cannot
+  load, a plain card shows the same title, body, action and dismiss button.
+
+### Added
+
+- `nish-ui/system-canvas` exports `DEFAULT_CANVAS_LABELS`.
+- design.nish.software has the migration guide ("Moving to 3.0").
+
+### Performance
+
+- Each component carries only its own default strings instead of all of them.
+- `AppShell` is 33.6 KB gzip instead of 35.2; `Toaster` 11.7 instead of 13.5; everything from `nish-ui`
+  122.1 instead of 140.9.
+
 ## [2.2.0] - 2026-11-07
 
 ### Added

@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { cn } from '../cn';
 import { useLatest } from './latest';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { OVERLAY_STRINGS } from './strings';
 import { SHEET_EXIT_MS } from './overlay-classes';
 import { ov, isTop, syncLayerAttr, pushInert, popInert, acquireGuard, releaseGuard, prefersReducedMotion, closeVetoes, focusables, lockScroll, queueHistoryPush, cancelHistoryPush } from './overlay-core';
 
@@ -279,7 +280,7 @@ export type SheetSwipe = ReturnType<typeof useSheetSwipe>;
 /** @internal The grab bar on top of a bottom sheet: drag it down to dismiss, or press Enter or
  *  Space when it has focus. */
 export function SheetHandle({ onClose, swipe, className }: { onClose: () => void; swipe: SheetSwipe; className?: string }) {
-  const strings = useNishStrings();
+  const strings = useStrings(OVERLAY_STRINGS);
   return (
     <div
       role="button"

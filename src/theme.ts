@@ -10,7 +10,7 @@
 import { DEFAULT_THEME, THEMES, type Scheme } from './tokens.mjs';
 import { shared } from './runtime';
 import { safeUrl } from './url';
-import { DEFAULT_STRINGS, type NishStrings } from './components/strings';
+import { DISPLAY_STRINGS, OVERLAY_STRINGS, THEME_STRINGS, type NishStrings } from './components/strings';
 
 /** A shared theme, or an app's own one added with registerThemes(). */
 export type ThemeName = keyof typeof THEMES | (string & {});
@@ -269,7 +269,7 @@ export interface MountThemeToggleOptions {
   /** Replace the words "System", "Light" and "Dark" in the button's label, e.g. for
    *  another language. The label reads "Theme: Light. Switch to Dark". */
   labels?: ThemeToggleLabels;
-  /** Replace the label sentence: `themeToggleLabel(current, next)`. Defaults to DEFAULT_STRINGS. */
+  /** Replace the label sentence: `themeToggleLabel(current, next)`. Defaults to THEME_STRINGS. */
   strings?: Partial<Pick<NishStrings, 'themeToggleLabel'>>;
   /** The words after a preset saved on another site: "Theme: Mocha (set on another site). …".
    *  Default "set on another site". */
@@ -325,12 +325,12 @@ const TOGGLE_ICONS: Record<'system' | 'light' | 'dark', Shape[]> = {
   dark: [['path', { d: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9' }]],
 };
 
-// A function, not an object: reading DEFAULT_STRINGS at module scope would keep the whole
+// A function, not an object: reading THEME_STRINGS at module scope would keep the whole
 // strings table in every bundle that imports anything from this file.
 const defaultToggleLabels = () => ({
-  system: DEFAULT_STRINGS.themeSystem,
-  light: DEFAULT_STRINGS.themeLight,
-  dark: DEFAULT_STRINGS.themeDark,
+  system: THEME_STRINGS.themeSystem,
+  light: THEME_STRINGS.themeLight,
+  dark: THEME_STRINGS.themeDark,
 });
 const DEFAULT_ELSEWHERE = 'set on another site';
 
@@ -364,7 +364,7 @@ function themeLabel(choice: ThemeChoice, words: Record<'system' | 'light' | 'dar
  */
 export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOptions = {}): () => void {
   const words = { ...defaultToggleLabels(), ...opts.labels };
-  const sentence = opts.strings?.themeToggleLabel ?? DEFAULT_STRINGS.themeToggleLabel;
+  const sentence = opts.strings?.themeToggleLabel ?? THEME_STRINGS.themeToggleLabel;
   const elsewhereWords = opts.elsewhereLabel ?? DEFAULT_ELSEWHERE;
   if (button.tagName === 'BUTTON' && !button.getAttribute('type')) button.setAttribute('type', 'button');
   const children: Node[] = (Object.keys(TOGGLE_ICONS) as (keyof typeof TOGGLE_ICONS)[]).map((id) =>
@@ -441,7 +441,7 @@ export interface ShowToastOptions {
    *  it hides the toast. An href goes through safeUrl(): a javascript: or data: URL
    *  drops the action. */
   action?: { label: string; href?: string; onClick?: () => void };
-  /** Accessible name of the dismiss button. Default DEFAULT_STRINGS.dismiss ("Dismiss"). */
+  /** Accessible name of the dismiss button. Default DISPLAY_STRINGS.dismiss ("Dismiss"). */
   dismissLabel?: string;
   /** Strings for this toast (another language): `dismiss`. `dismissLabel` wins when both are given. */
   strings?: Partial<Pick<NishStrings, 'dismiss'>>;
@@ -525,7 +525,7 @@ export function showToast(content: string | Node, opts: ShowToastOptions = {}): 
   const close = document.createElement('button');
   close.type = 'button';
   close.className = 'nish-toast-close';
-  close.setAttribute('aria-label', opts.dismissLabel ?? opts.strings?.dismiss ?? DEFAULT_STRINGS.dismiss);
+  close.setAttribute('aria-label', opts.dismissLabel ?? opts.strings?.dismiss ?? DISPLAY_STRINGS.dismiss);
   close.append(svgIcon(14, [['path', { d: 'M18 6 6 18M6 6l12 12' }]]));
   close.addEventListener('click', hide);
   box.append(close);
@@ -558,7 +558,7 @@ export interface ConfirmDialogOptions {
   body?: string | Node;
   /** The confirm button's label: a verb that names the action. Default "Confirm". */
   confirmLabel?: string;
-  /** The cancel button's label. Default DEFAULT_STRINGS.cancel ("Cancel"). */
+  /** The cancel button's label. Default OVERLAY_STRINGS.cancel ("Cancel"). */
   cancelLabel?: string;
   /** Strings for this dialog (another language): `cancel`. `cancelLabel` wins when both are given. */
   strings?: Partial<Pick<NishStrings, 'cancel'>>;
@@ -606,7 +606,7 @@ export function confirmDialog(opts: ConfirmDialogOptions): Promise<boolean> {
     b.textContent = label;
     return b;
   };
-  const cancelBtn = button(opts.cancelLabel ?? opts.strings?.cancel ?? DEFAULT_STRINGS.cancel, 'nish-btn');
+  const cancelBtn = button(opts.cancelLabel ?? opts.strings?.cancel ?? OVERLAY_STRINGS.cancel, 'nish-btn');
   const confirmBtn = button(opts.confirmLabel ?? 'Confirm', `nish-btn ${danger ? 'nish-btn--danger' : 'nish-btn--primary'}`);
   (danger ? cancelBtn : confirmBtn).autofocus = true;
   actions.append(cancelBtn, confirmBtn);

@@ -6,7 +6,8 @@ import { isRtl } from './client';
 import { useMediaQuery } from './hooks';
 import { useLatest } from './latest';
 import { lazyModule, useLazyModule } from './lazy-module';
-import { useNishConfig, useNishStrings } from './provider';
+import { useStrings, useNishContext } from './provider';
+import { OVERLAY_STRINGS } from './strings';
 import { MENU_ROW, PHONE_QUERY, menuItemClass } from './overlay-classes';
 import { layerHost, setRef, useMergedRef } from './overlay-core';
 import { useAnchoredPosition, floatingStyle, useDismiss, useReturnFocus, type PopoverCloseReason } from './overlay-position';
@@ -97,8 +98,8 @@ export function DropdownMenu({
   onKeyDown: userKeyDown,
   ...rest
 }: DropdownMenuProps) {
-  const strings = useNishStrings();
-  const config = useNishConfig();
+  const strings = useStrings(OVERLAY_STRINGS);
+  const config = useNishContext();
   const [openState, setOpenState] = useState(defaultOpen);
   const open = openProp ?? openState;
   // The trigger node is a ref for the positioning and focus hooks (set before their layout
@@ -423,7 +424,7 @@ export interface MenuSubHeaderProps extends Omit<ComponentPropsWithoutRef<'butto
 
 /** The first row of a submenu view shown in place: a back arrow and the view's title. */
 export function MenuSubHeader({ onBack, children, className, ref, onKeyDown, ...rest }: MenuSubHeaderProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(OVERLAY_STRINGS);
   return (
     <button
       {...rest}

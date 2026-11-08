@@ -20,7 +20,7 @@ function ScannerDemo({ withStatus = true, failSave = false }: { withStatus?: boo
     <div className="w-full space-y-6">
       <SettingsSection title="Scanner" description="How often prices are checked and when you hear about it.">
         <SettingRow label="Scan automatically" description="Check every tracker on a schedule." htmlFor="demo-auto" inline>
-          <Switch id="demo-auto" aria-label="Scan automatically" checked={auto} onChange={setAuto} />
+          <Switch id="demo-auto" aria-label="Scan automatically" checked={auto} onCheckedChange={setAuto} />
         </SettingRow>
         <SettingRow label="Check every" htmlFor="demo-cadence">
           <Select id="demo-cadence" value={cadence} onChange={(e) => setCadence(e.target.value)} disabled={!auto} className="sm:w-40">
@@ -168,7 +168,7 @@ export const settingsDoc: ComponentDoc = {
           }
         >
           <SettingRow label="Compact rows" inline>
-            <Switch aria-label="Compact rows" checked={false} onChange={() => {}} />
+            <Switch aria-label="Compact rows" checked={false} onCheckedChange={() => {}} />
           </SettingRow>
         </SettingsSection>
       ),
@@ -181,7 +181,7 @@ function Alerts({ settings, patch }) {
   return (
     <SettingsSection title="Alerts" description="When to tell you.">
       <SettingRow label="Email me" htmlFor="email" inline>
-        <Switch id="email" aria-label="Email me" checked={settings.email} onChange={(v) => patch({ email: v })} />
+        <Switch id="email" aria-label="Email me" checked={settings.email} onCheckedChange={(v) => patch({ email: v })} />
       </SettingRow>
       <SettingRow label="Drop threshold" htmlFor="drop" status={save.label} statusTone={save.tone}>
         <NumberField
@@ -235,7 +235,7 @@ function CompactDemo() {
     <div className="w-full max-w-sm rounded-xl border border-th-line bg-th-elevated p-4">
       <SettingsSection title="Alerts" description="On this device." compact>
         <SettingRow label="Sound" htmlFor="compact-sound">
-          <Switch id="compact-sound" aria-label="Sound" checked={sound} onChange={setSound} />
+          <Switch id="compact-sound" aria-label="Sound" checked={sound} onCheckedChange={setSound} />
         </SettingRow>
         <SettingRow label="Snooze for" htmlFor="compact-snooze">
           <NumberField id="compact-snooze" value={snooze} min={1} max={120} suffix="min" onCommit={setSnooze} />

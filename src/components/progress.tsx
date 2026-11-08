@@ -1,6 +1,7 @@
 import { useId, type ComponentPropsWithoutRef, type ReactNode, type Ref } from 'react';
 import { cn } from '../cn';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { PROGRESS_STRINGS } from './strings';
 
 export type ProgressTone = 'accent' | 'ok' | 'warn' | 'loss' | 'info' | 'neutral';
 
@@ -51,7 +52,7 @@ export function Progress({
   'aria-labelledby': ariaLabelledBy,
   ...rest
 }: ProgressProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(PROGRESS_STRINGS);
   const labelId = useId();
   const indeterminate = value == null || Number.isNaN(value);
   const clamped = indeterminate ? 0 : Math.min(Math.max(value, 0), max);

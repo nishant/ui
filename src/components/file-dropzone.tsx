@@ -3,7 +3,8 @@ import { useRef, useState, type ComponentPropsWithoutRef, type DragEvent, type R
 import { cn } from '../cn';
 import { XIcon } from './icons';
 import { IconButton } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { FILE_STRINGS } from './strings';
 
 export interface RejectedFile {
   file: File;
@@ -94,7 +95,7 @@ export function FileDropzone({
   'aria-invalid': ariaInvalid,
   ...rest
 }: FileDropzoneProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(FILE_STRINGS);
   const input = useRef<HTMLInputElement | null>(null);
   const depth = useRef(0);
   const [files, setFiles] = useState<File[]>([]);

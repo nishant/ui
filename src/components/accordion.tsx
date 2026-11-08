@@ -13,7 +13,8 @@ import {
   type Ref,
 } from 'react';
 import { cn } from '../cn';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { ACCORDION_STRINGS } from './strings';
 
 export type AccordionHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -87,7 +88,7 @@ export function Accordion(props: AccordionProps) {
     ref,
     ...rest
   } = props as Omit<AccordionSingleProps, 'type'> & { type?: 'single' | 'multiple'; value?: string | string[]; defaultValue?: string | string[]; onValueChange?: (v: never) => void };
-  const strings = useNishStrings();
+  const strings = useStrings(ACCORDION_STRINGS);
   const idBase = useId();
   const [state, setState] = useState<string[]>(() => toArray(defaultValue));
   const controlled = valueProp !== undefined;

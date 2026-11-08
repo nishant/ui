@@ -3,7 +3,8 @@ import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
 import { cn } from '../cn';
 import { AlertTriangleIcon, LoaderIcon, RotateIcon } from './icons';
 import { cardClass } from './primitives';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { STATUS_STRINGS } from './strings';
 
 export interface SkeletonProps extends ComponentPropsWithoutRef<'div'> {
   /** Size and shape: h-4 w-2/5, size-9 rounded-full, … */
@@ -38,7 +39,7 @@ export interface SkeletonRowsProps extends Omit<ComponentPropsWithoutRef<'div'>,
  *  loads, announced once (role="status", the label is visually hidden text inside it).
  *  The shimmer stops under reduced motion. For a card body's text lines, use SkeletonLines. */
 export function SkeletonRows({ rows = 5, height = 56, gap = 'md', label, className, rowClassName, ref, ...rest }: SkeletonRowsProps) {
-  const s = useNishStrings();
+  const s = useStrings(STATUS_STRINGS);
   return (
     <div {...rest} ref={ref} role="status" className={cn('grid', gap === 'sm' ? 'gap-1.5' : 'gap-2.5', className)}>
       <span className="sr-only">{label ?? s.loading}</span>
@@ -94,7 +95,7 @@ export interface SkeletonLinesProps extends Omit<ComponentPropsWithoutRef<'div'>
 /** A padded stack of shimmer bars: the default loading body for a card or widget, announced
  *  once (role="status"). */
 export function SkeletonLines({ lines = 3, className, label, ref, ...rest }: SkeletonLinesProps) {
-  const s = useNishStrings();
+  const s = useStrings(STATUS_STRINGS);
   return (
     <div {...rest} ref={ref} role="status" className={cn('flex flex-col gap-2.5 p-3', className)}>
       <span className="sr-only">{label ?? s.loading}</span>
@@ -142,7 +143,7 @@ export interface StatGridSkeletonProps extends Omit<ComponentPropsWithoutRef<'di
 
 /** Shimmer tiles that match a StatGrid (2 columns, 4 from md) while its numbers load. */
 export function StatGridSkeleton({ count = 4, className, label, ref, ...rest }: StatGridSkeletonProps) {
-  const s = useNishStrings();
+  const s = useStrings(STATUS_STRINGS);
   return (
     <div {...rest} ref={ref} role="status" className={cn('grid grid-cols-2 gap-3 md:grid-cols-4', className)}>
       <span className="sr-only">{label ?? s.loading}</span>
@@ -170,7 +171,7 @@ export interface CardListSkeletonProps extends Omit<ComponentPropsWithoutRef<'di
 
 /** A stack of shimmer cards while a card list loads, announced once (role="status"). */
 export function CardListSkeleton({ count = 3, lines = 2, className, label, ref, ...rest }: CardListSkeletonProps) {
-  const s = useNishStrings();
+  const s = useStrings(STATUS_STRINGS);
   return (
     <div {...rest} ref={ref} role="status" className={cn('grid gap-2.5', className)}>
       <span className="sr-only">{label ?? s.loading}</span>
@@ -242,7 +243,7 @@ export function ErrorState({
   ref,
   ...rest
 }: ErrorStateProps) {
-  const s = useNishStrings();
+  const s = useStrings(STATUS_STRINGS);
   return (
     <div
       {...rest}

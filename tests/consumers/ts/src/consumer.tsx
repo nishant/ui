@@ -113,7 +113,7 @@ export function App() {
         <Select aria-label="s">
           <option>a</option>
         </Select>
-        <Switch checked={on} onChange={(c) => setOn(c)} aria-label="sw" />
+        <Switch checked={on} onCheckedChange={(c) => setOn(c)} aria-label="sw" />
         <Checkbox label="c" />
         <RadioGroup
           aria-label="Size"

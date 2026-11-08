@@ -14,7 +14,6 @@ import {
   type HTMLAttributes,
   type InputHTMLAttributes,
   type KeyboardEvent,
-  type MouseEvent,
   type ReactElement,
   type ReactNode,
   type Ref,
@@ -25,7 +24,9 @@ import { cn } from '../cn';
 import { FIELD, IconButton, Input } from './primitives';
 import { XIcon } from './icons';
 import { isRtl, useIsoLayoutEffect } from './client';
-import { useNishStrings } from './provider';
+import { useStrings } from './provider';
+import { FIELD_STRINGS } from './strings';
+import { warnDev } from './display-classes';
 import { chipClass, setRef, type ChipClassOptions, type ChipVariant } from './forms-classes';
 
 // Pure helpers live in forms-classes.ts (no directive, callable from a server component);
@@ -284,11 +285,9 @@ export interface SwitchProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   checked?: boolean;
   /** The starting state of an uncontrolled switch (no `checked`). */
   defaultChecked?: boolean;
-  /** Called with the new value and the click event when the switch is clicked or toggled
-   *  with Space/Enter. Kept for 2.x; prefer onCheckedChange. */
-  onChange?: (checked: boolean, event: MouseEvent<HTMLButtonElement>) => void;
-  /** Called with the new value. The form-library friendly callback: use it with
-   *  react-hook-form's Controller (`onCheckedChange={field.onChange}`). */
+  /** Called with the new value when the switch is clicked or toggled with Space or Enter.
+   *  Use it with react-hook-form's Controller (`onCheckedChange={field.onChange}`). Need the
+   *  click event? Use `onClick`. */
   onCheckedChange?: (checked: boolean) => void;
   /** Field name for a native form. With it, a hidden checkbox mirrors the state, so
    *  FormData and `<form action>` carry the value. */
@@ -320,7 +319,6 @@ export function Switch({
   ref,
   checked: checkedProp,
   defaultChecked = false,
-  onChange,
   onCheckedChange,
   name,
   value = 'on',
@@ -334,8 +332,13 @@ export function Switch({
   className,
   id,
   onClick,
-  ...rest
+  ...allRest
 }: SwitchProps) {
+  const { onChange: removedOnChange, ...rest } = allRest as typeof allRest & { onChange?: unknown };
+  const removed = removedOnChange !== undefined;
+  useEffect(() => {
+    if (removed) warnDev('Switch: onChange was removed in nish-ui 3.0. Use onCheckedChange(checked).');
+  }, [removed]);
   const auto = useId();
   const btnId = id ?? `${auto}-switch`;
   const labelId = `${auto}-label`;
@@ -368,7 +371,6 @@ export function Switch({
         if (e.defaultPrevented) return;
         const next = !checked;
         if (!controlled) setInner(next);
-        onChange?.(next, e);
         onCheckedChange?.(next);
       }}
       className={cn(
@@ -508,7 +510,7 @@ export function Field({
   ...rest
 }: FieldProps) {
   const auto = useId();
-  const strings = useNishStrings();
+  const strings = useStrings(FIELD_STRINGS);
   const only = Children.count(children) === 1 && isValidElement(children) ? (children as ReactElement<Record<string, unknown>>) : null;
   const childId = only && typeof only.props.id === 'string' ? (only.props.id as string) : undefined;
   const controlId = htmlFor ?? childId ?? `${auto}-control`;
@@ -609,7 +611,7 @@ export interface FieldGroupProps extends Omit<FieldsetHTMLAttributes<HTMLFieldSe
  *  control to label. */
 export function FieldGroup({ ref, label, hint, error, optional = false, className, children, ...rest }: FieldGroupProps) {
   const auto = useId();
-  const strings = useNishStrings();
+  const strings = useStrings(FIELD_STRINGS);
   const hasError = error != null && error !== false && error !== '';
   const hintId = `${auto}-hint`;
   const errorId = `${auto}-error`;
@@ -688,7 +690,7 @@ export function SearchInput({
   disabled,
   ...rest
 }: SearchInputProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(FIELD_STRINGS);
   const inner = useRef<HTMLInputElement | null>(null);
   const [own, setOwn] = useState(defaultValue);
   const controlled = valueProp !== undefined;
@@ -786,7 +788,7 @@ export interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 /** A compact pill for multi-select filters (toggle), quick suggestions and removable
  *  tags. For one choice among several, use Segmented instead. */
 export function Chip({ ref, variant = 'toggle', pressed, onRemove, removeLabel, icon, trailing, size = 'md', className, children, type = 'button', ...rest }: ChipProps) {
-  const strings = useNishStrings();
+  const strings = useStrings(FIELD_STRINGS);
   if (variant === 'tag') {
     const name = removeLabel ?? (typeof children === 'string' ? strings.removeNamed(children) : strings.remove);
     // A tag is a span: the button-only attributes in `rest` are dropped by the DOM.

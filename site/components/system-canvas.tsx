@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Badge, SystemCanvas, type CanvasEdge, type CanvasEdgeKind, type CanvasGroup, type CanvasLayoutMode } from '../../src';
+import { Badge } from '../../src';
+import { SystemCanvas, type CanvasEdge, type CanvasEdgeKind, type CanvasGroup, type CanvasLayoutMode } from '../../src/system-canvas';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 
@@ -175,7 +176,7 @@ export const systemCanvas: ComponentDoc = {
   exports: ['SystemCanvas', 'layoutSystem', 'pickLayout', 'routeEdges'],
   summary:
     'A pannable, zoomable graph-paper canvas of colored groups holding nodes, joined by edges. It lays itself out in bands or columns, whichever shows the map biggest. Nodes that are being worked on pulse in their group color, edges into them flow, and follow mode flies the view to where work is happening.',
-  importLine: "import { SystemCanvas } from '@nish/ui/system-canvas'; // also on '@nish/ui' through 2.x",
+  importLine: "import { SystemCanvas } from '@nish/ui/system-canvas';",
   fleetOnly: true,
   controls: [
     { key: 'layout', label: 'Layout', type: 'select', options: ['auto', 'bands', 'columns'] },
@@ -247,7 +248,6 @@ export const systemCanvas: ComponentDoc = {
     },
   ],
   usage: `import { SystemCanvas } from '@nish/ui/system-canvas';
-// the same component is also exported from '@nish/ui' through 2.x
 
 const edgeKinds = [
   { id: 'serves', label: 'Traffic', line: 'solid' },

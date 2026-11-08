@@ -18,7 +18,8 @@ import { isRtl } from './client';
 import { chartNumber, decimateMinMax, mergeRefs } from './data-classes';
 import { Skeleton } from './feedback';
 import { useMediaQuery } from './hooks';
-import { useNishConfig, useNishStrings } from './provider';
+import { useNishContext, useStrings } from './provider';
+import { DISPLAY_STRINGS } from './strings';
 
 /** A series color: one of the eight categorical chart colors, or a status/accent color. */
 export type ChartTone = 'chart-1' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5' | 'chart-6' | 'chart-7' | 'chart-8' | 'ok' | 'loss' | 'accent';
@@ -68,7 +69,7 @@ function useWidth<T extends HTMLElement>(): [(el: T | null) => void, number, T |
 /** True when the chart is laid out right-to-left: the provider's `dir`, else the element's
  *  computed direction (read after mount, so the first render matches the server). */
 function useChartRtl(el: HTMLElement | null): boolean {
-  const { dir } = useNishConfig();
+  const { dir } = useNishContext();
   const [measured, setMeasured] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- state is synced from a DOM measurement inside the effect
@@ -150,8 +151,8 @@ export function LineChart({
   ref,
   ...rest
 }: LineChartProps) {
-  const t = useNishStrings();
-  const config = useNishConfig();
+  const t = useStrings(DISPLAY_STRINGS);
+  const config = useNishContext();
   const loc = locale ?? config.locale ?? 'en-US';
   const yFmt = yFormat ?? ((v: number) => chartNumber(v, loc));
   const xFmt = xFormat ?? ((v: number) => chartNumber(v, loc));
@@ -477,8 +478,8 @@ export function BarChart({
   ref,
   ...rest
 }: BarChartProps) {
-  const t = useNishStrings();
-  const config = useNishConfig();
+  const t = useStrings(DISPLAY_STRINGS);
+  const config = useNishContext();
   const loc = locale ?? config.locale ?? 'en-US';
   const fmt = valueFormat ?? ((v: number) => chartNumber(v, loc));
   const [wrapRef, width, wrapEl] = useWidth<HTMLDivElement>();
@@ -625,7 +626,7 @@ export interface RangeBarProps extends Omit<ComponentPropsWithoutRef<'div'>, 'ch
  *  the current value: daily temperature ranges, a price's day range. The track starts at
  *  the start edge, so it mirrors in right-to-left layouts. */
 export function RangeBar({ min, max, low, high, current, label, locale, className, ref, ...rest }: RangeBarProps) {
-  const config = useNishConfig();
+  const config = useNishContext();
   const loc = locale ?? config.locale ?? 'en-US';
   const num = (v: number) => chartNumber(v, loc);
   const span = max - min;

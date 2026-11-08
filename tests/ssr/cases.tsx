@@ -3,6 +3,9 @@
 // without a case here fails tests/ssr/ssr.test.tsx, so the table cannot fall behind.
 import { createRef, type ReactElement } from 'react';
 import * as ui from '../../src';
+import { Inbox } from '../../src/inbox';
+import { ServiceTokensSection } from '../../src/service-tokens';
+import { SystemCanvas } from '../../src/system-canvas';
 import type { LayoutNode } from '../../src/split-layout';
 
 const noop = () => {};
@@ -231,7 +234,7 @@ export const cases: Record<string, Case> = {
     </ui.IconButton>
   ),
   Inbox: () => (
-    <ui.Inbox
+    <Inbox
       items={[]}
       view="open"
       onViewChange={noop}
@@ -364,10 +367,10 @@ export const cases: Record<string, Case> = {
     </ui.Select>
   ),
   Separator: () => <ui.Separator label="or" />,
-  ServiceTokensSection: () => <ui.ServiceTokensSection tokens={[]} onRevoke={async () => {}} />,
+  ServiceTokensSection: () => <ServiceTokensSection tokens={[]} onRevoke={async () => {}} />,
   SettingRow: () => (
     <ui.SettingRow label="Row">
-      <ui.Switch checked onChange={noop} aria-label="x" />
+      <ui.Switch checked onCheckedChange={noop} aria-label="x" />
     </ui.SettingRow>
   ),
   SettingsIcon: () => <ui.SettingsIcon />,
@@ -394,9 +397,9 @@ export const cases: Record<string, Case> = {
   StepBar: () => <ui.StepBar total={4} done={2} />,
   StickyActionBar: () => <ui.StickyActionBar open primary={<ui.Button>Save</ui.Button>} />,
   StickyBar: () => <ui.StickyBar>bar</ui.StickyBar>,
-  Switch: () => <ui.Switch checked={false} onChange={noop} aria-label="sw" name="sw" />,
+  Switch: () => <ui.Switch checked={false} onCheckedChange={noop} aria-label="sw" name="sw" />,
   SystemCanvas: () => (
-    <ui.SystemCanvas
+    <SystemCanvas
       groups={[
         {
           id: 'g',
