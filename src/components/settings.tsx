@@ -234,7 +234,7 @@ export interface NumberFieldProps extends Omit<InputProps, 'value' | 'onChange' 
 /** The number in a draft, or NaN. Accepts thousands commas and a typographic minus. */
 const parseDraft = (text: string) => {
   const t = text.trim().replace(/,/g, '').replace(/\u2212/g, '-');
-  const n = /^-?(\d+\.?\d*|\.\d+)$/.test(t) ? Number(t) : NaN;
+  const n = /^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(t) ? Number(t) : NaN;
   return Number.isFinite(n) ? n : NaN;
 };
 
