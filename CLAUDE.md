@@ -86,5 +86,9 @@ tag-push fan-out runs from it); `scripts/release.mjs --ci` dispatches `fanout.ym
 - A new file in `dist/files.json` `static` breaks taarora/arora-home's `scripts/sync-nish-ui.py` unless it is optional there
   (`*.min.css`, `elements*.js`); a new literal red or green in vendored CSS fails its colour-blind check. Run
   `bash scripts/bump-consumers.sh vX.Y.Z` after each release and fix the sync script in arora-home when it refuses.
+- Since 3.1.0 the scroll-edge attributes (`data-at-start`/`data-at-end` from `useScrollEdges`, `mountScrollspy`, tabs,
+  segmented and scroll-row) mean the physical left/right edge in RTL, because the fade masks run `to right`. Anything that
+  means "scrolled away from the start" (the pinned-column shadow in `STICKY_COL` and `.nish-table-wrap--sticky-first`) must
+  pair `ltr:`/`rtl:` (or `:dir()`) with `data-at-start`/`data-at-end`.
 - Mutation testing: StrykerJS with the vitest runner needs `disableTypeChecks: false` (its `// @ts-nocheck` header breaks the
   "use client" first-line test) and `ignoreStatic: true` (static mutants rerun every test).
