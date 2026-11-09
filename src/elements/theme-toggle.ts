@@ -55,7 +55,8 @@ export class NishThemeToggle extends NishElement {
   }
 
   #signature(): string {
-    return JSON.stringify([this.labelled, this.pill, ...this.#words()]);
+    const s = getStrings();
+    return JSON.stringify([this.labelled, this.pill, ...this.#words(), s.themeToggleLabel?.('{a}', '{b}'), s.themeElsewhere]);
   }
 
   #unmount(): void {
@@ -76,7 +77,13 @@ export class NishThemeToggle extends NishElement {
     this.#button = button;
     const [system, light, dark] = this.#words();
     const labels = { system, light, dark };
-    this.#cleanup = mountThemeToggle(button, { showLabel: this.labelled, labels });
+    const s = getStrings();
+    this.#cleanup = mountThemeToggle(button, {
+      showLabel: this.labelled,
+      labels,
+      ...(s.themeToggleLabel ? { strings: { themeToggleLabel: s.themeToggleLabel } } : {}),
+      ...(s.themeElsewhere ? { elsewhereLabel: s.themeElsewhere } : {}),
+    });
   }
 }
 

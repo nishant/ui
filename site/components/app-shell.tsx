@@ -313,6 +313,7 @@ function Root() {
     'bottomNav names the bottom bar items by key when the first four are not the right ones. Every other nav item goes in the More sheet, in nav order, before moreItems.',
     'moreMenu={false} drops the header More menu. Use it only when every moreItem is also in actions from 768px, so nothing is phone-only.',
     'fullHeight gives the page exactly the height under the header and banners, for a page that scrolls inside its own panes. The container and footer are not used.',
+    'Sidebar tools and (in brand mode) actions are mounted twice, with CSS showing one, so they must not hold global key listeners, fixed ids or open state.',
     'shortLabel is the label in the rail and the bottom bar when the full one does not fit; the full label stays in the sidebar, the header and the More sheet, and is the rail tooltip when there is no hint.',
     'The More sheet loads on demand (when the page is idle, or on the first tap of More), so it costs nothing at startup.',
   ],

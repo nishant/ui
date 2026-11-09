@@ -1098,6 +1098,28 @@ describe('mountScrollspy', () => {
     expect(nav.dataset.atEnd).toBe('true');
   });
 
+  it('computes the edge flags from a negative scrollLeft in RTL (physical left and right edges)', () => {
+    build(['a', 'b']);
+    defineProp(nav, 'scrollWidth', 900);
+    defineProp(nav, 'clientWidth', 300);
+    nav.style.direction = 'rtl';
+    nav.scrollLeft = -300;
+    mountScrollspy(nav, { offset: 10 });
+    expect(nav.dataset.atStart).toBe('false');
+    expect(nav.dataset.atEnd).toBe('false');
+    // Scrolled all the way to the left edge: nothing more to the left, so the left fade goes.
+    nav.scrollLeft = -600;
+    window.dispatchEvent(new Event('scroll'));
+    nav.dispatchEvent(new Event('scroll'));
+    expect(nav.dataset.atStart).toBe('true');
+    expect(nav.dataset.atEnd).toBe('false');
+    // At rest in RTL the content continues to the left: the right edge is the end.
+    nav.scrollLeft = 0;
+    nav.dispatchEvent(new Event('scroll'));
+    expect(nav.dataset.atStart).toBe('false');
+    expect(nav.dataset.atEnd).toBe('true');
+  });
+
   it('a click on a link activates it, and a click elsewhere does not', () => {
     build(['a', 'b', 'c']);
     mountScrollspy(nav, { offset: 100 });
@@ -1186,14 +1208,16 @@ describe('mountScrollspy', () => {
     build(['a', 'b', 'c']);
     defineProp(nav, 'clientWidth', 200);
     defineProp(nav, 'scrollWidth', 900);
-    defineProp(nav, 'offsetLeft', 10);
+    // The nav sits 10px from the viewport edge; link positions are in the nav's own scroll
+    // coordinates, so a link's viewport left moves with nav.scrollLeft.
+    defineProp(nav, 'getBoundingClientRect', () => ({ left: 10 }));
     const place = (a: HTMLAnchorElement, left: number, width: number) => {
-      defineProp(a, 'offsetLeft', left);
+      defineProp(a, 'getBoundingClientRect', () => ({ left: 10 + left - nav.scrollLeft }));
       defineProp(a, 'offsetWidth', width);
     };
-    place(links[0]!, 10, 80);
-    place(links[1]!, 400, 80);
-    place(links[2]!, 100, 80);
+    place(links[0]!, 0, 80);
+    place(links[1]!, 390, 80);
+    place(links[2]!, 90, 80);
     mountScrollspy(nav, { offset: 100 });
     // link b: left = 390, far right of the 200px view -> 390 + 80 - 200 + 24 = 294
     tops.b = 10;
@@ -1218,9 +1242,9 @@ describe('mountScrollspy', () => {
     build(['a', 'b']);
     defineProp(nav, 'clientWidth', 400);
     defineProp(nav, 'scrollWidth', 900);
-    defineProp(nav, 'offsetLeft', 0);
+    defineProp(nav, 'getBoundingClientRect', () => ({ left: 0 }));
     for (const a of links) {
-      defineProp(a, 'offsetLeft', 100);
+      defineProp(a, 'getBoundingClientRect', () => ({ left: 100 - nav.scrollLeft }));
       defineProp(a, 'offsetWidth', 100);
     }
     nav.scrollLeft = 50;

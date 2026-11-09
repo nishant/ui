@@ -148,11 +148,6 @@ export interface SortText {
   toggle?: (dir: 'asc' | 'desc' | null) => string;
 }
 
-const DEFAULT_SORT_TEXT: Required<SortText> = {
-  announce: (header, dir) => (dir ? `Sorted by ${header}, ${dir === 'asc' ? 'ascending' : 'descending'}` : 'Sorting cleared'),
-  toggle: (dir) => (dir === 'desc' ? 'Sorted descending, switch to ascending' : 'Sorted ascending, switch to descending'),
-};
-
 export interface ResponsiveTableProps<T> extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   /** The data. */
   rows: T[];
@@ -279,7 +274,8 @@ export function ResponsiveTable<T>({
   ...rest
 }: ResponsiveTableProps<T>) {
   const t = useStrings(STATUS_STRINGS, TABLE_STRINGS);
-  const text = { ...DEFAULT_SORT_TEXT, ...sortText };
+  // The announcement comes from the provider's strings; sortText wins per instance.
+  const text = { announce: sortText?.announce ?? t.sortAnnounce, toggle: sortText?.toggle ?? t.sortToggle };
   const [innerSort, setInnerSort] = useState<Sort>(null);
   const [announcement, setAnnouncement] = useState('');
   const sortId = useId();

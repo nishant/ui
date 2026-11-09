@@ -737,8 +737,11 @@ test.describe('<nish-copy-button>', () => {
     expect(await page.evaluate(() => window.getSelection()?.toString() ?? '')).not.toBe('');
     expect(await copied(page)).toEqual([]);
     expect(await events(page, 'nish-copy', 'cp1')).toHaveLength(0);
+    // The text stays selected well past the old 1.5 s, until focus leaves.
+    await page.waitForTimeout(1800);
+    await expect(btn).toHaveText('Press Ctrl+C');
+    await page.mouse.click(2, 2);
     await expect(btn).toHaveText('Copy', { timeout: 3000 });
-    await expect(btn).toBeFocused();
   });
 });
 

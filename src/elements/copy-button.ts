@@ -3,6 +3,7 @@ import { NishElement, define } from './base';
 import { getStrings } from './strings';
 
 const COPIED_MS = 1500;
+const MANUAL_MS = 15000;
 const HIDDEN =
   'position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0';
 
@@ -119,6 +120,21 @@ export class NishCopyButton extends NishElement {
       const ta = this.querySelector<HTMLTextAreaElement>('textarea[data-copy-source]');
       ta?.focus();
       ta?.select();
+      // Stay in manual mode until the text is copied or focus leaves, not for a fixed 1.5 s.
+      const done = (): void => {
+        if (this.#timer) clearTimeout(this.#timer);
+        this.#timer = null;
+        this.manual = false;
+      };
+      ta?.addEventListener('copy', () => {
+        done();
+        this.copied = true;
+        this.#timer = setTimeout(() => {
+          this.copied = false;
+          this.#timer = null;
+        }, COPIED_MS);
+      }, { once: true });
+      ta?.addEventListener('blur', done, { once: true });
     }
     if (this.#timer) clearTimeout(this.#timer);
     this.#timer = setTimeout(() => {
@@ -128,13 +144,14 @@ export class NishCopyButton extends NishElement {
       }
       this.manual = false;
       this.#timer = null;
-    }, COPIED_MS);
+    }, source ? COPIED_MS : MANUAL_MS);
   }
 
   protected override render(): TemplateResult {
     const s = getStrings();
+    const manualText = /Mac|iPhone|iPad/.test(navigator.platform || '') ? s.copyManual.replace('Ctrl+C', 'Cmd+C') : s.copyManual;
     const copiedText = this.copiedLabel || s.copied;
-    const shown = this.copied ? copiedText : this.manual ? s.copyManual : this.label || s.copy;
+    const shown = this.copied ? copiedText : this.manual ? manualText : this.label || s.copy;
     const icon = this.copied ? CHECK_ICON : COPY_ICON;
     return html`${this.icon
         ? html`<button type="button" class="nish-icon-btn nish-icon-btn--sm nish-copy-btn" aria-label=${shown} title=${shown} ?data-copied=${this.copied} @click=${() => this.#onClick()}>
@@ -142,7 +159,7 @@ export class NishCopyButton extends NishElement {
           </button>`
         : html`<button type="button" class="nish-btn nish-btn--sm nish-copy-btn" ?data-copied=${this.copied} @click=${() => this.#onClick()}>
             ${icon}${shown}
-          </button>`}<span role="status" aria-live="polite" style=${HIDDEN}>${this.copied ? copiedText : this.manual ? s.copyManual : nothing}</span>${this.manual && this.value != null ? html`<textarea data-copy-source readonly tabindex="-1" aria-label=${this.value} style=${HIDDEN} .value=${this.value}></textarea>` : nothing}`;
+          </button>`}<span role="status" aria-live="polite" style=${HIDDEN}>${this.copied ? copiedText : this.manual ? manualText : nothing}</span>${this.manual && this.value != null ? html`<textarea data-copy-source readonly tabindex="-1" aria-label=${this.value} style=${HIDDEN} .value=${this.value}></textarea>` : nothing}`;
   }
 }
 

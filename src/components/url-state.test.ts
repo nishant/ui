@@ -187,3 +187,13 @@ describe('locationAdapter', () => {
     expect(calls).toBe(1);
   });
 });
+
+describe('useUrlState explicit undefined', () => {
+  it('treats undefined in a patch as back to the default', () => {
+    const a = memoryAdapter('q=rust&tags=a');
+    const { result } = renderHook(() => useUrlState(DEFAULTS, { adapter: a }));
+    act(() => result.current[1]({ q: undefined, tags: undefined }));
+    expect(a.search()).toBe('');
+    expect(result.current[0].q).toBe('');
+  });
+});

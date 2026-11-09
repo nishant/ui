@@ -238,6 +238,23 @@ describe('SystemCanvas controls', () => {
     const x1 = /translate3d\(([-\d.]+)px/.exec(world.style.transform)![1];
     expect(Number(x1) - Number(x0)).toBe(48);
   });
+
+  it('leaves Ctrl+= / Ctrl+- / Ctrl+0 to the browser page zoom', () => {
+    render(canvas());
+    const root = screen.getByRole('application');
+    const zoom = () => root.querySelector('.nish-canvas-zoom')!.textContent;
+    const before = zoom();
+    for (const key of ['=', '+', '-', '0']) {
+      expect(fireEvent.keyDown(root, { key, ctrlKey: true })).toBe(true);
+    }
+    expect(zoom()).toBe(before);
+  });
+
+  it('lists the connections as text for assistive technology', () => {
+    render(canvas());
+    const items = Array.from(screen.getByRole('application').querySelectorAll('ul > li')).map((li) => li.textContent);
+    expect(items).toContain('Caddy → Web (proxy)');
+  });
 });
 
 describe('SystemCanvas line legend', () => {
@@ -251,24 +268,24 @@ describe('SystemCanvas line legend', () => {
     expect(screen.queryByRole('button', { name: /Lines/ })).toBeNull();
   });
 
-  it('shows how many kinds are hidden, opens a menu and toggles a kind', () => {
+  it('shows how many kinds are hidden, opens a panel and toggles a kind', () => {
     render(canvas({ edgeKinds: kinds }));
     const button = screen.getByRole('button', { name: /Lines/ });
     expect(button.textContent).toContain('· 1 hidden');
     expect(button.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(button);
-    const menu = screen.getByRole('menu', { name: 'Lines' });
-    const items = within(menu).getAllByRole('menuitemcheckbox');
+    const menu = screen.getByRole('group', { name: 'Lines' });
+    const items = within(menu).getAllByRole('switch');
     expect(items.map((i) => i.getAttribute('aria-checked'))).toEqual(['true', 'false']);
     fireEvent.click(items[1]!);
     expect(screen.getByRole('button', { name: /Lines/ }).textContent).not.toContain('hidden');
   });
 
-  it('Escape closes the menu and returns focus to the button', () => {
+  it('Escape closes the panel and returns focus to the button', () => {
     render(canvas({ edgeKinds: kinds }));
     fireEvent.click(screen.getByRole('button', { name: /Lines/ }));
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Lines' })).toBeNull();
   });
 
   it('the label and the hidden count come from the provider and labels', () => {
@@ -278,7 +295,7 @@ describe('SystemCanvas line legend', () => {
     const button = screen.getByRole('button', { name: /Lignes/ });
     expect(button.textContent).toContain('· 1 masquée');
     fireEvent.click(button);
-    expect(screen.getByRole('menu', { name: 'Lignes' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Lignes' })).toBeTruthy();
   });
 
   it('keeps the legend at the start corner so it follows the reading direction', () => {

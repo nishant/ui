@@ -12,17 +12,31 @@ vi.mock('./client', async (importOriginal) => ({
 }));
 
 const scrollIntoView = vi.fn();
+const scrollBy = vi.fn();
+const windowScrollTo = vi.fn();
 const realMatchMedia = window.matchMedia;
+const realRect = Element.prototype.getBoundingClientRect;
 
 beforeEach(() => {
   scrollIntoView.mockClear();
+  scrollBy.mockClear();
+  windowScrollTo.mockClear();
   Element.prototype.scrollIntoView = scrollIntoView as unknown as typeof Element.prototype.scrollIntoView;
+  Element.prototype.scrollBy = scrollBy as unknown as typeof Element.prototype.scrollBy;
+  window.scrollTo = windowScrollTo as unknown as typeof window.scrollTo;
+  // Slide n sits n * 100px from the start of a 100px track, so a scrollBy delta names the slide.
+  Element.prototype.getBoundingClientRect = function (this: Element) {
+    const at = this.getAttribute('data-index');
+    const x = at === null ? 0 : Number(at) * 100;
+    return { left: x, right: at === null ? 100 : x + 100, top: 0, bottom: 0, width: 100, height: 0, x, y: 0, toJSON() {} } as DOMRect;
+  };
 });
 
 afterEach(() => {
   cleanup();
   rtl.on = false;
   window.matchMedia = realMatchMedia;
+  Element.prototype.getBoundingClientRect = realRect;
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -153,9 +167,12 @@ describe('Carousel buttons', () => {
   it('next scrolls to slide 2 and makes it active', () => {
     setup(3);
     fireEvent.click(screen.getByRole('button', { name: 'Next slide' }));
-    expect(scrollIntoView).toHaveBeenCalledTimes(1);
-    expect(scrollIntoView.mock.contexts[0]).toBe(slide(2, 3));
-    expect(scrollIntoView.mock.calls[0][0]).toMatchObject({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    expect(scrollBy).toHaveBeenCalledTimes(1);
+    expect(scrollBy.mock.contexts[0]).toBe(track());
+    expect(scrollBy.mock.calls[0][0]).toEqual({ left: 100, behavior: 'smooth' });
+    // Only the track scrolls: never the window or another ancestor.
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(windowScrollTo).not.toHaveBeenCalled();
     expect(slide(2, 3).getAttribute('data-state')).toBe('active');
     expect(slide(1, 3).getAttribute('data-state')).toBe('inactive');
   });
@@ -166,7 +183,7 @@ describe('Carousel buttons', () => {
     expect(prev.getAttribute('aria-disabled')).toBe('true');
     expect(prev.hasAttribute('disabled')).toBe(false);
     fireEvent.click(prev);
-    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(scrollBy).not.toHaveBeenCalled();
     expect(slide(1, 3).getAttribute('data-state')).toBe('active');
   });
 
@@ -190,7 +207,7 @@ describe('Carousel buttons', () => {
     mockReducedMotion();
     setup(3);
     fireEvent.click(screen.getByRole('button', { name: 'Next slide' }));
-    expect(scrollIntoView.mock.calls[0][0]).toMatchObject({ behavior: 'auto' });
+    expect(scrollBy.mock.calls[0][0]).toMatchObject({ behavior: 'auto' });
   });
 });
 
@@ -203,7 +220,7 @@ describe('Carousel indicators', () => {
     expect(dots[1].getAttribute('aria-current')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Go to slide 3' }));
     expect(slide(3, 3).getAttribute('data-state')).toBe('active');
-    expect(scrollIntoView.mock.contexts[0]).toBe(slide(3, 3));
+    expect(scrollBy.mock.calls[0][0].left).toBe(200);
     expect(screen.getByRole('button', { name: 'Go to slide 3' }).getAttribute('aria-current')).toBe('true');
   });
 
@@ -301,22 +318,22 @@ describe('Carousel index', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next slide' }));
     expect(onIndexChange).toHaveBeenCalledWith(1);
     expect(slide(1, 3).getAttribute('data-state')).toBe('active');
-    scrollIntoView.mockClear();
+    scrollBy.mockClear();
     rerender(
       <Carousel aria-label="Trips" index={2} onIndexChange={onIndexChange}>
         {slidesOf(3)}
       </Carousel>,
     );
     expect(slide(3, 3).getAttribute('data-state')).toBe('active');
-    expect(scrollIntoView).toHaveBeenCalledTimes(1);
-    expect(scrollIntoView.mock.contexts[0]).toBe(slide(3, 3));
+    expect(scrollBy).toHaveBeenCalledTimes(1);
+    expect(scrollBy.mock.calls[0][0].left).toBe(200);
     expect(onIndexChange).toHaveBeenCalledTimes(1);
   });
 
   it('scrolls to defaultIndex on mount and clamps an index past the end', () => {
     setup(3, { defaultIndex: 2 });
     expect(slide(3, 3).getAttribute('data-state')).toBe('active');
-    expect(scrollIntoView.mock.contexts[0]).toBe(slide(3, 3));
+    expect(scrollBy.mock.calls[0][0].left).toBe(200);
     cleanup();
     render(
       <Carousel aria-label="Trips" index={9}>
@@ -371,7 +388,7 @@ describe('Carousel scrolling and focus', () => {
     scroll(t);
     expect(slide(2, 3).getAttribute('data-state')).toBe('active');
     expect(onIndexChange).toHaveBeenCalledWith(1);
-    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(scrollBy).not.toHaveBeenCalled();
   });
 
   it('uses the right edges in right-to-left layouts', () => {
@@ -456,7 +473,7 @@ describe('Carousel scrolling and focus', () => {
     act(() => screen.getByRole('button', { name: 'Three' }).focus());
     expect(slide(3, 3).getAttribute('data-state')).toBe('active');
     expect(onIndexChange).toHaveBeenCalledWith(2);
-    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(scrollBy).not.toHaveBeenCalled();
   });
 });
 
@@ -497,6 +514,31 @@ describe('Carousel auto-rotation', () => {
       vi.advanceTimersByTime(5000);
     });
     expect(slide(1, 3).getAttribute('data-state')).toBe('active');
+  });
+
+  it('pauses while scrolled out of view', () => {
+    vi.useFakeTimers();
+    let notify: (entries: Array<{ isIntersecting: boolean }>) => void = () => {};
+    class FakeObserver {
+      constructor(cb: (entries: Array<{ isIntersecting: boolean }>) => void) {
+        notify = cb;
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+    setup(3, { autoPlay: 5000 });
+    act(() => notify([{ isIntersecting: false }]));
+    act(() => {
+      vi.advanceTimersByTime(20000);
+    });
+    expect(slide(1, 3).getAttribute('data-state')).toBe('active');
+    expect(scrollBy).not.toHaveBeenCalled();
+    act(() => notify([{ isIntersecting: true }]));
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(slide(2, 3).getAttribute('data-state')).toBe('active');
   });
 
   it('puts the stop button first in the tab order', () => {

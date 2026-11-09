@@ -243,6 +243,7 @@ export function DateRangePicker({
         }
         disabled={disabled}
         required={required}
+        form={form}
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
         aria-describedby={ariaDescribedBy}

@@ -413,8 +413,10 @@ Content-Security-Policy: script-src 'self' 'sha256-<contents of theme-init.sha25
           title="or by nonce, with the Vite plugin"
           code={`import { nishThemeInit } from 'nish-ui/vite';
 
-// a function runs for every page, so each response gets its own nonce
-plugins: [nishThemeInit({ nonce: () => getNonce() })],`}
+// Vite transforms index.html once at build time, so a fixed value is baked into the file.
+// Pass a placeholder and have your server replace it per response (and send the same nonce in the CSP header).
+// A function only gives a fresh nonce in the dev server.
+plugins: [nishThemeInit({ nonce: '__NISH_CSP_NONCE__' })],`}
         />
         <Prose>
           <p>

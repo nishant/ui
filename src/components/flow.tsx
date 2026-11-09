@@ -18,7 +18,7 @@ import { useIsoLayoutEffect } from './client';
 import { useMediaQuery, useNow } from './hooks';
 import { Tooltip } from './tooltip';
 import { Badge, type BadgeHue } from './primitives';
-import { useStrings } from './provider';
+import { useNishContext, useStrings } from './provider';
 import { PROGRESS_STRINGS, FLOW_STRINGS } from './strings';
 
 // Animated components for live views of multi-step work: FlowSteps, StepBar, AgentNode,
@@ -186,7 +186,6 @@ const NODE_STATUS: Record<FlowStepStatus, string> = {
   failed: 'bg-th-loss-fill text-th-on-loss forced-colors:border-2 forced-colors:border-dashed forced-colors:border-[color:CanvasText]',
 };
 
-const STEP_SR_DEFAULT: Record<'done' | 'failed', string> = { done: ', done', failed: ', failed' };
 
 function pickStepFx(from: FlowStepStatus, to: FlowStepStatus): string | null {
   if (to === 'done') return 'done';
@@ -317,7 +316,7 @@ export function FlowSteps({ steps, orientation = 'auto', label, statusLabels, cl
             index={i}
             last={i === steps.length - 1}
             sweeping={sweeping}
-            statusWord={step.status === 'done' || step.status === 'failed' ? (statusLabels?.[step.status] ?? STEP_SR_DEFAULT[step.status]) : undefined}
+            statusWord={step.status === 'done' || step.status === 'failed' ? (statusLabels?.[step.status] ?? (step.status === 'done' ? s.stepDone : s.stepFailed)) : undefined}
           />
         ))}
       </ol>
@@ -456,13 +455,6 @@ export interface AgentNodeProps extends Omit<ComponentPropsWithoutRef<'article'>
   ref?: Ref<HTMLElement>;
 }
 
-const STATE_WORD: Record<AgentNodeState, string> = {
-  queued: 'Queued',
-  running: 'Running',
-  done: 'Done',
-  failed: 'Failed',
-};
-
 const AGENT_STATE: Record<AgentNodeState, string> = {
   queued: 'border-dashed border-th-line opacity-70',
   running: 'border-th-accent',
@@ -537,7 +529,14 @@ export function AgentNode({ label, state, model, activity, meta, onClick, stateL
   const own = useRef<HTMLElement>(null);
   const ref = useMergedRef<HTMLElement>(own, refProp);
   useTransitionFx(state, own, pickAgentFx);
-  const aria = `${label}: ${stateLabels?.[state] ?? STATE_WORD[state]}`;
+  const s = useStrings(FLOW_STRINGS);
+  const stateWord: Record<AgentNodeState, string> = {
+    queued: s.agentQueued,
+    running: s.agentRunning,
+    done: s.agentDone,
+    failed: s.agentFailed,
+  };
+  const aria = `${label}: ${stateLabels?.[state] ?? stateWord[state]}`;
   const classes = cn(
     'nish-flow-agent block min-h-16 w-full min-w-0 rounded-xl border bg-th-surface p-3 text-start',
     AGENT_STATE[state],
@@ -792,6 +791,7 @@ const FEED_DOT_FORCED = 'forced-colors:bg-[color:CanvasText]';
  *  flashes the accent tint. Items present on the first render do not animate. */
 export function ActivityFeed({ items, max = 50, now, label, empty, className, ref, ...rest }: ActivityFeedProps) {
   const s = useStrings(PROGRESS_STRINGS, FLOW_STRINGS);
+  const { locale } = useNishContext();
   const internalNow = useNow(15000);
   const clock = now ?? internalNow;
   const shown = useMemo(() => [...items].sort((a, b) => b.at - a.at).slice(0, Math.max(0, max)), [items, max]);
@@ -817,7 +817,7 @@ export function ActivityFeed({ items, max = 50, now, label, empty, className, re
                 <div className="break-words text-sm text-th-hi2">{item.text}</div>
                 {item.source != null ? <div className="break-words text-xs text-th-hi3">{item.source}</div> : null}
               </div>
-              <span className="pt-0.5 text-end text-xs tabular-nums text-th-hi3">{ago(item.at, { now: clock, style: 'short' })}</span>
+              <span className="pt-0.5 text-end text-xs tabular-nums text-th-hi3">{ago(item.at, { now: clock, style: 'short', locale })}</span>
             </div>
           </div>
         </li>

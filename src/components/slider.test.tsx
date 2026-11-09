@@ -112,6 +112,14 @@ describe('Slider (single)', () => {
     expect(thumbs()[0]!.getAttribute('aria-valuenow')).toBe('52');
   });
 
+  it('cancels the pointerdown default so the browser does not move focus off the thumb', () => {
+    const { container } = render(<Slider aria-label="v" defaultValue={0} />);
+    sizeTrack(container);
+    const root = container.firstElementChild as HTMLElement;
+    const notCancelled = fireEvent.pointerDown(root, { clientX: 150, button: 0, pointerId: 1 });
+    expect(notCancelled).toBe(false);
+  });
+
   it('drags: pointer down sets the value, move follows, up commits', () => {
     const onValueChange = vi.fn();
     const onValueCommit = vi.fn();

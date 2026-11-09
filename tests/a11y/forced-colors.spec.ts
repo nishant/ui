@@ -66,7 +66,7 @@ test.describe('forced colors', () => {
   test('Avatar: the initials disc and the status dot get a border', async ({ page }) => {
     const disc = page.getByRole('img', { name: /Grace Hopper/i }).first();
     expect(await style(disc, 'border-top-width')).not.toBe('0px');
-    const dot = page.locator('[role=img][aria-label=ok], [aria-label=ok]').first();
+    const dot = page.locator('[role=img][aria-label=Online], [aria-label=Online]').first();
     expect(await style(dot, 'border-top-width')).not.toBe('0px');
   });
 

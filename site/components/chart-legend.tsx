@@ -58,7 +58,7 @@ export const chartLegend: ComponentDoc = {
       ),
     },
   ],
-  usage: `import { ChartLegend, seriesColor } from '@nish/ui';
+  usage: `import { ChartLegend } from '@nish/ui';
 
 // The chart draws series i in var(--nish-chart-{i+1}); the legend uses the same roles.
 <ChartLegend items={[{ label: 'CPU', tone: 'chart-1' }, { label: 'Memory', tone: 'chart-2' }]} />`,

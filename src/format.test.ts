@@ -67,6 +67,15 @@ describe('money', () => {
   it('falls back to the code for an unknown currency', () => {
     expect(money(5, { currency: 'XXXX' })).toBe('XXXX 5.00');
   });
+
+  it('uses the currency own minor unit', () => {
+    expect(money(500, { currency: 'JPY' })).toBe('¥500');
+    expect(money(500, { currency: 'JPY', cents: 'always' })).toBe('¥500');
+  });
+
+  it('puts a gap between a letter symbol and the number', () => {
+    expect(money(5, { currency: 'CHF' })).toBe('CHF 5.00');
+  });
 });
 
 describe('signedMoney', () => {

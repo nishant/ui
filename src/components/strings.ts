@@ -208,6 +208,20 @@ export interface NishStrings {
   offlineBadge: string;
   /** FlowSteps: group label. */
   progress: string;
+  /** AgentNode: spoken state word. */
+  agentQueued: string;
+  /** AgentNode: spoken state word. */
+  agentRunning: string;
+  /** AgentNode: spoken state word. */
+  agentDone: string;
+  /** AgentNode: spoken state word. */
+  agentFailed: string;
+  /** FlowSteps: hidden text appended to a finished step. */
+  stepDone: string;
+  /** FlowSteps: hidden text appended to a failed step. */
+  stepFailed: string;
+  /** ResponsiveTable: label of the sort-direction button, from the current direction. */
+  sortToggle: (dir: 'asc' | 'desc' | null) => string;
   /** WorkflowBoard: group label. */
   workflow: string;
   /** ActivityFeed: group label. */
@@ -278,6 +292,8 @@ export interface NishStrings {
   breadcrumbs: string;
   /** TagInput: remove button aria label. */
   removeTag: (tag: string) => string;
+  /** TagInput: shown when a tag is refused because the limit is reached. */
+  maxTags: (max: number) => string;
   /** FileDropzone: drop area text. */
   dropzoneLabel: string;
   /** FileDropzone: browse button. */
@@ -379,6 +395,7 @@ export const FIELD_STRINGS = {
   noMatches: 'No matches',
   searching: 'Searching…',
   removeTag: (tag) => `Remove ${tag}`,
+  maxTags: (max) => `You can add up to ${max}`,
 } satisfies Partial<NishStrings>;
 
 /** @internal Defaults for FilterBar, FilterSheet. */
@@ -440,6 +457,7 @@ export const COMMAND_STRINGS = {
 export const TABLE_STRINGS = {
   sortAnnounce: (header, dir) => (dir ? `Sorted by ${header}, ${dir === 'asc' ? 'ascending' : 'descending'}` : 'Sorting cleared'),
   sortBy: 'Sort by',
+  sortToggle: (dir) => (dir === 'desc' ? 'Sorted descending, switch to ascending' : 'Sorted ascending, switch to descending'),
   sortDefault: 'Default',
 } satisfies Partial<NishStrings>;
 
@@ -472,6 +490,12 @@ export const PROGRESS_STRINGS = {
 
 /** @internal Defaults for WorkflowBoard, ActivityFeed. */
 export const FLOW_STRINGS = {
+  agentQueued: 'Queued',
+  agentRunning: 'Running',
+  agentDone: 'Done',
+  agentFailed: 'Failed',
+  stepDone: ', done',
+  stepFailed: ', failed',
   workflow: 'Workflow',
   activity: 'Activity',
   other: 'Other',

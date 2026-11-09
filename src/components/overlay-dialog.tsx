@@ -164,7 +164,11 @@ export function useSheetExit(onClose: (() => void) | undefined, canClose?: () =>
   }, [fire]);
   const isClosing = useCallback(() => closingRef.current, []);
   /** False when the app's canClose refuses: a swipe springs back instead of dismissing. */
-  const allowClose = useCallback(() => !canCloseRef.current || canCloseRef.current(), [canCloseRef]);
+  const allowClose = useCallback(() => {
+    const handler = onCloseRef.current;
+    if (handler && closeVetoes.get(handler)?.()) return false;
+    return !canCloseRef.current || canCloseRef.current();
+  }, [canCloseRef, onCloseRef]);
   return { closing, requestClose, closeNow, isClosing, allowClose };
 }
 
@@ -249,7 +253,19 @@ export function useSheetSwipe(
       if (dismiss) {
         panel.style.transform = 'translateY(100%)';
         if (scrim) scrim.style.opacity = '0';
-        timer.current = window.setTimeout(() => dismissRef.current(), ms);
+        timer.current = window.setTimeout(() => {
+          dismissRef.current();
+          // Still mounted (the parent kept it): bring it back instead of leaving it invisible.
+          timer.current = window.setTimeout(() => {
+            if (!panel.isConnected) return;
+            panel.style.transform = '';
+            panel.style.transition = '';
+            if (scrim) {
+              scrim.style.opacity = '';
+              scrim.style.transition = '';
+            }
+          }, 100);
+        }, ms);
       } else {
         panel.style.transform = 'translateY(0)';
         if (scrim) scrim.style.opacity = '1';

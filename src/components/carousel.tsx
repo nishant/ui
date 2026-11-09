@@ -112,9 +112,10 @@ export function Carousel({
   const [hovered, setHovered] = useState(false);
   const [focusedIn, setFocusedIn] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [offscreen, setOffscreen] = useState(false);
   const [playState, setPlayState] = useState<'auto' | 'on' | 'off'>('auto');
   const playing = playState === 'on' || (playState === 'auto' && !reduced);
-  const paused = hovered || focusedIn || hidden;
+  const paused = hovered || focusedIn || hidden || offscreen;
   const interval = Math.max(autoPlay ?? 0, CAROUSEL_MIN_INTERVAL);
   const rotating = !!autoPlay && count > 1 && playing && !paused;
 
@@ -128,8 +129,17 @@ export function Carousel({
   const scrollToSlide = useCallback((i: number, behavior: ScrollBehavior) => {
     viewRef.current = i;
     targetRef.current = { index: i, at: Date.now() };
-    const el = trackRef.current?.children[i] as HTMLElement | undefined;
-    el?.scrollIntoView({ behavior, block: 'nearest', inline: 'start' });
+    const track = trackRef.current;
+    const el = track?.children[i] as HTMLElement | undefined;
+    if (!track || !el) return;
+    // Scroll the track only. Element.scrollIntoView also moves the window and every other scrollable
+    // ancestor, which would pull the page back to an off-screen carousel.
+    const rtl = isRtl(track);
+    const a = el.getBoundingClientRect();
+    const b = track.getBoundingClientRect();
+    const left = rtl ? a.right - b.right : a.left - b.left;
+    if (typeof track.scrollBy === 'function') track.scrollBy({ left, behavior });
+    else track.scrollLeft += left;
   }, []);
 
   const goTo = useCallback(
@@ -219,6 +229,18 @@ export function Carousel({
     sync();
     document.addEventListener('visibilitychange', sync);
     return () => document.removeEventListener('visibilitychange', sync);
+  }, []);
+
+  // Pause while the carousel is scrolled out of view, so rotation never works on a carousel nobody sees.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((entries) => {
+      const last = entries[entries.length - 1];
+      if (last) setOffscreen(!last.isIntersecting);
+    });
+    io.observe(track);
+    return () => io.disconnect();
   }, []);
 
   // Rotation: one timeout, re-armed on every index change. It always wraps.

@@ -50,6 +50,8 @@ interface State<T> {
   /** How many loads have settled: the polling timer restarts on each, even when React batched
    *  the start and the end of a fast load into one render. */
   settled: number;
+  /** True once a load of `key` has succeeded, even when it resolved undefined (a 204). */
+  loaded?: boolean;
 }
 
 /** The longest wait between polls after failures. */
@@ -169,6 +171,7 @@ export function useResource<T>(
               updatedAt: keepPrevRef.current ? s.updatedAt : undefined,
               fetching: true,
               settled: s.settled,
+              loaded: false,
             },
       );
       try {
@@ -178,10 +181,10 @@ export function useResource<T>(
         failuresRef.current = 0;
         if (mutatedRef.current !== mutatedAtStart) {
           // The data was asked for before a local mutate: keep the mutated data.
-          setState((s) => ({ ...s, key: k, error: undefined, fetching: false, settled: s.settled + 1 }));
+          setState((s) => ({ ...s, key: k, error: undefined, fetching: false, settled: s.settled + 1, loaded: true }));
           return;
         }
-        setState((s) => ({ key: k, data, error: undefined, updatedAt: Date.now(), fetching: false, settled: s.settled + 1 }));
+        setState((s) => ({ key: k, data, error: undefined, updatedAt: Date.now(), fetching: false, settled: s.settled + 1, loaded: true }));
       } catch (e) {
         if (run !== runRef.current || ctl.signal.aborted) return;
         failuresRef.current++;
@@ -281,7 +284,7 @@ export function useResource<T>(
   return {
     data,
     error,
-    loading: active && data === undefined && error === undefined,
+    loading: active && data === undefined && error === undefined && !(sameKey && state.loaded),
     refreshing: state.fetching || (active && !sameKey),
     updatedAt,
     stale,

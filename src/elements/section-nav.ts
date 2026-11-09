@@ -27,7 +27,7 @@ export class NishSectionNav extends NishElement {
   declare updateHash: boolean;
 
   #nav: HTMLElement | null = null;
-  #stopSpy: (() => void) | null = null;
+  #stopSpy: (() => void) & { lock: (id: string) => void } | null = null;
   #observer: MutationObserver | null = null;
   #late: MutationObserver | null = null;
   readonly #onClickBound = (e: Event): void => this.#onClick(e as MouseEvent);
@@ -92,7 +92,7 @@ export class NishSectionNav extends NishElement {
   #sync(): void {
     const nav = this.#nav;
     if (!nav) return;
-    nav.setAttribute('aria-label', this.label || getStrings().sections);
+    nav.setAttribute('aria-label', this.label || getStrings().onThisPage);
     nav.style.position = this.sticky ? '' : 'static';
     if (this.#spySticky !== null && this.#spySticky !== this.sticky) this.#startSpy(nav);
   }
@@ -121,6 +121,7 @@ export class NishSectionNav extends NishElement {
     if (!target) return;
     e.preventDefault();
     const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.#stopSpy?.lock(id);
     target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
     if (this.updateHash) {
       try {

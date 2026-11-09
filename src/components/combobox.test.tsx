@@ -97,6 +97,15 @@ describe('Combobox', () => {
     expect(onChange).toHaveBeenCalledWith('AMD', OPTIONS[1]);
   });
 
+  it('ignores the Enter that confirms an IME composition', () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    fireEvent.change(input(), { target: { value: 'm' } });
+    fireEvent.keyDown(input(), { key: 'Enter', isComposing: true });
+    fireEvent.keyDown(input(), { key: 'Enter', keyCode: 229 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('clicking an option selects it', () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);

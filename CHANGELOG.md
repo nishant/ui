@@ -4,6 +4,85 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [3.0.1] - 2026-11-09
+
+Fixes from the 2026-11-08 audit.
+
+### Fixed
+
+- `<nish-bottom-nav>` and `<nish-nav-rail>`: `href="#"` and query-only links no longer take the current-page mark from the real current link.
+- `<nish-chip-group>`: removing a chip with the keyboard now moves focus to the next chip instead of dropping it to the page.
+- `<nish-copy-button>`: when the clipboard is blocked, the text now stays selected until it is copied or focus leaves (up to 15 s, was 1.5 s), and the prompt says Cmd+C on Mac.
+- `TagInput`: at `maxTags` a typed or pasted tag now stays in the box with a "You can add up to N" message instead of vanishing; pressing Enter after the suggestions list shrank no longer throws; pasted tags that fail `validate` stay in the text box so they can be fixed.
+- `FileDropzone`: clears its file list (and calls `onFilesChange([], [])`) when its form is reset, including React 19's reset after a form action.
+- `FilterBar`: the filter sheet no longer reopens by itself after the screen is unfolded and folded again.
+- `ActivityFeed`: times follow the `NishProvider` locale.
+- `Textarea` with `autoGrow`: re-measures when its width changes (fold, rotate, sidebar) and after a form reset, so wrapped text is no longer cut off.
+- `Switch`: inside a `Field` it keeps the field's error/hint in `aria-describedby` alongside its own description, and keeps a caller's `aria-labelledby`.
+- `BarChart`: no longer crashes when its data shrinks while a bar is selected.
+- `LineChart`: y-axis labels are no longer clipped in right-to-left layouts, and the tooltip stays inside the chart, so it no longer causes horizontal page scroll on narrow screens.
+- `Combobox`: ignores the Enter that confirms an IME composition (CJK input).
+- `ResponsiveTable`: announces sorts through the provider's `sortAnnounce` string, so translated apps no longer hear English.
+- `apiFetch`: no longer sends your `configureApi` auth headers to another site when a path starts with a backslash, a tab or a space (for example `'/\\host'`).
+- `useResource`: no longer reports loading forever when the server answers 204 or an empty body.
+- `NumberField`: no longer resets to an old value or loses its pending state when an earlier save fails after a newer one was started.
+- `Slider`: clicking the track with a mouse keeps focus on the thumb, so arrow keys work straight away.
+- `<nish-table-sort>`: sorts numbers written by `nish-ui/format` correctly (negative signs, the en-dash placeholder, and units like "12 GB").
+- `<nish-sheet>`: reopening during its close animation now reopens it instead of being dropped.
+- `<nish-switch>`: takes its accessible name from `aria-label` when it has no label, and shows `description` without a label.
+- `<nish-tabs>` and `<nish-segmented>`: scroll-edge fades are correct on right-to-left pages; `<nish-tabs>` gives every tab and panel a unique id, including tabs labelled in non-ASCII scripts.
+- `<nish-theme-toggle>`: the label sentence can now be translated with `configureStrings`.
+- `<nish-section-nav>`: the default landmark label is "On this page" (new `onThisPage` string), and a clicked link stays current until the user scrolls, like React `SectionNav`.
+- `<nish-chip-group scroll>`: chips scroll sideways on a phone instead of wrapping.
+- `<nish-search>`: the browser's own clear button no longer shows next to the component's.
+- `MoreSheet`: the bottom bar stays tappable while the sheet is open, so More closes it and the other tabs work.
+- `MultiSelect`: leaving the field clears the search and tells `onQueryChange('')`, so async options are no longer stuck on the old results.
+- Dialogs: Tab no longer escapes the dialog when the last control is `tabindex=-1`, inert (a closed Accordion) or an unchecked radio.
+- `ConfirmDialog`: swiping down while its action is pending springs back instead of leaving an invisible modal; a sheet the parent keeps open after a swipe reappears.
+- `TimeField`: `min`/`max` may wrap past midnight (min 22:00, max 06:00), Ctrl/Cmd+A and Ctrl+P are no longer taken over on a 12-hour clock, and a two-digit hour can be typed when the parent updates the value a tick later.
+- `Tooltip`: `aria-describedby` goes on the focusable wrapper unless the focusable control is the tooltip's direct child.
+- `useUrlState`: `patch({ key: undefined })` clears the key instead of writing "undefined" into the URL.
+- `Avatar`: the status dot is hidden from screen readers unless you pass the new `statusLabel` (it used to announce the raw 'ok' or 'loss'), and always when `alt=""`.
+- `AppShell`: documented that sidebar `tools` and brand-mode `actions` are mounted twice.
+- `money()`: uses each currency's own decimals (JPY shows no cents) and puts a space between a letter symbol and the number (CHF 5.00).
+- `nish-th-check`: runs when started through the npm bin symlink on Linux and macOS (it used to print nothing and pass).
+- Login rate limiter: treats every address in an IPv6 /64 (and `::ffff:a.b.c.d`) as one client, so rotating addresses no longer dodges the limit.
+- Inbox client: no longer retries the queue on every new send during an outage; it waits for its backoff and Retry-After.
+- Service tokens: an unreadable revocation file no longer brings revoked tokens back; hashes still readable stay revoked and a file with none stops startup.
+- `Carousel`: scrolls only its own track (rotation, controlled index and `defaultIndex` no longer pull the page back to it) and pauses `autoPlay` while off-screen.
+- `SystemCanvas`: the Lines legend is a plain disclosure of switches instead of an incomplete ARIA menu, and Ctrl+= / Ctrl+- / Ctrl+0 browser zoom keys are no longer swallowed.
+- Sticky tables: a pinned first column no longer paints the first body cells over the pinned corner header.
+- Forced colors (Windows High Contrast): keyboard focus shows on chart svgs, split dividers, the selected tab, `SystemCanvas` legend controls and `Callout` links and buttons.
+- `Progress`: no longer crashes when rendered from a server component (it now has `'use client'`).
+- `ServiceTokensSection`: its hook module now has `'use client'` too.
+- `Pagination`: router links no longer change the page or call `onPageChange` on Ctrl/Cmd/Shift/middle-click that opens a new tab.
+- `Popover`: open on mount inside a dialog, it goes straight into the dialog's layer and keeps repositioning when its content grows.
+- `Input` with a trailing slot: keeps more end padding on touch screens so text no longer runs under a touch-sized `IconButton`.
+- `DatePicker` and `DateRangePicker`: with the `form` prop they take part in that form's validation and reset, not only its submitted value.
+- `AppHeader`: inline overflow actions no longer steal keyboard focus when the mouse moves over them; `MenuItem` outside a menu is a plain tabbable button.
+- `VirtualTable`: row click ignores clicks on labels, summaries and `role=link` elements inside a cell, like `ResponsiveTable`; tabbing into a scrolled table lands on the first row in view, and focus scrolling clears the sticky header.
+- `VirtualList`: page-scrolling `scrollToIndex` accounts for the sticky app header and the bottom nav; switching windows or tabs no longer drops keyboard focus from a virtualized row that was scrolled out of view.
+- `Tabs`, `SubNav`, `Segmented`, `Table` and `ScrollRow`: scroll fades show the right start and end edges in right-to-left layouts.
+- Section nav (`mountScrollspy`): scrolls the current section's chip fully into view even when the nav is not at the left edge of its column, and returns a `lock(id)` function that holds a clicked link current.
+- `AgentNode`, `FlowSteps`, `ResponsiveTable`: their spoken words and sort-direction label come from `NishProvider` strings instead of fixed English.
+- `Inbox`: times follow the `NishProvider` locale and "today" is judged against a clock shared by server and client, so renders no longer differ around midnight.
+- Two copies of the package on one page now share the `configureApi` config, favicon resolver, `useLocalStorage` subscribers and sticky height variables.
+- `nish-ui/chart`: `dist/chart.js` is built from the pure values only, so a static page that vendors it no longer hits a bare `react` import.
+- Docs: the README CDN snippet points at nish-ui@3, the `ChartLegend` sample no longer imports a name the root entry does not export, the hooks page says when the real value is returned (first render in a client-rendered app, server value only while hydrating), and the CSP nonce sample uses a per-response placeholder instead of a function.
+
+### Added
+
+- `NishStrings.maxTags: (max: number) => string` (new `FIELD_STRINGS` key, default "You can add up to {max}"); `TagInput` uses it.
+- `NishStrings.agentQueued`, `agentRunning`, `agentDone`, `agentFailed`, `stepDone`, `stepFailed` and `sortToggle` (defaults are the English words they replace).
+- `NishElementStrings.themeToggleLabel?: (current: string, next: string) => string` and `themeElsewhere?: string` (optional keys, defaults are the English sentence and "set on another site"), and `onThisPage: string` ("On this page").
+- `<nish-switch aria-label>` attribute (property `ariaName`) names the inner button when there is no label.
+- `Avatar` prop `statusLabel?: string`: the accessible name of the status dot. Behavior change: the dot is no longer labeled with the tone key.
+- `TimeField`: `min` after `max` now means a range that wraps past midnight (an input that used to reject every time).
+- `SystemCanvas` lists its connections as visually hidden text so screen readers can learn what links to what.
+- `shared('api')` runtime slot holding the `configureApi` config (internal, no export change).
+- Tailwind class `pointer-coarse:pe-12` on `Input` with `trailing` (no new exports, props or CSS variables).
+- New test file `src/components/use-client.test.ts` fails when a hook-calling module lacks `'use client'`.
+
 ## [3.0.0] - 2026-11-07
 
 Two things 2.x kept for compatibility are gone, and the main entry and AppShell are smaller. TypeScript finds every

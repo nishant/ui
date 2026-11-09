@@ -77,6 +77,24 @@ export interface VirtualRows {
 }
 
 const PIN_REACH = 100;
+
+/** A px length published on <html> by a bar (`--nish-header-h`); 0 when unset or not a plain px value. */
+function rootPx(style: CSSStyleDeclaration, name: string): number {
+  const n = parseFloat(style.getPropertyValue(name));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Px of the window hidden under the sticky app header and under the bottom nav, as the layout contract publishes them. */
+function windowInsets(): { top: number; bottom: number } {
+  if (typeof document === 'undefined' || typeof getComputedStyle === 'undefined') return { top: 0, bottom: 0 };
+  const style = getComputedStyle(document.documentElement);
+  const top = rootPx(style, '--nish-header-h') + rootPx(style, '--nish-sticky-extra');
+  const raw = style.getPropertyValue('--nish-bottom-inset');
+  const bottom = Number.isFinite(parseFloat(raw))
+    ? parseFloat(raw)
+    : rootPx(style, '--nish-bottom-nav-h') + rootPx(style, '--nish-bottom-bar-h');
+  return { top, bottom };
+}
 const byIndex = (i: number) => i;
 
 /** @internal Windowing state for a list of rows: which rows to render, where they sit and how to scroll to one. */
@@ -120,8 +138,9 @@ export function useVirtualRows(options: VirtualRowsOptions): VirtualRows {
       viewTop = top + cover;
       viewBottom = top + scroller.clientHeight;
     } else {
-      viewTop = cover;
-      viewBottom = window.innerHeight;
+      const inset = windowInsets();
+      viewTop = latest.current.coverTop ? cover : inset.top;
+      viewBottom = window.innerHeight - inset.bottom;
     }
     return { top: viewTop - listTop, bottom: viewBottom - listTop, listTop, viewTop, viewBottom };
   }, [listRef, scrollRef, latest]);
@@ -358,6 +377,8 @@ export function VirtualList({
   };
   const onBlur = (e: FocusEvent<HTMLDivElement>) => {
     const next = e.relatedTarget as Node | null;
+    // A window or tab switch blurs with no relatedTarget while the element stays active: keep the row mounted.
+    if (!next && (!document.hasFocus() || document.activeElement === e.target)) return;
     if (!next || !listRef.current?.contains(next)) pin(null);
   };
 

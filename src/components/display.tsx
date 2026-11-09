@@ -39,7 +39,7 @@ import type { CalloutTone, ChartLegendTone, MeterTone, SparklineTone, StatusTone
 import { Skeleton } from './feedback';
 import { AlertTriangleIcon, CheckCircleIcon, ChevronDownIcon, InfoIcon, XIcon } from './icons';
 import { useHeightVar, useStuck } from './layout-vars';
-import { DropdownMenu } from './menu';
+import { DropdownMenu, InlineMenuItemContext } from './menu';
 import { Tooltip } from './tooltip';
 import { Badge, Button, Card, IconButton, type ButtonProps } from './primitives';
 import { useStrings } from './provider';
@@ -206,7 +206,7 @@ export function Callout({
   ) : null;
   const chevron = <ChevronDownIcon size={16} className="-rotate-90 shrink-0 self-center text-th-hi3 rtl:rotate-90" />;
   const hit = cn(
-    'flex min-h-11 min-w-0 flex-1 items-start text-start outline-none focus-visible:ring-2 focus-visible:ring-th-accent/40',
+    'flex min-h-11 min-w-0 flex-1 items-start text-start outline-none focus-visible:ring-2 focus-visible:ring-th-accent/40 forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight]',
     compact ? 'gap-2' : 'gap-3',
     // Pull the padding of the row into the link so the whole row is the target.
     compact ? '-my-2 py-2' : '-my-3 py-3',
@@ -1081,7 +1081,7 @@ export function AppHeader({
           {overflowActions ? (
             <>
               <div ref={inlineActionsRef} className="hidden items-center gap-2 sm:flex [&>button]:w-auto">
-                {overflowActions}
+                <InlineMenuItemContext.Provider value={true}>{overflowActions}</InlineMenuItemContext.Provider>
               </div>
               <div className="sm:hidden">
                 <DropdownMenu

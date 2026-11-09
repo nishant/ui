@@ -11,6 +11,7 @@ import {
 import { cn } from '../cn';
 import { ago, dateTime } from '../format';
 import { BREAKPOINTS, NARROW_QUERY, PHONE_QUERY, type Breakpoint } from './hooks-classes';
+import { shared } from '../runtime';
 import { useNishContext } from './provider';
 
 export { BREAKPOINTS, NARROW_QUERY, PHONE_QUERY };
@@ -169,44 +170,48 @@ export function useNow(intervalMs = 30000): number {
 // localStorage as an external store. The snapshot is the stored text (a string or null), so it
 // is stable between renders; the parsed value is memoized from it. A write that storage
 // refuses (private mode, quota) is kept in `memory` so the value still lives for this page.
-const storeSubs = new Map<string, Set<() => void>>();
-const memory = new Map<string, string>();
+// Held in shared('localStorage') so every copy of the package on a page sees one set of subscribers.
+const local = () =>
+  shared('localStorage', () => ({
+    subs: new Map<string, Set<() => void>>(),
+    memory: new Map<string, string>(),
+    listening: false,
+  }));
 const warned = new Set<string>();
-let storageListening = false;
 
 function notify(key: string | null): void {
-  if (key === null) storeSubs.forEach((set) => set.forEach((fn) => fn()));
-  else storeSubs.get(key)?.forEach((fn) => fn());
+  if (key === null) local().subs.forEach((set) => set.forEach((fn) => fn()));
+  else local().subs.get(key)?.forEach((fn) => fn());
 }
 
 function onStorageEvent(e: StorageEvent): void {
-  if (e.key !== null) memory.delete(e.key);
-  else memory.clear();
+  if (e.key !== null) local().memory.delete(e.key);
+  else local().memory.clear();
   notify(e.key);
 }
 
 function subscribeKey(key: string, cb: () => void): () => void {
   if (typeof window === 'undefined') return () => {};
-  let set = storeSubs.get(key);
-  if (!set) storeSubs.set(key, (set = new Set()));
+  let set = local().subs.get(key);
+  if (!set) local().subs.set(key, (set = new Set()));
   const subs = set;
   subs.add(cb);
-  if (!storageListening) {
-    storageListening = true;
+  if (!local().listening) {
+    local().listening = true;
     window.addEventListener('storage', onStorageEvent);
   }
   return () => {
     subs.delete(cb);
-    if (subs.size === 0 && storeSubs.get(key) === subs) storeSubs.delete(key);
-    if (storeSubs.size === 0 && storageListening) {
-      storageListening = false;
+    if (subs.size === 0 && local().subs.get(key) === subs) local().subs.delete(key);
+    if (local().subs.size === 0 && local().listening) {
+      local().listening = false;
       window.removeEventListener('storage', onStorageEvent);
     }
   };
 }
 
 function readText(key: string): string | null {
-  const kept = memory.get(key);
+  const kept = local().memory.get(key);
   if (kept !== undefined) return kept;
   try {
     return window.localStorage.getItem(key);
@@ -255,10 +260,10 @@ export function useLocalStorage<T>(
       const out = raw ? String(resolved) : JSON.stringify(resolved);
       try {
         window.localStorage.setItem(key, out);
-        memory.delete(key);
+        local().memory.delete(key);
       } catch {
         // Storage unavailable: the value still lives in memory.
-        memory.set(key, out);
+        local().memory.set(key, out);
       }
       notify(key);
     },

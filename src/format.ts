@@ -135,34 +135,43 @@ export interface MoneyOptions extends LocaleOptions {
   currency?: string;
 }
 
-const symbols = new Map<string, string>();
+interface CurrencyInfo {
+  symbol: string;
+  digits: number;
+}
 
-function currencySymbol(currency: string, locale: string): string {
+const currencies = new Map<string, CurrencyInfo>();
+
+function currencyInfo(currency: string, locale: string): CurrencyInfo {
   const key = `${locale}|${currency}`;
-  let s = symbols.get(key);
-  if (s === undefined) {
+  let info = currencies.get(key);
+  if (info === undefined) {
     try {
-      const parts = new Intl.NumberFormat(locale, {
+      const nf = new Intl.NumberFormat(locale, {
         style: 'currency',
         currency,
         currencyDisplay: 'narrowSymbol',
-      }).formatToParts(0);
-      s = parts.find((p) => p.type === 'currency')?.value ?? currency;
+      });
+      let s = nf.formatToParts(0).find((p) => p.type === 'currency')?.value ?? currency;
+      // A code or letters ("CHF", "kr") needs a gap before the number; a sign ("$") does not.
+      if (/\p{L}$/u.test(s)) s += '\u00a0';
+      info = { symbol: s, digits: nf.resolvedOptions().maximumFractionDigits ?? 2 };
     } catch {
-      s = currency + ' ';
+      info = { symbol: currency + ' ', digits: 2 };
     }
-    symbols.set(key, s);
+    currencies.set(key, info);
   }
-  return s;
+  return info;
 }
 
 function moneyAbs(abs: number, o: MoneyOptions, locale: string): string {
-  const symbol = currencySymbol(o.currency ?? 'USD', locale);
+  const { symbol, digits } = currencyInfo(o.currency ?? 'USD', locale);
   if (o.compact && abs >= 1000) return symbol + compactAbs(abs, 1, locale);
   const cents = o.cents ?? 'auto';
-  const hasCents = Math.round(abs * 100) % 100 !== 0;
-  const showCents = cents === 'always' || (cents === 'auto' && (abs < 1000 || hasCents));
-  return symbol + (showCents ? fixed(abs, 2, 2, locale) : fixed(abs, 0, 0, locale));
+  const unit = 10 ** digits;
+  const hasCents = Math.round(abs * unit) % unit !== 0;
+  const showCents = digits > 0 && (cents === 'always' || (cents === 'auto' && (abs < 1000 || hasCents)));
+  return symbol + (showCents ? fixed(abs, digits, digits, locale) : fixed(abs, 0, 0, locale));
 }
 
 /** Money: 1234.56 → "$1,234.56"; negatives use a true minus sign. The symbol always comes first. */

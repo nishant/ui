@@ -191,7 +191,7 @@ function Page() {
       <Separator label="or" />
       <div className="flex items-center gap-3">
         <AvatarGroup max={3}>
-          <Avatar name="Ada Lovelace" status="ok" />
+          <Avatar name="Ada Lovelace" status="ok" statusLabel="Online" />
           <Avatar name="Grace Hopper" />
           <Avatar name="Alan Turing" />
           <Avatar name="Edsger Dijkstra" />

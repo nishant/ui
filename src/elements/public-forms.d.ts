@@ -37,8 +37,10 @@ export interface NishElementStrings {
   copyManual: string;
   /** nish-field: tag for a non-required field. */
   optional: string;
-  /** nish-bottom-nav, nish-nav-rail, nish-section-nav: default landmark label. */
+  /** nish-bottom-nav, nish-nav-rail: default landmark label. */
   sections: string;
+  /** nish-section-nav: default landmark label. */
+  onThisPage: string;
   /** nish-filter-bar: sheet title and the button that opens it. */
   filters: string;
   /** nish-filter-bar: wide-layout clear button. */
@@ -71,6 +73,10 @@ export interface NishElementStrings {
   themeLight: string;
   /** nish-theme-toggle: name of the dark mode. */
   themeDark: string;
+  /** nish-theme-toggle: the button's label sentence, from the current mode name to the next one. */
+  themeToggleLabel?: (current: string, next: string) => string;
+  /** nish-theme-toggle: the words appended when another site set the theme ("set on another site"). */
+  themeElsewhere?: string;
 }
 
 /** Set the words the elements show, once, for the whole page (one store shared by every entry and

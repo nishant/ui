@@ -105,9 +105,29 @@ describe('TagInput', () => {
     render(<TagInput aria-label="Tags" maxTags={2} defaultValue={['a']} onValueChange={onValueChange} />);
     fireEvent.paste(box(), { clipboardData: { getData: () => 'b,c,d' } });
     expect(onValueChange).toHaveBeenCalledWith(['a', 'b']);
+    expect(screen.getByRole('alert').textContent).toBe('You can add up to 2');
     type('e');
     press('Enter');
     expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(box().value).toBe('e');
+  });
+
+  it('keeps pasted tags that fail validate in the text box', () => {
+    render(<TagInput aria-label="Tags" validate={(t) => (t.includes('@') ? null : 'Not an email')} />);
+    fireEvent.paste(box(), { clipboardData: { getData: () => 'a@b.c,nope' } });
+    expect(box().value).toBe('nope');
+  });
+
+  it('does not throw on Enter when the suggestions shrink under the active index', () => {
+    const onValueChange = vi.fn();
+    const { rerender } = render(<TagInput aria-label="Tags" suggestions={['aa', 'ab', 'ac']} onValueChange={onValueChange} />);
+    fireEvent.focus(box());
+    press('ArrowDown');
+    press('ArrowDown');
+    press('ArrowDown');
+    rerender(<TagInput aria-label="Tags" suggestions={['aa']} onValueChange={onValueChange} />);
+    expect(() => press('Enter')).not.toThrow();
+    expect(onValueChange).not.toHaveBeenCalled();
   });
 
   it('refuses a tag that fails validate and shows the message', () => {

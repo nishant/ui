@@ -117,6 +117,22 @@ describe.skipIf(!built)('two copies of nish-ui on one page', () => {
     await act(async () => void r.unmount());
   });
 
+  it('sends the headers set by configureApi in one copy from apiFetch in the other', async () => {
+    const seen: Array<Headers> = [];
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      seen.push(new Headers((init as RequestInit | undefined)?.headers));
+      return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+    });
+    try {
+      a.configureApi({ headers: () => ({ authorization: 'Bearer from-a' }) });
+      await b.apiFetch('/thing');
+      expect(seen[0]?.get('authorization')).toBe('Bearer from-a');
+    } finally {
+      a.configureApi({ headers: undefined });
+      fetchSpy.mockRestore();
+    }
+  });
+
   it('warns once when two different versions are loaded', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const rt = (globalThis as Record<symbol, { versions: Set<string>; warned?: boolean }>)[Symbol.for('nish-ui.runtime.v1')]!;

@@ -28,7 +28,7 @@ const HIDE_BELOW = { sm: 'hidden sm:table-cell', md: 'hidden md:table-cell', lg:
 const ROW_FOCUS =
   'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-th-accent';
 
-const INTERACTIVE_CHILD = 'a,button,input,select,textarea,[role=button]';
+const INTERACTIVE_CHILD = 'a,button,input,select,textarea,label,summary,[role="button"],[role="link"]';
 
 export interface VirtualTableProps<T> extends Omit<ComponentPropsWithoutRef<'div'>, 'children' | 'className'> {
   /** The data. */
@@ -174,12 +174,20 @@ export function VirtualTable<T>({
   const bottomSpace = Math.max(0, total - (last >= 0 ? offsetOf(last) + sizeOf(last) : 0));
 
   const interactive = !!onRowClick;
-  const tabbable = indices.includes(focusIndex) ? focusIndex : first;
+  // Without a remembered row, Tab lands on the first row in view (not an overscan row above it, which would scroll under the sticky header).
+  const firstInView = virtual.range.start === 0 ? first : (indices.find((i) => i >= virtual.range.start + overscan) ?? first);
+  const tabbable = indices.includes(focusIndex) ? focusIndex : firstInView;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- keeps the roving row inside the rows that exist
     if (count > 0 && focusIndex > count - 1) setFocusIndex(count - 1);
   }, [count, focusIndex]);
+
+  // A browser focus scroll must clear the sticky header.
+  useIsoLayoutEffect(() => {
+    const h = headRef.current?.offsetHeight ?? 0;
+    if (scrollRef.current) scrollRef.current.style.scrollPaddingTop = h ? `${h}px` : '';
+  });
 
   // Moves DOM focus to the row a key press chose once it is rendered; recovers focus when its row unmounted.
   useIsoLayoutEffect(() => {
@@ -206,6 +214,8 @@ export function VirtualTable<T>({
   };
   const onBodyBlur = (e: FocusEvent<HTMLTableSectionElement>) => {
     const next = e.relatedTarget as Node | null;
+    // A window or tab switch blurs with no relatedTarget while the element stays active: keep the row pinned.
+    if (!next && (!document.hasFocus() || document.activeElement === e.target)) return;
     if (next ? !bodyRef.current?.contains(next) : (e.target as Element).isConnected) {
       hadFocus.current = false;
       pin(null);

@@ -202,7 +202,7 @@ const columns: Column<Position>[] = [
     'cardsBelow moves the switch point (sm, md or lg); a table with many columns wants lg.',
     'Keep columns in a module constant or useMemo. Sorting does not depend on it, but unchanged rows only skip re-rendering while the array is the same one.',
     'rowHref goes through safeUrl: javascript:, data: and other unsafe URLs never navigate (the row does nothing, and a dev warning names it). http(s), mailto, tel, relative and #fragment URLs pass.',
-    'A sort change is announced in a polite live region ("Sorted by Price, ascending"). Translate it and the direction button with sortText; the "Sort by", "Default", "Nothing here yet" and loading texts come from NishProvider strings (sortBy, sortDefault, nothingHere, loadingNamed).',
+    'A sort change is announced in a polite live region ("Sorted by Price, ascending"). Translate it and the direction button with sortText; the "Sort by", "Default", "Nothing here yet" and loading texts come from NishProvider strings (sortBy, sortToggle, sortDefault, nothingHere, loadingNamed).',
     'When the table is wider than its box the box becomes a focusable region named by label, so keyboard users can scroll it with the arrow keys.',
     'It takes ref and any div attribute (id, data-*, aria-*, style); they land on the root.',
   ],

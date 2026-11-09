@@ -653,3 +653,43 @@ describe('TimeField root', () => {
     await act(async () => {});
   });
 });
+
+describe('TimeField modified keys and lagging parents', () => {
+  it('leaves Ctrl+A and Ctrl+P to the browser on a 12-hour clock', () => {
+    const { h, onValueChange } = setup({ defaultValue: '08:20' });
+    expect(fireEvent.keyDown(h, { key: 'a', ctrlKey: true })).toBe(true);
+    expect(fireEvent.keyDown(h, { key: 'p', ctrlKey: true })).toBe(true);
+    expect(fireEvent.keyDown(h, { key: 'a', metaKey: true })).toBe(true);
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps the typed hour while the parent applies the value a tick later', () => {
+    vi.useFakeTimers();
+    function Lagging() {
+      const [v, setV] = useState<string | null>('08:20');
+      return <TimeField aria-label="T" locale="de-DE" value={v} onValueChange={(n) => setTimeout(() => setV(n), 50)} />;
+    }
+    render(<Lagging />);
+    const { h } = boxes();
+    h.focus();
+    type(h, '1');
+    expect(h.value).toBe('1');
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
+    expect(h.value).toBe('1');
+    type(h, '15');
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
+    expect(boxes().h.value).toBe('15');
+    vi.useRealTimers();
+  });
+
+  it('accepts a time inside a reversed min and max', () => {
+    const { h, m, onValueChange } = setup({ min: '22:00', max: '06:00', locale: 'de-DE' });
+    type(h, '23');
+    type(m, '15');
+    expect(onValueChange).toHaveBeenLastCalledWith('23:15');
+  });
+});

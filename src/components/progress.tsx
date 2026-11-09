@@ -1,3 +1,5 @@
+'use client';
+
 import { useId, type ComponentPropsWithoutRef, type ReactNode, type Ref } from 'react';
 import { cn } from '../cn';
 import { useStrings } from './provider';

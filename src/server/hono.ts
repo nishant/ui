@@ -25,6 +25,29 @@ export function clientIpOf(c: Context, trust: TrustProxy = 'none'): string | nul
   return clientIp((name) => c.req.header(name), remoteAddressOf(c), { trust });
 }
 
+/** The limiter bucket for an address. An IPv6 client usually owns a whole /64, so every address in it
+ *  shares one bucket (written as its first four groups); ::ffff:a.b.c.d counts as the IPv4 a.b.c.d.
+ *  Anything else (IPv4, a header value that is not an address) is used as is. */
+function limiterBucket(address: string): string {
+  let a = address.trim().toLowerCase();
+  const zone = a.indexOf('%');
+  if (zone >= 0) a = a.slice(0, zone);
+  const mapped = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(a);
+  if (mapped) return mapped[1];
+  if (!a.includes(':') || !/^[0-9a-f:.]+$/.test(a) || a.includes(':::')) return address;
+  const halves = a.split('::');
+  if (halves.length > 2) return address;
+  const head = halves[0] === '' ? [] : halves[0].split(':');
+  const tail = halves.length === 2 && halves[1] !== '' ? halves[1].split(':') : [];
+  // An embedded IPv4 tail takes two groups; it only matters for the count.
+  const groups = (list: string[]) => list.reduce((n, g) => n + (g.includes('.') ? 2 : 1), 0);
+  const missing = 8 - groups(head) - groups(tail);
+  if (halves.length === 2 ? missing < 1 : missing !== 0) return address;
+  const full = [...head, ...Array<string>(halves.length === 2 ? missing : 0).fill('0'), ...tail];
+  if (full.slice(0, 4).some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return address;
+  return full.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':') + '::/64';
+}
+
 /** The limiter key of every request that has no address at all (no socket, nothing trusted). */
 export const NO_ADDRESS_KEY = 'no-address';
 
@@ -66,7 +89,7 @@ export interface LoginOptions {
   onSuccess?: (c: Context) => Response | Promise<Response>;
 }
 
-/** POST handler: limiter key clientIpOf(c, trustProxy), or NO_ADDRESS_KEY (one shared bucket) when the
+/** POST handler: limiter key clientIpOf(c, trustProxy) (an IPv6 address keys on its /64), or NO_ADDRESS_KEY (one shared bucket) when the
  *  request has no address; limiter.hit(key) first, before any await, false -> 429; body via
  *  c.req.json() (failure = {}); password must be a string of at most 1024 chars and match (exact
  *  unless caseInsensitive), else wait failDelayMs, 401; success -> limiter.reset, startSession,
@@ -76,7 +99,8 @@ export function loginHandler(o: LoginOptions): Handler {
   const wrong = o.messages?.wrong ?? 'That password is not right.';
   const errorBody = o.errorBody ?? ((_kind, message) => ({ error: message }));
   return async (c) => {
-    const key = clientIpOf(c, o.trustProxy) ?? NO_ADDRESS_KEY;
+    const ip = clientIpOf(c, o.trustProxy);
+    const key = ip === null ? NO_ADDRESS_KEY : limiterBucket(ip);
     if (!o.limiter.hit(key)) return c.json(errorBody('tooMany', tooMany), 429);
     let body: unknown = {};
     try {

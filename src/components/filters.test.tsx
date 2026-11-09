@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FilterBar, FilterSheet } from './filters';
 
@@ -127,5 +127,34 @@ describe('FilterSheet', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Show 42 results' }));
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('FilterBar sheet across breakpoints', () => {
+  it('does not reopen the sheet after the width leaves compact and returns', () => {
+    let width = 360;
+    const listeners = new Set<() => void>();
+    vi.stubGlobal('matchMedia', (query: string) => {
+      const max = /max-width:\s*([\d.]+)px/.exec(query);
+      const min = /min-width:\s*([\d.]+)px/.exec(query);
+      return {
+        get matches() {
+          return (max ? width <= Number(max[1]) : true) && (min ? width >= Number(min[1]) : true);
+        },
+        media: query,
+        addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+        removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
+      };
+    });
+    const resize = (w: number) => {
+      width = w;
+      act(() => listeners.forEach((fn) => fn()));
+    };
+    render(<FilterBar activeCount={1}>{controls}</FilterBar>);
+    fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    expect(screen.queryByRole('dialog')).toBeTruthy();
+    resize(1024);
+    resize(360);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

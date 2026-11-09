@@ -113,7 +113,10 @@ export function FilterBar({
 }: FilterBarProps) {
   const strings = useStrings(FILTER_STRINGS, FIELD_STRINGS);
   const compact = useMediaQuery(sheetBelow === 'lg' ? LG_QUERY : NARROW_QUERY);
-  const [open, setOpen] = useState(false);
+  const [openState, setOpen] = useState(false);
+  // The sheet only exists in the compact layout; leaving it closes the sheet so it cannot reopen on its own.
+  const open = openState && compact;
+  if (!compact && openState) setOpen(false);
   const hasChildren = children != null && children !== false;
   const searchBox = search ? (
     <SearchInput

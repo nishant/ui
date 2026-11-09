@@ -23,6 +23,9 @@ export function mountCurrentLink(nav: HTMLElement, decorate?: (a: HTMLAnchorElem
         continue;
       }
       if (url.origin !== location.origin) continue;
+      // `href="#"` and query-only links point at the same page, not a section of the site.
+      const raw = (a.getAttribute('href') as string).trim();
+      if (raw === '#' || raw.startsWith('?') || (url.pathname === location.pathname && !url.hash && raw.startsWith('#'))) continue;
       // A hash-only link shares the page's path: match it on the hash, never on the path.
       if (url.hash && url.pathname === location.pathname) {
         if (url.hash === location.hash) {

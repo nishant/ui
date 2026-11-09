@@ -21,6 +21,9 @@ interface MenuContextValue {
 }
 
 /** @internal */
+/** @internal True inside AppHeader's inline action row, where a MenuItem is a plain button, not a menu row. */
+export const InlineMenuItemContext = /* @__PURE__ */ createContext(false);
+
 export const MenuContext = /* @__PURE__ */ createContext<MenuContextValue | null>(null);
 
 const drawerModule = /* @__PURE__ */ lazyModule(() => import('./drawer'));
@@ -336,6 +339,7 @@ export function MenuItem({
   ...rest
 }: MenuItemProps) {
   const ctx = useContext(MenuContext);
+  const inline = useContext(InlineMenuItemContext);
   function select() {
     if (disabled) return;
     const ev = new Event('nish-menu-select', { cancelable: true });
@@ -347,8 +351,10 @@ export function MenuItem({
       {...rest}
       ref={ref}
       type="button"
-      role="menuitem"
-      tabIndex={-1}
+      // In AppHeader's inline action row it is a plain button: tabbable, no menu role, and hover
+      // does not move focus.
+      role={inline ? undefined : 'menuitem'}
+      tabIndex={inline ? undefined : -1}
       aria-disabled={disabled || undefined}
       aria-current={active || undefined}
       data-disabled={disabled ? '' : undefined}
@@ -359,7 +365,7 @@ export function MenuItem({
       onMouseMove={(e) => {
         onMouseMove?.(e);
         // Hover moves the keyboard position too, as in native menus.
-        if (!disabled && document.activeElement !== e.currentTarget) e.currentTarget.focus();
+        if (!inline && !disabled && document.activeElement !== e.currentTarget) e.currentTarget.focus();
       }}
       // In a menu, focus follows the pointer and the arrow keys, so plain :focus (not
       // only :focus-visible) shows the highlight.
@@ -367,7 +373,7 @@ export function MenuItem({
         active,
         danger,
         disabled,
-        className: cn(!disabled && (danger ? 'focus:bg-th-loss-soft' : 'focus:bg-th-overlay focus:text-th-hi'), className),
+        className: cn(!inline && !disabled && (danger ? 'focus:bg-th-loss-soft' : 'focus:bg-th-overlay focus:text-th-hi'), className),
       })}
     >
       {icon ? <span className={cn('inline-flex shrink-0', danger || disabled ? '' : 'text-th-hi3')}>{icon}</span> : null}

@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, type ComponentPropsWithoutRef, type DragEvent, type ReactNode, type Ref } from 'react';
+import { useEffect, useRef, useState, type ComponentPropsWithoutRef, type DragEvent, type ReactNode, type Ref } from 'react';
 import { cn } from '../cn';
 import { XIcon } from './icons';
 import { IconButton } from './primitives';
@@ -101,6 +101,29 @@ export function FileDropzone({
   const [files, setFiles] = useState<File[]>([]);
   const [dragging, setDragging] = useState(false);
   const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true';
+
+  // A form reset (a reset button, form.reset(), React 19's reset after a form action) empties the
+  // real input; the zone follows so its list never shows files the form will not post.
+  const latestChange = useRef(onFilesChange);
+  useEffect(() => {
+    latestChange.current = onFilesChange;
+  });
+  const hasFiles = useRef(false);
+  useEffect(() => {
+    hasFiles.current = files.length > 0;
+  }, [files]);
+  useEffect(() => {
+    const form = input.current?.form;
+    if (!form) return;
+    const onReset = () => {
+      depth.current = 0;
+      setDragging(false);
+      setFiles([]);
+      if (hasFiles.current) latestChange.current?.([], []);
+    };
+    form.addEventListener('reset', onReset);
+    return () => form.removeEventListener('reset', onReset);
+  }, []);
 
   const take = (incoming: File[]) => {
     const rejected: RejectedFile[] = [];

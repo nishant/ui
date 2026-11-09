@@ -276,4 +276,19 @@ describe('FileDropzone', () => {
   it('renders on the server', () => {
     expect(renderToString(<FileDropzone name="f" />)).toContain('type="file"');
   });
+
+  it('clears the list and reports it when the form is reset', () => {
+    const onFilesChange = vi.fn();
+    const { container } = render(
+      <form>
+        <FileDropzone multiple onFilesChange={onFilesChange} />
+      </form>,
+    );
+    pick([file('a.txt')]);
+    expect(screen.getByText('a.txt')).toBeTruthy();
+    onFilesChange.mockClear();
+    fireEvent.reset(container.querySelector('form')!);
+    expect(screen.queryByText('a.txt')).toBeNull();
+    expect(onFilesChange).toHaveBeenCalledWith([], []);
+  });
 });

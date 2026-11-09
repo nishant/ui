@@ -131,9 +131,9 @@ describe('<nish-copy-button> and <nish-field> strings', () => {
 
 describe('Trusted Types: no innerHTML', () => {
   it('chip-group builds the remove icon with DOM calls', async () => {
-    mount('<nish-chip-group id="c"><span class="nish-chip" data-removable>Open</span></nish-chip-group>');
     const spy = spyInnerHTML();
     try {
+      mount('<nish-chip-group id="c"><span class="nish-chip" data-removable>Open</span></nish-chip-group>');
       await tick();
       const remove = document.querySelector('[data-nish-remove]')!;
       expect(remove.getAttribute('aria-label')).toBe('Remove Open');
@@ -152,9 +152,9 @@ describe('Trusted Types: no innerHTML', () => {
 
   it('filter-bar builds the funnel and close icons with DOM calls', async () => {
     const undo = compact();
-    mount('<nish-filter-bar id="f" active-count="2"><button type="button">One</button></nish-filter-bar>');
     const spy = spyInnerHTML();
     try {
+      mount('<nish-filter-bar id="f" active-count="2"><button type="button">One</button></nish-filter-bar>');
       await tick();
       await tick();
       const bar = document.getElementById('f')!;

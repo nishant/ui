@@ -24,7 +24,7 @@
       "name": "Modal",
       "from": "nish-ui",
       "import": "Modal",
-      "maxKB": 14
+      "maxKB": 14.3
     },
     {
       "name": "Toaster",
@@ -60,7 +60,7 @@
       "name": "DateRangePicker",
       "from": "nish-ui",
       "import": "DateRangePicker",
-      "maxKB": 19.5
+      "maxKB": 19.7
     },
     {
       "name": "TimeField",
@@ -90,7 +90,7 @@
       "name": "VirtualTable",
       "from": "nish-ui",
       "import": "VirtualTable",
-      "maxKB": 15.6
+      "maxKB": 16.0
     },
     {
       "name": "TreeView",
@@ -145,19 +145,19 @@
       "name": "Inbox",
       "from": "nish-ui/inbox",
       "import": "Inbox",
-      "maxKB": 27.4
+      "maxKB": 27.7
     },
     {
       "name": "ServiceTokensSection",
       "from": "nish-ui/service-tokens",
       "import": "ServiceTokensSection",
-      "maxKB": 19.3
+      "maxKB": 19.7
     },
     {
       "name": "Drawer",
       "from": "nish-ui",
       "import": "Drawer",
-      "maxKB": 14.5
+      "maxKB": 14.8
     },
     {
       "name": "Tooltip",
@@ -181,13 +181,13 @@
       "name": "everything from .",
       "from": "nish-ui",
       "import": "*",
-      "maxKB": 122.5
+      "maxKB": 124.6
     },
     {
       "name": "nish-ui/theme",
       "from": "nish-ui/theme",
       "import": "*",
-      "maxKB": 8.6
+      "maxKB": 9.0
     },
     {
       "name": "nish-ui/format",

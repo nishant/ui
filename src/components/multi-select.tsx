@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type Ref } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type Ref } from 'react';
 import { cn } from '../cn';
 import { CheckIcon, XIcon } from './icons';
 import { Spinner } from './feedback';
@@ -198,11 +198,11 @@ export function MultiSelect({
     options.find((o) => o.value === v) ?? seen[v] ?? { value: v, label: v };
   const labelOf = (v: string) => toOption(v).label;
 
-  const close = useCallback(() => {
+  const close = () => {
     setOpen(false);
     setActive(-1);
     setArmed(false);
-  }, []);
+  };
 
   const queryChanged = (q: string) => {
     if (!onQueryChange) return;
@@ -366,7 +366,10 @@ export function MultiSelect({
         rest.onBlur?.(e);
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
           close();
-          setText('');
+          if (text !== '') {
+            setText('');
+            queryChanged('');
+          }
         }
       }}
       className={cn('relative w-full min-w-0', className)}

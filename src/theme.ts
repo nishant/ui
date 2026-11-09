@@ -924,9 +924,13 @@ export interface MountScrollspyOptions {
  *  has passed the offset, the first one at the top of the page), is scrolled into view
  *  inside the nav, and the nav gets `data-at-start` / `data-at-end` for its edge fades.
  *  Publishes the nav's height as `--nish-sticky-extra` so `.nish-scroll-target` clears it.
- *  Returns a function that removes everything. */
-export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}): () => void {
-  if (typeof document === 'undefined') return () => undefined;
+ *  Returns a function that removes everything; its `lock(id)` keeps that section's link current until the user scrolls. */
+export function mountScrollspy(
+  nav: HTMLElement,
+  o: MountScrollspyOptions = {},
+): (() => void) & { lock: (id: string) => void } {
+  const noop = Object.assign(() => undefined, { lock: (_id: string) => undefined });
+  if (typeof document === 'undefined') return noop;
   const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')).filter((a) => a.hash.length > 1);
   const target = (a: HTMLAnchorElement) => {
     try {
@@ -937,14 +941,20 @@ export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}):
   };
   const unheight = o.height === false ? () => undefined : mountHeightVar(nav, '--nish-sticky-extra');
   let current: HTMLAnchorElement | null = null;
+  // After a link click the clicked link stays current until the user scrolls on their own
+  // (wheel, touch, navigation key) or the programmatic scroll settles, like React SectionNav.
+  let locked: HTMLAnchorElement | null = null;
+  let unlockListeners: (() => void) | null = null;
 
   const edges = () => {
     const max = nav.scrollWidth - nav.clientWidth;
-    nav.dataset.atStart = String(nav.scrollLeft <= 1);
-    nav.dataset.atEnd = String(max <= 1 || nav.scrollLeft >= max - 1);
+    // Physical edges, as the fade mask reads them; right-to-left scrollLeft runs from 0 down to -max.
+    const left = getComputedStyle(nav).direction === 'rtl' ? nav.scrollLeft + max : nav.scrollLeft;
+    nav.dataset.atStart = String(left <= 1);
+    nav.dataset.atEnd = String(max <= 1 || left >= max - 1);
   };
   const reveal = (a: HTMLAnchorElement) => {
-    const left = a.offsetLeft - nav.offsetLeft;
+    const left = a.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft - nav.clientLeft;
     const view = nav.clientWidth;
     if (left < nav.scrollLeft + 24) nav.scrollLeft = Math.max(0, left - 24);
     else if (left + a.offsetWidth > nav.scrollLeft + view - 24) nav.scrollLeft = left + a.offsetWidth - view + 24;
@@ -970,7 +980,61 @@ export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}):
     if (window.innerHeight + window.scrollY >= de.scrollHeight - 2) {
       for (const a of links) if (target(a)) found = a;
     }
-    activate(found);
+    activate(locked ?? found);
+  };
+  const unlock = () => {
+    unlockListeners?.();
+    unlockListeners = null;
+    locked = null;
+  };
+  const lock = (id: string) => {
+    const a = links.find((l) => {
+      try {
+        return decodeURIComponent(l.hash.slice(1)) === id;
+      } catch {
+        return false;
+      }
+    });
+    if (!a) return;
+    unlock();
+    locked = a;
+    activate(a);
+    const release = () => {
+      unlock();
+      schedule();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) release();
+    };
+    let settled = false;
+    const settle = () => {
+      settled = true;
+    };
+    let t = setTimeout(settle, 400);
+    const onScroll = () => {
+      if (settled) release();
+      else {
+        clearTimeout(t);
+        t = setTimeout(settle, 200);
+      }
+    };
+    const onScrollEnd = () => {
+      clearTimeout(t);
+      t = setTimeout(settle, 50);
+    };
+    window.addEventListener('wheel', release, { passive: true });
+    window.addEventListener('touchstart', release, { passive: true });
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scrollend', onScrollEnd);
+    unlockListeners = () => {
+      clearTimeout(t);
+      window.removeEventListener('wheel', release);
+      window.removeEventListener('touchstart', release);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scrollend', onScrollEnd);
+    };
   };
   let frame = 0;
   const schedule = () => {
@@ -998,7 +1062,8 @@ export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}):
     });
     ro.observe(nav);
   }
-  return () => {
+  const stop = () => {
+    unlock();
     if (frame) cancelAnimationFrame(frame);
     window.removeEventListener('scroll', schedule);
     window.removeEventListener('resize', schedule);
@@ -1010,6 +1075,7 @@ export function mountScrollspy(nav: HTMLElement, o: MountScrollspyOptions = {}):
     delete nav.dataset.atStart;
     delete nav.dataset.atEnd;
   };
+  return Object.assign(stop, { lock });
 }
 
 /** Persist a checklist: the `input[type=checkbox]` inside each `li[data-id]` of `list` is

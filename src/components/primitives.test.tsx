@@ -504,6 +504,7 @@ describe('Input', () => {
     const input = screen.getByLabelText('n');
     expect(classes(input)).toContain('ps-8');
     expect(classes(input)).toContain('pe-8');
+    expect(classes(input)).toContain('pointer-coarse:pe-12');
     expect(classes(screen.getByText('$').parentElement!)).toContain('start-0');
     expect(classes(screen.getByText('$').parentElement!)).toContain('pointer-events-none');
     expect(classes(screen.getByText('kg').parentElement!)).toContain('end-0');

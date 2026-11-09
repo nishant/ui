@@ -67,6 +67,29 @@ test.describe('<nish-table-sort>', () => {
     ]);
   });
 
+  test('sorts what nish-ui/format writes: U+2212 negatives, the en-dash placeholder and units', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => {
+      const host = document.createElement('nish-table-sort');
+      host.id = 'ts-format';
+      host.innerHTML = `<table class="nish-table"><thead><tr><th data-sort="n">Change</th><th data-sort="size">Size</th></tr></thead>
+        <tbody>
+          <tr><td>−5.2%</td><td>12 GB</td></tr>
+          <tr><td>–</td><td>2 GB</td></tr>
+          <tr><td>3.1%</td><td>100 GB</td></tr>
+          <tr><td>−10.0%</td><td>5 GB</td></tr>
+        </tbody></table>`;
+      document.body.append(host);
+    });
+    await page.locator('#ts-format th[data-sort="n"] button').waitFor();
+    await page.locator('#ts-format th[data-sort="n"] button').click();
+    // Ascending: -10, -5.2, 3.1, then the blank placeholder last.
+    expect(await column(page, 'ts-format', 0)).toEqual(['−10.0%', '−5.2%', '3.1%', '–']);
+    await page.locator('#ts-format th[data-sort="size"] button').click();
+    // By number, not by text: 2 GB, 5 GB, 12 GB, 100 GB.
+    expect(await column(page, 'ts-format', 1)).toEqual(['2 GB', '5 GB', '12 GB', '100 GB']);
+  });
+
   test('a numeric column sorts by value and blank keys sort last both ways', async ({ page }) => {
     await load(page);
     const qty = page.locator('#ts th[data-sort="qty"] button');

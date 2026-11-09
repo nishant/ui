@@ -165,7 +165,23 @@ export class NishChipGroup extends NishElement {
     if (remove && this.#group.contains(remove)) {
       const chip = remove.parentElement as HTMLElement;
       const value = this.#valueOf(chip);
+      // Keep keyboard focus in the group: hand it to the next (else previous) chip's control.
+      let heir: HTMLElement | null = null;
+      if (chip.contains(document.activeElement)) {
+        const all = this.#chips();
+        const i = all.indexOf(chip);
+        for (const c of [...all.slice(i + 1), ...all.slice(0, i).reverse()]) {
+          heir = c.matches('button') ? c : c.querySelector<HTMLElement>('button, a[href], [tabindex]');
+          if (heir && !(heir as HTMLButtonElement).disabled) break;
+          heir = null;
+        }
+        if (!heir) {
+          this.#group.tabIndex = -1;
+          heir = this.#group;
+        }
+      }
       chip.remove();
+      heir?.focus();
       this.dispatchEvent(new CustomEvent('nish-remove', { bubbles: true, detail: { value } }));
       return;
     }

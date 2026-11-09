@@ -33,6 +33,14 @@ describe('apiFetch: headers, bodies and errors', () => {
     expect(sent(4).get('authorization')).toBeNull();
   });
 
+  it('does not send headers to backslash, tab or space-prefixed cross-origin paths', async () => {
+    configureApi({ headers: () => ({ authorization: 'Bearer t' }) });
+    fetchMock.mockImplementation(() => Promise.resolve(json({})));
+    const bad = [String.raw`/\evil.example/x`, String.raw`\\evil.example/x`, ' //evil.example/x', '/\t/evil.example/x', '\t//evil.example/x'];
+    for (const u of bad) await apiFetch(u);
+    bad.forEach((_, i) => expect(sent(i).get('authorization')).toBeNull());
+  });
+
   it('headersFor lets a cross-origin URL have the headers and is told the URL', async () => {
     const headersFor = vi.fn((url: string) => url.startsWith('https://api.partner.example/'));
     configureApi({ headers: () => ({ authorization: 'Bearer t' }), headersFor });

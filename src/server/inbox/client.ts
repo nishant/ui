@@ -343,7 +343,8 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
       if (disabled) return { ok: false, error: 'disabled', queued: false };
       if (queue.length > 0) {
         enqueue(parsed.value);
-        void flush();
+        // A pending retry timer owns the schedule (backoff, Retry-After): do not drain ahead of it.
+        if (timer === null) void flush();
         return { ok: false, error: 'queued behind earlier events', queued: true };
       }
       const result = await attempt(parsed.value);

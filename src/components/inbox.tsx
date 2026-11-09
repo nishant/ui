@@ -7,12 +7,12 @@ import { safeUrl } from '../url';
 import { ChipGroup, Chip } from './forms';
 import { StatusDot, type StatusTone } from './display';
 import { EmptyState, ErrorState, SkeletonRows } from './feedback';
-import { RelativeTime, useMediaQuery } from './hooks';
+import { RelativeTime, useMediaQuery, useNow } from './hooks';
 import { CheckIcon, ClockIcon, MoreIcon } from './icons';
 import { DropdownMenu, MenuItem, MenuLabel, MenuSeparator } from './menu';
 import { ConfirmDialog } from './modal';
 import { Button, Card, IconButton } from './primitives';
-import { useStrings } from './provider';
+import { useNishContext, useStrings } from './provider';
 import { INBOX_STRINGS, SHELL_STRINGS, STATUS_STRINGS, OVERLAY_STRINGS } from './strings';
 import { Tabs, type TabItem } from './tabs';
 import { DEFAULT_INBOX_LABELS, type InboxLabels } from './inbox-classes';
@@ -127,16 +127,18 @@ interface RowProps {
 }
 
 /** "Retry ran 14:02" or "Retry failed 14:02 · HTTP 500". */
-function lastActionText(result: InboxActionResult, item: InboxItem, labels: InboxLabels): string {
+function lastActionText(result: InboxActionResult, item: InboxItem, labels: InboxLabels, now: number, locale: string | undefined): string {
   const label = item.actions?.find((a) => a.id === result.actionId)?.label ?? result.actionId;
   const ms = Date.parse(result.at);
-  const at = new Date(ms).toDateString() === new Date().toDateString() ? time(ms) : dateTime(ms);
+  const at = new Date(ms).toDateString() === new Date(now).toDateString() ? time(ms, { locale }) : dateTime(ms, { locale });
   if (result.ok) return labels.actionRan(label, at);
   const why = result.error ?? (result.status != null ? `HTTP ${result.status}` : null);
   return labels.actionFailed(label, at, why);
 }
 
 function Row({ item, view, label, wide, selected, expanded, domId, onToggle, onHandle, onUnhandle, onSnooze, onUnsnooze, running, onAction, labels, strings }: RowProps) {
+  const { locale } = useNishContext();
+  const clock = useNow();
   const severity: InboxSeverity = item.severity in DOT_TONE ? item.severity : 'normal';
   const dot = { tone: DOT_TONE[severity], label: labels[severity] };
   const long = item.body != null && looksClamped(item.body);
@@ -202,12 +204,12 @@ function Row({ item, view, label, wide, selected, expanded, domId, onToggle, onH
           </div>
         ) : null}
         {last && (actions.length > 0 || view === 'handled') ? (
-          <p className={cn('m-0 mt-1 text-xs', last.ok ? 'text-th-hi3' : 'text-th-loss')}>{lastActionText(last, item, labels)}</p>
+          <p className={cn('m-0 mt-1 text-xs', last.ok ? 'text-th-hi3' : 'text-th-loss')}>{lastActionText(last, item, labels, clock, locale)}</p>
         ) : null}
-        {view === 'snoozed' && item.snoozedUntil ? <p className="m-0 mt-0.5 text-xs text-th-hi3">{labels.until(dateTime(item.snoozedUntil))}</p> : null}
+        {view === 'snoozed' && item.snoozedUntil ? <p className="m-0 mt-0.5 text-xs text-th-hi3">{labels.until(dateTime(item.snoozedUntil, { locale }))}</p> : null}
         {view === 'handled' && item.handledAt ? (
           <p className="m-0 mt-0.5 text-xs text-th-hi3">
-            {labels.handledAgo(ago(item.handledAt))}
+            {labels.handledAgo(ago(item.handledAt, { now: clock, locale }))}
             {item.handledBy === 'source' ? labels.handledByApp : item.handledBy === 'expired' ? labels.handledAutomatically : ''}
           </p>
         ) : null}

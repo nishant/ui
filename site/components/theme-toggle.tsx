@@ -105,6 +105,7 @@ function Header() {
     'Apps that only support light and dark set <html data-nish-themes="dark light">; presets then render as their base theme.',
     'Use compact only where space is tight: it hides the other choices behind a click.',
     'Words ("System", "Light", "Dark", "Theme: Light. Switch to Dark", the preset select) come from <NishProvider strings> (themeSystem, themeLight, themeDark, themeToggleLabel, themePreset, themePresetPlaceholder). elsewhereLabel sets the words after a preset saved on another site.',
+    'The <nish-theme-toggle> element reads the same words from configureStrings(): themeSystem, themeLight, themeDark, themeToggleLabel (current, next) => string, and themeElsewhere for the words after a theme set on another site.',
     'Server render and hydration show System; the saved choice follows right after, and <html data-nish-storage-key="x"> renames the storage key (default nish-theme). useTheme() reads the same state, shared by every entry of the package.',
     'id, data-*, aria-* and style go on the root; ref points at the segmented group (or the button of compact and pill).',
   ],

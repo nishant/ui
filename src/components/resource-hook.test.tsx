@@ -45,6 +45,15 @@ describe('useResource: sharing, back-off and mutate', () => {
     expect(b.result.current.data).toEqual({ n: 1 });
   });
 
+  it('stops loading when the response is a 204 with no body', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(new Response(null, { status: 204 })));
+    const a = renderHook(() => useResource('/api/empty'));
+    expect(a.result.current.loading).toBe(true);
+    await flush();
+    expect(a.result.current.data).toBeUndefined();
+    expect(a.result.current.loading).toBe(false);
+  });
+
   it('different keys do not share', async () => {
     fetchMock.mockImplementation(() => Promise.resolve(json({})));
     renderHook(() => useResource('/api/one'));

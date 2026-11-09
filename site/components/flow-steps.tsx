@@ -108,6 +108,6 @@ export const flowSteps: ComponentDoc = {
     'Keep ids stable between updates. Animations play when an id changes status, so a new id replays them.',
     'auto lays the steps out sideways when the box is at least 640px wide and there are at most 8 steps; otherwise they stack.',
     'Respects prefers-reduced-motion: no loops or movement, state changes are instant.',
-    'A finished or failed step adds ", done" or ", failed" as hidden text. Translate it with statusLabels, and the list name with label.',
+    'A finished or failed step adds ", done" or ", failed" as hidden text. Translate it with statusLabels or the NishProvider strings stepDone and stepFailed, and the list name with label.',
   ],
 };
