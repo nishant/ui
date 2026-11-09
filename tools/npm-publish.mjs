@@ -78,7 +78,9 @@ function summary(line) {
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
 }
 
-export async function main(argv) {
+export async function main(argv, deps = {}) {
+  const getPublished = deps.publishedVersions ?? publishedVersions;
+  const runNpm = deps.runNpm ?? ((a, cwd) => execFileSync('npm', a, { cwd, stdio: 'inherit' }));
   const dryRun = argv.includes('--dry-run');
   const ti = argv.indexOf('--tag');
   const tag = ti >= 0 ? argv[ti + 1] : null;
@@ -88,12 +90,13 @@ export async function main(argv) {
     return 2;
   }
   const file = join(dir, 'package.json');
-  const pkg = JSON.parse(readFileSync(file, 'utf8'));
+  const original = readFileSync(file, 'utf8');
+  const pkg = JSON.parse(original);
   const decision = plan({
     tag,
     version: pkg.version,
     distOk: existsSync(join(dir, 'dist', 'esm', 'index.js')),
-    published: await publishedVersions(NPM_NAME),
+    published: await getPublished(NPM_NAME),
   });
   if (decision.action === 'fail') {
     summary(`### npm: not published\n\n${decision.reason}`);
@@ -108,7 +111,12 @@ export async function main(argv) {
   // Provenance needs a CI identity, so a local dry run leaves the flag off.
   if (process.env.GITHUB_ACTIONS === 'true') args.push('--provenance');
   if (dryRun) args.push('--dry-run');
-  execFileSync('npm', args, { cwd: dir, stdio: 'inherit' });
+  try {
+    runNpm(args, dir);
+  } finally {
+    // A dry run must not leave the renamed manifest behind.
+    if (dryRun) writeFileSync(file, original);
+  }
   summary(
     dryRun
       ? `### npm: dry run\n\nWould ${decision.reason}.`

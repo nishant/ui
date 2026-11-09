@@ -144,7 +144,8 @@ export function AccordionItem({ value, title, children, disabled: disabledProp =
   if (!ctx) throw new Error('AccordionItem must be used inside an Accordion');
   const disabled = disabledProp || ctx.disabled;
   const isOpen = ctx.open.includes(value);
-  const slug = `${ctx.idBase}-${value}`;
+  const itemId = useId().replace(/:/g, '');
+  const slug = `${ctx.idBase}-${itemId}`;
   const triggerId = `${slug}-trigger`;
   const panelId = `${slug}-panel`;
 

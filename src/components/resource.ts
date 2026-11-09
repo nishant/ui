@@ -141,6 +141,7 @@ export function useResource<T>(
 
   const fetcherRef = useLatest(fetcher);
   const keyRef = useLatest(key);
+  const activeRef = useLatest(active);
   const keepPrevRef = useLatest(keepPrevious);
   const initialRef = useLatest(o.initialData);
   const ctlRef = useRef<AbortController | null>(null);
@@ -154,7 +155,7 @@ export function useResource<T>(
   const load = useCallback(
     async (fresh = false): Promise<void> => {
       const k = keyRef.current;
-      if (k === null) return;
+      if (k === null || !activeRef.current) return;
       ctlRef.current?.abort();
       const ctl = new AbortController();
       ctlRef.current = ctl;
@@ -192,7 +193,7 @@ export function useResource<T>(
         setState((s) => ({ ...s, key: k, error, fetching: false, settled: s.settled + 1 }));
       }
     },
-    [fetcherRef, initialRef, keepPrevRef, keyRef],
+    [activeRef, fetcherRef, initialRef, keepPrevRef, keyRef],
   );
 
   // Fetch on key change or enable. Aborts on change and on unmount.

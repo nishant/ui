@@ -96,7 +96,11 @@ export interface FilterBarProps extends Omit<ComponentPropsWithRef<'div'>, 'chil
 }
 
 /** The search and filter row of a list page. From md up the controls sit inline; below md
- *  they move into a bottom sheet behind a Filters button that shows how many are on. */
+ *  they move into a bottom sheet behind a Filters button that shows how many are on.
+ *
+ *  Server rendering: the media query is false on the server, so FilterBar first paints the inline
+ *  row and collapses to the Filters button after hydration. To avoid that flash on phones, render
+ *  it only on the client (behind a mounted check, or a dynamic import with ssr: false). */
 export function FilterBar({
   search,
   children,

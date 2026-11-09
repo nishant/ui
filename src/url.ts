@@ -1,9 +1,8 @@
 /** href for user-supplied links: relative URLs, #fragments, http(s), mailto and tel pass;
  *  anything else (javascript:, data:, vbscript:, file:) returns null. Trims leading and trailing
  *  C0 controls and spaces and drops tabs and newlines the way the WHATWG URL parser does, then
- *  reads the scheme from the very string that is returned. Other Unicode whitespace (NBSP, U+FEFF,
- *  U+2028, U+3000) is not stripped by browsers, so it is kept, and a scheme hidden behind it is
- *  not a scheme there either. */
+ *  reads the scheme from the very string that is returned. A URL with leading or trailing
+ *  non-C0 Unicode whitespace (NBSP, U+FEFF, U+2028, U+3000) is refused (null). */
 export function safeUrl(href: string | null | undefined): string | null {
   if (href == null) return null;
   // Trim C0 controls and spaces with index scans: an anchored `[...]+$` regex backtracks

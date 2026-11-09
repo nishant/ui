@@ -13,12 +13,15 @@
 // .github/workflows/publish.yml, then the fan-out: a tag pushed with GITHUB_TOKEN does not
 // trigger other workflows, so --ci dispatches .github/workflows/fanout.yml itself. A local tag
 // push triggers it on its own. Apps pin npm:nish-ui@X.Y.Z, so the fan-out waits until npm has
-// the version (up to 15 minutes; the hourly run retries after that).
+// the version (up to 15 minutes; the hourly run retries after that). Bump PRs open once releases
+// have settled for FANOUT_QUIET_MIN (120) minutes, from an hourly run, or right away with
+// `gh workflow run fanout.yml -R nishant/ui -f tag=<tag> -f now=true`.
 import { execFileSync, execSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { changelogSection } from '../tools/changelog-section.mjs';
+import { compare } from '../tools/fanout/pin.mjs';
 
 const sh = (cmd) => execSync(cmd, { stdio: 'inherit' });
 const out = (cmd) => execSync(cmd, { encoding: 'utf8' }).trim();
@@ -42,6 +45,7 @@ const [ma, mi, pa] = pkg.version.split('.').map(Number);
 const version =
   bump === 'major' ? `${ma + 1}.0.0` : bump === 'minor' ? `${ma}.${mi + 1}.0` : bump === 'patch' ? `${ma}.${mi}.${pa + 1}` : bump;
 if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error(`bad version ${version}`);
+if (compare(`v${version}`, `v${pkg.version}`) <= 0) throw new Error(`${version} is not higher than ${pkg.version}`);
 const tag = `v${version}`;
 if (out(`git tag -l ${tag}`)) throw new Error(`${tag} already exists`);
 const notes = changelogSection(readFileSync('CHANGELOG.md', 'utf8'), version);
@@ -88,9 +92,11 @@ if (ci) {
     process.exitCode = 1;
   }
   execFileSync('gh', ['workflow', 'run', 'fanout.yml', '--ref', 'master', '-f', `tag=${tag}`], { stdio: 'inherit' });
-  console.log('Dispatched the fan-out (it waits for npm to have the version).');
+  console.log(
+    `Dispatched the fan-out: bump PRs open once releases have settled for FANOUT_QUIET_MIN (120) minutes, from an hourly run, or right away with: gh workflow run fanout.yml -R nishant/ui -f tag=${tag} -f now=true`,
+  );
 } else {
-  console.log(`Publish it to npm: gh workflow run publish.yml -R nishant/ui -f tag=${tag}`);
+  console.log(`This local path does not publish to npm. Publish it: gh workflow run publish.yml -R nishant/ui -f tag=${tag}`);
 }
-console.log(`The fan-out opens the bump PRs: https://github.com/nishant/ui/actions/workflows/fanout.yml`);
+console.log(`Bump PRs: https://github.com/nishant/ui/actions/workflows/fanout.yml (see the fan-out note above for timing)`);
 console.log(`arora-home is not in the fan-out: bash scripts/bump-consumers.sh ${tag}`);

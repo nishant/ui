@@ -22,7 +22,7 @@ Used by:
 | nishant/mc-packs, nishant/skills | npm alias | no UI: only `@nish/ui/eslint` |
 | taarora/arora-home | vendored dist files with a palette pass | another account's repo, outside the fan-out |
 
-Every npm app pins the npm alias to an exact version, `"@nish/ui": "npm:nish-ui@X.Y.Z"`, so every app install is an npm download of `nish-ui`. The fan-out writes that form, and still reads the older codeload tarball and `github:` pins so it can migrate them. The list of repos is `fleet.yaml` in nishant/hosting.
+Every npm app pins the npm alias to an exact version, `"@nish/ui": "npm:nish-ui@X.Y.Z"`, so every app install is an npm download of `nish-ui`. The fan-out writes that form, and still reads the older codeload tarball and `github:` pins so it can migrate them. The list of repos is the generated `catalog.json` in nishant/hosting (repos with `fleet: true`).
 
 The package keeps the name `@nish/ui` in this repo and in every tag. Only the npm copy is renamed
 `nish-ui` (see "npm" below); the alias installs it under `node_modules/@nish/ui`, so every import
@@ -39,7 +39,7 @@ gh workflow run release.yml -R nishant/ui -f bump=patch   # or minor, major, 1.2
 
 The job refuses unless HEAD equals `origin/master`, pushes master before the tag, creates the GitHub
 Release from the CHANGELOG entry, then dispatches `publish.yml` (npm) and `fanout.yml` itself, in that order
-(a tag pushed with `GITHUB_TOKEN` does not trigger other workflows). `npm run release patch` is the local fallback with the same order.
+(a tag pushed with `GITHUB_TOKEN` does not trigger other workflows). `npm run release patch` is the local fallback. It does not publish to npm: right after it, run `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z` by hand. The tag-push fan-out retries hourly until npm has the version.
 
 The flow is: release, tag, npm publish, fan-out PRs, Fold check, merge policy, deploy watch and revert.
 
@@ -53,8 +53,8 @@ The flow is: release, tag, npm publish, fan-out PRs, Fold check, merge policy, d
    `npm view nish-ui@X.Y.Z version` and waits up to 15 minutes for it (none on the hourly run). Still
    missing, the repo's summary line says "nish-ui X.Y.Z is not on npm yet; the next run retries." and
    nothing is touched. Then `.github/workflows/fanout.yml` ("fan-out"), for every repo in
-   `hosting/fleet.yaml` (hosting included) it opens or updates a `ui/vX.Y.Z` PR titled "Move @nish/ui to
-   vX.Y.Z" within 5 minutes: it rewrites the pin, regenerates the lockfile, runs the repo's `bump`
+   `catalog.json` (repos with `fleet: true`, hosting included) it opens or updates a `ui/vX.Y.Z` PR titled "Move @nish/ui to
+   vX.Y.Z". A release run waits out a settle window first (120 minutes, `FANOUT_QUIET_MIN`; dispatch with `now=true` to skip it), then: it rewrites the pin, regenerates the lockfile, runs the repo's `bump`
    command, and puts the release notes in the PR body. A repo that pins @nish/ui in more than one package lists the
    others in `uiExtraDirs` (comma-separated, next to `uiDir`; job-apps: `packages/worker`): every
    folder's pin moves in the one PR, and the lockfile is regenerated once at the workspace root (or
@@ -88,9 +88,11 @@ The flow is: release, tag, npm publish, fan-out PRs, Fold check, merge policy, d
    not be rendered, pages changed more than the limit, the PR changes `.github/workflows` (the token
    cannot merge those), or the merge itself failed. A held bump PR is adopted on its `ui/vX.Y.Z`
    branch (make the app's code changes there), and the fan-out merges it on its next run.
-5. **Deploy watch and revert.** After a merge the fan-out follows the repo's deploy workflow. If the
-   deploy fails it reverts the merge in a `revert/<n>` PR and merges that, and holds that tag for the
-   repo until a session looks.
+5. **Deploy watch and revert.** After every merge (hourly runs too) the fan-out watches the repo's deploy
+   workflow for up to 20 minutes. It reverts only on a failed, timed-out or startup-failed deploy: it
+   reverts the merge in a `revert/<n>` PR, merges that, and holds that tag for the repo until a session
+   looks. A cancelled or skipped run is reported, not reverted. A conflicting bump PR that a session
+   adopted is held, not closed.
 
 Each repo's matrix job writes one summary line per outcome. A held, checking, skipped or current
 outcome leaves the job green; an `error` outcome (the repo cannot be reached, the pin cannot be read,
@@ -104,13 +106,12 @@ with their `fan-out` status.
 
 **`FLEET_TOKEN`.** The fan-out runs with one fine-grained personal access token stored as the Actions
 secret `FLEET_TOKEN` in nishant/ui (the default `GITHUB_TOKEN` cannot reach other repos, and what it
-opens does not trigger their checks or deploys). Owner nishant; repositories: every repo in
-`hosting/fleet.yaml` and nishant/hosting itself (the plan job reads `fleet.yaml` from it); permissions:
+opens does not trigger their checks or deploys). Owner nishant; repositories: every repo in `catalog.json` and nishant/hosting itself (the plan job reads `catalog.json` from it); permissions:
 Contents, Pull requests and Commit statuses read and write, Actions read (Metadata read is always
 included). Set it with `gh secret set FLEET_TOKEN --repo nishant/ui`. Without it the run only writes
 a job summary saying nothing was fanned out.
 
-**Adding a repo to the fan-out.** Add an entry to `hosting/fleet.yaml`, then give the repo
+**Adding a repo to the fan-out.** Add the repo to the hosting list that generates `catalog.json` (with `fleet: true`), then give the repo
 the `PR` workflow (`.github/workflows/pr.yml`, its checks), the `Fold` workflow (`.github/workflows/fold.yml`, see [docs/fold-check.md](fold-check.md)), `fold.visual.json`,
 `scripts/fold-serve.mjs` and `.github/dependabot.yml`.
 
@@ -130,7 +131,7 @@ was edited by hand.
 
 Every release is also published to npm as **`nish-ui`** (`@nish` and `nish` on npm
 belong to others). `scripts/release.mjs --ci` dispatches `.github/workflows/publish.yml`
-with the new tag, after the fan-out. The workflow checks out master for its tooling and the tag
+with the new tag, before the fan-out. The workflow checks out master for its tooling and the tag
 (which carries `dist/`) as the package, then runs `tools/npm-publish.mjs`, which:
 
 1. checks the tag's `package.json` version matches the tag and that `dist/` is there;
@@ -194,4 +195,4 @@ package missing from npm, a refused publish) turns the job red.
   is a step for Nish (`MANUAL-STEPS.md` in nishant/skills), never a token.
 
 To publish a tag by hand: `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z`.
-To see what would be published without publishing: `node tools/npm-publish.mjs <tag-checkout> --dry-run`.
+To see what would be published without publishing: `node tools/npm-publish.mjs <tag-checkout> --dry-run`. The dry run restores `package.json` afterwards. Run it on a `git worktree add --detach <dir> vX.Y.Z` checkout of the tag.

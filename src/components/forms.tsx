@@ -540,9 +540,10 @@ export function Field({
   const childId = only && typeof only.props.id === 'string' ? (only.props.id as string) : undefined;
   const controlId = htmlFor ?? childId ?? `${auto}-control`;
   const hasError = error != null && error !== false && error !== '';
+  const hasHint = hint != null && hint !== false && hint !== '';
   const hintId = `${auto}-hint`;
   const errorId = `${auto}-error`;
-  const describedBy = [only?.props['aria-describedby'] as string | undefined, hasError ? errorId : hint != null ? hintId : undefined]
+  const describedBy = [only?.props['aria-describedby'] as string | undefined, hasError ? errorId : hasHint ? hintId : undefined]
     .filter(Boolean)
     .join(' ') || undefined;
 
@@ -582,7 +583,7 @@ export function Field({
     <p id={errorId} role="alert" className="text-xs text-th-loss">
       {error}
     </p>
-  ) : hint != null ? (
+  ) : hasHint ? (
     <p id={hintId} className="text-xs text-th-hi3">
       {hint}
     </p>
@@ -638,10 +639,11 @@ export function FieldGroup({ ref, label, hint, error, optional = false, classNam
   const auto = useId();
   const strings = useStrings(FIELD_STRINGS);
   const hasError = error != null && error !== false && error !== '';
+  const hasHint = hint != null && hint !== false && hint !== '';
   const hintId = `${auto}-hint`;
   const errorId = `${auto}-error`;
   const describedBy =
-    [rest['aria-describedby'], hasError ? errorId : hint != null ? hintId : undefined].filter(Boolean).join(' ') || undefined;
+    [rest['aria-describedby'], hasError ? errorId : hasHint ? hintId : undefined].filter(Boolean).join(' ') || undefined;
   return (
     <fieldset {...rest} ref={ref} aria-describedby={describedBy} className={cn('m-0 grid min-w-0 gap-1.5 border-0 p-0', className)}>
       <legend className="mb-1.5 flex flex-wrap items-baseline gap-x-1.5 p-0 text-sm font-medium text-th-hi">
@@ -653,7 +655,7 @@ export function FieldGroup({ ref, label, hint, error, optional = false, classNam
         <p id={errorId} role="alert" className="text-xs text-th-loss">
           {error}
         </p>
-      ) : hint != null ? (
+      ) : hasHint ? (
         <p id={hintId} className="text-xs text-th-hi3">
           {hint}
         </p>

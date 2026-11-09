@@ -45,4 +45,7 @@ describe('safeUrl', () => {
     expect(safeUrl('/a:b')).toBe('/a:b');
     expect(safeUrl('?q=javascript:x')).toBe('?q=javascript:x');
   });
+  it('refuses leading or trailing non-C0 Unicode whitespace', () => {
+    expect(safeUrl('/page ')).toBeNull();
+  });
 });

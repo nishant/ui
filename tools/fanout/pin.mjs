@@ -69,11 +69,59 @@ export function pinOf(kind, text) {
  * Throws `No @nish/ui pin in <path>` when there is nothing to replace.
  */
 export function rewritePin(kind, text, tag, path = kind === 'vendored' ? 'ui.json' : 'package.json') {
-  const re =
-    kind === 'vendored' ? /("tag"\s*:\s*")v\d+\.\d+\.\d+(")/ : /("@nish\/ui"\s*:\s*")[^"]+(")/;
-  if (!re.test(text)) throw new Error(`No @nish/ui pin in ${path}`);
-  const value = kind === 'vendored' ? tag : npmSpec(tag);
-  return text.replace(re, (_m, a, b) => `${a}${value}${b}`);
+  if (kind === 'vendored') {
+    const re = /("tag"\s*:\s*")v\d+\.\d+\.\d+(")/;
+    if (!re.test(text)) throw new Error(`No @nish/ui pin in ${path}`);
+    return text.replace(re, (_m, a, b) => `${a}${tag}${b}`);
+  }
+  const re = /("@nish\/ui"\s*:\s*")[^"]+(")/;
+  // Only inside the top-level dependencies / devDependencies object, in the order pinOf reads them.
+  for (const key of ['dependencies', 'devDependencies']) {
+    const span = topLevelObjectSpan(text, key);
+    if (!span) continue;
+    const inner = text.slice(span[0], span[1]);
+    if (!re.test(inner)) continue;
+    const out = inner.replace(re, (_m, a, b) => `${a}${npmSpec(tag)}${b}`);
+    return text.slice(0, span[0]) + out + text.slice(span[1]);
+  }
+  throw new Error(`No @nish/ui pin in ${path}`);
+}
+
+/** [start, end) of the `{...}` value of a top-level `key` in JSON text, or null. */
+function topLevelObjectSpan(text, key) {
+  let depth = 0;
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    if (c === '"') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== '"') j += text[j] === '\\' ? 2 : 1;
+      if (depth === 1 && text.slice(i + 1, j) === key) {
+        const m = /^\s*:\s*\{/.exec(text.slice(j + 1));
+        if (m) return [j + 1 + m[0].length - 1, matchBrace(text, j + 1 + m[0].length - 1)];
+      }
+      i = j + 1;
+      continue;
+    }
+    if (c === '{' || c === '[') depth++;
+    else if (c === '}' || c === ']') depth--;
+    i++;
+  }
+  return null;
+}
+
+/** Index just past the `}` that closes the `{` at `open`. */
+function matchBrace(text, open) {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      i++;
+      while (i < text.length && text[i] !== '"') i += text[i] === '\\' ? 2 : 1;
+    } else if (c === '{') depth++;
+    else if (c === '}' && --depth === 0) return i + 1;
+  }
+  return text.length;
 }
 
 const clean = (d) => (d || '.').replace(/\/+$/, '').replace(/^(\.\/)+/, '') || '.';

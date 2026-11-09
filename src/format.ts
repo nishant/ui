@@ -85,7 +85,27 @@ function nf(locale: string, min: number, max: number): Intl.NumberFormat {
   );
 }
 
-function dtf(locale: string, key: string, options: Intl.DateTimeFormatOptions, timeZone?: string): Intl.DateTimeFormat {
+const zoneOk = new Map<string, boolean>();
+
+/** The zone when Intl accepts it, else undefined (the viewer's zone). Checked once per zone. */
+function safeZone(timeZone: string | undefined): string | undefined {
+  if (!timeZone) return undefined;
+  let ok = zoneOk.get(timeZone);
+  if (ok === undefined) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone });
+      ok = true;
+    } catch {
+      ok = false;
+    }
+    if (zoneOk.size >= 64) zoneOk.clear();
+    zoneOk.set(timeZone, ok);
+  }
+  return ok ? timeZone : undefined;
+}
+
+function dtf(locale: string, key: string, options: Intl.DateTimeFormatOptions, zone?: string): Intl.DateTimeFormat {
+  const timeZone = safeZone(zone);
   return cached(
     `d|${locale}|${key}|${timeZone ?? ''}`,
     () => new Intl.DateTimeFormat(locale, timeZone ? { ...options, timeZone } : options),
@@ -355,7 +375,13 @@ export function ago(t: DateInput | null | undefined, o: AgoOptions = {}): string
   // The largest unit that fits at least once.
   let pick = AGO_UNITS[0];
   for (const u of AGO_UNITS) if (abs >= u[0]) pick = u;
-  const n = Math.max(1, Math.round(abs / pick[0]));
+  let n = Math.max(1, Math.round(abs / pick[0]));
+  const next = AGO_UNITS[AGO_UNITS.indexOf(pick) + 1];
+  // 12 months of 30 days is 360 days, short of the 365-day year, so count it as the year too.
+  if (next && (n * pick[0] >= next[0] || (pick[1] === 'month' && n >= 12))) {
+    pick = next;
+    n = Math.max(1, Math.round(abs / pick[0]));
+  }
   const past = diff < 0;
   if (!english) return rtf(locale, long ? 'long' : 'narrow').format(past ? -n : n, pick[1]);
   if (long) return rtf(locale, 'long').format(past ? -n : n, pick[1]);

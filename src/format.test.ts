@@ -322,3 +322,15 @@ describe('formatter cache', () => {
     expect(performance.now() - start).toBeLessThan(100);
   });
 });
+
+describe('audit p2 fixes', () => {
+  it('time() ignores an invalid timeZone', () => {
+    expect(() => time(Date.now(), { timeZone: 'Mars/Base' })).not.toThrow();
+  });
+  it('ago() moves to the next unit instead of rounding up to 60m, 24h or 12mo', () => {
+    const NOW = 1_700_000_000_000;
+    expect(ago(NOW - 3570_000, { now: NOW })).toBe('1h ago');
+    expect(ago(NOW - 86000_000, { now: NOW })).toBe('1d ago');
+    expect(ago(NOW - (365 * 86400 - 3600) * 1000, { now: NOW })).toBe('1y ago');
+  });
+});

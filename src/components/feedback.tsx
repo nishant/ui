@@ -44,7 +44,7 @@ export function SkeletonRows({ rows = 5, height = 56, gap = 'md', label, classNa
     <div {...rest} ref={ref} role="status" className={cn('grid', gap === 'sm' ? 'gap-1.5' : 'gap-2.5', className)}>
       <span className="sr-only">{label ?? s.loading}</span>
       {Array.from({ length: rows }, (_, i) => (
-        <Skeleton key={i} className={cn('w-full rounded-xl', rowClassName)} style={rowClassName && /\bh-/.test(rowClassName) ? undefined : { height }} />
+        <Skeleton key={i} className={cn('w-full rounded-xl', rowClassName)} style={rowClassName && /(^|\s)([\w-]+:)*(h|size)-/.test(rowClassName) ? undefined : { height }} />
       ))}
     </div>
   );

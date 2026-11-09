@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
-import { NPM_NAME, compareVersions, plan, publishManifest } from './npm-publish.mjs';
+import { NPM_NAME, compareVersions, main, plan, publishManifest } from './npm-publish.mjs';
 
 const base = { tag: 'v1.1.0', version: '1.1.0', distOk: true, published: ['1.0.0'] };
 
@@ -76,4 +79,23 @@ test('metadata a tag already has is kept', () => {
   const m = publishManifest({ name: '@nish/ui', version: '1.1.0', homepage: 'https://example.com', license: 'ISC' });
   assert.equal(m.homepage, 'https://example.com');
   assert.equal(m.license, 'ISC');
+});
+
+test('a dry run leaves package.json byte-identical', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'npm-publish-'));
+  mkdirSync(join(dir, 'dist', 'esm'), { recursive: true });
+  writeFileSync(join(dir, 'dist', 'esm', 'index.js'), '');
+  const text = '{"name":"@nish/ui","version":"1.1.0","scripts":{"x":"y"}}\n';
+  writeFileSync(join(dir, 'package.json'), text);
+  let seen = '';
+  const code = await main([dir, '--tag', 'v1.1.0', '--dry-run'], {
+    publishedVersions: async () => ['1.0.0'],
+    runNpm: (args, cwd) => {
+      seen = readFileSync(join(cwd, 'package.json'), 'utf8');
+      assert.ok(args.includes('--dry-run'));
+    },
+  });
+  assert.equal(code, 0);
+  assert.match(seen, /"name": "nish-ui"/);
+  assert.equal(readFileSync(join(dir, 'package.json'), 'utf8'), text);
 });

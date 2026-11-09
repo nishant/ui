@@ -313,7 +313,7 @@ export function AppShell({
   const hubPill =
     hub && hubHref != null ? (
       <a className="nish-pill-link" href={hubHref} title={hub.title ?? strings.hubTitle}>
-        <span className="inline-block rtl:-scale-x-100">←</span> <span className="nish-pill-link-label">{hub.label}</span>
+        <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> <span className="nish-pill-link-label">{hub.label}</span>
       </a>
     ) : null;
   const sidebarToggle = themeToggle === false ? null : (themeToggle ?? <ThemeToggle compact={collapsed} />);

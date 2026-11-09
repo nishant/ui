@@ -142,3 +142,20 @@ test('dropUiLockEntries: lockfile v2 dependencies at any depth; null when nothin
   assert.equal(dropUiLockEntries(JSON.stringify({ packages: { 'node_modules/lit': {} } })), null);
   assert.equal(dropUiLockEntries('not json'), null);
 });
+
+test('rewritePin only touches dependencies, not overrides that come first', () => {
+  const before =
+    '{\n  "name": "app",\n  "overrides": {\n    "@nish/ui": "npm:nish-ui@1.0.0"\n  },\n' +
+    '  "pnpm": {\n    "overrides": {\n      "@nish/ui": "npm:nish-ui@1.0.0"\n    }\n  },\n' +
+    '  "dependencies": {\n    "@nish/ui": "npm:nish-ui@1.0.0"\n  },\n' +
+    '  "devDependencies": {\n    "@nish/ui": "npm:nish-ui@1.0.0"\n  }\n}\n';
+  const after = rewritePin('npm', before, 'v2.0.0');
+  assert.equal(after.match(/nish-ui@2\.0\.0/g).length, 1);
+  assert.equal(after.match(/nish-ui@1\.0\.0/g).length, 3);
+  assert.equal(pinOf('npm', after), 'v2.0.0');
+  assert.ok(after.indexOf('nish-ui@2.0.0') > after.indexOf('"dependencies"'));
+  assert.ok(after.indexOf('nish-ui@2.0.0') < after.indexOf('"devDependencies"'));
+  const dev = '{\n  "overrides": {"@nish/ui": "x"},\n  "devDependencies": {\n    "@nish/ui": "npm:nish-ui@1.0.0"\n  }\n}\n';
+  assert.equal(rewritePin('npm', dev, 'v2.0.0'), dev.replace('nish-ui@1.0.0', 'nish-ui@2.0.0'));
+  assert.throws(() => rewritePin('npm', '{"overrides":{"@nish/ui":"x"},"dependencies":{}}', 'v2.0.0'), /No @nish\/ui pin/);
+});

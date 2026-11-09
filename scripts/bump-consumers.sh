@@ -15,6 +15,7 @@ set -euo pipefail
 export PYTHONIOENCODING=utf-8 PYTHONUTF8=1
 tag="${1:?usage: bump-consumers.sh vX.Y.Z [--dry-run|--no-merge]}"
 mode="${2:-}"
+case "$mode" in ''|--dry-run|--no-merge) ;; *) echo "unknown option $mode (use --dry-run or --no-merge)" >&2; exit 2;; esac
 [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag must look like v0.3.0, got $tag" >&2; exit 2; }
 # The npm alias, as the fan-out writes it (tools/fanout/pin.mjs npmSpec).
 url="npm:nish-ui@${tag#v}"
@@ -158,6 +159,11 @@ for entry in "${opened[@]}"; do
   name="${repo#*/}"
   echo "== merge $repo#$num"
   if [ "$name" = arora-home ]; then
+    # pr_status.py --wait passes on a PR with no checks yet: wait until GitHub lists at least one.
+    for _ in $(seq 1 20); do
+      [ -n "$(gh pr checks "$num" -R "$repo" 2>/dev/null)" ] && break
+      sleep 15
+    done
     if ! (cd "$work/$name" && "$py" skills/merge-pr/scripts/pr_status.py "$num" --wait); then
       echo "left open: pr_status.py says no"; failed+=("$repo#$num: checks"); continue
     fi

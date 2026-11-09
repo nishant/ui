@@ -359,6 +359,10 @@ export function MenuItem({
       aria-current={active || undefined}
       data-disabled={disabled ? '' : undefined}
       onClick={(e) => {
+        if (disabled) {
+          e.preventDefault();
+          return;
+        }
         onClick?.(e);
         if (!e.defaultPrevented) select();
       }}

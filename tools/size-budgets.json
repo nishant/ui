@@ -145,7 +145,7 @@
       "name": "Inbox",
       "from": "nish-ui/inbox",
       "import": "Inbox",
-      "maxKB": 27.7
+      "maxKB": 27.9
     },
     {
       "name": "ServiceTokensSection",
@@ -181,7 +181,7 @@
       "name": "everything from .",
       "from": "nish-ui",
       "import": "*",
-      "maxKB": 124.6
+      "maxKB": 125.1
     },
     {
       "name": "nish-ui/theme",

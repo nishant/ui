@@ -4,9 +4,9 @@
 
 | Version | Supported |
 |---|---|
-| Latest 2.x | Yes |
-| 1.x | Security fixes only, for 3 months after 2.0.0 is released |
-| Older | No |
+| Latest 3.x | Yes |
+| 2.x | Security fixes only, for 3 months after 3.0.0 is released (2026-11-07) |
+| 1.x | No |
 
 ## Reporting a vulnerability
 

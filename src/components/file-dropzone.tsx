@@ -37,6 +37,14 @@ export interface FileDropzoneProps extends Omit<ComponentPropsWithoutRef<'div'>,
   ref?: Ref<HTMLDivElement>;
 }
 
+// Some browsers and OSes leave File.type empty (HEIC, for one); guess it from the extension.
+const EXT_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
+  heic: 'image/heic', heif: 'image/heif', avif: 'image/avif', svg: 'image/svg+xml',
+  pdf: 'application/pdf', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm',
+  mp3: 'audio/mpeg', wav: 'audio/wav', m4a: 'audio/mp4', txt: 'text/plain', csv: 'text/csv', json: 'application/json',
+};
+
 /** True when a file passes a native `accept` list (extensions, `type/*`, exact types). */
 function matchesAccept(file: File, accept: string | undefined): boolean {
   const tokens = (accept ?? '')
@@ -45,9 +53,10 @@ function matchesAccept(file: File, accept: string | undefined): boolean {
     .filter(Boolean);
   if (tokens.length === 0) return true;
   const fileName = file.name.toLowerCase();
-  const type = file.type.toLowerCase();
+  const type = file.type.toLowerCase() || EXT_TYPES[fileName.split('.').pop() ?? ''] || '';
   return tokens.some((t) => {
     if (t.startsWith('.')) return fileName.endsWith(t);
+    if (!type) return t.endsWith('/*');
     if (t.endsWith('/*')) return type.startsWith(t.slice(0, -1));
     return type === t;
   });

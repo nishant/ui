@@ -91,7 +91,7 @@ export declare function define(tag: string, ctor: CustomElementConstructor): voi
 declare class NishChartBase extends NishElement {
   /** The chart's `aria-label` (required). */
   label: string;
-  /** Plot height in pixels (200 when unset). */
+  /** Plot height in pixels (200 for a line chart, 140 for a bar chart, when unset). */
   height: number;
   /** A color tone such as `chart-2`, `ok` or `loss`. */
   tone: string;

@@ -22,9 +22,16 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { sections } from './changelog.mjs';
 import { fleetFromCatalog } from './fleet.mjs';
-import { CmdError, api, apiJson, gh, git, isForbidden, isNoAccess, redact, sh, sleep } from './gh.mjs';
-import { compare, dropUiLockEntries, lockDirs, lowestPin, npmSpec, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
+import { CmdError, RATE_LIMIT, api as apiReal, apiJson as apiJsonReal, gh as ghReal, git as gitReal, isForbidden, isNoAccess, redact, sh, sleep } from './gh.mjs';
+import { compare, dropUiLockEntries, lockDirs, lowestPin, major, npmSpec, pinDirs, pinFile, pinOf, rewritePin } from './pin.mjs';
 import { computeChecks, cut, decide, isAdoptedHead, limitFor, updateLabel } from './policy.mjs';
+
+// The GitHub and git calls, swappable so lifecycle tests can stub them.
+export const io = { api: apiReal, apiJson: apiJsonReal, gh: ghReal, git: gitReal };
+const api = (...a) => io.api(...a);
+const apiJson = (...a) => io.apiJson(...a);
+const gh = (...a) => io.gh(...a);
+const git = (...a) => io.git(...a);
 
 const UI_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const STATUS = 'fan-out';
@@ -41,8 +48,9 @@ export function prBody({ pin, tag, behaviorChanges, markdown }) {
       '**Behavior changes:** this release asks apps to change code, so it will not merge by itself. Adopt it on this branch, then the fan-out merges it on its next run.',
     );
   }
+  const needsSession = behaviorChanges || (major(tag) > major(pin) && major(tag) >= 1);
   parts.push(
-    `It merges by itself when the checks pass, the Fold check finds no new problems and pages change less than ${limit}% (${label} update).`,
+    `${needsSession ? 'After a session adopts it, it merges' : 'It merges by itself'} when the checks pass, the Fold check finds no new problems and pages change less than ${limit}% (${label} update).`,
   );
   parts.push(`## Release notes\n\n${markdown}`);
   return parts.join('\n\n');
@@ -57,6 +65,7 @@ export function latestTag(names) {
 const firstLine = (s) => String(s).split(/\r?\n/).find((l) => l.trim()) ?? '';
 // GitHub refusing the token, once the repo itself is known to be visible (a 404 is then a missing file).
 const REFUSED = /Could not resolve to a Repository|HTTP 403|Resource not accessible/;
+export const RATE_LIMIT_LINE = 'GitHub rate limit; the next run retries';
 const refusedLine = (s) => String(s).split(/\r?\n/).find((l) => REFUSED.test(l)) ?? firstLine(s);
 
 /** One markdown line for a result. */
@@ -82,6 +91,7 @@ export function tokenWriteHint(repo) {
 export function explainError(r) {
   if (r.result !== 'error') return r;
   const text = String(r.detail ?? '');
+  if (RATE_LIMIT.test(text)) return { ...r, detail: RATE_LIMIT_LINE };
   if (/Could not resolve to a Repository/.test(text)) return { ...r, detail: tokenHint(r.repo) };
   if (REFUSED.test(text)) return { ...r, detail: `${tokenWriteHint(r.repo)}. GitHub said: ${refusedLine(text).trim()}` };
   return r;
@@ -187,9 +197,13 @@ function gitAuthEnv() {
   };
 }
 
+// Git in a clone after repo code ran: no hooks, no fsmonitor (both could run repo-controlled commands).
+const SAFE_GIT = ['-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false'];
 const authGit = (args, opts = {}) => git(args, { ...opts, env: { ...opts.env, ...gitAuthEnv() } });
 
-// Repo-controlled commands (catalog.json bump, pnpm hooks) run without any token in their env.
+// Repo-controlled commands (catalog.json bump, pnpm hooks) run without the token in their env. This is not
+// isolation: they run as the same user as this process, so they can still read the token from
+// /proc/<ppid>/environ. Real isolation (a token-less job or container) is still open in ROADMAP.
 const NO_TOKEN_ENV = { GH_TOKEN: undefined, GITHUB_TOKEN: undefined, GH_ENTERPRISE_TOKEN: undefined, GITHUB_ENTERPRISE_TOKEN: undefined };
 
 function cloneBase(repo, base, dir, depth = 1) {
@@ -374,6 +388,19 @@ export class Run {
     }
     open = open.filter((p) => p.headRefName === `ui/${tag}`);
     let pr = open[0] ?? null;
+    const dirs = pinDirs(entry);
+    let adopted = false;
+    let head = null;
+    if (pr) {
+      const c = apiJson(`repos/${R}/commits/${pr.headRefOid}`)?.commit;
+      adopted = isAdoptedHead(c ? { author: c.author?.name, message: c.message } : null);
+    }
+    if (pr && pr.mergeable === 'CONFLICTING' && adopted) {
+      const text = `Conflicts with the base: a session has to merge the base into ui/${tag}`;
+      if (!this.dry) this.setStatus(R, pr.headRefOid, 'failure', text, this.currentStatus(R, pr.headRefOid));
+      else this.would(`hold #${pr.number} (${text})`);
+      return { repo: R, result: 'held', detail: text, pr: pr.number };
+    }
     if (pr && pr.mergeable === 'CONFLICTING') {
       if (this.dry) this.would(`close #${pr.number} (The base branch moved; opening a fresh one.)`);
       else gh(['pr', 'close', String(pr.number), '-R', R, '--delete-branch', '--comment', 'The base branch moved; opening a fresh one.']);
@@ -382,21 +409,20 @@ export class Run {
 
     const notes = sections(git(['show', `${tag}:CHANGELOG.md`], { cwd: this.ui, allowFail: true }).stdout, pin, tag);
 
-    let adopted = false;
     let pushedAt = null;
     // A PR opened before a folder was added to uiExtraDirs (or adopted without it) moves the
     // folders it missed in a commit on top, so its head stays adopted or not as it was.
-    const dirs = pinDirs(entry);
-    let head = null;
     if (pr) {
-      const c = apiJson(`repos/${R}/commits/${pr.headRefOid}`)?.commit;
-      adopted = isAdoptedHead(c ? { author: c.author?.name, message: c.message } : null);
       head = dirs.length > 1 ? lowestPin(entry.ui, dirs, (path) => rawFile(R, path, pr.headRefOid)) : null;
       if (head?.error && !adopted) {
         // A folder the PR branch does not have yet (added on the base later): start over from the base.
         if (this.dry) this.would(`close #${pr.number} (${head.error} on this branch; opening a fresh one.)`);
         else gh(['pr', 'close', String(pr.number), '-R', R, '--delete-branch', '--comment', `${head.error} on this branch; opening a fresh one.`]);
         pr = null;
+      } else if (head?.error && adopted) {
+        const text = `ui/${tag} lacks ${head.error}: merge the base into the branch`;
+        if (!this.dry) this.setStatus(R, pr.headRefOid, 'failure', text, this.currentStatus(R, pr.headRefOid));
+        return { repo: R, result: 'held', detail: cut(text), pr: pr.number };
       }
     }
     if (pr) {
@@ -435,25 +461,31 @@ export class Run {
       cloneBase(R, entry.base, dir);
       bumpTree(entry, dir, tag, { at });
       step = 'git add';
-      git(['add', '-A'], { cwd: dir });
-      if (git(['diff', '--cached', '--quiet'], { cwd: dir, allowFail: true }).code === 0) {
+      git([...SAFE_GIT, 'add', '-A'], { cwd: dir, env: NO_TOKEN_ENV });
+      if (git([...SAFE_GIT, 'diff', '--cached', '--quiet'], { cwd: dir, allowFail: true, env: NO_TOKEN_ENV }).code === 0) {
         return { error: 'Bump changed nothing' };
       }
       step = 'git commit';
-      git([...COMMIT_ID, 'commit', '-q', '-m', `Move @nish/ui to ${tag}`], { cwd: dir });
+      git([...SAFE_GIT, ...COMMIT_ID, 'commit', '-q', '--no-verify', '-m', `Move @nish/ui to ${tag}`], { cwd: dir, env: NO_TOKEN_ENV });
       step = 'git push';
-      authGit(['push', '--force', 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
+      authGit([...SAFE_GIT, 'push', '--no-verify', '--force', 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
       step = 'gh pr create';
       gh(['pr', 'create', '-R', R, '--base', entry.base, '--head', `ui/${tag}`, '--title', `Move @nish/ui to ${tag}`, '--body', prBody({ pin, tag, ...notes })]);
       const pr = listPrs(R, ['--state', 'open', '--head', `ui/${tag}`])[0];
       if (!pr) return { error: 'gh pr create finished but the PR was not found' };
       return { pr };
     } catch (e) {
-      const msg = e instanceof CmdError ? e.message : `${step ?? at.step}: ${redact(e.message)}`;
-      return { error: msg };
+      return { error: this.stepError(e, step ?? at.step) };
     } finally {
       cleanup(dir);
     }
+  }
+
+  /** One summary line for a failed step; the full message goes to the log. */
+  stepError(e, step) {
+    this.say(redact(e.message));
+    if (e instanceof CmdError) return `${step}: ${redact(refusedLine(e.output) || firstLine(e.output))}`;
+    return `${step}: ${redact(e.message)}`;
   }
 
   /** Move the folders an open bump PR missed, in one commit on its branch, and refresh its body. */
@@ -465,27 +497,26 @@ export class Run {
     try {
       cloneBase(R, `ui/${tag}`, dir);
       // Build only on the head whose adopted state was read; a push since then waits for the next run.
-      if (git(['rev-parse', 'HEAD'], { cwd: dir }).stdout.trim() !== pr.headRefOid) {
+      if (git([...SAFE_GIT, 'rev-parse', 'HEAD'], { cwd: dir, env: NO_TOKEN_ENV }).stdout.trim() !== pr.headRefOid) {
         // A race with a push, not an error: the next run sees the new head.
         return { skip: `ui/${tag} moved while the fan-out read it; the next run moves the missing folders` };
       }
       const moved = bumpTree(entry, dir, tag, { at });
       step = 'git add';
-      git(['add', '-A'], { cwd: dir });
-      if (git(['diff', '--cached', '--quiet'], { cwd: dir, allowFail: true }).code === 0) return { moved: [], sha: null };
+      git([...SAFE_GIT, 'add', '-A'], { cwd: dir, env: NO_TOKEN_ENV });
+      if (git([...SAFE_GIT, 'diff', '--cached', '--quiet'], { cwd: dir, allowFail: true, env: NO_TOKEN_ENV }).code === 0) return { moved: [], sha: null };
       // isAdoptedHead keys on the message: keep a fan-out head a fan-out head, an adopted one adopted.
       const message = adopted ? `Pin @nish/ui ${tag} in ${moved.join(', ') || 'the lockfile'}` : `Move @nish/ui to ${tag}`;
       step = 'git commit';
-      git([...COMMIT_ID, 'commit', '-q', '-m', message], { cwd: dir });
+      git([...SAFE_GIT, ...COMMIT_ID, 'commit', '-q', '--no-verify', '-m', message], { cwd: dir, env: NO_TOKEN_ENV });
       step = 'git push';
-      authGit(['push', `--force-with-lease=refs/heads/ui/${tag}:${pr.headRefOid}`, 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
+      authGit([...SAFE_GIT, 'push', '--no-verify', `--force-with-lease=refs/heads/ui/${tag}:${pr.headRefOid}`, 'origin', `HEAD:refs/heads/ui/${tag}`], { cwd: dir });
       step = 'gh pr edit';
       gh(['pr', 'edit', String(pr.number), '-R', R, '--body', prBody({ pin, tag, ...notes })]);
       this.say(`  moved ${moved.join(', ')} to ${tag} on #${pr.number}`);
-      return { moved, sha: git(['rev-parse', 'HEAD'], { cwd: dir }).stdout.trim() };
+      return { moved, sha: git([...SAFE_GIT, 'rev-parse', 'HEAD'], { cwd: dir, env: NO_TOKEN_ENV }).stdout.trim() };
     } catch (e) {
-      const msg = e instanceof CmdError ? e.message : `${step ?? at.step}: ${redact(e.message)}`;
-      return { error: msg };
+      return { error: this.stepError(e, step ?? at.step) };
     } finally {
       cleanup(dir);
     }
@@ -538,8 +569,14 @@ export class Run {
 
   async hold(entry, pr, reason) {
     const sha = this.view(entry.repo, pr.number).headRefOid;
-    this.setStatus(entry.repo, sha, 'failure', reason);
+    this.setStatus(entry.repo, sha, 'failure', reason, this.currentStatus(entry.repo, sha));
     return { repo: entry.repo, result: 'held', detail: reason, pr: pr.number };
+  }
+
+  /** The fan-out's own commit status on `sha`, or null. */
+  currentStatus(R, sha) {
+    const all = apiJson(`repos/${R}/commits/${sha}/status?per_page=100`)?.statuses ?? [];
+    return all.find((x) => x.context === STATUS) ?? null;
   }
 
   /** Read checks (check runs, falling back to workflow runs on a 403) and commit statuses. */
@@ -629,7 +666,7 @@ export class Run {
       this.setStatus(R, pr.headRefOid, 'failure', reason);
       return { repo: R, result: 'held', detail: cut(reason), pr: pr.number };
     }
-    if (this.waitMin <= 0) return { repo: R, result: 'merged', detail: 'deploy not watched', pr: pr.number };
+    if (!entry.deploy) return { repo: R, result: 'merged', detail: 'no deploy workflow in the catalog', pr: pr.number };
     return this.watchDeploy(entry, pr);
   }
 
@@ -649,7 +686,8 @@ export class Run {
       const run = runs.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
       if (run && run.status === 'completed') {
         if (run.conclusion === 'success') return { repo: R, result: 'merged', detail: 'deployed', pr: pr.number };
-        return this.revert(entry, pr, mergeSha, run.html_url);
+        if (['failure', 'timed_out', 'startup_failure'].includes(run.conclusion)) return this.revert(entry, pr, mergeSha, run.html_url);
+        return { repo: R, result: 'merged', detail: `deploy run ${run.conclusion} (not reverted)`, pr: pr.number };
       }
       if (!run && Date.now() >= noRunBy) {
         return { repo: R, result: 'merged', detail: `no ${entry.deploy} run found for the merge`, pr: pr.number };
@@ -708,6 +746,7 @@ export class Run {
     const r = this.probe(R);
     if (r.code === 0) return null;
     const out = `${r.stderr}\n${r.stdout}`;
+    if (RATE_LIMIT.test(out)) return RATE_LIMIT_LINE;
     return isNoAccess(out) ? tokenHint(R) : `Could not read ${R}: ${firstLine(redact(out))}`;
   }
 
@@ -743,7 +782,7 @@ export class Run {
       out.push(...(await this.settleDeps(entry)));
     } catch (e) {
       // The first line of a CmdError is the command; GitHub's reason is in its output.
-      const reason = REFUSED.test(String(e.output ?? ''))
+      const reason = REFUSED.test(String(e.output ?? '')) && !RATE_LIMIT.test(String(e.output ?? ''))
         ? `${firstLine(redact(e.message))}: ${refusedLine(e.output).trim()}`
         : firstLine(redact(e.message));
       out.push({ repo: entry.repo, result: 'error', detail: reason });

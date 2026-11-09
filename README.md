@@ -355,10 +355,9 @@ export and two copies of the package on one page), Playwright specs for overlays
 elements, hydration, Content Security Policy and Trusted Types, an axe accessibility scan with
 zero serious or critical findings, a consumer build in Next.js (App Router), Vite and a
 TypeScript matrix (5.4, 5.9 and 6.0 with `bundler` and `node16` resolution), the bundle size
-budgets, a screenshot check of the docs site at 360, 840 and 1440 px in light and dark, and an
+budgets, a screenshot check of the docs site at 390 and 1440 px, a Fold check on pull requests (its pages at 360, 840 and 1440 px in light and dark), and an
 exports snapshot that fails when a public name or `.nish-*` class disappears. Releases publish to
-npm with provenance. The docs site is checked at 360, 840 and 1440 px; not every component is
-checked in every theme on every pull request.
+npm with provenance. Not every component is checked in every theme on every pull request.
 
 ## Links
 

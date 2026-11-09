@@ -479,7 +479,8 @@ export function narrowLayout(
   if (count === 1) return leaf(0);
   const dir: "row" | "col" =
     n.dir === "auto" ? (aspect >= 1.2 ? "row" : "col") : n.dir;
-  const split = Math.min(0.8, Math.max(0.2, n.split));
+  const s = Number.isFinite(n.split) ? n.split : 0.5;
+  const split = Math.min(0.8, Math.max(0.2, s));
   return {
     type: "split",
     dir,

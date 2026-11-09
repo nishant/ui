@@ -6,6 +6,7 @@ export function redact(text) {
   let s = String(text ?? '');
   const token = process.env.GH_TOKEN;
   if (token) s = s.split(token).join('***');
+  if (token) s = s.split(Buffer.from(`x-access-token:${token}`).toString('base64')).join('***');
   return s.replace(/x-access-token:[^@\s]+@/g, 'x-access-token:***@');
 }
 
@@ -70,8 +71,11 @@ export function apiJson(path, opts = {}) {
   return JSON.parse(api(path, opts).stdout || 'null');
 }
 
-/** True when a CmdError is GitHub saying the token may not read this (403). */
+export const RATE_LIMIT = /rate limit|secondary rate/i;
+
+/** True when a CmdError is GitHub saying the token may not read this (403); a rate limit is not. */
 export function isForbidden(err) {
+  if (RATE_LIMIT.test(String(err?.output ?? err?.message ?? ''))) return false;
   return /HTTP 403|Resource not accessible/i.test(String(err?.output ?? err?.message ?? ''));
 }
 
@@ -81,6 +85,7 @@ export function isForbidden(err) {
  * Use it on a repo-level probe only: on a file path a 404 just means the file is missing.
  */
 export function isNoAccess(err) {
+  if (RATE_LIMIT.test(String(err?.output ?? err?.message ?? err ?? ''))) return false;
   return /Could not resolve to a Repository|HTTP 40[34]|Resource not accessible/.test(String(err?.output ?? err?.message ?? err ?? ''));
 }
 

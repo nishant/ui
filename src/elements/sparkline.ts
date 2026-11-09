@@ -43,7 +43,8 @@ export class NishSparkline extends NishElement {
       reflect: true,
       converter: {
         fromAttribute: (v: string | null) => parseValues(v),
-        toAttribute: (v: (number | null)[]) => v.map((n) => (n == null ? '' : String(n))).join(','),
+        toAttribute: (v: (number | null)[] | null) =>
+          Array.isArray(v) && v.length ? v.map((n) => (n == null ? '' : String(n))).join(',') : null,
       },
     },
     tone: { type: String, reflect: true },

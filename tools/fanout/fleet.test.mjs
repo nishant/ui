@@ -93,6 +93,8 @@ test('CLI --matrix prints the matrix and handles an unknown repo', () => {
   assert.equal(one.stdout.trim(), 'matrix=[{"repo":"a/c"}]');
   const none = spawnSync(process.execPath, [cli, file, '--matrix', '--repo', 'x/y'], { encoding: 'utf8' });
   assert.equal(none.stdout.trim(), 'matrix=[]');
+  assert.equal(none.status, 1);
+  assert.equal(one.status, 0);
   assert.match(none.stderr, /Unknown repo x\/y/);
 });
 
