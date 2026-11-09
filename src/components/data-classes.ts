@@ -49,7 +49,7 @@ const STICKY_COL =
   '[&_thead_tr]:bg-th-surface [&_tbody_tr]:bg-th-surface [&_thead_tr>:first-child]:z-[calc(var(--nish-z-sticky,1)+10)] [&_tr>:first-child]:sticky [&_tr>:first-child]:start-0 [&_tr>:first-child]:z-[calc(var(--nish-z-sticky,1)+9)] [&_tr>:first-child]:bg-inherit ' +
   '[&_tr>:first-child]:after:pointer-events-none [&_tr>:first-child]:after:absolute [&_tr>:first-child]:after:inset-y-0 [&_tr>:first-child]:after:start-full [&_tr>:first-child]:after:w-2.5 ' +
   '[&_tr>:first-child]:after:bg-gradient-to-r rtl:[&_tr>:first-child]:after:bg-gradient-to-l [&_tr>:first-child]:after:from-[color-mix(in_srgb,var(--nish-hi)_14%,transparent)] [&_tr>:first-child]:after:to-transparent ' +
-  '[&_tr>:first-child]:after:opacity-0 [&_tr>:first-child]:after:transition-opacity [&[data-at-start=false]_tr>:first-child]:after:opacity-100';
+  '[&_tr>:first-child]:after:opacity-0 [&_tr>:first-child]:after:transition-opacity ltr:[&[data-at-start=false]_tr>:first-child]:after:opacity-100 rtl:[&[data-at-end=false]_tr>:first-child]:after:opacity-100';
 
 /** The table recipes as strings, for renderers that take classes (TanStack Table cells,
  *  static markup). The components in table.tsx use exactly these. */

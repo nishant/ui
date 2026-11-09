@@ -743,6 +743,22 @@ test.describe('<nish-copy-button>', () => {
     await page.mouse.click(2, 2);
     await expect(btn).toHaveText('Copy', { timeout: 3000 });
   });
+
+  test('Ctrl+C in the manual-copy textarea hands focus to the button and Copied resets', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => {
+      (window as unknown as { __clipFail: boolean }).__clipFail = true;
+      document.execCommand = () => false;
+    });
+    const btn = page.locator('#cp1 button');
+    await btn.click();
+    await expect(btn).toHaveText('Press Ctrl+C');
+    await page.locator('#cp1 textarea[data-copy-source]').dispatchEvent('copy');
+    await expect(btn).toHaveText('Copied');
+    await expect(btn).toBeFocused();
+    await expect(page.locator('#cp1 textarea')).toHaveCount(0);
+    await expect(btn).toHaveText('Copy', { timeout: 3500 });
+  });
 });
 
 test.describe('<nish-sparkline>', () => {

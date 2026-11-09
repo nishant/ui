@@ -3478,7 +3478,8 @@
     transition: opacity 150ms;
     pointer-events: none;
   }
-  :where(.nish-table-wrap--sticky-first[data-at-start='false']) :where(tr > :first-child)::after {
+  :where(.nish-table-wrap--sticky-first[data-at-start='false']:not(:dir(rtl))) :where(tr > :first-child)::after,
+  :where(.nish-table-wrap--sticky-first[data-at-end='false']:dir(rtl)) :where(tr > :first-child)::after {
     opacity: 1;
   }
   :where(.nish-table--zebra) :where(tbody tr:nth-child(even)) {

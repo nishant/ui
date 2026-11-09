@@ -121,20 +121,27 @@ export class NishCopyButton extends NishElement {
       ta?.focus();
       ta?.select();
       // Stay in manual mode until the text is copied or focus leaves, not for a fixed 1.5 s.
+      const ac = new AbortController();
       const done = (): void => {
+        ac.abort();
         if (this.#timer) clearTimeout(this.#timer);
         this.#timer = null;
         this.manual = false;
       };
       ta?.addEventListener('copy', () => {
-        done();
+        // Detach both listeners first: Lit removes the focused textarea, and Chromium would fire
+        // blur then, running done() again and clearing the Copied timer.
+        ac.abort();
+        if (this.#timer) clearTimeout(this.#timer);
+        this.querySelector('button')?.focus();
+        this.manual = false;
         this.copied = true;
         this.#timer = setTimeout(() => {
           this.copied = false;
           this.#timer = null;
         }, COPIED_MS);
-      }, { once: true });
-      ta?.addEventListener('blur', done, { once: true });
+      }, { signal: ac.signal });
+      ta?.addEventListener('blur', done, { signal: ac.signal });
     }
     if (this.#timer) clearTimeout(this.#timer);
     this.#timer = setTimeout(() => {

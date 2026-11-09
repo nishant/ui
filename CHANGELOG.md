@@ -12,6 +12,7 @@ Fixes from the 2026-11-08 audit.
 
 - `<nish-bottom-nav>` and `<nish-nav-rail>`: `href="#"` and query-only links no longer take the current-page mark from the real current link.
 - `<nish-chip-group>`: removing a chip with the keyboard now moves focus to the next chip instead of dropping it to the page.
+- `useScrollEdges`: in a right-to-left scroller `data-at-start` / `data-at-end` now mean the physical left / right edge (as the fade masks read them); the pinned-column shadow on tables follows the logical start edge in both directions.
 - `<nish-copy-button>`: when the clipboard is blocked, the text now stays selected until it is copied or focus leaves (up to 15 s, was 1.5 s), and the prompt says Cmd+C on Mac.
 - `TagInput`: at `maxTags` a typed or pasted tag now stays in the box with a "You can add up to N" message instead of vanishing; pressing Enter after the suggestions list shrank no longer throws; pasted tags that fail `validate` stay in the text box so they can be fixed.
 - `FileDropzone`: clears its file list (and calls `onFilesChange([], [])`) when its form is reset, including React 19's reset after a form action.
