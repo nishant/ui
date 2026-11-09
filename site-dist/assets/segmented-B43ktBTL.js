@@ -1,0 +1,28 @@
+import{n as e,ot as t}from"./index-DHPUmasy.js";import{r as n}from"./primitives--omVEkev.js";import{t as r}from"./segmented-CvMSmsSP.js";var i=t(),a=e();function o(){let[e,t]=(0,i.useState)(`1y`);return(0,a.jsx)(r,{label:`Lookback`,value:e,onChange:t,options:[{value:`3m`,label:`3M`,tip:`Last 3 months: fast, but only one season of data.`},{value:`1y`,label:`1Y`,tip:`Last 12 months: the default, one full cycle.`},{value:`5y`,label:`5Y`,tip:`Last 5 years: slow, includes several regimes.`}]})}function s(){let[e,t]=(0,i.useState)(`auto`);return(0,a.jsx)(r,{label:`Permission mode`,value:e,onChange:t,options:[{value:`ask`,label:`Ask`},{value:`edits`,label:`Accept edits`},{value:`auto`,label:`Auto`,tone:`warn`,tip:`Bypasses permission prompts.`}]})}function c({size:e=`sm`,block:t,withDisabled:n}){let[o,s]=(0,i.useState)(`7d`);return(0,a.jsx)(r,{label:`Chart range`,size:e,block:t,value:o,onChange:s,options:[{value:`24h`,label:`24h`},{value:`7d`,label:`7d`},{value:`30d`,label:`30d`},...n?[{value:`1y`,label:`1y`,disabled:!0}]:[]]})}var l={id:`segmented`,name:`Segmented`,exports:[`Segmented`],summary:`Two to five mutually exclusive choices side by side, such as a chart range: a radio group. The selected option takes the accent tint and ring, so it reads at a glance in every theme. Arrow keys, Home and End move the choice.`,importLine:`import { Segmented } from '@nish/ui';`,controls:[{key:`size`,label:`Size`,type:`select`,options:[`sm`,`md`,`xs`]},{key:`block`,label:`Block`,type:`boolean`},{key:`disabled`,label:`Disabled option`,type:`boolean`}],initial:{size:`sm`,block:!1,disabled:!1},render:e=>(0,a.jsx)(`div`,{className:e.block?`w-full max-w-sm`:void 0,children:(0,a.jsx)(c,{size:e.size,block:!!e.block,withDisabled:!!e.disabled})}),code:e=>`<Segmented\n  label="Chart range"${e.size===`sm`?``:`\n  size="${e.size}"`}${e.block?`
+  block`:``}\n  value={range}\n  onChange={setRange}\n  options={[{ value: '24h', label: '24h' }, { value: '7d', label: '7d' }, { value: '30d', label: '30d' }${e.disabled?`, { value: '1y', label: '1y', disabled: true }`:``}]}\n/>`,api:{functions:[],interfaces:[`SegmentedProps`,`SegmentedOption`]},html:{height:180,code:`<div style="display:grid;gap:12px;justify-items:start">
+  <nish-segmented label="Mode" value="survival">
+    <button value="survival">Survival</button>
+    <button value="creative">Creative</button>
+    <button value="hardcore">Hardcore</button>
+  </nish-segmented>
+  <nish-segmented label="Size" size="xs" value="m">
+    <button value="s">S</button>
+    <button value="m">M</button>
+    <button value="l">L</button>
+  </nish-segmented>
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"><\/script>`},stories:[{id:`range`,name:`Chart range`,render:()=>(0,a.jsx)(c,{})},{id:`md`,name:`Medium`,render:()=>(0,a.jsx)(c,{size:`md`})},{id:`xs`,name:`Extra small`,note:`Dense widget headers.`,render:()=>(0,a.jsx)(c,{size:`xs`})},{id:`disabled`,name:`A disabled option`,note:`Arrow keys skip it.`,render:()=>(0,a.jsx)(c,{withDisabled:!0})},{id:`block`,name:`Block`,wide:!0,render:()=>(0,a.jsx)(`div`,{className:`w-full max-w-md`,children:(0,a.jsx)(c,{block:!0})})},{id:`card-header`,name:`In a card header`,wide:!0,render:()=>(0,a.jsxs)(n,{className:`flex w-full flex-wrap items-center justify-between gap-3`,children:[(0,a.jsx)(`p`,{className:`font-semibold text-th-hi`,children:`Response time`}),(0,a.jsx)(c,{})]})},{id:`tip`,name:`Options with tips`,note:`Hover a choice, or Tab in and use the arrow keys: the tip follows keyboard focus.`,render:()=>(0,a.jsx)(o,{})},{id:`tone`,name:`A warning choice (tone="warn")`,note:`The selected look turns warn while that option is on.`,render:()=>(0,a.jsx)(s,{})}],usage:`import { useState } from 'react';
+import { Segmented } from '@nish/ui';
+
+const [range, setRange] = useState<'24h' | '7d' | '30d'>('7d');
+
+<Segmented
+  label="Chart range"
+  value={range}
+  onChange={setRange}
+  options={[
+    { value: '24h', label: '24h' },
+    { value: '7d', label: '7d' },
+    { value: '30d', label: '30d' },
+  ]}
+/>`,guidelines:[`Use it for 2 to 5 short, mutually exclusive options that change a view. For more, or for long labels, use Select.`,`It is a single-choice radio group. Multi-select toggles are ChipGroup and Chip.`,`Always pass label: it names the group for screen readers.`,`Icon-only options need ariaLabel (and a title for mouse users).`,`name posts the selection in a native form (hidden radio inputs). defaultValue and onValueChange make it uncontrolled; value and onChange keep it controlled.`,`ref, id, className and aria-* go to the radiogroup, so Field can label and describe it.`,`In a right-to-left layout ArrowLeft moves forward and ArrowRight back, like a native radio group.`]};export{l as segmented};
