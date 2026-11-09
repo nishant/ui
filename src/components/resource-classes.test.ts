@@ -41,6 +41,34 @@ describe('apiFetch: headers, bodies and errors', () => {
     bad.forEach((_, i) => expect(sent(i).get('authorization')).toBeNull());
   });
 
+  it('in an about:srcdoc document, relative calls get the headers and cross-origin or smuggled ones do not', async () => {
+    Object.defineProperty(document, 'baseURI', { get: () => 'about:srcdoc', configurable: true });
+    vi.stubGlobal('location', { href: 'about:srcdoc', origin: 'null' });
+    try {
+      configureApi({ headers: () => ({ authorization: 'Bearer t' }) });
+      fetchMock.mockImplementation(() => Promise.resolve(json({})));
+      const good = ['/api/x', 'api/y', '  /api/z'];
+      const bad = ['https://other.example/x', '//other.example/x', String.raw`/\evil.example/x`, String.raw`\\evil.example/x`, ' //evil.example/x', '/\t/evil.example/x', '\t//evil.example/x', 'mailto:a@b.c'];
+      for (const u of [...good, ...bad]) await apiFetch(u);
+      good.forEach((_, i) => expect(sent(i).get('authorization')).toBe('Bearer t'));
+      bad.forEach((u, i) => expect([u, sent(good.length + i).get('authorization')]).toEqual([u, null]));
+    } finally {
+      delete (document as unknown as Record<string, unknown>).baseURI;
+    }
+  });
+
+  it('resolves relative paths against document.baseURI', async () => {
+    Object.defineProperty(document, 'baseURI', { get: () => 'https://cdn.example/app/', configurable: true });
+    try {
+      configureApi({ headers: () => ({ authorization: 'Bearer t' }) });
+      fetchMock.mockImplementation(() => Promise.resolve(json({})));
+      await apiFetch('/api/x');
+      expect(sent(0).get('authorization')).toBe('Bearer t');
+    } finally {
+      delete (document as unknown as Record<string, unknown>).baseURI;
+    }
+  });
+
   it('headersFor lets a cross-origin URL have the headers and is told the URL', async () => {
     const headersFor = vi.fn((url: string) => url.startsWith('https://api.partner.example/'));
     configureApi({ headers: () => ({ authorization: 'Bearer t' }), headersFor });

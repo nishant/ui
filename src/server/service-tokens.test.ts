@@ -103,13 +103,27 @@ describe('loadManagedServiceTokens', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const file = seedFile(d, [entry('mcp', 'nish MCP', mcp)]);
     expect(loadManagedServiceTokens({ file, revocations: join(d, 'missing.json') }).verify(bearer(mcp.token), 'read').ok).toBe(true);
-    for (const body of ['not json', '{"version":1}', '[]']) {
+    for (const body of ['not json', '{"revoked": [{"sha256": "abc"']) {
       const bad = join(d, 'bad.json');
       writeFileSync(bad, body);
       expect(() => loadManagedServiceTokens({ file, revocations: bad })).toThrow();
       expect(readFileSync(bad, 'utf8')).toBe(body);
     }
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('starts, warns and sets the file aside when it is valid JSON without any hash', () => {
+    const d = dir();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const file = seedFile(d, [entry('mcp', 'nish MCP', mcp)]);
+    for (const body of ['[]', '{}', '{"version":1}']) {
+      const odd = join(d, 'odd.json');
+      writeFileSync(odd, body);
+      const tokens = loadManagedServiceTokens({ file, revocations: odd });
+      expect(tokens.verify(bearer(mcp.token), 'read').ok).toBe(true);
+      expect(() => readFileSync(odd, 'utf8')).toThrow();
+    }
+    expect(warn).toHaveBeenCalledTimes(3);
   });
 
   it('keeps a token revoked when its record or file is damaged but the hash is readable', () => {

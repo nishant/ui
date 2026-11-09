@@ -1,7 +1,7 @@
 import type { PropertyValues } from 'lit';
 import { mountScrollspy } from '../theme';
 import { NishElement, define, whenParsed } from './base';
-import { getStrings } from './strings';
+import { DEFAULT_ELEMENT_STRINGS, getStrings } from './strings';
 
 const onByDefault = {
   fromAttribute: (v: string | null): boolean => v !== 'false',
@@ -92,7 +92,7 @@ export class NishSectionNav extends NishElement {
   #sync(): void {
     const nav = this.#nav;
     if (!nav) return;
-    nav.setAttribute('aria-label', this.label || getStrings().onThisPage);
+    nav.setAttribute('aria-label', this.label || getStrings().onThisPage || DEFAULT_ELEMENT_STRINGS.onThisPage);
     nav.style.position = this.sticky ? '' : 'static';
     if (this.#spySticky !== null && this.#spySticky !== this.sticky) this.#startSpy(nav);
   }

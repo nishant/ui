@@ -94,16 +94,40 @@ const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
  *  resolved the way fetch resolves it (backslashes count as slashes, tabs and leading spaces are
  *  dropped), never classified by its string shape. */
 function isTrustedOrigin(url: string): boolean {
-  const here = typeof location !== 'undefined' ? location.href : undefined;
-  const dummy = 'http://nish-ui.invalid/';
-  try {
-    const target = new URL(url, here ?? dummy);
-    if (target.origin === new URL(here ?? dummy).origin) return true;
-    if (store.config.baseUrl && SCHEME.test(store.config.baseUrl) && target.origin === new URL(store.config.baseUrl).origin) return true;
-  } catch {
-    return false;
+  const bases: string[] = [];
+  if (typeof document !== 'undefined' && document.baseURI) bases.push(document.baseURI);
+  if (typeof location !== 'undefined' && location.href) bases.push(location.href);
+  for (const here of bases) {
+    try {
+      const target = new URL(url, here);
+      // An opaque origin is "null" for every such URL, so two of them are never "the same origin".
+      if (target.origin !== 'null' && target.origin === new URL(here).origin) return true;
+      if (store.config.baseUrl && SCHEME.test(store.config.baseUrl) && target.origin === new URL(store.config.baseUrl).origin) return true;
+      return false;
+    } catch {
+      // This base cannot resolve the URL (about:srcdoc, about:blank, blob:): try the next one.
+    }
   }
-  return false;
+  return isRelativePath(url);
+}
+
+/** Shape test for documents with no hierarchical base (about:srcdoc, blob:): a relative path has no scheme
+ *  and, after dropping leading spaces and tabs (fetch drops them), does not start with // or a backslash. */
+function isRelativePath(url: string): boolean {
+  let i = 0;
+  while (i < url.length && (url[i] === ' ' || url[i] === '\t')) i++;
+  const rest = url.slice(i);
+  if (SCHEME.test(rest)) return false;
+  const a = rest[0];
+  const b = rest[1];
+  const isSlash = (c: string | undefined) => c === '/' || c === '\\';
+  if (a === '\\') return false;
+  if (a === '/' && isSlash(b)) return false;
+  // A tab or newline inside the path is removed by the URL parser: `/<tab>/host` is `//host`.
+  const squeezed = rest.replace(/[\t\n\r]/g, '');
+  if (isSlash(squeezed[0]) && isSlash(squeezed[1])) return false;
+  if (SCHEME.test(squeezed)) return false;
+  return true;
 }
 
 /** fetch with JSON in and out, a timeout, and a typed ApiError for every failure. */

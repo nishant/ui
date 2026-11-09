@@ -133,7 +133,12 @@ export function configureStrings(partial: Partial<NishElementStrings>): void {
 
 /** The strings now in force. */
 export function getStrings(): NishElementStrings {
-  return store().values;
+  const s = store();
+  // A store made by an older copy of the package may lack newer keys: fill them from the defaults.
+  const values = s.values as unknown as Record<string, unknown>;
+  const missing = Object.keys(DEFAULT_ELEMENT_STRINGS).some((k) => values[k] === undefined);
+  if (missing) s.values = { ...DEFAULT_ELEMENT_STRINGS, ...Object.fromEntries(Object.entries(values).filter(([, v]) => v !== undefined)) } as unknown as NishElementStrings;
+  return s.values;
 }
 
 /** Call `fn` whenever `configureStrings` changes the words. Returns the unsubscribe function. */

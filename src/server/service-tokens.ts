@@ -118,7 +118,7 @@ export interface RevocationStore {
 
 /** JSON file store: missing file = []; any other read error throws (fail closed); invalid JSON or
  *  shape = warn once, file renamed to `<file>.bad-<timestamp>`, and every 64-hex hash found in it stays
- *  revoked (if there is none to find, or the rename fails, it throws and the file stays);
+ *  revoked (a corrupt, unparseable file with none to find, or a failed rename, throws and the file stays);
  *  invalid records without a readable hash are kept and written back unchanged on save.
  *  save writes `<file>.tmp` then renames, creating the directory. File shape:
  *  { "version": 1, "revoked": RevokedToken[] }. */
@@ -142,8 +142,8 @@ export function jsonRevocationStore(file: string): RevocationStore {
         throw err;
       }
       // Fail closed here too: an unreadable file may hold revocations, and starting without them would
-      // bring revoked tokens back to life. Every 64-hex hash we can still find stays revoked; a file
-      // with none to find stops startup (left in place) until a person fixes it.
+      // bring revoked tokens back to life. Every 64-hex hash we can still find stays revoked; a corrupt
+      // file with none to find stops startup (left in place) until a person fixes it.
       const salvage = (source: string): RevokedToken[] =>
         [...new Set((source.match(/[0-9a-fA-F]{64}/g) ?? []).map((h) => h.toLowerCase()))].map((sha256) => ({
           sha256,
@@ -151,9 +151,10 @@ export function jsonRevocationStore(file: string): RevocationStore {
           at: '',
         }));
       // Set the unreadable file aside so the next save cannot destroy its old records.
-      const setAside = (why: string): RevokedToken[] => {
+      const setAside = (why: string, failIfNoHash = false): RevokedToken[] => {
         const found = salvage(text);
-        if (found.length === 0 && text.trim() !== '') {
+        // Only a corrupt (unparseable) file may hide revocations; valid JSON with no hashes holds none.
+        if (failIfNoHash && found.length === 0 && text.trim() !== '') {
           throw new Error(`[service-tokens] ${file}: ${why} and no revoked token hash could be read; fix or remove the file`);
         }
         warn(why);
@@ -166,7 +167,7 @@ export function jsonRevocationStore(file: string): RevocationStore {
       try {
         raw = JSON.parse(text);
       } catch {
-        return setAside('not valid JSON');
+        return setAside('not valid JSON', true);
       }
       const list = (raw as { revoked?: unknown } | null)?.revoked;
       if (!raw || typeof raw !== 'object' || !Array.isArray(list)) return setAside('unexpected shape');

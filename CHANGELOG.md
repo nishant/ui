@@ -49,7 +49,7 @@ Fixes from the 2026-11-08 audit.
 - `nish-th-check`: runs when started through the npm bin symlink on Linux and macOS (it used to print nothing and pass).
 - Login rate limiter: treats every address in an IPv6 /64 (and `::ffff:a.b.c.d`) as one client, so rotating addresses no longer dodges the limit.
 - Inbox client: no longer retries the queue on every new send during an outage; it waits for its backoff and Retry-After.
-- Service tokens: an unreadable revocation file no longer brings revoked tokens back; hashes still readable stay revoked and a file with none stops startup.
+- Service tokens: an unreadable revocation file no longer brings revoked tokens back; hashes still readable stay revoked and a corrupt (unparseable) file with none stops startup, while valid JSON without hashes (`[]`, `{}`) is set aside with a warning.
 - `Carousel`: scrolls only its own track (rotation, controlled index and `defaultIndex` no longer pull the page back to it) and pauses `autoPlay` while off-screen.
 - `SystemCanvas`: the Lines legend is a plain disclosure of switches instead of an incomplete ARIA menu, and Ctrl+= / Ctrl+- / Ctrl+0 browser zoom keys are no longer swallowed.
 - Sticky tables: a pinned first column no longer paints the first body cells over the pinned corner header.
