@@ -4,6 +4,32 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
 
 ## Ideas
 
+- **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids
+  `UI-nnn`). 3.1.0 fixed every high and medium finding in shipped code except UI-035. Still open: (1) chunks never read
+  because of the usage cut: `site/components/` from `accordion.tsx` on, `site/docgen*`, `site/pages/`, `site/public/`,
+  `tests/` (consumers, elements, overlay) and `tools/` other than `tools/fanout/`, plus the tests-and-CI and live-site lenses;
+  (2) about 270 low and nit findings across the repo.
+- **Fan-out fixes from the audit** (2026-11-09, audit-1108): UI-007 (high): a conflicting bump PR is closed and its branch
+  deleted even when a session adopted it. UI-093: a cancelled or skipped deploy run counts as failed and reverts the bump.
+  UI-092: deploy watch and revert never run in the default flow (`--wait 0` hourly; release runs sit in the settle window).
+  UI-089, UI-091: FLEET_TOKEN isolation for repo-controlled commands can be bypassed through `/proc` and git hooks in the clone.
+  UI-090: no tests for the bump PR lifecycle, `topUpBumpPr`, `watchDeploy` or revert. UI-016: `scripts/bump-consumers.sh`
+  does not validate its mode argument, so a typo of `--dry-run` pushes and merges.
+- **CI and docs drift from the audit** (2026-11-09, audit-1108): UI-008: Dependabot ignores major versions of GitHub
+  Actions. UI-009: the release job runs devDependency code with a `contents: write` + `actions: write` token; split the build
+  from the push. UI-010: DEVELOPING says the site visual check runs at 360/840/desktop, but `tools/site.visual.json`
+  checks 1440 and 390. UI-011, UI-014: RELEASING contradicts the fan-out code (fleet.yaml vs catalog.json, publish vs
+  fan-out order, "5 minutes").
+- **3.1.0 review leftovers** (2026-11-09, audit-1108):
+  - `configureApi` config now lives in `shared('api')`, so any nish-ui bundle on the page can change `baseUrl`; consider
+    sharing only between same-version copies.
+  - After a swipe dismiss, a parent that closes late (popstate, a router) can see the panel flash back.
+  - The `useLocalStorage` storage listener leaks across copies.
+  - Partial fixes remain in VirtualTable focus scrolling, the RTL scrollspy and `<nish-table-sort>` currency parsing.
+  - UI-035: `FilterBar` server-renders the desktop row, so phones see it until hydration; fix by design, or document it.
+  - `src/components/toast-lazy.test.tsx` ("moves focus from the fallback Undo button") fails under heavy local load but
+    passes alone and in CI.
+
 - **Root bundle back to 100 KB** (2026-11-05): everything from `nish-ui` is 122.1 KB gzip (target 100); 3.0 moved the fleet names off. The rest needs general components off the root (flow 5.4 KB, split 5.0, charts 4.8, Calendar and DatePicker 4.4, VirtualList and VirtualTable 4.2); decide whether that is worth a 4.0.
 - **Other 2.0 leftovers** (2026-11-03): a CommonJS build and React 18 support, only if an outside user asks.
 - **Docs demos lose `nish-pad-bottom-inset` to a padding utility** (2026-11-07, ui-pad-bottom): the class is in the base layer, so `py-4` beats it in `site/components/bottom-nav.tsx` and `sticky-action-bar.tsx`, and the inline `padding` in `static-parity.tsx` does too. Use `pt-4` plus `pb-[max(calc(var(--nish-bottom-inset,0px)+1rem),calc(1rem+env(safe-area-inset-bottom)))]` there, as PageContainer does since 2.1.3.
