@@ -11,8 +11,10 @@ import {
   useScrollSpy,
   visibleNavItems,
   type NavItem,
+  type RenderLink,
 } from './nav';
 import { MoreSheet } from './more-sheet';
+import { renderItem } from './nav-items';
 import { NishProvider } from './provider';
 
 const icon = createElement('svg', { 'aria-hidden': 'true' });
@@ -608,5 +610,98 @@ describe('useScrollSpy and SectionNav', () => {
       window.dispatchEvent(new Event('wheel'));
     });
     expect(screen.getByRole('button', { name: 'One' }).getAttribute('aria-current')).toBe('true');
+  });
+});
+
+describe('sheet link rows inside a history layer', () => {
+  const layerItem = item('a', 'Alpha');
+  afterEach(() => history.replaceState(null, ''));
+
+  it('a plain anchor in a layer prevents the default and closes', () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    history.replaceState({ nishLayer: 'x' }, '');
+    const onAfter = vi.fn();
+    render(<>{renderItem(layerItem, 'row', 'Alpha', undefined, onAfter)}</>);
+    const notPrevented = fireEvent.click(screen.getByRole('link', { name: 'Alpha' }));
+    expect(notPrevented).toBe(false);
+    expect(onAfter).toHaveBeenCalledTimes(1);
+  });
+
+  it('a plain anchor outside a layer is left to the browser', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onAfter = vi.fn();
+    render(<>{renderItem(layerItem, 'row', 'Alpha', undefined, onAfter)}</>);
+    const link = screen.getByRole('link', { name: 'Alpha' });
+    link.addEventListener('click', (e) => e.preventDefault());
+    fireEvent.click(link);
+    expect(onAfter).toHaveBeenCalledTimes(1);
+  });
+
+  const routerLink: RenderLink = (it, props) => (
+    <a
+      href={it.href}
+      onClick={(e) => {
+        e.preventDefault();
+        props.onClick?.();
+      }}
+    >
+      {props.children}
+    </a>
+  );
+
+  it('a router link that takes the click waits until the sheet entry is replaced', () => {
+    vi.useFakeTimers();
+    history.replaceState({ nishLayer: 'x' }, '');
+    const onAfter = vi.fn();
+    render(<>{renderItem(layerItem, 'row', 'Alpha', routerLink, onAfter)}</>);
+    fireEvent.click(screen.getByRole('link', { name: 'Alpha' }));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(onAfter).not.toHaveBeenCalled();
+    history.replaceState({}, '');
+    act(() => {
+      vi.advanceTimersByTime(40);
+    });
+    expect(onAfter).toHaveBeenCalledTimes(1);
+  });
+
+  it('a router link that never replaces the entry closes after 3 s', () => {
+    vi.useFakeTimers();
+    history.replaceState({ nishLayer: 'x' }, '');
+    const onAfter = vi.fn();
+    render(<>{renderItem(layerItem, 'row', 'Alpha', routerLink, onAfter)}</>);
+    fireEvent.click(screen.getByRole('link', { name: 'Alpha' }));
+    act(() => {
+      vi.advanceTimersByTime(3100);
+    });
+    expect(onAfter).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives renderLink replace: true only when a sheet closes after it', () => {
+    const seen: Array<boolean | undefined> = [];
+    const renderLink: RenderLink = (it, props) => {
+      seen.push(props.replace);
+      return <a href={it.href}>{props.children}</a>;
+    };
+    render(<>{renderItem(layerItem, 'row', 'Alpha', renderLink)}</>);
+    render(<>{renderItem(layerItem, 'row', 'Beta', renderLink, () => {})}</>);
+    expect(seen).toEqual([undefined, true]);
+  });
+});
+
+describe('MoreSheet above the bar', () => {
+  it('leaves the bar out of the inert set while the sheet is open', () => {
+    const { container } = render(<BottomNav label="Main" items={[item('a', 'Alpha'), item('b', 'Beta')]} />);
+    const bar = container.querySelector('[data-nish-bar]') as HTMLElement;
+    expect(bar).toBeTruthy();
+    const other = document.createElement('p');
+    container.appendChild(other);
+    const sheet = render(<MoreSheet open onClose={() => {}} items={[item('c', 'Gamma')]} />);
+    expect(bar.closest('[inert]')).toBeNull();
+    expect(other.closest('[inert]')).not.toBeNull();
+    sheet.unmount();
+    expect(document.querySelectorAll('[inert]').length).toBe(0);
   });
 });

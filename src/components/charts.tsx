@@ -233,6 +233,8 @@ export function LineChart({
   const yLabels = scale ? ticksBetween(scale.yMin, scale.yMax, yTicks).map((v) => ({ v, text: yFmt(v) })) : [];
   const padLeft = Math.ceil(Math.max(0, ...yLabels.map((l) => l.text.length)) * 6.6) + 10;
   const plotW = Math.max(0, width - padLeft - PAD_RIGHT);
+  // Where the plot starts. In RTL the y labels sit on the right, so the label gutter swaps sides.
+  const plotX = rtl ? PAD_RIGHT : padLeft;
   const plotH = Math.max(0, height - PAD_TOP - PAD_BOTTOM);
 
   // Path points as strings. Depends on data, size and direction, not on the hover position.
@@ -242,11 +244,11 @@ export function LineChart({
     return runs.map((segs) =>
       segs.map((seg) =>
         decimateMinMax(seg, scale.xMin, scale.xMax, plotW).map(
-          (p) => `${xPos(p.x, scale.xMin, scale.xMax, padLeft, plotW, rtl).toFixed(1)},${sy(p.y).toFixed(1)}`,
+          (p) => `${xPos(p.x, scale.xMin, scale.xMax, plotX, plotW, rtl).toFixed(1)},${sy(p.y).toFixed(1)}`,
         ),
       ),
     );
-  }, [runs, scale, plotW, plotH, padLeft, rtl]);
+  }, [runs, scale, plotW, plotH, plotX, rtl]);
 
   if (loading) return <Skeleton className={cn('w-full rounded-xl', className)} style={{ height }} />;
 
@@ -265,7 +267,7 @@ export function LineChart({
     );
   }
 
-  const sx = (x: number) => xPos(x, scale.xMin, scale.xMax, padLeft, plotW, rtl);
+  const sx = (x: number) => xPos(x, scale.xMin, scale.xMax, plotX, plotW, rtl);
   const sy = (y: number) => PAD_TOP + (1 - (y - scale.yMin) / (scale.yMax - scale.yMin)) * plotH;
   const bottom = PAD_TOP + plotH;
 
@@ -273,7 +275,7 @@ export function LineChart({
 
   const moveTo = (clientX: number, el: Element) => {
     const rect = el.getBoundingClientRect();
-    const f = (clientX - rect.left - padLeft) / (plotW || 1);
+    const f = (clientX - rect.left - plotX) / (plotW || 1);
     const x = scale.xMin + (rtl ? 1 - f : f) * (scale.xMax - scale.xMin);
     let lo = 0;
     let hi = xs.length - 1;
@@ -316,7 +318,7 @@ export function LineChart({
           role="img"
           tabIndex={0}
           aria-label={label}
-          className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-th-accent"
+          className="block rounded-md outline-none forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] focus-visible:ring-2 focus-visible:ring-th-accent"
           style={{ touchAction: 'pan-y' }}
           onPointerDown={onPointer}
           onPointerMove={onPointer}
@@ -338,9 +340,9 @@ export function LineChart({
           )}
           {yLabels.map((l, i) => (
             <g key={i}>
-              <line x1={padLeft} x2={padLeft + plotW} y1={sy(l.v)} y2={sy(l.v)} stroke={CHART.grid} strokeWidth={1} />
+              <line x1={plotX} x2={plotX + plotW} y1={sy(l.v)} y2={sy(l.v)} stroke={CHART.grid} strokeWidth={1} />
               <text
-                x={rtl ? padLeft + plotW + 6 : padLeft - 6}
+                x={rtl ? plotX + plotW + 6 : plotX - 6}
                 y={sy(l.v)}
                 textAnchor={rtl ? 'start' : 'end'}
                 dominantBaseline="middle"
@@ -366,7 +368,7 @@ export function LineChart({
             </text>
           ))}
           {baseline != null && Number.isFinite(baseline) && (
-            <line x1={padLeft} x2={padLeft + plotW} y1={sy(baseline)} y2={sy(baseline)} stroke={CHART.zero} strokeWidth={1} strokeDasharray="4 4" />
+            <line x1={plotX} x2={plotX + plotW} y1={sy(baseline)} y2={sy(baseline)} stroke={CHART.zero} strokeWidth={1} strokeDasharray="4 4" />
           )}
           {area &&
             paths[0]?.map((seg, i) => (
@@ -393,8 +395,15 @@ export function LineChart({
       )}
       {ax != null && width > 0 && (
         <div
-          className="pointer-events-none absolute top-1 z-[var(--nish-z-tooltip,10)] whitespace-nowrap px-2 py-1 tabular-nums"
-          style={{ ...tooltipStyle, ...(tipRight ? { left: cx + 10 } : { right: width - cx + 10 }) }}
+          ref={(el) => {
+            // Keep the tooltip inside the chart: a wide one would otherwise run past the edge and add page scroll.
+            if (!el) return;
+            const w = el.offsetWidth;
+            if (tipRight) el.style.left = `${Math.max(0, Math.min(cx + 10, width - w))}px`;
+            else el.style.right = `${Math.max(0, Math.min(width - cx + 10, width - w))}px`;
+          }}
+          className="pointer-events-none absolute top-1 z-[var(--nish-z-tooltip,10)] overflow-hidden whitespace-nowrap px-2 py-1 tabular-nums"
+          style={{ ...tooltipStyle, maxWidth: 'calc(100% - 8px)', ...(tipRight ? { left: cx + 10 } : { right: width - cx + 10 }) }}
         >
           <div className="text-th-hi3">{xFmt(ax)}</div>
           {tipRows.map((r) => (
@@ -485,7 +494,9 @@ export function BarChart({
   const [wrapRef, width, wrapEl] = useWidth<HTMLDivElement>();
   const rtl = useChartRtl(wrapEl);
   const coarse = useMediaQuery('(pointer: coarse)');
-  const [selected, setSelected] = useState<number | null>(null);
+  const [pickedBar, setSelected] = useState<number | null>(null);
+  // The data can shrink under a selection; an index past the end counts as none.
+  const selected = pickedBar != null && pickedBar < data.length ? pickedBar : null;
   const color = toneColor(tone, 0);
 
   const pick = useCallback(
@@ -529,7 +540,7 @@ export function BarChart({
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
       const dir = (e.key === 'ArrowRight' ? 1 : -1) * (rtl ? -1 : 1);
-      setSelected((s) => (s == null ? (dir > 0 ? 0 : data.length - 1) : Math.min(data.length - 1, Math.max(0, s + dir))));
+      setSelected(() => (selected == null ? (dir > 0 ? 0 : data.length - 1) : Math.min(data.length - 1, Math.max(0, selected + dir))));
     } else if (e.key === 'Escape') setSelected(null);
   };
 
@@ -542,7 +553,7 @@ export function BarChart({
           role="img"
           tabIndex={0}
           aria-label={label}
-          className="block rounded-md outline-none focus-visible:ring-2 focus-visible:ring-th-accent"
+          className="block rounded-md outline-none forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] focus-visible:ring-2 focus-visible:ring-th-accent"
           style={{ touchAction: 'pan-y' }}
           onPointerDown={(e) => pick(e.clientX, e.currentTarget)}
           onPointerMove={(e) => {

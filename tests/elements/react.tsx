@@ -201,6 +201,18 @@ const WAVE2: Record<string, () => ReactNode> = {
       </Chip>
     </ChipGroup>
   ),
+  'chip-scroll': () => (
+    <ChipGroup label="Status" scroll>
+      {<Chip>Open</Chip>}
+      {<Chip>Closed</Chip>}
+      {<Chip>Draft</Chip>}
+      {<Chip>Merged</Chip>}
+      {<Chip>Blocked</Chip>}
+      {<Chip>Waiting on review</Chip>}
+      {<Chip>Needs changes</Chip>}
+      {<Chip>Approved</Chip>}
+    </ChipGroup>
+  ),
   'chip-suggestion': () => (
     <ChipGroup label="Suggestions">
       <Chip variant="suggestion">Add tag</Chip>

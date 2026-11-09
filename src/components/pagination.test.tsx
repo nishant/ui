@@ -143,6 +143,17 @@ describe('Pagination', () => {
     expect(fn).toHaveBeenCalledWith(3);
   });
 
+  it('renderLink ignores a modified or middle click that opens a new tab', () => {
+    const fn = vi.fn();
+    render(<Pagination pageCount={3} page={2} onPageChange={fn} renderLink={(p, props) => <a href={`?page=${p}`} {...props} />} />);
+    const link = screen.getByRole('link', { name: 'Page 3' });
+    fireEvent.click(link, { ctrlKey: true });
+    fireEvent.click(link, { metaKey: true });
+    fireEvent.click(link, { shiftKey: true });
+    fireEvent.click(link, { button: 1 });
+    expect(fn).not.toHaveBeenCalled();
+  });
+
   it('renderLink keeps an unavailable previous as a disabled button', () => {
     render(<Pagination pageCount={3} page={1} renderLink={(p, props) => <a href={`?page=${p}`} {...props} />} />);
     expect((screen.getByRole('button', { name: 'Previous page' }) as HTMLButtonElement).disabled).toBe(true);

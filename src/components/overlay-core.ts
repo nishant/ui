@@ -123,20 +123,33 @@ function syncInert() {
     inerted.clear();
     return;
   }
-  for (const el of Array.from(document.body.children) as HTMLElement[]) {
-    const skip = el === top || el.contains(top) || el.hasAttribute('data-nish-keep-active');
-    if (skip) {
-      if (inerted.has(el)) {
-        el.inert = false;
-        el.removeAttribute('inert');
-        inerted.delete(el);
-      }
+  // A sheet lifted above a bottom bar (its scrim has an inline `bottom`) leaves the bar live, so
+  // the bar can still close the sheet or switch tabs. inert is inherited, so the branches that
+  // lead to the bar stay live and their other children are made inert.
+  const keeps: HTMLElement[] =
+    top.style.bottom !== ''
+      ? Array.from(document.querySelectorAll<HTMLElement>('[data-nish-bar]')).filter((b) => !top.contains(b) && !b.contains(top))
+      : [];
+  const release = (el: HTMLElement) => {
+    if (inerted.has(el)) {
+      el.inert = false;
+      el.removeAttribute('inert');
+      inerted.delete(el);
+    }
+  };
+  const visit = (el: HTMLElement) => {
+    if (el === top || el.contains(top) || el.hasAttribute('data-nish-keep-active') || keeps.includes(el)) {
+      release(el);
+    } else if (keeps.some((k) => el.contains(k))) {
+      release(el);
+      for (const child of Array.from(el.children) as HTMLElement[]) visit(child);
     } else if (!el.inert) {
       el.inert = true;
       el.setAttribute('inert', '');
       inerted.add(el);
     }
-  }
+  };
+  for (const el of Array.from(document.body.children) as HTMLElement[]) visit(el);
 }
 
 /** @internal */
@@ -173,9 +186,25 @@ export const closeVetoes = /* @__PURE__ */ new WeakMap<() => void, () => boolean
 export const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/** @internal */
+/** @internal Elements Tab really reaches: not tabindex < 0, not inside [inert], not hidden, and
+ *  one radio per group (the checked one, else the first). */
 export function focusables(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((n) => n.offsetParent !== null);
+  const all = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE));
+  const radios = (n: HTMLInputElement) =>
+    Array.from((n.form ?? root).querySelectorAll<HTMLInputElement>('input[type="radio"]')).filter((r) => r.name === n.name && !r.disabled);
+  return all.filter((n) => {
+    if (n.offsetParent === null) return false;
+    const ti = n.getAttribute('tabindex');
+    if (ti !== null && Number.parseInt(ti, 10) < 0) return false;
+    if (n.closest('[inert]')) return false;
+    if (typeof n.checkVisibility === 'function' && !n.checkVisibility({ visibilityProperty: true })) return false;
+    if (n instanceof HTMLInputElement && n.type === 'radio' && n.name) {
+      const group = radios(n);
+      const checked = group.find((r) => r.checked);
+      return checked ? n === checked : n === group[0];
+    }
+    return true;
+  });
 }
 
 // Scroll lock, counted so stacked dialogs restore the page only when the last closes.

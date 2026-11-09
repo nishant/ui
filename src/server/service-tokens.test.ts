@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mountServiceTokenRoutes } from './hono';
 import {
   checkServiceRequest,
+  hashServiceToken,
   jsonRevocationStore,
   loadManagedServiceTokens,
   loadServiceTokens,
@@ -97,17 +98,45 @@ describe('loadManagedServiceTokens', () => {
     expect(tokens.views().every((v) => v.revoked)).toBe(true);
   });
 
-  it('survives a missing or invalid revocation file', () => {
+  it('starts without revocations only when the file is missing, and fails closed on an unreadable one', () => {
     const d = dir();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const file = seedFile(d, [entry('mcp', 'nish MCP', mcp)]);
     expect(loadManagedServiceTokens({ file, revocations: join(d, 'missing.json') }).verify(bearer(mcp.token), 'read').ok).toBe(true);
-    for (const body of ['not json', '{"version":1}', '[]']) {
+    for (const body of ['not json', '{"revoked": [{"sha256": "abc"']) {
       const bad = join(d, 'bad.json');
       writeFileSync(bad, body);
-      expect(loadManagedServiceTokens({ file, revocations: bad }).verify(bearer(mcp.token), 'read').ok).toBe(true);
+      expect(() => loadManagedServiceTokens({ file, revocations: bad })).toThrow();
+      expect(readFileSync(bad, 'utf8')).toBe(body);
     }
-    expect(warn).toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('starts, warns and sets the file aside when it is valid JSON without any hash', () => {
+    const d = dir();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const file = seedFile(d, [entry('mcp', 'nish MCP', mcp)]);
+    for (const body of ['[]', '{}', '{"version":1}']) {
+      const odd = join(d, 'odd.json');
+      writeFileSync(odd, body);
+      const tokens = loadManagedServiceTokens({ file, revocations: odd });
+      expect(tokens.verify(bearer(mcp.token), 'read').ok).toBe(true);
+      expect(() => readFileSync(odd, 'utf8')).toThrow();
+    }
+    expect(warn).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps a token revoked when its record or file is damaged but the hash is readable', () => {
+    const d = dir();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const file = seedFile(d, [entry('mcp', 'nish MCP', mcp)]);
+    const hash = hashServiceToken(mcp.token);
+    const upper = join(d, 'upper.json');
+    writeFileSync(upper, JSON.stringify({ version: 1, revoked: [{ sha256: hash.toUpperCase(), id: 'mcp' }] }));
+    expect(loadManagedServiceTokens({ file, revocations: upper }).verify(bearer(mcp.token), 'read')).toEqual({ ok: false, status: 401 });
+    const broken = join(d, 'broken.json');
+    writeFileSync(broken, `{"revoked": [{"sha256": "${hash}"`);
+    expect(loadManagedServiceTokens({ file, revocations: broken }).verify(bearer(mcp.token), 'read')).toEqual({ ok: false, status: 401 });
   });
 
   it('answers 401, not 403, for a revoked token asking for a scope it never had', () => {
@@ -146,8 +175,8 @@ describe('loadManagedServiceTokens', () => {
     const d = dir();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const bad = join(d, 'bad.json');
-    writeFileSync(bad, 'nope');
-    jsonRevocationStore(bad).load();
+    writeFileSync(bad, `nope ${'a'.repeat(64)}`);
+    expect(jsonRevocationStore(bad).load()).toHaveLength(1);
     expect(readdirSync(d).some((f) => f.startsWith('bad.json.bad-'))).toBe(true);
     const odd = join(d, 'odd.json');
     writeFileSync(odd, JSON.stringify({ version: 1, revoked: [{ nonsense: true }] }));
@@ -161,20 +190,20 @@ describe('loadManagedServiceTokens', () => {
     const d = dir();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const bad = join(d, 'bad.json');
-    writeFileSync(bad, 'nope');
+    writeFileSync(bad, `nope ${'a'.repeat(64)}`);
     // A non-empty directory at the set-aside name makes the rename fail.
     vi.spyOn(Date, 'now').mockReturnValue(123);
     mkdirSync(join(d, 'bad.json.bad-123'));
     writeFileSync(join(d, 'bad.json.bad-123', 'x'), 'x');
     expect(() => jsonRevocationStore(bad).load()).toThrow();
-    expect(readFileSync(bad, 'utf8')).toBe('nope');
+    expect(readFileSync(bad, 'utf8')).toBe(`nope ${'a'.repeat(64)}`);
   });
 
   it('warns once per store', () => {
     const d = dir();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const bad = join(d, 'bad.json');
-    writeFileSync(bad, 'nope');
+    writeFileSync(bad, `nope ${'a'.repeat(64)}`);
     const store = jsonRevocationStore(bad);
     store.load();
     store.load();

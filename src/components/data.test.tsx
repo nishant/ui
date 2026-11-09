@@ -215,6 +215,15 @@ describe('ResponsiveTable sorting', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Name' }));
     expect(region.textContent).toBe('Sorted by Name, descending');
   });
+  it('announces sorts with the provider sortAnnounce string', () => {
+    render(
+      <NishProvider strings={{ sortAnnounce: (h, d) => `Trié ${h} ${d}` }}>
+        <ResponsiveTable<Item> label="Items" rows={ITEMS} columns={COLS} rowKey={(r) => r.id} />
+      </NishProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Name' }));
+    expect(screen.getByRole('status').textContent).toBe('Trié Name asc');
+  });
   it('lets sortText replace the announcement', () => {
     renderTable({ sortText: { announce: (h, d) => `${h}/${d}` } });
     fireEvent.click(screen.getByRole('button', { name: 'Qty' }));

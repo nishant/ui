@@ -405,7 +405,7 @@ export function Input({ invalid, size = 'md', leading, trailing, wrapperClassNam
     <input
       ref={ref}
       aria-invalid={invalid || undefined}
-      className={fieldClass({ size, className: cn(leading != null && 'ps-8', trailing != null && 'pe-8', className) })}
+      className={fieldClass({ size, className: cn(leading != null && 'ps-8', trailing != null && 'pe-8 pointer-coarse:pe-12', className) })}
       {...rest}
     />
   );

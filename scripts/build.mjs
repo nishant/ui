@@ -606,5 +606,8 @@ function testStandalone() {
     }
     const rel = code.match(/\b(?:from|import)\s*\(?\s*["']\.{1,2}\/[^"']+["']/);
     if (rel) throw new Error(`dist/${f} must stand alone but imports ${rel[0]}`);
+    // A bare specifier ("react") cannot be resolved by a static page that vendors the file.
+    const bare = code.match(/\b(?:from|import)\s*\(?\s*["'](?!\.{1,2}\/|node:|https?:|data:)[^"']+["']/);
+    if (bare) throw new Error(`dist/${f} must stand alone but imports the bare specifier ${bare[0]}`);
   }
 }

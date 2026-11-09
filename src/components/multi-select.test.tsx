@@ -216,3 +216,22 @@ describe('MultiSelect', () => {
     expect(screen.getByRole('button', { name: /Remove Texas/ })).toBeTruthy();
   });
 });
+
+describe('MultiSelect query reset on blur', () => {
+  it('tells onQueryChange the box was cleared when focus leaves', () => {
+    vi.useFakeTimers();
+    const onQueryChange = vi.fn();
+    render(<MultiSelect aria-label="S" options={OPTIONS} onQueryChange={onQueryChange} />);
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'tex' } });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    fireEvent.blur(input, { relatedTarget: document.body });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(onQueryChange).toHaveBeenLastCalledWith('');
+    vi.useRealTimers();
+  });
+});

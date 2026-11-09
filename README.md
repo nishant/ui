@@ -156,16 +156,16 @@ elements for pages that have no React: `<nish-theme-toggle>`, `<nish-sheet>`,
 and Claude artifacts. They use the same `nish-*` classes as above, so link the stylesheets too.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/nish-ui@2/dist/theme-init.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@2/dist/nish.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@2/dist/nish-components.css">
-<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@2/dist/elements.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nish-ui@3/dist/theme-init.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@3/dist/nish.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nish-ui@3/dist/nish-components.css">
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@3/dist/elements.js"></script>
 
 <nish-theme-toggle pill></nish-theme-toggle>
 ```
 
 With a bundler: `import 'nish-ui/elements';` and `import { toast } from 'nish-ui/elements';`.
-Pin an exact version (`nish-ui@2.0.0`) in production.
+Pin an exact version (`nish-ui@3.0.0`) in production.
 
 Each entry file is self-contained, so load only the ones whose tags the page uses:
 

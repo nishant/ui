@@ -3462,6 +3462,10 @@
     z-index: 10;
     background: inherit;
   }
+  /* The pinned corner sits above the pinned body column it would otherwise tie with. */
+  :where(.nish-table-wrap--sticky-first) :where(thead tr > :first-child) {
+    z-index: 11;
+  }
   :where(.nish-table-wrap--sticky-first) :where(tr > :first-child)::after {
     content: '';
     position: absolute;
@@ -3474,7 +3478,8 @@
     transition: opacity 150ms;
     pointer-events: none;
   }
-  :where(.nish-table-wrap--sticky-first[data-at-start='false']) :where(tr > :first-child)::after {
+  :where(.nish-table-wrap--sticky-first[data-at-start='false']:not(:dir(rtl))) :where(tr > :first-child)::after,
+  :where(.nish-table-wrap--sticky-first[data-at-end='false']:dir(rtl)) :where(tr > :first-child)::after {
     opacity: 1;
   }
   :where(.nish-table--zebra) :where(tbody tr:nth-child(even)) {
@@ -4764,7 +4769,22 @@
     }
     :where(.nish-tab[aria-selected='true'], .nish-tab[aria-current]:not([aria-current='false'])) {
       border-bottom-color: Highlight;
+    }
+    :where(.nish-tab[aria-selected='true']:not(:focus-visible), .nish-tab[aria-current]:not([aria-current='false']):not(:focus-visible)) {
       outline: 0;
+    }
+    :where(.nish-tab:focus-visible) {
+      outline: 2px solid Highlight;
+      outline-offset: -2px;
+    }
+    /* Focus drawn only with a shadow or a fill is dropped here: use a real outline. */
+    :where(.nish-chart svg[role='img']:focus-visible, .nish-split-divider:focus-visible) {
+      outline: 2px solid Highlight;
+      outline-offset: 2px;
+    }
+    :where(.nish-split-divider:hover, .nish-split-divider:focus-visible, .nish-split-divider:active, .nish-split-divider[data-dragging]) {
+      forced-color-adjust: none;
+      background: Highlight;
     }
     :where(.nish-tabs--pill .nish-tab[aria-selected='true'], .nish-tabs--pill .nish-tab[aria-current]:not([aria-current='false'])) {
       forced-color-adjust: none;
@@ -4805,5 +4825,25 @@
     :where(.nish-bottom-nav, .nish-toast) {
       display: none !important;
     }
+  }
+
+  /* Chip rows scroll sideways on a phone instead of wrapping (UI-070). */
+  @media (max-width: 639.98px) {
+    :where(.nish-chips--scroll) {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-block: 4px;
+      scrollbar-width: none;
+    }
+    :where(.nish-chips--scroll)::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  /* Hide the browser's own clear button on search inputs; the component has its own (UI-075). */
+  :where(.nish-search) > :where(input)::-webkit-search-cancel-button,
+  :where(.nish-search) > :where(input)::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
   }
 }

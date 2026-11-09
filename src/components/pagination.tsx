@@ -177,7 +177,11 @@ export function Pagination({
         'aria-current': current ? 'page' : undefined,
         'data-state': state,
         children,
-        onClick: () => go(target),
+        onClick: (event) => {
+          // Ctrl/Cmd/Shift/middle click opens a new tab and leaves this page alone.
+          if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          go(target);
+        },
       };
       return <li key={key}>{renderLink(target, props)}</li>;
     }

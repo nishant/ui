@@ -49,12 +49,15 @@ export interface AvatarProps extends Omit<ComponentPropsWithoutRef<'span'>, 'chi
   shape?: AvatarShape;
   /** A status dot at the bottom corner. Give it text elsewhere; color is never the only signal. */
   status?: StatusTone;
+  /** What a screen reader hears for the status dot (for example "Online"). Without it the dot is hidden from
+   *  assistive tech; it is always hidden when `alt=""`. */
+  statusLabel?: string;
   /** The root element. */
   ref?: Ref<HTMLSpanElement>;
 }
 
 /** A person or entity: their image, or initials on a color taken from their name. */
-export function Avatar({ src, name, alt, size, shape, status, className, ref, ...rest }: AvatarProps) {
+export function Avatar({ src, name, alt, size, shape, status, statusLabel, className, ref, ...rest }: AvatarProps) {
   const group = useContext(GroupContext);
   const strings = useStrings(AVATAR_STRINGS);
   const resolvedSize = size ?? group?.size ?? 'md';
@@ -99,7 +102,7 @@ export function Avatar({ src, name, alt, size, shape, status, className, ref, ..
         <StatusDot
           tone={status}
           size={DOT_SIZE[resolvedSize]}
-          label={status}
+          label={decorative ? undefined : statusLabel || undefined}
           className="absolute bottom-0 end-0 ring-2 ring-th-surface forced-colors:border forced-colors:border-[ButtonText]"
         />
       ) : null}

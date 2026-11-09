@@ -415,6 +415,21 @@ describe('DateRangePicker form use', () => {
     expect(new FormData(again.container.querySelector('form')!).get('trip')).toBe('');
   });
 
+  it('belongs to a form named by `form`, for validity and reset', () => {
+    const { container } = render(
+      <>
+        <form id="f" />
+        <DateRangePicker aria-label="Trip" name="trip" form="f" locale="en-US" defaultValue={NOV} />
+      </>,
+    );
+    const form = container.querySelector<HTMLFormElement>('form#f')!;
+    expect(input().form).toBe(form);
+    typeAndBlur('13/40/2026');
+    expect(form.checkValidity()).toBe(false);
+    typeAndBlur(NOV_TEXT);
+    expect(form.checkValidity()).toBe(true);
+  });
+
   it('refuses to submit while the typed text is unreadable', () => {
     const { container } = render(
       <form>

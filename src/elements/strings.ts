@@ -29,8 +29,10 @@ export interface NishElementStrings {
   copyManual: string;
   /** nish-field: tag for a non-required field. */
   optional: string;
-  /** nish-bottom-nav, nish-nav-rail, nish-section-nav: default landmark label. */
+  /** nish-bottom-nav, nish-nav-rail: default landmark label. */
   sections: string;
+  /** nish-section-nav: default landmark label. */
+  onThisPage: string;
   /** nish-filter-bar: sheet title and the button that opens it. */
   filters: string;
   /** nish-filter-bar: wide-layout clear button. */
@@ -63,6 +65,10 @@ export interface NishElementStrings {
   themeLight: string;
   /** nish-theme-toggle: name of the dark mode. */
   themeDark: string;
+  /** nish-theme-toggle: the button's label sentence, from the current mode name to the next one. */
+  themeToggleLabel?: (current: string, next: string) => string;
+  /** nish-theme-toggle: the words appended when another site set the theme ("set on another site"). */
+  themeElsewhere?: string;
 }
 
 export const DEFAULT_ELEMENT_STRINGS: NishElementStrings = {
@@ -80,6 +86,7 @@ export const DEFAULT_ELEMENT_STRINGS: NishElementStrings = {
   copyManual: 'Press Ctrl+C',
   optional: 'Optional',
   sections: 'Sections',
+  onThisPage: 'On this page',
   filters: 'Filters',
   clearFilters: 'Clear filters',
   showResults: 'Show results',
@@ -96,6 +103,8 @@ export const DEFAULT_ELEMENT_STRINGS: NishElementStrings = {
   themeSystem: 'System',
   themeLight: 'Light',
   themeDark: 'Dark',
+  themeToggleLabel: (current, next) => `Theme: ${current}. Switch to ${next}`,
+  themeElsewhere: 'set on another site',
 };
 
 interface Store {
@@ -124,7 +133,12 @@ export function configureStrings(partial: Partial<NishElementStrings>): void {
 
 /** The strings now in force. */
 export function getStrings(): NishElementStrings {
-  return store().values;
+  const s = store();
+  // A store made by an older copy of the package may lack newer keys: fill them from the defaults.
+  const values = s.values as unknown as Record<string, unknown>;
+  const missing = Object.keys(DEFAULT_ELEMENT_STRINGS).some((k) => values[k] === undefined);
+  if (missing) s.values = { ...DEFAULT_ELEMENT_STRINGS, ...Object.fromEntries(Object.entries(values).filter(([, v]) => v !== undefined)) } as unknown as NishElementStrings;
+  return s.values;
 }
 
 /** Call `fn` whenever `configureStrings` changes the words. Returns the unsubscribe function. */

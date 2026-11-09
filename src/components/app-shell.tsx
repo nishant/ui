@@ -32,7 +32,9 @@ export interface AppShellSidebar {
    *  "nish-sidebar-collapsed"; false keeps it in memory only. */
   storageKey?: string | false;
   /** Buttons above the nav (search, an assistant). Give them labels: collapsed, they stack as
-   *  icons. Below 1024px, where there is no sidebar, they show in the header before `actions`. */
+   *  icons. Below 1024px, where there is no sidebar, they show in the header before `actions`.
+   *  Both copies stay mounted and CSS shows one, so they must not hold a global key listener, a fixed id or
+   *  open state of their own (put those in the app and pass plain buttons). */
   tools?: ReactNode;
   /** Next to the collapse button at the bottom. Sidebar only: put anything people need on a
    *  phone in `actions` or `moreItems` too. */
@@ -66,7 +68,8 @@ export interface AppShellProps {
   navLabel?: string;
   /** id of the `main` element and target of the skip link. Default "nish-main"; give each shell on a page its own. */
   mainId?: string;
-  /** Header buttons before the theme toggle. */
+  /** Header buttons before the theme toggle. With a `brand` sidebar they are also shown in the sidebar's tools, so
+   *  the same rule applies: two copies are mounted, only one is visible. */
   actions?: ReactNode;
   /** Replaces the header's ThemeToggle; false hides it. */
   themeToggle?: ReactNode | false;

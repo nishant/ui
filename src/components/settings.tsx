@@ -264,6 +264,7 @@ export function NumberField({
   const [pending, setPending] = useState(false);
   const draftRef = useRef(draft);
   const lastSent = useRef<{ v: number | null } | null>(null);
+  const seq = useRef(0);
   const mounted = useRef(true);
   const skipCommit = useRef(false);
 
@@ -323,6 +324,7 @@ export function NumberField({
     if (lastSent.current && lastSent.current.v === next) return;
     setError(null);
     lastSent.current = { v: next };
+    const mine = ++seq.current;
     let result: void | Promise<void>;
     try {
       result = onCommit(next);
@@ -334,10 +336,11 @@ export function NumberField({
       setPending(true);
       result.then(
         () => {
-          if (mounted.current) setPending(false);
+          if (mounted.current && mine === seq.current) setPending(false);
         },
         (e: unknown) => {
-          if (!mounted.current) return;
+          // A newer commit owns the field now: its result decides the pending state and the error.
+          if (!mounted.current || mine !== seq.current) return;
           setPending(false);
           fail(e);
         },

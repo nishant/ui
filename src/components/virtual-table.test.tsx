@@ -293,6 +293,14 @@ describe('VirtualTable rows', () => {
     expect(tabbable(container)).toEqual([4]);
   });
 
+  it('ignores a click on a label inside a cell', () => {
+    const onRowClick = vi.fn();
+    const cols: Column<Row>[] = [{ key: 'lbl', header: 'L', cell: (r) => <label>Pick {r.id}</label> }];
+    const { getByText } = render(<VirtualTable label="Rows" rows={makeRows(3)} columns={cols} rowKey={rowKey} height={BOX} onRowClick={onRowClick} />);
+    fireEvent.click(getByText('Pick r1'));
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
   it('ignores a click or key from a button inside a cell', () => {
     const onRowClick = vi.fn();
     const { container, getByText } = render(<VirtualTable label="Rows" rows={makeRows(5)} columns={columns} rowKey={rowKey} height={BOX} onRowClick={onRowClick} />);

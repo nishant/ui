@@ -462,6 +462,16 @@ describe('ActivityFeed', () => {
     { id: 'new', at: NOW - 5_000, text: 'Newer', tone: 'ok' as const, source: 'worker-1' },
   ];
 
+  it('formats ages with the provider locale', () => {
+    render(
+      <NishProvider locale="de-DE">
+        <ActivityFeed items={items} now={NOW} />
+      </NishProvider>,
+    );
+    const rows = screen.getAllByRole('listitem');
+    expect(rows[1].textContent).not.toContain('ago');
+  });
+
   it('lists newest first with relative ages, source and tone', () => {
     render(<ActivityFeed items={items} now={NOW} />);
     const rows = screen.getAllByRole('listitem');

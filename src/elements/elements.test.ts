@@ -74,6 +74,19 @@ describe('configureStrings', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
+  it('falls back to the defaults for keys a store from an older copy lacks', async () => {
+    delete (getStrings() as unknown as Record<string, unknown>).onThisPage;
+    expect(getStrings().onThisPage).toBe('On this page');
+    delete (getStrings() as unknown as Record<string, unknown>).onThisPage;
+    configureStrings({ onThisPage: 'Auf dieser Seite' });
+    expect(getStrings().onThisPage).toBe('Auf dieser Seite');
+    delete (getStrings() as unknown as Record<string, unknown>).onThisPage;
+    mount('<nish-section-nav><a href="#a">A</a></nish-section-nav>');
+    await tick();
+    await tick();
+    expect(document.querySelector('nish-section-nav nav')?.getAttribute('aria-label')).toBe('On this page');
+  });
+
   it('is one store per page: a second module instance sees the same values', async () => {
     configureStrings({ copy: 'Copiar' });
     vi.resetModules();
@@ -131,9 +144,9 @@ describe('<nish-copy-button> and <nish-field> strings', () => {
 
 describe('Trusted Types: no innerHTML', () => {
   it('chip-group builds the remove icon with DOM calls', async () => {
-    mount('<nish-chip-group id="c"><span class="nish-chip" data-removable>Open</span></nish-chip-group>');
     const spy = spyInnerHTML();
     try {
+      mount('<nish-chip-group id="c"><span class="nish-chip" data-removable>Open</span></nish-chip-group>');
       await tick();
       const remove = document.querySelector('[data-nish-remove]')!;
       expect(remove.getAttribute('aria-label')).toBe('Remove Open');
@@ -152,9 +165,9 @@ describe('Trusted Types: no innerHTML', () => {
 
   it('filter-bar builds the funnel and close icons with DOM calls', async () => {
     const undo = compact();
-    mount('<nish-filter-bar id="f" active-count="2"><button type="button">One</button></nish-filter-bar>');
     const spy = spyInnerHTML();
     try {
+      mount('<nish-filter-bar id="f" active-count="2"><button type="button">One</button></nish-filter-bar>');
       await tick();
       await tick();
       const bar = document.getElementById('f')!;

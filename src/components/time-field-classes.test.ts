@@ -149,3 +149,18 @@ describe('drafts', () => {
     expect(hourAdvances('09', 24)).toBe(true);
   });
 });
+
+describe('inTimeRange with a reversed range', () => {
+  it('wraps past midnight when min is after max', () => {
+    expect(inTimeRange('23:30', '22:00', '06:00')).toBe(true);
+    expect(inTimeRange('03:00', '22:00', '06:00')).toBe(true);
+    expect(inTimeRange('22:00', '22:00', '06:00')).toBe(true);
+    expect(inTimeRange('06:00', '22:00', '06:00')).toBe(true);
+    expect(inTimeRange('12:00', '22:00', '06:00')).toBe(false);
+  });
+  it('keeps a normal range and one-sided limits', () => {
+    expect(inTimeRange('12:00', '09:00', '17:00')).toBe(true);
+    expect(inTimeRange('08:00', '09:00', '17:00')).toBe(false);
+    expect(inTimeRange('03:00', '22:00', null)).toBe(false);
+  });
+});

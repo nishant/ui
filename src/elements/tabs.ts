@@ -6,8 +6,12 @@ import { NishElement, define, isRtl, whenParsed } from './base';
 export function trackScrollEdges(el: HTMLElement): () => void {
   const update = (): void => {
     const max = el.scrollWidth - el.clientWidth;
-    el.dataset.atStart = String(el.scrollLeft <= 1);
-    el.dataset.atEnd = String(max <= 1 || el.scrollLeft >= max - 1);
+    // data-at-start is the left edge and data-at-end the right edge, as the fade mask reads them.
+    // A right-to-left scroller counts scrollLeft from 0 (its right edge) down to -max.
+    const rtl = isRtl(el);
+    const left = rtl ? el.scrollLeft + max : el.scrollLeft;
+    el.dataset.atStart = String(left <= 1);
+    el.dataset.atEnd = String(max <= 1 || left >= max - 1);
   };
   update();
   el.addEventListener('scroll', update, { passive: true });
@@ -47,6 +51,15 @@ export function revealInRow(scroller: HTMLElement, child: HTMLElement): void {
 
 let counter = 0;
 const safe = (v: string): string => v.replace(/[^\w-]+/g, '-');
+
+/** Unique id parts for tab values: the readable slug, with the tab's position added when the slug
+ *  has no letters or digits (a Japanese label) or is shared with another tab ('a b' and 'a-b'). */
+function slugs(values: string[]): string[] {
+  const base = values.map(safe);
+  return base.map((slug, i) =>
+    /[A-Za-z0-9_]/.test(slug) && base.indexOf(slug) === i && base.lastIndexOf(slug) === i ? slug : `${slug}-${i}`,
+  );
+}
 
 /** `<nish-tabs>`: moves its child `<button value>` tabs into `div.nish-tabs[role=tablist]` and wires the
  *  ARIA tabs pattern (roving tabindex, ArrowLeft/Right/Home/End, mirrored in a right-to-left page, selection follows focus).
@@ -208,18 +221,19 @@ export class NishTabs extends NishElement {
     const tabs = this.#tabs();
     const panels = this.#panels();
     let selected: HTMLButtonElement | null = null;
-    for (const tab of tabs) {
+    const ids = slugs(tabs.map((t) => this.#valueOf(t)));
+    for (const [i, tab] of tabs.entries()) {
       const v = this.#valueOf(tab);
       const on = v === this.value && !tab.disabled;
       if (on) selected = tab;
-      if (!tab.id) tab.id = `${this.#base}-tab-${safe(v)}`;
+      if (!tab.id) tab.id = `${this.#base}-tab-${ids[i]}`;
       tab.type = 'button';
       tab.classList.add('nish-tab');
       tab.setAttribute('role', 'tab');
       tab.setAttribute('aria-selected', String(on));
       const panel = panels.find((p) => p.getAttribute('data-tab-panel') === v);
       if (panel) {
-        if (!panel.id) panel.id = `${this.#base}-panel-${safe(v)}`;
+        if (!panel.id) panel.id = `${this.#base}-panel-${ids[i]}`;
         tab.setAttribute('aria-controls', panel.id);
         panel.setAttribute('role', 'tabpanel');
         panel.setAttribute('aria-labelledby', tab.id);

@@ -2,6 +2,7 @@
 // decimation). No directive and no React runtime import, so a server component can use them;
 // the 'use client' modules data.tsx, table.tsx and charts.tsx re-export what they documented.
 import type { Ref, RefCallback } from 'react';
+import { shared } from '../runtime';
 
 // =====================================================================================
 // Table recipes
@@ -45,10 +46,10 @@ const NUMERIC = 'whitespace-nowrap text-end tabular-nums';
 // A pinned first column: opaque (bg-inherit takes the row's color, rows get a solid base),
 // above the other cells, with a soft edge that shows once the table is scrolled sideways.
 const STICKY_COL =
-  '[&_thead_tr]:bg-th-surface [&_tbody_tr]:bg-th-surface [&_tr>:first-child]:sticky [&_tr>:first-child]:start-0 [&_tr>:first-child]:z-[calc(var(--nish-z-sticky,1)+9)] [&_tr>:first-child]:bg-inherit ' +
+  '[&_thead_tr]:bg-th-surface [&_tbody_tr]:bg-th-surface [&_thead_tr>:first-child]:z-[calc(var(--nish-z-sticky,1)+10)] [&_tr>:first-child]:sticky [&_tr>:first-child]:start-0 [&_tr>:first-child]:z-[calc(var(--nish-z-sticky,1)+9)] [&_tr>:first-child]:bg-inherit ' +
   '[&_tr>:first-child]:after:pointer-events-none [&_tr>:first-child]:after:absolute [&_tr>:first-child]:after:inset-y-0 [&_tr>:first-child]:after:start-full [&_tr>:first-child]:after:w-2.5 ' +
   '[&_tr>:first-child]:after:bg-gradient-to-r rtl:[&_tr>:first-child]:after:bg-gradient-to-l [&_tr>:first-child]:after:from-[color-mix(in_srgb,var(--nish-hi)_14%,transparent)] [&_tr>:first-child]:after:to-transparent ' +
-  '[&_tr>:first-child]:after:opacity-0 [&_tr>:first-child]:after:transition-opacity [&[data-at-start=false]_tr>:first-child]:after:opacity-100';
+  '[&_tr>:first-child]:after:opacity-0 [&_tr>:first-child]:after:transition-opacity ltr:[&[data-at-start=false]_tr>:first-child]:after:opacity-100 rtl:[&[data-at-end=false]_tr>:first-child]:after:opacity-100';
 
 /** The table recipes as strings, for renderers that take classes (TanStack Table cells,
  *  static markup). The components in table.tsx use exactly these. */
@@ -140,18 +141,18 @@ export type FaviconResolver = (host: string, size: number) => string | null;
 export const googleFavicon: FaviconResolver = (host, size) =>
   `https://www.google.com/s2/favicons?sz=${size * 2 > 32 ? 64 : 32}&domain=${encodeURIComponent(host)}`;
 
-let faviconResolver: FaviconResolver = () => null;
+const favicons = () => shared('favicons', () => ({ resolve: (() => null) as FaviconResolver }));
 
 /** Sets the resolver every Favicon (and LinkCard icon) uses when it has no `src` or
  *  `resolve` of its own. Call it once at startup. The default returns null: no request,
  *  a letter avatar. */
 export function configureFavicons(options: { resolve?: FaviconResolver | null }): void {
-  faviconResolver = options.resolve ?? (() => null);
+  favicons().resolve = options.resolve ?? (() => null);
 }
 
 /** The configured resolver. */
 export function getFaviconResolver(): FaviconResolver {
-  return faviconResolver;
+  return favicons().resolve;
 }
 
 export const FAVICON_HUES = 8;

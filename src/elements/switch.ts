@@ -5,7 +5,7 @@ let counter = 0;
 
 /** `<nish-switch label="Alerts" checked>`: an on/off switch that takes effect at once, a
  *  `<button role="switch">` inside a `.nish-check-row`. Attributes: `checked`, `disabled`, `label`,
- *  `description` (a quieter line under it), `size="sm"`, `label-side` (end, the default, puts the
+ *  `description` (a quieter line under it), `aria-label` (the name when there is no `label`), `size="sm"`, `label-side` (end, the default, puts the
  *  text after the switch; start puts it before) and `name` (a hidden input holds `on` while
  *  checked, so a form submits it). Click, Space and Enter toggle it and fire `change` and
  *  `nish-change` (`detail: { checked }`). */
@@ -18,6 +18,7 @@ export class NishSwitch extends NishElement {
     size: { type: String, reflect: true },
     labelSide: { attribute: 'label-side', reflect: true },
     name: { type: String },
+    ariaName: { type: String, attribute: 'aria-label' },
   };
 
   declare checked: boolean;
@@ -27,6 +28,8 @@ export class NishSwitch extends NishElement {
   declare size: string;
   declare labelSide: string;
   declare name: string | undefined;
+  /** The `aria-label` on the host, moved to the inner button so a switch without `label` has a name. */
+  declare ariaName: string | null | undefined;
 
   readonly #uid = `nish-switch-${++counter}`;
 
@@ -60,9 +63,10 @@ export class NishSwitch extends NishElement {
 
   protected override render(): TemplateResult {
     const hasLabel = !!this.label;
-    const text = hasLabel
+    const hasText = hasLabel || !!this.description;
+    const text = hasText
       ? html`<span style="min-width:0">
-          <span id=${`${this.#uid}-label`} style="display:block;line-height:1.375">${this.label}</span>
+          ${hasLabel ? html`<span id=${`${this.#uid}-label`} style="display:block;line-height:1.375">${this.label}</span>` : nothing}
           ${this.description
             ? html`<span id=${`${this.#uid}-desc`} style="display:block;margin-top:2px;font-size:var(--nish-text-xs);color:var(--nish-hi3)">${this.description}</span>`
             : nothing}
@@ -75,7 +79,8 @@ export class NishSwitch extends NishElement {
       role="switch"
       aria-checked=${String(this.checked)}
       aria-labelledby=${hasLabel ? `${this.#uid}-label` : nothing}
-      aria-describedby=${hasLabel && this.description ? `${this.#uid}-desc` : nothing}
+      aria-label=${!hasLabel && this.ariaName ? this.ariaName : nothing}
+      aria-describedby=${this.description ? `${this.#uid}-desc` : nothing}
       ?disabled=${this.disabled}
       @click=${() => this.#toggle()}
     ></button>`;

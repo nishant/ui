@@ -737,8 +737,27 @@ test.describe('<nish-copy-button>', () => {
     expect(await page.evaluate(() => window.getSelection()?.toString() ?? '')).not.toBe('');
     expect(await copied(page)).toEqual([]);
     expect(await events(page, 'nish-copy', 'cp1')).toHaveLength(0);
+    // The text stays selected well past the old 1.5 s, until focus leaves.
+    await page.waitForTimeout(1800);
+    await expect(btn).toHaveText('Press Ctrl+C');
+    await page.mouse.click(2, 2);
     await expect(btn).toHaveText('Copy', { timeout: 3000 });
+  });
+
+  test('Ctrl+C in the manual-copy textarea hands focus to the button and Copied resets', async ({ page }) => {
+    await load(page);
+    await page.evaluate(() => {
+      (window as unknown as { __clipFail: boolean }).__clipFail = true;
+      document.execCommand = () => false;
+    });
+    const btn = page.locator('#cp1 button');
+    await btn.click();
+    await expect(btn).toHaveText('Press Ctrl+C');
+    await page.locator('#cp1 textarea[data-copy-source]').dispatchEvent('copy');
+    await expect(btn).toHaveText('Copied');
     await expect(btn).toBeFocused();
+    await expect(page.locator('#cp1 textarea')).toHaveCount(0);
+    await expect(btn).toHaveText('Copy', { timeout: 3500 });
   });
 });
 

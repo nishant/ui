@@ -139,5 +139,6 @@ export const timeField: ComponentDoc = {
     'Type 9 then 30, or 9:30. A digit that cannot start a two-digit hour moves on to the minutes; on a 12-hour clock A and P set AM and PM.',
     'ArrowUp and ArrowDown step the focused box (minutes by step), Home and End go to its first and last value.',
     'Inside a Field the label names both boxes (Start time Hour, Start time Minute); outside one, give it an aria-label.',
+    'A min after max is a range that wraps past midnight: min="22:00" max="06:00" accepts 23:30 and 05:00 but not 12:00.',
   ],
 };

@@ -179,6 +179,8 @@ const WAVE2_CASES: Case[] = [
   chip('chip-off'),
   chip('chip-on'),
   chip('chip-sm'),
+  // At 360px a scrolling group stays one row in both versions (UI-070); the box is the group itself.
+  chip('chip-scroll', '#stage [role="group"]', '#stage [role="group"]'),
   chip('chip-suggestion', '#stage button', '#stage button'),
   chip('chip-tag', '#stage [role="group"] > span', '#stage .nish-chip'),
   seg('seg'),

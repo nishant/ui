@@ -1,6 +1,8 @@
 // The fetch layer behind useResource: no React and no directive, so a server component can
 // import ApiError or apiFetch. resource.ts ('use client') re-exports everything here.
 
+import { shared } from '../runtime';
+
 export class ApiError extends Error {
   /** HTTP status; 0 = network failure or abort-by-timeout. */
   readonly status: number;
@@ -42,11 +44,12 @@ export interface ApiConfig {
   headersFor?: (url: string) => boolean;
 }
 
-let config: ApiConfig = {};
+// One record per page, so two copies of the package agree on the headers and baseUrl.
+const store = shared<{ config: ApiConfig }>('api', () => ({ config: {} }));
 
-/** Merges into the module-level config used by every apiFetch call. */
+/** Merges into the page-wide config used by every apiFetch call. */
 export function configureApi(c: ApiConfig): void {
-  config = { ...config, ...c };
+  store.config = { ...store.config, ...c };
 }
 
 function isRawBody(b: unknown): boolean {
@@ -87,29 +90,54 @@ function excerpt(text: string, max = 120): string {
 
 const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 
-/** True when `url` goes to the page's own origin or to the configured baseUrl's origin. */
+/** True when `url` goes to the page's own origin or to the configured baseUrl's origin. The URL is
+ *  resolved the way fetch resolves it (backslashes count as slashes, tabs and leading spaces are
+ *  dropped), never classified by its string shape. */
 function isTrustedOrigin(url: string): boolean {
-  const relative = !SCHEME.test(url) && !url.startsWith('//');
-  if (relative) return true;
-  const here = typeof location !== 'undefined' ? location.href : undefined;
-  try {
-    const target = new URL(url, here);
-    if (here && target.origin === new URL(here).origin) return true;
-    if (config.baseUrl && SCHEME.test(config.baseUrl) && target.origin === new URL(config.baseUrl).origin) return true;
-  } catch {
-    return false;
+  const bases: string[] = [];
+  if (typeof document !== 'undefined' && document.baseURI) bases.push(document.baseURI);
+  if (typeof location !== 'undefined' && location.href) bases.push(location.href);
+  for (const here of bases) {
+    try {
+      const target = new URL(url, here);
+      // An opaque origin is "null" for every such URL, so two of them are never "the same origin".
+      if (target.origin !== 'null' && target.origin === new URL(here).origin) return true;
+      if (store.config.baseUrl && SCHEME.test(store.config.baseUrl) && target.origin === new URL(store.config.baseUrl).origin) return true;
+      return false;
+    } catch {
+      // This base cannot resolve the URL (about:srcdoc, about:blank, blob:): try the next one.
+    }
   }
-  return false;
+  return isRelativePath(url);
+}
+
+/** Shape test for documents with no hierarchical base (about:srcdoc, blob:): a relative path has no scheme
+ *  and, after dropping leading spaces and tabs (fetch drops them), does not start with // or a backslash. */
+function isRelativePath(url: string): boolean {
+  let i = 0;
+  while (i < url.length && (url[i] === ' ' || url[i] === '\t')) i++;
+  const rest = url.slice(i);
+  if (SCHEME.test(rest)) return false;
+  const a = rest[0];
+  const b = rest[1];
+  const isSlash = (c: string | undefined) => c === '/' || c === '\\';
+  if (a === '\\') return false;
+  if (a === '/' && isSlash(b)) return false;
+  // A tab or newline inside the path is removed by the URL parser: `/<tab>/host` is `//host`.
+  const squeezed = rest.replace(/[\t\n\r]/g, '');
+  if (isSlash(squeezed[0]) && isSlash(squeezed[1])) return false;
+  if (SCHEME.test(squeezed)) return false;
+  return true;
 }
 
 /** fetch with JSON in and out, a timeout, and a typed ApiError for every failure. */
 export async function apiFetch<T = unknown>(path: string, o: ApiFetchOptions = {}): Promise<T> {
   const { body, timeoutMs = 15000, nullOn404, signal: callerSignal, headers: extraHeaders, ...init } = o;
-  const url = path.startsWith('/') && config.baseUrl ? config.baseUrl + path : path;
+  const url = path.startsWith('/') && store.config.baseUrl ? store.config.baseUrl + path : path;
 
   const headers = new Headers({ accept: 'application/json' });
-  if (config.headers && (isTrustedOrigin(url) || config.headersFor?.(url) === true)) {
-    for (const [k, v] of Object.entries(config.headers())) headers.set(k, v);
+  if (store.config.headers && (isTrustedOrigin(url) || store.config.headersFor?.(url) === true)) {
+    for (const [k, v] of Object.entries(store.config.headers())) headers.set(k, v);
   }
   if (extraHeaders) new Headers(extraHeaders).forEach((v, k) => headers.set(k, v));
 
@@ -161,7 +189,7 @@ export async function apiFetch<T = unknown>(path: string, o: ApiFetchOptions = {
     if (!res.ok) {
       if (res.status === 404 && nullOn404) return null as T;
       const err = new ApiError(errorMessage(parsed, res.status), { status: res.status, body: parsed, url });
-      if (res.status === 401) config.onUnauthorized?.(err);
+      if (res.status === 401) store.config.onUnauthorized?.(err);
       throw err;
     }
     if (res.status === 204 || text === '') return undefined as T;

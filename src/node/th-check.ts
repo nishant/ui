@@ -1,9 +1,9 @@
 // nish-th-check: scans source files for th-* color classes that @nish/ui does not define
 // (a made-up color name after "bg-th-", say) and exits 1 when it finds any. Usage: nish-th-check [dir|file ...]
 // (default: src). Node only, no dependencies, nothing from React.
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { unknownThClasses } from './th-classes';
 
 const EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.html', '.css', '.vue', '.svelte']);
@@ -56,4 +56,16 @@ function main(): void {
   console.log(`th-check: ${files.length} files, no unknown th-* classes`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+// npm's bin entry is a symlink on Linux and macOS: node resolves it for import.meta.url, but argv[1] keeps
+// the link path, so compare real paths.
+function isMain(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(entry);
+  } catch {
+    return false;
+  }
+}
+
+if (isMain()) main();

@@ -93,8 +93,8 @@ describe('Avatar', () => {
     expect(screen.getByRole('img').className).toContain('rounded-full');
   });
   it('renders a status dot with an accessible name', () => {
-    render(<Avatar name="Ada" status="ok" />);
-    expect(screen.getByRole('img', { name: 'ok' })).toBeTruthy();
+    render(<Avatar name="Ada" status="ok" statusLabel="Online" />);
+    expect(screen.getByRole('img', { name: 'Online' })).toBeTruthy();
   });
   it('passes ref, className, id and data attributes to the root', () => {
     const ref = createRef<HTMLSpanElement>();

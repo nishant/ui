@@ -164,6 +164,8 @@ export function Slider<V extends SliderValue = number>({
   const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
     onPointerDown?.(e);
     if (e.defaultPrevented || disabled || e.button !== 0) return;
+    // Without this the browser's mousedown step moves focus off the thumb to the body.
+    e.preventDefault();
     const v = valueAt(e.clientX);
     const cur = live.current;
     let i = 0;

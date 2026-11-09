@@ -3,7 +3,6 @@
 // (Recharts, hand-drawn SVG) take the var() strings and follow theme changes on their
 // own; canvas charts (uPlot, Chart.js) take chartTheme()'s resolved values and redraw
 // when useChartTheme() (or onThemeChange) reports a change.
-import type { CSSProperties } from 'react';
 import { readToken } from './theme';
 
 /** The categorical series color for index i (0-based), cycling through chart-1…chart-8. */
@@ -21,7 +20,14 @@ export const CHART = {
 } as const;
 
 /** Inline style for a chart tooltip box (Recharts contentStyle and similar). */
-export const tooltipStyle: CSSProperties = {
+export const tooltipStyle: {
+  background: string;
+  border: string;
+  borderRadius: string;
+  boxShadow: string;
+  color: string;
+  fontSize: number;
+} = {
   background: 'var(--nish-elevated)',
   border: '1px solid var(--nish-line-strong)',
   borderRadius: 'var(--nish-radius-sm)',

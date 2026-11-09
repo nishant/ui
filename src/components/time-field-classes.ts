@@ -25,8 +25,12 @@ export function toTime(h: number, m: number): string {
 
 /** False when min or max is a valid HH:mm and t is outside it (string compare). Invalid limits are ignored. */
 export function inTimeRange(t: string, min?: string | null, max?: string | null): boolean {
-  if (parseTime(min) && t < min!) return false;
-  if (parseTime(max) && t > max!) return false;
+  const lo = parseTime(min) ? min! : null;
+  const hi = parseTime(max) ? max! : null;
+  // min after max is a range that wraps past midnight, as on <input type="time">.
+  if (lo !== null && hi !== null && lo > hi) return t >= lo || t <= hi;
+  if (lo !== null && t < lo) return false;
+  if (hi !== null && t > hi) return false;
   return true;
 }
 

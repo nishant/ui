@@ -137,6 +137,25 @@ test.describe('<nish-sheet>', () => {
     await expect(page.locator('#s1')).not.toHaveAttribute('open', '');
   });
 
+  test.describe('with motion', () => {
+    test.use({ reducedMotion: 'no-preference' });
+    test('show() during the close animation reopens the sheet instead of being dropped', async ({ page }) => {
+      await load(page);
+      const dialog = page.locator('#s1 > dialog');
+      await page.evaluate(() => (document.getElementById('s1') as unknown as { show(): void }).show());
+      await expect(dialog).toBeVisible();
+      await page.evaluate(() => {
+        const s = document.getElementById('s1') as unknown as { close(): void; show(): void };
+        s.close();
+        s.show(); // inside the 260 ms close animation
+      });
+      await page.waitForTimeout(500);
+      await expect(page.locator('#s1')).toHaveAttribute('open', '');
+      await expect(dialog).toBeVisible();
+      expect(await dialog.evaluate((d) => (d as HTMLDialogElement).open)).toBe(true);
+    });
+  });
+
   test('a document that has the open attribute at load shows the sheet', async ({ page }) => {
     await load(page, 'c=sheet');
     await expect(page.locator('dialog.nish-sheet')).toBeVisible();

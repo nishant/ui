@@ -157,5 +157,6 @@ export function Positions({ rows }: { rows: Position[] }) {
     'Keep renderItem, itemKey and an itemSize function stable with useCallback; a new function rebuilds every offset.',
     'Rows off screen are not in the page: Find, the Tab order and screen readers reach the rendered rows only. Offer search or filters for long lists. Each row reports its position (aria-posinset of aria-setsize).',
     'Use onRangeChange to load the next page when the range end nears count.',
+    'A page-scrolling list (no height) clears the sticky header (--nish-header-h plus --nish-sticky-extra) and the bottom nav (--nish-bottom-inset) in scrollToIndex and in the band it counts as visible.',
   ],
 };

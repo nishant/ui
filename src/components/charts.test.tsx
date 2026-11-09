@@ -233,6 +233,12 @@ describe('LineChart', () => {
       fireEvent.pointerDown(svg(c), { clientX: 0 });
       expect(tip(c)!.textContent).toContain('x4');
     });
+    it('keeps the y labels inside the chart', () => {
+      const c = rtl(<LineChart label="S" data={line(5, (i) => i * 1000)} />);
+      const labels = [...c.querySelectorAll('svg text')].filter((t) => t.getAttribute('text-anchor') === 'start' && t.getAttribute('dominant-baseline') === 'middle');
+      expect(labels.length).toBeGreaterThan(0);
+      for (const t of labels) expect(Number(t.getAttribute('x')) + (t.textContent ?? '').length * 6.6).toBeLessThanOrEqual(400);
+    });
     it('reads the direction from the element when the provider has none', () => {
       const spy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({ direction: 'rtl' } as CSSStyleDeclaration);
       const { container } = render(<LineChart label="S" data={line(5)} xFormat={(x) => `x${x}`} />);
@@ -403,6 +409,15 @@ describe('BarChart', () => {
     render(<BarChart ref={ref} label="C" data={data} className="extra" data-testid="bc" />);
     expect(ref.current).toBe(screen.getByTestId('bc'));
     expect(ref.current?.className).toContain('extra');
+  });
+
+  it('survives data shrinking under a selected bar', () => {
+    const many = Array.from({ length: 10 }, (_, i) => ({ label: `d${i}`, value: i + 1 }));
+    const { container, rerender } = render(<BarChart label="C" data={many} />);
+    fireEvent.keyDown(svg(container), { key: 'ArrowLeft' });
+    expect(status(container)).toBe('d9: 10');
+    rerender(<BarChart label="C" data={many.slice(0, 3)} />);
+    expect(status(container)).toBe('');
   });
 
   describe('right to left', () => {

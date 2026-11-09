@@ -126,7 +126,7 @@ export const agentNode: ComponentDoc = {
     'Use it for a unit of work that has its own state. Group several in a WorkflowBoard when they belong to phases.',
     'Keep activity to a short line; it truncates. It animates when the text changes.',
     'Pass onClick to make the whole card a button, for opening the details of the agent.',
-    'State is also in words for screen readers: Queued, Running, Done or Failed. Translate them with stateLabels.',
+    'State is also in words for screen readers: Queued, Running, Done or Failed. Translate them with stateLabels, or app-wide with the NishProvider strings agentQueued, agentRunning, agentDone and agentFailed.',
     'Respects prefers-reduced-motion: no loops or movement, state changes are instant.',
   ],
 };

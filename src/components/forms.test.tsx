@@ -287,6 +287,20 @@ describe('Switch', () => {
     expect(sw.getAttribute('data-state')).toBe('unchecked');
   });
 
+  it('keeps the Field error id next to its own description id', () => {
+    render(
+      <Field label="Auto" error="Needs a value">
+        <Switch checked={false} onCheckedChange={() => undefined} label="Auto" description="Runs nightly" />
+      </Field>,
+    );
+    const sw = screen.getByRole('switch');
+    const ids = (sw.getAttribute('aria-describedby') ?? '').split(' ');
+    expect(ids.length).toBe(2);
+    const text = ids.map((id) => document.getElementById(id)?.textContent).join('|');
+    expect(text).toContain('Needs a value');
+    expect(text).toContain('Runs nightly');
+  });
+
   it('onCheckedChange gets only the new value', () => {
     const onCheckedChange = vi.fn();
     render(<Switch checked={false} onCheckedChange={onCheckedChange} aria-label="A" />);

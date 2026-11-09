@@ -297,6 +297,25 @@ describe('DatePicker form use', () => {
     expect(input().value).toBe('11/05/2026');
   });
 
+  it('belongs to a form named by `form`, for validity and reset', () => {
+    const { container } = render(
+      <>
+        <form id="f" />
+        <DatePicker aria-label="Due" name="due" form="f" locale="en-US" defaultValue="2026-11-05" />
+      </>,
+    );
+    const form = container.querySelector<HTMLFormElement>('form#f')!;
+    expect(input().form).toBe(form);
+    typeAndBlur('13/40/2026');
+    expect(form.checkValidity()).toBe(false);
+    typeAndBlur('12/25/2026');
+    expect(form.checkValidity()).toBe(true);
+    act(() => {
+      form.dispatchEvent(new Event('reset'));
+    });
+    expect(input().value).toBe('11/05/2026');
+  });
+
   it('marks the input required', () => {
     render(<DatePicker aria-label="Due" required />);
     expect(input().required).toBe(true);

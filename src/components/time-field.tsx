@@ -40,7 +40,8 @@ export interface TimeFieldProps extends Omit<
   defaultValue?: string | null;
   /** Called with HH:mm when both boxes hold a valid time inside min and max, or null when both are emptied. */
   onValueChange?: (value: string | null) => void;
-  /** Earliest allowed time (HH:mm). An earlier time marks the field invalid and is not reported. */
+  /** Earliest allowed time (HH:mm). An earlier time marks the field invalid and is not reported. A min after max is a
+   *  range that wraps past midnight (22:00 to 06:00), as on `<input type="time">`. */
   min?: string;
   /** Latest allowed time (HH:mm). */
   max?: string;
@@ -172,16 +173,19 @@ export function TimeField({
 
   // The boxes as typed, with the value they committed. The text stays as typed while focus is in the group; it is
   // dropped on blur, or when the value is no longer the one the draft committed (the parent changed it).
-  const [draftState, setDraft] = useState<{ d: TimeDraft; base: string | null } | null>(null);
+  const hourRef = useRef<HTMLInputElement | null>(null);
+  const minuteRef = useRef<HTMLInputElement | null>(null);
+  const [draftState, setDraft] = useState<{ d: TimeDraft; base: string | null; prev: string | null } | null>(null);
   const [bad, setBad] = useState(false);
-  if (draftState !== null && draftState.base !== value) {
-    // The parent changed the value: the old draft (and its invalid mark) can never come back.
+  // `prev` is the value before the edit: a parent that applies onValueChange later still shows it for a render or two.
+  const [focusInside, setFocusInside] = useState(false);
+  const draftKept = draftState !== null && (draftState.base === value || (focusInside && draftState.prev === value));
+  if (draftState !== null && !draftKept) {
+    // The parent changed the value to something else: the old draft (and its invalid mark) can never come back.
     setDraft(null);
     setBad(false);
   }
-  const draft = draftState !== null && draftState.base === value ? draftState.d : null;
-  const hourRef = useRef<HTMLInputElement | null>(null);
-  const minuteRef = useRef<HTMLInputElement | null>(null);
+  const draft = draftState !== null && draftKept ? draftState.d : null;
   const shown = draft ?? draftFromTime(value, cycle);
   const draftBad = (): boolean => {
     if (draft === null) return false;
@@ -218,14 +222,14 @@ export function TimeField({
     const t = draftTime(next, cycle);
     if (t === null) {
       if (value !== null) commit(null);
-      setDraft({ d: next, base: null });
+      setDraft({ d: next, base: null, prev: value });
       setBad(false);
     } else if (typeof t === 'string' && inTimeRange(t, minT, maxT)) {
       if (t !== value) commit(t);
-      setDraft({ d: next, base: t });
+      setDraft({ d: next, base: t, prev: value });
       setBad(false);
     } else {
-      setDraft({ d: next, base: value });
+      setDraft({ d: next, base: value, prev: value });
     }
   };
 
@@ -237,6 +241,7 @@ export function TimeField({
   const onKey = (which: 'h' | 'm') => (e: KeyboardEvent<HTMLInputElement>) => {
     if (disabled) return;
     const key = e.key;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (key === 'Enter') {
       if (draftBad()) {
         e.preventDefault();
@@ -307,9 +312,14 @@ export function TimeField({
       aria-labelledby={src}
       data-disabled={disabled ? '' : undefined}
       className={cn('inline-flex items-center gap-2', className)}
+      onFocus={(e) => {
+        rest.onFocus?.(e);
+        setFocusInside(true);
+      }}
       onBlur={(e) => {
         rest.onBlur?.(e);
         if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
+        setFocusInside(false);
         const isBad = draftBad();
         setBad(isBad);
         if (!isBad) setDraft(null);

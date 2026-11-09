@@ -132,6 +132,31 @@ export function Textarea({ ref, invalid, size = 'md', autoGrow = false, classNam
     resize();
   }, [resize, value]);
 
+  // Re-measure when the width changes (fold/unfold, rotation, a sidebar, a late web font) and after a
+  // form reset, so rewrapped text is never cut off by the fixed height.
+  useEffect(() => {
+    const el = inner.current;
+    if (!grow || !el) return;
+    let lastWidth = el.clientWidth;
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        const w = el.clientWidth;
+        if (w === lastWidth) return;
+        lastWidth = w;
+        resize();
+      });
+      ro.observe(el);
+    }
+    const form = el.form;
+    const onReset = () => queueMicrotask(resize);
+    form?.addEventListener('reset', onReset);
+    return () => {
+      ro?.disconnect();
+      form?.removeEventListener('reset', onReset);
+    };
+  }, [grow, resize]);
+
   return (
     <textarea
       ref={(node) => {
@@ -361,8 +386,8 @@ export function Switch({
       role="switch"
       aria-checked={checked}
       aria-required={required || undefined}
-      aria-labelledby={label != null ? labelId : rest['aria-labelledby']}
-      aria-describedby={description != null ? descId : rest['aria-describedby']}
+      aria-labelledby={[label != null ? labelId : undefined, rest['aria-labelledby']].filter(Boolean).join(' ') || undefined}
+      aria-describedby={[rest['aria-describedby'], description != null ? descId : undefined].filter(Boolean).join(' ') || undefined}
       data-state={state}
       data-disabled={disabled ? '' : undefined}
       disabled={disabled}

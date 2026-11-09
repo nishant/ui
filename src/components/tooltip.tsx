@@ -64,7 +64,7 @@ export function Tooltip({ tip, children, className, side = 'top', as = 'span', f
   const [measuredInner, setMeasuredInner] = useState(false);
   useIsoLayoutEffect(() => {
     const el = triggerRef.current;
-    const found = only !== null && !!el && el.querySelector(FOCUSABLE) !== null;
+    const found = only !== null && !!el && !!el.firstElementChild?.matches(FOCUSABLE);
     setMeasuredInner(found);
   });
   const inner = only !== null && (staticInner || measuredInner);

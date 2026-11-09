@@ -1,5 +1,5 @@
 import type { PropertyValues } from 'lit';
-import { NishElement, define, whenParsed } from './base';
+import { NishElement, define, isRtl, whenParsed } from './base';
 
 const ACTIVE = '[aria-pressed="true"],[aria-selected="true"],[aria-current]:not([aria-current="false"]),[aria-checked="true"]';
 
@@ -103,8 +103,10 @@ export class NishScrollRow extends NishElement {
     const row = this.#row;
     if (!row) return;
     const max = row.scrollWidth - row.clientWidth;
-    row.dataset.atStart = String(row.scrollLeft <= 1);
-    row.dataset.atEnd = String(max <= 1 || row.scrollLeft >= max - 1);
+    // Physical edges, as the fade mask reads them; right-to-left scrollLeft runs from 0 down to -max.
+    const left = isRtl(row) ? row.scrollLeft + max : row.scrollLeft;
+    row.dataset.atStart = String(left <= 1);
+    row.dataset.atEnd = String(max <= 1 || left >= max - 1);
   }
 
   #sync(): void {

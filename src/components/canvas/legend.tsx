@@ -21,7 +21,8 @@ function Sample({ line }: { line: CanvasEdgeKind['line'] }) {
   );
 }
 
-/** The "Lines" button and its panel: one row per edge kind to show or hide it. */
+/** The "Lines" button and its panel: one row per edge kind to show or hide it. A disclosure of switches,
+ *  not an ARIA menu, so Tab reaches every row and no arrow-key behaviour is promised. */
 export const EdgeLegend = memo(function EdgeLegend({
   kinds,
   hidden,
@@ -69,7 +70,7 @@ export const EdgeLegend = memo(function EdgeLegend({
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-11 items-center gap-2 rounded-xl border border-th-line bg-th-surface px-3 text-sm text-th-hi shadow-pop outline-none hover:bg-th-elevated focus-visible:ring-2 focus-visible:ring-th-accent"
+        className="inline-flex h-11 items-center gap-2 rounded-xl border border-th-line bg-th-surface px-3 text-sm text-th-hi shadow-pop outline-none forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] hover:bg-th-elevated focus-visible:ring-2 focus-visible:ring-th-accent"
       >
         <Svg>
           <path d="M3 6h18M3 12h18M3 18h18" />
@@ -78,18 +79,18 @@ export const EdgeLegend = memo(function EdgeLegend({
         {nHidden > 0 ? <span className="text-th-hi3">{labels.hidden(nHidden)}</span> : null}
       </button>
       {open ? (
-        <div id={panelId} role="menu" aria-label={strings.canvasLines} className="overflow-hidden rounded-xl border border-th-line bg-th-surface shadow-pop" style={{ width: 'min(240px, calc(100vw - 24px))' }}>
+        <div id={panelId} role="group" aria-label={strings.canvasLines} className="overflow-hidden rounded-xl border border-th-line bg-th-surface shadow-pop" style={{ width: 'min(240px, calc(100vw - 24px))' }}>
           {kinds.map((k) => {
             const on = !hidden.has(k.id);
             return (
               <button
                 key={k.id}
                 type="button"
-                role="menuitemcheckbox"
+                role="switch"
                 aria-checked={on}
                 onClick={() => onToggle(k.id)}
                 className={cn(
-                  'flex h-11 w-full items-center gap-3 px-3 text-start text-sm outline-none hover:bg-th-elevated focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-th-accent',
+                  'flex h-11 w-full items-center gap-3 px-3 text-start text-sm outline-none forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-[Highlight] hover:bg-th-elevated focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-th-accent',
                   on ? 'text-th-hi' : 'text-th-hi3',
                 )}
               >

@@ -98,6 +98,30 @@ describe('NumberField', () => {
     expect(screen.getByText('Server said no')).toBeTruthy();
   });
 
+  it('ignores a late rejection from an earlier commit once a newer one is in flight', async () => {
+    let rejectFirst: (e: Error) => void = () => {};
+    const onCommit = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<void>((_, rej) => (rejectFirst = rej)))
+      .mockImplementationOnce(() => new Promise<void>(() => {}));
+    render(<NumberField aria-label="Threshold" value={10} onCommit={onCommit} />);
+    const input = screen.getByLabelText('Threshold') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '20' } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+    fireEvent.change(input, { target: { value: '30' } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+    await act(async () => {
+      rejectFirst(new Error('old failure'));
+    });
+    expect(input.value).toBe('30');
+    expect(screen.queryByText('old failure')).toBeNull();
+    expect(input.getAttribute('aria-busy')).toBe('true');
+  });
+
   it('keeps the rejection error when the field then loses focus', async () => {
     const onCommit = vi.fn(() => Promise.reject(new Error('Server said no')));
     render(<NumberField aria-label="Threshold" value={10} onCommit={onCommit} />);

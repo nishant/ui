@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, type ComponentPropsWithoutRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, type RefObject } from 'react';
+import { useEffect, useState, type ComponentPropsWithoutRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../cn';
-import { useIsClient } from './client';
+import { useIsClient, useIsoLayoutEffect } from './client';
 import { useLatest } from './latest';
 import { useNishContext } from './provider';
 import { focusables, layerHost, useMergedRef } from './overlay-core';
@@ -62,26 +62,34 @@ export function Popover({
   const config = useNishContext();
   const isClient = useIsClient();
   const [panelRef, setPanelRef] = useMergedRef<HTMLDivElement>(ref);
-  const pos = useAnchoredPosition(anchor, panelRef, open, side, align);
+  // The portal host is resolved once the anchor is attached, and the panel renders only then, so its
+  // container never changes after mount (a change would remount the panel and orphan its observers).
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useIsoLayoutEffect(() => {
+    const next = open ? layerHost(anchor.current, config.portalContainer) : null;
+    setHost((prev) => (prev === next ? prev : next));
+  }, [open, anchor, config.portalContainer]);
+  const shown = open && host != null;
+  const pos = useAnchoredPosition(anchor, panelRef, shown, side, align);
   const onOpenChangeRef = useLatest(onOpenChange);
   const outsideRef = useLatest(dismissOnOutside);
-  useDismiss(open, panelRef, anchor, (reason) => {
+  useDismiss(shown, panelRef, anchor, (reason) => {
     if (reason === 'outside' && !outsideRef.current) return;
     onOpenChangeRef.current(false, reason);
   });
-  useReturnFocus(open, panelRef, anchor);
+  useReturnFocus(shown, panelRef, anchor);
 
   // Focus in: [data-autofocus] or [autofocus], else the panel itself.
   useEffect(() => {
-    if (!open) return;
+    if (!shown) return;
     const t = window.setTimeout(() => {
       const p = panelRef.current;
       if (p && !p.contains(document.activeElement)) (p.querySelector<HTMLElement>('[data-autofocus],[autofocus]') ?? p).focus();
     }, 0);
     return () => window.clearTimeout(t);
-  }, [open, panelRef]);
+  }, [shown, panelRef]);
 
-  if (!open || !isClient) return null;
+  if (!open || !isClient || !host) return null;
 
   function onKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
     userKeyDown?.(e);
@@ -122,7 +130,7 @@ export function Popover({
     >
       {children}
     </div>,
-    layerHost(anchor.current, config.portalContainer),
+    host,
   );
 }
 

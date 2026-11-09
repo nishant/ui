@@ -119,6 +119,7 @@ export function useUrlState<S extends UrlStateShape>(
         const name = prefix + key;
         const value = next[key] as S[string];
         params.delete(name);
+        if (value === undefined || value === null) continue;
         if (same(value, d[key])) continue;
         if (Array.isArray(value)) {
           if (value.length === 0) params.append(name, '');

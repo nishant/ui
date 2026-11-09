@@ -633,6 +633,21 @@ describe('ConfirmDialog', () => {
     expect(onCancel).not.toHaveBeenCalled();
   });
 
+  it('springs back from a swipe down while the action is pending, and does not cancel', async () => {
+    phone = true;
+    const onCancel = vi.fn();
+    render(<ConfirmDialog title="T" confirmLabel="Go" pending onConfirm={() => {}} onCancel={onCancel} />);
+    const handle = document.querySelector<HTMLElement>('div[role="button"][aria-label="Close"]')!;
+    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1, button: 0, pointerType: 'touch' });
+    fireEvent.pointerMove(handle, { clientY: 400, pointerId: 1, pointerType: 'touch' });
+    fireEvent.pointerUp(handle, { clientY: 400, pointerId: 1, pointerType: 'touch' });
+    await flush(400);
+    expect(onCancel).not.toHaveBeenCalled();
+    // Nothing is left translated out of view.
+    expect(document.querySelector('[style*="translateY(100%)"]')).toBeNull();
+    expect(screen.getByRole('alertdialog')).toBeTruthy();
+  });
+
   it('puts first focus on Cancel for danger and on the confirm button for primary', async () => {
     const { rerender } = render(<ConfirmDialog title="T" confirmLabel="Go" onConfirm={() => {}} />);
     await flush();
@@ -1001,10 +1016,8 @@ describe('Popover', () => {
       );
     }
     render(<Inside />);
-    // The popover mounts after the anchor ref is set, so render once more.
-    cleanup();
-    const { rerender } = render(<Inside />);
-    rerender(<Inside />);
+    // Open on mount: the panel goes straight into the dialog's layer, with no remount into it later.
+    expect(screen.getByLabelText('Nested').closest('[data-nish-layer]')).not.toBeNull();
     press('Escape');
     expect(onOpenChange).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();

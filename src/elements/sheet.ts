@@ -110,13 +110,27 @@ export class NishSheet extends NishElement {
     if (!dialog || !this.isConnected) return;
     if (this.open && !dialog.open) {
       this.closeSheet = openSheet(dialog);
+    } else if (this.open && dialog.hasAttribute('data-closing')) {
+      // Reopened during the close animation: the dialog is still open, so reopen once it has closed.
+      this.reopen = true;
     } else if (!this.open && dialog.open) {
+      this.reopen = false;
       this.closeSheet?.();
     }
   }
 
+  private reopen = false;
+
   private onDialogClose = (): void => {
     this.closeSheet = null;
+    if (this.reopen) {
+      this.reopen = false;
+      // After the close listeners of the sheet that just closed have run.
+      setTimeout(() => {
+        if (this.open && this.isConnected && this.dialog && !this.dialog.open) this.closeSheet = openSheet(this.dialog);
+      }, 0);
+      return;
+    }
     if (this.open) this.open = false;
     this.dispatchEvent(new CustomEvent('nish-close', { bubbles: true }));
   };

@@ -179,6 +179,7 @@ const WAVE2: Record<string, string> = {
   'chip-off': '<nish-chip-group label="Status"><button>Open</button></nish-chip-group>',
   'chip-on': '<nish-chip-group label="Status"><button aria-pressed="true">Open</button></nish-chip-group>',
   'chip-sm': '<nish-chip-group label="Status"><button class="nish-chip--sm" aria-pressed="true">Open</button></nish-chip-group>',
+  'chip-scroll': '<nish-chip-group label="Status" scroll><button>Open</button><button>Closed</button><button>Draft</button><button>Merged</button><button>Blocked</button><button>Waiting on review</button><button>Needs changes</button><button>Approved</button></nish-chip-group>',
   'chip-suggestion': `<div class="nish-chips" role="group" aria-label="Suggestions"><button type="button" class="nish-chip nish-chip--suggestion">Add tag</button></div>`,
   'chip-tag': '<nish-chip-group label="Selected"><span class="nish-chip" data-removable>Draft</span></nish-chip-group>',
   seg: seg(),

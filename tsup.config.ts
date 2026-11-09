@@ -10,13 +10,14 @@ const define = { __NISH_UI_VERSION__: JSON.stringify(NISH_UI_VERSION) };
 // dist/esm/ as one file per source module. tsup only writes its types here (dts only), plus the standalone
 // single files static pages and CDNs vendor.
 
-// @nish/ui/chart (src/chart.ts): chart colors and tooltip styles with no chart library
-// and no React. Built whenever the source exists. (The React-free @nish/ui/tokens entry
+// @nish/ui/chart: chart colors and tooltip styles with no chart library. dist/chart.js is the standalone file
+// for static pages and is built from src/chart-values.ts alone (no React, no bare imports, because a page cannot
+// resolve `react`); useChartTheme lives in the bundler build (dist/esm/chart.js), and dist/chart.d.ts is
+// generated from src/chart.ts so the types still list it. (The React-free @nish/ui/tokens entry
 // is src/tokens.mjs copied as is by scripts/build.mjs.)
 // format, chart, split-layout and inbox-client stand alone (no chunk imports): hosting's static pages vendor
 // dist/format.js as one file, so a shared chunk would 404 there (v1.0.0 shipped that bug).
 const standalone: Record<string, string> = { format: 'src/format.ts', 'inbox-client': 'src/inbox-client.ts', 'split-layout': 'src/split-layout.ts' };
-if (existsSync('src/chart.ts')) standalone.chart = 'src/chart.ts';
 
 // Node-only entries (Vite plugin, ESLint preset, th-check CLI) build to dist/node/.
 // They import nothing from React and Tailwind does not scan them. Each is built only when
@@ -69,6 +70,7 @@ const configs: Options[] = [
       'system-canvas': 'src/system-canvas.ts',
       inbox: 'src/inbox.ts',
       'service-tokens': 'src/service-tokens.ts',
+      ...(existsSync('src/chart.ts') ? { chart: 'src/chart.ts' } : {}),
     },
     format: ['esm'],
     dts: { only: true },
@@ -93,6 +95,22 @@ const configs: Options[] = [
     clean: false,
     splitting: false,
   },
+  ...(existsSync('src/chart-values.ts')
+    ? [
+        {
+          // dist/chart.js: the pure values only, so it has no React import. Its types come from the dts-only config above.
+          entry: { chart: 'src/chart-values.ts' },
+          format: ['esm'],
+          dts: false,
+          define,
+          sourcemap: true,
+          target: 'es2022',
+          outDir: 'dist',
+          clean: false,
+          splitting: false,
+        } satisfies Options,
+      ]
+    : []),
   {
     // dist/theme.global.js: an IIFE that sets window.nishTheme, for classic scripts.
     entry: { theme: 'src/theme-global.ts' },

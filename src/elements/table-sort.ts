@@ -32,12 +32,18 @@ function touchesHead(rec: MutationRecord): boolean {
   );
 }
 
+/** A number from a cell key. Reads what `nish-ui/format` writes: U+2212 minus, currency and
+ *  grouping marks, a percent sign, and a letters-only unit after the number ("12 GB"). */
 function parseNumber(key: string): number | null {
-  const cleaned = key.replace(/[\s,$€£%]/g, '');
-  if (cleaned === '' || cleaned === '-' || cleaned === '+') return null;
-  const n = Number(cleaned);
+  const cleaned = key.replace(/\u2212/g, '-').replace(/[\s,$€£%]/g, '');
+  const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)[a-z/]*$/i.exec(cleaned);
+  if (!m) return null;
+  const n = Number(m[1]);
   return Number.isFinite(n) ? n : null;
 }
+
+/** The placeholder `nish-ui/format` writes for a missing value: sorts last like an empty cell. */
+const PLACEHOLDER = /^[\u2013\u2014]$/;
 
 /** `<nish-table-sort manual>` wrapping a `<table class="nish-table">`: every `th[data-sort]` gets a
  *  `.nish-th-sort` button. A click sorts the `tbody` rows by that column (numeric when the column
@@ -148,22 +154,27 @@ export class NishTableSort extends NishElement {
     const sign = direction === 'ascending' ? 1 : -1;
     const table = th.closest('table');
     if (!table) return;
-    const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+    const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
     for (const tbody of Array.from(table.tBodies)) {
       const rows = Array.from(tbody.rows).map((row, order) => {
         const cell = row.cells[index];
-        const key = cell ? (cell.getAttribute('data-value') ?? cell.textContent ?? '').trim() : '';
+        const raw = cell ? (cell.getAttribute('data-value') ?? cell.textContent ?? '').trim() : '';
+        const key = PLACEHOLDER.test(raw) ? '' : raw;
         return { row, key, num: parseNumber(key), order };
       });
       const filled = rows.filter((r) => r.key !== '');
       const blank = rows.filter((r) => r.key === '');
       const numeric = th.classList.contains('nish-th--num') || (filled.length > 0 && filled.every((r) => r.num !== null));
-      filled.sort((a, b) => {
-        const cmp = numeric ? (a.num ?? 0) - (b.num ?? 0) : collator.compare(a.key, b.key);
+      // In a numeric column the keys that still do not parse go after the numbers, as text.
+      const parsed = numeric ? filled.filter((r) => r.num !== null) : filled;
+      const unparsed = numeric ? filled.filter((r) => r.num === null) : [];
+      parsed.sort((a, b) => {
+        const cmp = numeric ? (a.num as number) - (b.num as number) : collator.compare(a.key, b.key);
         return cmp * sign || a.order - b.order;
       });
+      unparsed.sort((a, b) => collator.compare(a.key, b.key) * sign || a.order - b.order);
       const frag = document.createDocumentFragment();
-      for (const r of [...filled, ...blank]) frag.appendChild(r.row);
+      for (const r of [...parsed, ...unparsed, ...blank]) frag.appendChild(r.row);
       tbody.appendChild(frag);
     }
   }

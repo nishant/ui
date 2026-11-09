@@ -116,6 +116,7 @@ const [auto, setAuto] = useState(true);
   guidelines: [
     'Use a Switch for a setting that takes effect immediately. Inside a form that waits for Save, use a Checkbox.',
     'Name it: pass label, or aria-label / aria-labelledby when the label lives elsewhere in the row.',
+    'The <nish-switch> element follows the same rule: aria-label names a switch that has no label (property ariaName), and description now shows even without a label.',
     'Write the label as the setting ("Auto refresh"), not as an action ("Turn on auto refresh").',
     "In a native form pass name (and value, default \"on\"): a hidden checkbox posts the state. `<Switch name=\"alerts\" defaultChecked />` needs no state of your own.",
     "onCheckedChange(checked) is the only callback. Need the click event? Use onClick, which runs first and can preventDefault the toggle. With react-hook-form use Controller: `<Controller name=\"alerts\" render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} aria-label=\"Alerts\" />} />`; register() cannot drive a Switch.",

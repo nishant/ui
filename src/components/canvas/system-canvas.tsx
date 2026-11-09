@@ -54,6 +54,20 @@ const initialHidden = (kinds: CanvasEdgeKind[]) => new Set(kinds.filter((k) => k
  *  `active` pulse in their group's hue, edges into them flow, and `heat` leaves a fading
  *  glow behind. Drag or scroll to pan, ctrl+scroll or pinch to zoom, arrow keys, `+`, `-`
  *  and `0` from the keyboard. */
+// Text for assistive technology only: the connections are otherwise drawn in an aria-hidden SVG.
+const VISUALLY_HIDDEN: CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  margin: -1,
+  padding: 0,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+  listStyle: 'none',
+};
+
 export function SystemCanvas({
   groups,
   edges,
@@ -683,7 +697,8 @@ export function SystemCanvas({
   };
 
   const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (e.altKey || e.metaKey) return;
+    // Ctrl+= / Ctrl+- / Ctrl+0 are the browser's page zoom: leave them alone.
+    if (e.altKey || e.metaKey || e.ctrlKey) return;
     if ((e.target as Element).closest('[data-canvas-ui]')) return;
     const v = view.current;
     switch (e.key) {
@@ -958,6 +973,19 @@ export function SystemCanvas({
         })}
       </div>
 
+      {edgeViews.length > 0 ? (
+        <ul style={VISUALLY_HIDDEN}>
+          {edgeViews.map(({ edge }) => {
+            const name = (id: string) => lookup.nodes.get(id)?.node.label ?? lookup.grps.get(id)?.title ?? id;
+            return (
+              <li key={edge.id}>
+                {name(edge.from)} {'→'} {name(edge.to)}
+                {edge.label ? ` (${edge.label})` : ''}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
       <EdgeLegend kinds={kindList} hidden={hiddenKinds} onToggle={toggleKind} labels={labels} />
       {minimap ? <Minimap layout={layout} groups={groups} handleRef={miniRef} onJump={jumpTo} /> : null}
       <FollowCaption step={step} labels={labels} />

@@ -113,28 +113,35 @@ export function TagInput({
     onValueChange?.(next);
   };
 
-  /** Adds each non-empty, new tag that validates. Returns the first error, or null. */
-  const add = (raw: string[]): string | null => {
+  /** Adds each non-empty, new tag that validates. Returns the first error (or null) and the
+   *  raw values that were refused or did not fit. */
+  const add = (raw: string[]): { error: string | null; refused: string[] } => {
     let next = tags;
     let err: string | null = null;
+    const refused: string[] = [];
     for (const r of raw) {
       const t = r.trim();
       if (!t || next.includes(t)) continue;
-      if (maxTags !== undefined && next.length >= maxTags) break;
+      if (maxTags !== undefined && next.length >= maxTags) {
+        err ??= strings.maxTags(maxTags);
+        refused.push(t);
+        continue;
+      }
       const message = validate?.(t) ?? null;
       if (message) {
         err ??= message;
+        refused.push(t);
         continue;
       }
       next = [...next, t];
     }
     if (next !== tags) setTags(next);
     setError(err);
-    return err;
+    return { error: err, refused };
   };
 
   const commitText = (raw: string) => {
-    if (!add([raw])) {
+    if (!add([raw]).error) {
       setText('');
       setActive(-1);
     }
@@ -149,9 +156,10 @@ export function TagInput({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing) return;
     if (e.key === 'Enter') {
-      if (listOpen && active >= 0) {
+      const pick = listOpen && active >= 0 ? filtered[active] : undefined;
+      if (pick !== undefined) {
         e.preventDefault();
-        commitText(filtered[active]!);
+        commitText(pick);
       } else if (text.trim()) {
         e.preventDefault();
         commitText(text);
@@ -189,7 +197,8 @@ export function TagInput({
     e.preventDefault();
     const parts = pasted.split(SPLIT);
     parts[0] = text + parts[0];
-    if (!add(parts)) setText('');
+    const { error: err, refused } = add(parts);
+    setText(err ? refused.join(', ') : '');
   };
 
   const handleBlur = (e: FocusEvent<HTMLDivElement>) => {
@@ -254,7 +263,7 @@ export function TagInput({
         aria-expanded={hasSuggestions ? listOpen : undefined}
         aria-controls={listOpen ? listId : undefined}
         aria-autocomplete={hasSuggestions ? 'list' : undefined}
-        aria-activedescendant={listOpen && active >= 0 ? `${auto}-opt-${active}` : undefined}
+        aria-activedescendant={listOpen && active >= 0 && active < filtered.length ? `${auto}-opt-${active}` : undefined}
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
         aria-describedby={[ariaDescribedBy, error ? errorId : null].filter(Boolean).join(' ') || undefined}

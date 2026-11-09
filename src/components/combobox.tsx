@@ -263,7 +263,8 @@ export function Combobox({
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (disabled) return;
+    // The Enter (or arrow) that confirms an IME composition belongs to the IME. keyCode 229 covers Safari.
+    if (disabled || e.nativeEvent.isComposing || e.keyCode === 229) return;
     switch (e.key) {
       case 'ArrowDown':
       case 'ArrowUp': {
