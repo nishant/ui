@@ -186,7 +186,7 @@ export function CalendarBase({
   const setMonth = (raw: string) => {
     const next = clampIso(raw, '0001-01', '9999-12');
     if (next === shown) return;
-    if (monthProp === undefined) setOwnMonth(next);
+    if (monthControlled === null) setOwnMonth(next);
     onMonthChange?.(next);
   };
 

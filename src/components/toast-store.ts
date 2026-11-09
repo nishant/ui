@@ -135,9 +135,10 @@ function push(tone: ToastTone, title: string, bodyOrOptions?: string | ToastOpti
   const o: ToastOptions = typeof bodyOrOptions === 'string' ? { body: bodyOrOptions } : (bodyOrOptions ?? {});
   const s = store();
   const id = s.nextId++;
-  // Errors stay until dismissed. Infinity means the same as 'sticky'.
-  const asked = o.duration === Infinity ? 'sticky' : o.duration;
-  const duration = asked ?? (tone === 'error' ? 'sticky' : AUTO_DISMISS_MS);
+  // Errors stay until dismissed. Infinity or a huge number means 'sticky'; zero, negative or NaN, the default.
+  const asked = o.duration;
+  const duration: number | 'sticky' =
+    asked === 'sticky' ? 'sticky' : typeof asked === 'number' && asked > 0 ? (asked >= 2 ** 31 - 1 ? 'sticky' : asked) : tone === 'error' ? 'sticky' : AUTO_DISMISS_MS;
   const item: ToastItem = {
     id,
     tone,
@@ -205,10 +206,22 @@ export const toast: ToastFn = /* @__PURE__ */ Object.assign((title: string, o?: 
     push('info', messages.loading, { duration: 'sticky', id: slot });
     promise.then(
       (value) => {
-        push('success', typeof messages.success === 'function' ? messages.success(value) : messages.success, { id: slot });
+        let m: string;
+        try {
+          m = typeof messages.success === 'function' ? messages.success(value) : messages.success;
+        } catch (e) {
+          return void push('error', String(e), { id: slot });
+        }
+        push('success', m, { id: slot });
       },
       (error: unknown) => {
-        push('error', typeof messages.error === 'function' ? messages.error(error) : messages.error, { id: slot });
+        let m: string;
+        try {
+          m = typeof messages.error === 'function' ? messages.error(error) : messages.error;
+        } catch (e) {
+          m = String(e);
+        }
+        push('error', m, { id: slot });
       },
     );
     return promise;

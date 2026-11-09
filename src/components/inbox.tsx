@@ -281,7 +281,10 @@ export function Inbox({
   ...rest
 }: InboxProps) {
   const strings = useInboxStrings();
-  const labels: InboxLabels = { ...DEFAULT_INBOX_LABELS, ...labelOverrides };
+  const labels: InboxLabels = {
+    ...DEFAULT_INBOX_LABELS,
+    ...(Object.fromEntries(Object.entries(labelOverrides ?? {}).filter(([, v]) => v !== undefined)) as Partial<InboxLabels>),
+  };
   const idBase = useId().replace(/:/g, '');
   const wide = useMediaQuery('(min-width: 480px)');
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(() => new Set());

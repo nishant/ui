@@ -22,9 +22,19 @@ function runtime(): Runtime {
   return (g[KEY] ??= { versions: new Set<string>(), slots: {} });
 }
 
+/** True outside production. Bundlers replace `process.env.NODE_ENV`; where nothing does,
+ *  the ReferenceError is caught and the page counts as production. */
+function isDevelopment(): boolean {
+  try {
+    return process.env.NODE_ENV !== 'production';
+  } catch {
+    return false;
+  }
+}
+
 function register(rt: Runtime): void {
   rt.versions.add(version);
-  if (rt.versions.size > 1 && !rt.warned && globalThis.process?.env?.NODE_ENV !== 'production') {
+  if (rt.versions.size > 1 && !rt.warned && isDevelopment()) {
     rt.warned = true;
     console.warn(
       `nish-ui: two versions are loaded on this page (${[...rt.versions].join(', ')}). Overlays, toasts and theme state are shared, but mixing versions is unsupported.`,

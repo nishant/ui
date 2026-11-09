@@ -691,7 +691,7 @@ export function WorkflowBoard({ phases, agents, label, otherLabel, waitingLabel,
             (next.state === 'waiting' || next.state === 'pending' || next.state === 'active');
           return (
             <div
-              key={phase.id}
+              key={`${phase.id}:${ci}`}
               role="group"
               aria-label={phase.title}
               data-state={state}

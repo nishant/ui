@@ -105,9 +105,24 @@ describe('compare and sort helpers', () => {
     expect(obj.current).toBeNull();
     expect(fn).toHaveBeenLastCalledWith(null);
   });
+  it('mergeRefs cleanup clears object refs and nulls callback refs without a cleanup', () => {
+    const obj = { current: null as HTMLElement | null };
+    const plain = vi.fn();
+    const clean = vi.fn();
+    const withCleanup = vi.fn(() => clean);
+    const merged = mergeRefs<HTMLElement>(obj, plain, withCleanup);
+    const el = document.createElement('i');
+    const cleanup = merged(el) as unknown as () => void;
+    expect(obj.current).toBe(el);
+    cleanup();
+    expect(obj.current).toBeNull();
+    expect(plain).toHaveBeenLastCalledWith(null);
+    expect(withCleanup).toHaveBeenCalledTimes(1);
+    expect(clean).toHaveBeenCalledTimes(1);
+  });
   it('chartNumber groups from 1000 and rounds smaller values to two decimals', () => {
     expect(chartNumber(1234567)).toBe('1,234,567');
-    expect(chartNumber(999.999)).toBe('1000');
+    expect(chartNumber(999.999)).toBe('1,000');
     expect(chartNumber(1.005)).toBe('1');
     expect(chartNumber(0.126)).toBe('0.13');
     expect(chartNumber(-0.001)).toBe('0');

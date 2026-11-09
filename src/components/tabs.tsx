@@ -89,8 +89,9 @@ interface TabsCtx {
 }
 const Ctx = /* @__PURE__ */ createContext<TabsCtx | null>(null);
 
-const tabId = (base: string, v: string) => `${base}-tab-${v}`;
-const panelId = (base: string, v: string) => `${base}-panel-${v}`;
+const idPart = (v: string) => v.replace(/[^A-Za-z0-9_-]/g, (c) => '_' + c.charCodeAt(0).toString(16));
+const tabId = (base: string, v: string) => `${base}-tab-${idPart(v)}`;
+const panelId = (base: string, v: string) => `${base}-panel-${idPart(v)}`;
 
 export interface TabsProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange' | 'children' | 'defaultValue'> {
   /** The selected tab's value (controlled). Omit it, with `defaultValue`, for an uncontrolled Tabs. */

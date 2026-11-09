@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { computeChecks, cut, decide, isAdoptedHead, limitFor } from './policy.mjs';
+import { computeChecks, cut, decide, isAdoptedHead, limitFor, updateLabel } from './policy.mjs';
 
 const okFold = { newProblems: 0, baseOk: true, maxDiffPct: 0 };
 const ui = (over) => ({ kind: 'ui', from: 'v0.7.0', to: 'v0.7.1', behaviorChanges: false, checks: 'success', fold: okFold, ...over });
@@ -150,4 +150,14 @@ test('computeChecks: a skipped run never hides an earlier real result', () => {
     { id: 2, name: 'fold / fold', status: 'completed', conclusion: 'skipped' },
   ];
   assert.equal(computeChecks({ checkRuns }), 'failure');
+});
+
+test('updateLabel: patch, minor, major, unparseable from', () => {
+  assert.equal(updateLabel('deps', 'v1.0.0', 'v2.0.0'), 'dependency');
+  assert.equal(updateLabel('ui', 'v0.7.0', 'v0.7.1'), 'patch');
+  assert.equal(updateLabel('ui', 'v0.6.1', 'v0.7.0'), 'minor');
+  assert.equal(updateLabel('ui', 'v2.4.0', 'v3.0.0'), 'major');
+  assert.equal(updateLabel('ui', 'v0.9.0', 'v1.0.0'), 'major');
+  assert.equal(updateLabel('ui', null, 'v1.0.0'), 'minor');
+  assert.equal(updateLabel('ui', 'main', 'v3.0.0'), 'minor');
 });

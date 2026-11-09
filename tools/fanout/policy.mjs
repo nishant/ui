@@ -14,7 +14,10 @@ export function limitFor(kind, from, to) {
 
 export function updateLabel(kind, from, to) {
   if (kind === 'deps') return 'dependency';
-  return isPatch(from, to) ? 'patch' : 'minor';
+  if (isPatch(from, to)) return 'patch';
+  const mt = major(to);
+  const mf = major(from);
+  return mt !== null && mf !== null && mt > mf && mt >= 1 ? 'major' : 'minor';
 }
 
 /**

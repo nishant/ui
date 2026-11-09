@@ -103,8 +103,10 @@ export function useUrlState<S extends UrlStateShape>(
   const defaultsKey = JSON.stringify(defaults);
   const stableDefaults = useMemo(() => JSON.parse(defaultsKey) as S, [defaultsKey]);
 
+  // Called through the adapter so a class-based adapter keeps its `this`.
+  const subscribe = useCallback((cb: () => void) => adapter.subscribe(cb), [adapter]);
   const search = useSyncExternalStore(
-    adapter.subscribe,
+    subscribe,
     () => adapter.get().toString(),
     () => '',
   );

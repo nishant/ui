@@ -58,6 +58,7 @@ function isRawBody(b: unknown): boolean {
     (typeof FormData !== 'undefined' && b instanceof FormData) ||
     (typeof Blob !== 'undefined' && b instanceof Blob) ||
     (typeof URLSearchParams !== 'undefined' && b instanceof URLSearchParams) ||
+    (typeof ReadableStream !== 'undefined' && b instanceof ReadableStream) ||
     b instanceof ArrayBuffer ||
     ArrayBuffer.isView(b)
   );
@@ -143,7 +144,13 @@ export async function apiFetch<T = unknown>(path: string, o: ApiFetchOptions = {
 
   let payload: BodyInit | undefined;
   if (body !== undefined) {
-    if (isRawBody(body)) payload = body as BodyInit;
+    if (isRawBody(body)) {
+      payload = body as BodyInit;
+      // fetch requires duplex: 'half' for a streamed request body.
+      if (typeof ReadableStream !== 'undefined' && body instanceof ReadableStream && !('duplex' in init)) {
+        (init as { duplex?: string }).duplex = 'half';
+      }
+    }
     else {
       payload = JSON.stringify(body);
       if (!headers.has('content-type')) headers.set('content-type', 'application/json');

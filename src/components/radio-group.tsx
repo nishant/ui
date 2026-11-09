@@ -228,7 +228,7 @@ export function Radio({ value, label, description, className, disabled, required
         name={name ?? ctx?.name}
         disabled={off}
         required={required ?? ctx?.required}
-        aria-describedby={description != null ? descId : rest['aria-describedby']}
+        aria-describedby={[description != null ? descId : null, rest['aria-describedby']].filter(Boolean).join(' ') || undefined}
         onChange={(e) => {
           onChange?.(e);
           if (e.target.checked) ctx?.select(value);

@@ -32,7 +32,7 @@ npm run test:overlay # playwright
 
 Follow the component contract in [docs/DEVELOPING.md](docs/DEVELOPING.md): colors come from the
 theme roles (`th-*` classes), never raw values; every control works with the keyboard, in light
-and dark, and in forced-colors mode; strings come from `NishProvider` strings, not literals;
+and dark, and in forced-colors mode; strings come from `useStrings(GROUP)`, with each key in exactly one group in `src/components/strings.ts` (never `useNishStrings()` or `DEFAULT_STRINGS` in a component), not literals; pure helpers go in `*-classes.ts`; `ref` is a prop (no `forwardRef`); shared state goes through `shared()` in `src/runtime.ts`; the numbered rules are in [the component contract](https://github.com/nishant/ui/blob/master/docs/DEVELOPING.md#the-component-contract);
 touch targets are at least 44 px; nothing causes horizontal page scroll at 360 px.
 
 Each component module has a unit test file next to it that pins its contract (roles, keyboard,

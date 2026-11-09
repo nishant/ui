@@ -390,6 +390,8 @@ describe("equalize, swap, narrow", () => {
 
   it("builds the narrow layout by aspect", () => {
     expect(narrowLayout(1, { dir: "auto", split: 0.5 }, 0.5)).toEqual(leaf(0));
+    const nan = narrowLayout(2, { dir: "row", split: NaN }, 1) as { sizes: number[] };
+    expect(nan.sizes).toEqual([0.5, 0.5]);
     const portrait = narrowLayout(2, { dir: "auto", split: 0.4 }, 0.46);
     expect(portrait.type === "split" && portrait.dir === "col").toBeTruthy();
     expect((portrait as { sizes: number[] }).sizes).toEqual([0.4, 0.6]);

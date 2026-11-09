@@ -27,7 +27,7 @@ Other gates:
 | `npm run mutation` | Stryker on src/theme.ts, local only; installs Stryker without saving it; report in reports/mutation/. theme.ts: 77.9% on 2026-11-05 (1,010 killed, 263 survived, 23 no coverage) |
 | `node tools/consumer-check.mjs` | packs the package and builds a Next.js App Router app (port 5320), a Vite + Tailwind app and a TypeScript matrix against it |
 | `npx playwright test tests/a11y tests/ssr` | axe (zero serious or critical), forced colors, strict CSP with Trusted Types, hydration |
-| `node tools/visual-check.mjs tools/site.visual.json` | screenshot and layout check of the docs site at 360, 840 and desktop |
+| `node tools/visual-check.mjs tools/site.visual.json` | screenshot and layout check of the docs site at 390 and 1440 px (CI runs this one; the Fold check, PRs only, runs `fold.visual.json` on its pages at 360, 840 and 1440 in light and dark) |
 
 ## The docs site
 

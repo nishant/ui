@@ -4,6 +4,38 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
+## [Unreleased]
+
+### Fixed
+
+- `Field` / `FieldGroup`: `hint=''` or `hint={false}` no longer renders an empty hint or points `aria-describedby` at it.
+- `MenuItem`: a disabled item no longer runs its `onClick`.
+- `Meter`: a vertical meter with `showValue` keeps its `className`.
+- `NumberField`: refuses `Infinity`, exponent and hex input.
+- `Radio`: keeps a caller's `aria-describedby` when it has a description.
+- `FileDropzone`: accepts files with an empty MIME type by their extension.
+- `SkeletonRows`: height detection fixed.
+- Toasts: a duration over 2^31-1 ms stays sticky instead of firing at once, and `toast.promise` always resolves its loading toast.
+- `Calendar`: with an invalid controlled month, the arrows can still navigate.
+- `WorkflowBoard`: duplicate phase ids no longer break the board.
+- `ChartLegend`: duplicate labels no longer collide.
+- The hub pill's arrow is hidden from screen readers.
+- `Accordion` and `Tabs`: ids work for values that contain spaces.
+- `Inbox`: labels with `undefined` overrides keep their defaults.
+- `useUrlState`: works with class-based adapters.
+- `useResource`: `reload()` respects `enabled`.
+- `apiFetch`: sends a `ReadableStream` body as is.
+- `format` time and date helpers: an invalid `timeZone` shows an en dash instead of throwing; `ago()` moves to the next unit at 60 minutes, 24 hours and 12 months.
+- `chartNumber`: groups values that round to 1000 (`1000`, not `1000.0`).
+- `mergeRefs`: clears object refs on detach.
+- `narrowLayout`: a `NaN` split no longer breaks the layout.
+- `<nish-sparkline>`: `values=null` no longer throws.
+- The mixed-version warning is silent in production builds.
+
+### Docs
+
+- `FilterBar` in a server-rendered app shows the inline row until hydration; render it client-only.
+
 ## [3.1.0] - 2026-11-09
 
 Fixes from the 2026-11-08 audit.

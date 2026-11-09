@@ -51,13 +51,14 @@ function main(argv) {
   const repo = ri >= 0 ? argv[ri + 1] || 'all' : 'all';
   const fleet = fleetFromCatalog(readFileSync(file, 'utf8'));
   const picked = repo === 'all' ? fleet : fleet.filter((e) => e.repo === repo);
-  if (repo !== 'all' && picked.length === 0) console.error(`Unknown repo ${repo}: not in ${file}`);
+  const unknown = repo !== 'all' && picked.length === 0;
+  if (unknown) console.error(`Unknown repo ${repo}: not in ${file}`);
   if (argv.includes('--matrix')) {
     console.log(`matrix=${JSON.stringify(picked.map((e) => ({ repo: e.repo })))}`);
   } else {
     console.log(JSON.stringify(picked, null, 2));
   }
-  return 0;
+  return unknown ? 1 : 0;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

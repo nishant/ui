@@ -493,7 +493,7 @@ export function Meter({
         track === 'overlay' ? 'bg-th-overlay' : 'bg-th-elevated',
         'forced-colors:border forced-colors:border-[CanvasText] forced-colors:bg-[Canvas]',
         vertical ? cn('h-full', METER_THICK_V[size]) : cn('w-full', METER_THICK[size]),
-        !showValue && className,
+        (!showValue || vertical) && className,
       )}
     >
       <div
@@ -1029,7 +1029,7 @@ export function AppHeader({
     </>
   );
   const markClass = 'inline-flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight text-th-hi';
-  const pillArrow = <span className="inline-block rtl:-scale-x-100">←</span>;
+  const pillArrow = <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span>;
   return (
     <header
       {...rest}
@@ -1269,8 +1269,8 @@ export function ChartLegend({ items, marker = 'line', label, className, ref, ...
       className={cn('flex flex-wrap gap-x-4 gap-y-1 text-xs text-th-hi2', className)}
       {...rest}
     >
-      {items.map((it) => (
-        <li key={it.label} className="inline-flex items-center gap-1.5">
+      {items.map((it, i) => (
+        <li key={`${it.label}-${i}`} className="inline-flex items-center gap-1.5">
           <i
             aria-hidden="true"
             className={cn(

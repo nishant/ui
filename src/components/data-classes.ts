@@ -89,13 +89,26 @@ export const tableInternals = { ALIGN, STICKY_COL, WRAP, STICKY, TABLE, ZEBRA, T
 export function mergeRefs<T>(...refs: (Ref<T> | undefined)[]): RefCallback<T> {
   return (node) => {
     const cleanups: (() => void)[] = [];
+    const withCleanup = new Set<unknown>();
     for (const ref of refs) {
       if (typeof ref === 'function') {
         const out = ref(node);
-        if (typeof out === 'function') cleanups.push(out);
+        if (typeof out === 'function') {
+          cleanups.push(out);
+          withCleanup.add(ref);
+        }
       } else if (ref) (ref as { current: T | null }).current = node;
     }
-    if (cleanups.length) return () => cleanups.forEach((fn) => fn());
+    if (cleanups.length) {
+      return () => {
+        for (const ref of refs) {
+          if (typeof ref === 'function') {
+            if (!withCleanup.has(ref)) ref(null);
+          } else if (ref) (ref as { current: T | null }).current = null;
+        }
+        cleanups.forEach((fn) => fn());
+      };
+    }
   };
 }
 
@@ -227,8 +240,9 @@ export function chartNumber(v: number, locale = 'en-US'): string {
     };
     NUMBER_FORMATS.set(locale, f);
   }
-  if (Math.abs(v) >= 1000) return f.whole.format(v);
-  return f.small.format(Math.round(v * 100) / 100 || 0);
+  const r = Math.round(v * 100) / 100 || 0;
+  if (Math.abs(r) >= 1000) return f.whole.format(r);
+  return f.small.format(r);
 }
 
 // =====================================================================================
