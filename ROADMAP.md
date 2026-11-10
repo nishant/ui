@@ -7,10 +7,17 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
 - **Touch hit area on the Tooltip hint variant** (2026-11-10, trading term-tooltips): an inline `variant="hint"` term is one text line tall, well under 44px on a phone. Trading's `Term` adds the `linkClass()` recipe (`LINK_HIT`: a coarse-pointer `::after` at `-inset-x-2 -inset-y-3`) itself. Put it on the hint variant here (watch for the box covering a term on the line above in dense text), release, then drop `TOUCH_HIT` from `apps/web/src/components/Term.tsx` in trading.
 - **Release the audit phase 2 and phase 3 fixes** (2026-11-09, audit-p2, audit-p3): both sets are merged to master and sit under `## [Unreleased]` in CHANGELOG.md; not released (v3.1.0 had just fanned out). Tomorrow: rename `## [Unreleased]` to `## [3.1.1] - <date>` in a PR, merge it, then `gh workflow run release.yml -R nishant/ui -f bump=patch`.
 - **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids
-  `UI-nnn`). 3.1.0, phase 2 and phase 3 fixed the listed high and medium findings and some lows. Left: the open low and
-  nit findings of phase 3 (UI-375 to UI-586, except those fixed in the phase 3 CHANGELOG entry), UI-569
-  (`classic.html`), and UI-378: `site-all.visual.json` is complete and tested but never runs in CI or on a schedule;
-  run it on a schedule or behind a path filter.
+  `UI-nnn`). What is left:
+  - UI-400: the docs site's CSP is only `frame-ancestors 'self'`; the build should emit the theme-init sha256 and
+    hosting should serve a strict policy for design.nish.software (needs the hosting repo).
+  - UI-402: Firefox and WebKit run only the overlay specs; widen the WebKit project's testMatch to the elements,
+    pickers and slider specs and skip the Chromium-only cases (CDP, forced-colors emulation).
+  - UI-490: `<nish-command-palette>` (`src/command-filter.ts` `matchesCommandQuery`: every word as a substring of
+    label, hint or keywords, grouped, then capped) filters and orders differently from the React CommandPalette
+    (`rankItems` in `src/components/command.tsx`: prefix > word start > substring > subsequence on the label and
+    keywords, no hint). Move the ranking into `command-filter.ts`, use it in both, and add a parity test.
+  - UI-035: FilterBar server-renders the desktop layout, so phones see the inline filter row until hydration. Needs a
+    design choice (rendering both branches would mount the children twice).
 - **Fan-out fixes from the audit** (2026-11-09, audit-1108): UI-089: real isolation of repo-controlled commands from
   FLEET_TOKEN (a token-less job or container); the comment now says they are not isolated.
 - **CI and docs drift from the audit** (2026-11-09, audit-1108): UI-009: the release job runs devDependency code with a
