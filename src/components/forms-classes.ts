@@ -43,7 +43,7 @@ export function chipClass({ pressed = false, variant = 'toggle', size = 'md', cl
   return cn(
     CHIP_BASE,
     CHIP_SIZE[size],
-    variant !== 'tag' && 'pointer-coarse:min-h-11',
+    variant !== 'tag' && 'pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center',
     CHIP_LOOK[variant === 'toggle' && pressed ? 'pressed' : variant],
     className,
   );

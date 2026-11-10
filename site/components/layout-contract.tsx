@@ -14,6 +14,8 @@ const VARS: { name: string; writer: string; reader: string; value: string }[] = 
   { name: '--nish-page-gutter', writer: 'base.css', reader: 'PageContainer, StickyBar, ScrollRow bleed', value: '1rem, 1.5rem from 640px' },
 ];
 
+const ALL_NAMES = VARS.map((v) => v.name);
+
 function read(name: string): string {
   if (typeof document === 'undefined') return '';
   const root = document.documentElement;
@@ -21,10 +23,18 @@ function read(name: string): string {
 }
 
 /** The live values of the contract's variables on <html>, refreshed as they change. */
-export function Readout({ names = VARS.map((v) => v.name) }: { names?: string[] }) {
+export function Readout({ names = ALL_NAMES }: { names?: string[] }) {
   const [vals, setVals] = useState<Record<string, string>>({});
+  // Key on the content so an inline array literal does not re-run the effect on every render.
+  const key = names.join('\u0000');
   useEffect(() => {
-    const update = () => setVals(Object.fromEntries(names.map((n) => [n, read(n)])));
+    const list = key.split('\u0000');
+    const update = () =>
+      setVals((prev) => {
+        const next = Object.fromEntries(list.map((n) => [n, read(n)]));
+        const same = list.every((n) => prev[n] === next[n]) && Object.keys(prev).length === list.length;
+        return same ? prev : next;
+      });
     update();
     const mo = new MutationObserver(update);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'data-nish-layer-open'] });
@@ -35,7 +45,7 @@ export function Readout({ names = VARS.map((v) => v.name) }: { names?: string[] 
       window.removeEventListener('resize', update);
       clearInterval(id);
     };
-  }, [names]);
+  }, [key]);
   return (
     <dl className="m-0 grid w-full min-w-0 overflow-hidden rounded-xl border border-th-line bg-th-surface">
       {names.map((n) => (
@@ -113,8 +123,8 @@ export const layoutContract: ComponentDoc = {
   exports: [],
   source: 'src/css/base.css',
   summary:
-    'The header and bottom bars publish their heights as CSS variables on <html>; Toaster, Drawer, sticky elements and page padding read them. So a toast never covers a tab bar and a sticky filter row sits exactly under the header, with no React context and no offsets passed by hand. It works in static pages too.',
-  importLine: "import { useHeightVar } from 'nish-ui';",
+    'The header and bottom bars publish their heights as CSS variables on <html>; Toaster, MoreSheet, sticky elements and page padding read them. So a toast never covers a tab bar and a sticky filter row sits exactly under the header, with no React context and no offsets passed by hand. It works in static pages too.',
+  importLine: "import { useHeightVar } from '@nish/ui';",
   controls: [],
   initial: {},
   render: () => (
@@ -148,7 +158,7 @@ export const layoutContract: ComponentDoc = {
     },
   ],
   api: { functions: ['useHeightVar', 'useStuck', 'useScrollEdges', 'mountHeightVar'], interfaces: [] },
-  usage: `import { useHeightVar } from 'nish-ui';
+  usage: `import { useHeightVar } from '@nish/ui';
 
 // A bar you build yourself joins the contract in one line:
 const ref = useRef<HTMLDivElement>(null);
@@ -162,6 +172,6 @@ useHeightVar(ref, '--nish-bottom-bar-h', open);
     'Never set --nish-bottom-inset yourself: base.css defines it as the sum of the nav and bar heights.',
     'Read variables with a 0px fallback (var(--nish-header-h, 0px)) so the element works with no header on the page.',
     'The bottom nav height already includes the device safe area, so do not add env(safe-area-inset-bottom) on top of it.',
-    'Static pages join with mountHeightVar(el, name) from nish-ui/theme, the twin of useHeightVar.',
+    'Static pages join with mountHeightVar(el, name) from @nish/ui/theme, the twin of useHeightVar.',
   ],
 };

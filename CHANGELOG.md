@@ -8,6 +8,11 @@ a minor adds, and a patch fixes.
 
 ### Fixed
 
+- `IconButton`: `active={false}` now sets `aria-pressed="false"`, so an off toggle is announced as a toggle.
+- `Button` (xs, sm, md), `Chip` and `Breadcrumbs` links reach 44px wide on touch screens, not just 44px tall.
+- Static `.nish-btn--link` gets a 44px touch hit area, matching the React link `Button`.
+- `WorkflowBoard` / `AgentNode`: queued cards and waiting phases no longer dim text with opacity, so it keeps 4.5:1 contrast.
+- `seriesColor()` returns chart-1 for `NaN` / `Infinity` instead of `var(--nish-chart-NaN)`.
 - `Field` / `FieldGroup`: `hint=''` or `hint={false}` no longer renders an empty hint or points `aria-describedby` at it.
 - `MenuItem`: a disabled item no longer runs its `onClick`.
 - `Meter`: a vertical meter with `showValue` keeps its `className`.

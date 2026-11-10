@@ -138,7 +138,10 @@ describe('buttonClass', () => {
   });
 
   it('xs, sm and md grow to 44px on touch, lg does not need to', () => {
-    for (const size of ['xs', 'sm', 'md'] as const) expect(buttonClass({ size })).toContain('pointer-coarse:min-h-11');
+    for (const size of ['xs', 'sm', 'md'] as const) {
+      expect(buttonClass({ size })).toContain('pointer-coarse:min-h-11');
+      expect(buttonClass({ size })).toContain('pointer-coarse:min-w-11');
+    }
     expect(buttonClass({ size: 'lg' })).not.toContain('pointer-coarse:min-h-11');
   });
 
@@ -222,7 +225,7 @@ describe('IconButton', () => {
     expect(b.getAttribute('data-state')).toBe('active');
     expect(classes(b)).toContain('bg-th-elevated');
     rerender(<IconButton label="Pin" active={false} />);
-    expect(screen.getByRole('button').hasAttribute('aria-pressed')).toBe(false);
+    expect(screen.getByRole('button').getAttribute('aria-pressed')).toBe('false');
     expect(screen.getByRole('button').getAttribute('data-state')).toBe('inactive');
     rerender(<IconButton label="Pin" />);
     expect(screen.getByRole('button').hasAttribute('data-state')).toBe(false);

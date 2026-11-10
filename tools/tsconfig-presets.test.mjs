@@ -1,17 +1,24 @@
 // The shipped tsconfig presets (@nish/ui/tsconfig/*.json) must parse and resolve their extends chain.
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const tsc = resolve('node_modules/typescript/bin/tsc');
+const root = fileURLToPath(new URL('..', import.meta.url));
+const tsc = resolve(root, 'node_modules/typescript/bin/tsc');
+const dirs = [];
+after(() => {
+  for (const d of dirs) rmSync(d, { recursive: true, force: true });
+});
 
 function show(preset) {
   const dir = mkdtempSync(join(tmpdir(), 'nish-tsconfig-'));
+  dirs.push(dir);
   writeFileSync(join(dir, 'a.ts'), 'export const a = 1;\n');
-  writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify({ extends: resolve('tsconfig', preset).split('\\').join('/'), include: ['a.ts'] }));
+  writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify({ extends: resolve(root, 'tsconfig', preset).split('\\').join('/'), include: ['a.ts'] }));
   return JSON.parse(execFileSync(process.execPath, [tsc, '--showConfig', '-p', dir], { encoding: 'utf8' })).compilerOptions;
 }
 

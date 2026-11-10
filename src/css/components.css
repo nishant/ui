@@ -1695,7 +1695,8 @@
        <div class="nish-skeleton nish-skeleton--thumb"></div>
        <div class="nish-skeleton nish-skeleton--card"></div>
      </div>
-     The group is the live region: set aria-busy="false" (or remove the group) once loaded. */
+     The group needs role="status" and visually hidden "Loading" text to be announced (aria-busy alone says nothing):
+     set aria-busy="false" (or remove the group) once loaded. */
   :where(.nish-skeleton) {
     display: block;
     border-radius: var(--nish-radius-sm);
@@ -3313,6 +3314,14 @@
     }
     :where(.nish-btn--link) {
       min-height: 0;
+      position: relative;
+    }
+    /* The same invisible hit area as the React link Button (LINK_HIT): 44px without moving the layout. */
+    :where(.nish-btn--link)::after {
+      content: '';
+      position: absolute;
+      inset-inline: -0.5rem;
+      inset-block: -0.75rem;
     }
     /* Grown to 44px without growing the toast (the React toast's negative margins). */
     :where(.nish-toast-action) {

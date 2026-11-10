@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { Button, Card, cn, SCALE } from '../../src';
-// Straight from the tokens until src/index.ts re-exports HUE_ROLES (LANE.md).
-import { HUE_ROLES } from '../../src';
+import { Button, Card, cn, HUE_ROLES, SCALE } from '../../src';
 import type { ComponentDoc } from './types';
 
 // --- Base utilities: hue tints, small type, radii and the base.css helpers -----------
@@ -19,14 +17,14 @@ const HUE_LABEL: Record<string, string> = {
 
 // Written out so Tailwind sees every class (it cannot read built names).
 const HUE_CHIP: Record<string, string> = {
-  emerald: 'bg-th-emerald-soft text-th-emerald border-th-emerald/30',
-  indigo: 'bg-th-indigo-soft text-th-indigo border-th-indigo/30',
-  amber: 'bg-th-amber-soft text-th-amber border-th-amber/30',
-  lime: 'bg-th-lime-soft text-th-lime border-th-lime/30',
-  rose: 'bg-th-rose-soft text-th-rose border-th-rose/30',
-  sky: 'bg-th-sky-soft text-th-sky border-th-sky/30',
-  violet: 'bg-th-violet-soft text-th-violet border-th-violet/30',
-  teal: 'bg-th-teal-soft text-th-teal border-th-teal/30',
+  emerald: 'bg-th-emerald-soft text-th-hi border-th-emerald/30',
+  indigo: 'bg-th-indigo-soft text-th-hi border-th-indigo/30',
+  amber: 'bg-th-amber-soft text-th-hi border-th-amber/30',
+  lime: 'bg-th-lime-soft text-th-hi border-th-lime/30',
+  rose: 'bg-th-rose-soft text-th-hi border-th-rose/30',
+  sky: 'bg-th-sky-soft text-th-hi border-th-sky/30',
+  violet: 'bg-th-violet-soft text-th-hi border-th-violet/30',
+  teal: 'bg-th-teal-soft text-th-hi border-th-teal/30',
 };
 const HUE_TILE: Record<string, string> = {
   emerald: 'bg-th-emerald-soft text-th-emerald',
@@ -62,6 +60,10 @@ const HueTiles = () => (
   </div>
 );
 
+/** Every row in px: text-xs is Tailwind's 0.75rem, the other two come from SCALE (rem). */
+const px = (name: 'text-xs' | 'text-2xs' | 'text-3xs'): string =>
+  `${name === 'text-xs' ? 12 : Math.round(parseFloat(String(SCALE[name as 'text-2xs' | 'text-3xs'])) * 16)}px`;
+
 const SmallType = () => (
   <div className="w-full space-y-2">
     {(
@@ -75,7 +77,7 @@ const SmallType = () => (
         <code className="w-20 shrink-0 font-mono text-xs text-th-hi3">{name}</code>
         <span className={cls}>Last sync 2 min ago · 14 widgets</span>
         <span className="ml-auto font-mono text-2xs tabular-nums text-th-hi3">
-          {name === 'text-xs' ? '12px' : SCALE[`${name}`]}
+          {px(name)}
         </span>
       </div>
     ))}
@@ -123,7 +125,7 @@ function SlideIn() {
   );
 }
 
-export const baseUtilities: ComponentDoc & { source: string } = {
+export const baseUtilities: ComponentDoc = {
   id: 'base-utilities',
   name: 'Base utilities',
   exports: [],
@@ -152,12 +154,12 @@ export const baseUtilities: ComponentDoc & { source: string } = {
         ? '<div className="rounded-xl" />  /* card: --nish-radius-card */'
         : a.part === 'kbd'
           ? '<kbd>⌘</kbd> <kbd>K</kbd>'
-          : '<span className="rounded-full border border-th-sky/30 bg-th-sky-soft text-th-sky">Work</span>',
+          : '<span className="rounded-full border border-th-sky/30 bg-th-sky-soft text-th-hi">Work</span>',
   stories: [
     {
       id: 'hue-chips',
       name: 'Hue tints: tags',
-      note: 'bg-th-<hue>-soft with the hue as text and a /30 border, the Badge recipe for colors with no meaning.',
+      note: 'bg-th-<hue>-soft with text-th-hi and a /30 border, the same recipe as Badge for colors with no meaning. The text stays hi so it reads in every theme.',
       wide: true,
       render: () => <HueChips />,
     },
@@ -202,9 +204,20 @@ export const baseUtilities: ComponentDoc & { source: string } = {
       note: 'Tab into this story: the link appears at the top left of the window.',
       render: () => (
         <div className="space-y-2 text-sm text-th-hi2">
-          <a className="nish-skip-link" href="#main">
+          <a
+            className="nish-skip-link"
+            href="#skip-demo-target"
+            onClick={(e) => {
+              // The docs site routes on location.hash, so keep the hash alone and move focus.
+              e.preventDefault();
+              document.getElementById('skip-demo-target')?.focus();
+            }}
+          >
             Skip to content
           </a>
+          <p id="skip-demo-target" tabIndex={-1} className="outline-none focus-visible:ring-2 focus-visible:ring-th-accent">
+            Content the link jumps to.
+          </p>
           <p>
             <code className="font-mono text-xs">{'<a class="nish-skip-link" href="#main">Skip to content</a>'}</code>
           </p>
@@ -245,7 +258,7 @@ export const baseUtilities: ComponentDoc & { source: string } = {
     },
   ],
   usage: `// Tailwind apps
-<span className="rounded-full border border-th-teal/30 bg-th-teal-soft px-2 text-xs text-th-teal">Home</span>
+<span className="rounded-full border border-th-teal/30 bg-th-teal-soft px-2 text-xs text-th-hi">Home</span>
 <span className="text-2xs text-th-hi3">{updatedAgo}</span>
 
 /* Static pages */

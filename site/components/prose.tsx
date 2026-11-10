@@ -42,8 +42,8 @@ export const prose: ComponentDoc & { source: string } = {
   ),
   code: (a) =>
     a.size === 'sm'
-      ? '<div className="nish-prose" dangerouslySetInnerHTML={{ __html: html }} />'
-      : `<div className="nish-prose text-${a.size}" dangerouslySetInnerHTML={{ __html: html }} />`,
+      ? '<div className="nish-prose" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />'
+      : `<div className="nish-prose text-${a.size}" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />`,
   stories: [
     { id: 'default', name: 'Default (sm)', render: () => <Sample /> },
     { id: 'xs', name: 'Dense (text-xs)', note: 'Every size is in em, so the container sets the scale.', render: () => <Sample size="xs" /> },
@@ -106,9 +106,10 @@ export const prose: ComponentDoc & { source: string } = {
     },
   ],
   usage: `import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 <Card>
-  <div className="nish-prose" dangerouslySetInnerHTML={{ __html: marked.parse(md) }} />
+  <div className="nish-prose" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(md)) }} />
 </Card>
 
 <!-- Static pages: nish.css carries it, so the class is all you need. -->
@@ -117,6 +118,7 @@ export const prose: ComponentDoc & { source: string } = {
     'Use it for content you do not control the markup of (Markdown, CMS HTML, chat replies). Build app screens from components instead.',
     'Body text is hi2 and headings hi; links use the accent with an underline, so they do not rely on color alone.',
     'Rules sit inside :where(), so a utility class on any child still wins without !important.',
+    'Untrusted HTML must be sanitized (for example with DOMPurify) before it reaches .nish-prose: marked and most CMS output are not safe as is.',
     'Wide tables and code blocks scroll on their own instead of widening the page.',
   ],
 };

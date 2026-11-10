@@ -9,8 +9,8 @@ import { join } from 'node:path';
 const root = join(import.meta.dirname, '..');
 const statsFile = join(root, '.site-stats.json');
 
-// gzip KB per route: the measured size (2026-11-05: 158.3, 231.1, 119.9) rounded up with about 5 KB of
-// room, never above the caps (/overview 200, /components/button 300, /frame/modal 160). Raise one only with
+// gzip KB per route: the measured size (2026-11-05: 158.3, 231.1, 119.9) rounded up to the next 5 or 10 KB
+// (6.7, 8.9 and 10.1 KB of room; at least 5), never above the caps (/overview 200, /components/button 300, /frame/modal 160). Raise one only with
 // the new measured size in this comment.
 const BUDGETS = {
   '/overview': 165,
@@ -53,6 +53,11 @@ const rows = [];
 for (const [route, facades] of Object.entries(ROUTES)) {
   const set = closure(stats.entry);
   for (const f of facades) closure(chunkOf(f), set);
+  const missing = [...set].find((c) => !stats.chunks[c]);
+  if (missing) {
+    console.error(`site-bundle-check: ${route} imports ${missing}, which is not in .site-stats.json (stale or partial stats; rebuild the site)`);
+    process.exit(1);
+  }
   const bytes = [...set].reduce((n, c) => n + stats.chunks[c].gzip, 0);
   const kb = bytes / 1024;
   const over = kb > BUDGETS[route];

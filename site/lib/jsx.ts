@@ -7,7 +7,7 @@ export function jsx(name: string, props: Record<string, unknown>, children?: str
     if (v === undefined || v === false || v === null) continue;
     if (v === true) attrs.push(k);
     else if (typeof v === 'string' && v.startsWith('{')) attrs.push(`${k}=${v}`);
-    else if (typeof v === 'string') attrs.push(`${k}="${v}"`);
+    else if (typeof v === 'string') attrs.push(v.includes('"') || v.includes('\\') || /[\r\n]/.test(v) ? `${k}={${JSON.stringify(v)}}` : `${k}="${v}"`);
     else attrs.push(`${k}={${JSON.stringify(v)}}`);
   }
   const open = attrs.length ? `<${name} ${attrs.join(' ')}` : `<${name}`;

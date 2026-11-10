@@ -377,6 +377,21 @@ describe('WorkflowBoard', () => {
     expect(screen.getByText('sonnet')).toBeTruthy();
   });
 
+  it('queued agents and waiting phases carry no opacity class on text', () => {
+    const { container } = render(
+      <WorkflowBoard phases={phases} agents={[{ id: 'a', label: 'A', state: 'queued', phase: 'p2' }]} />,
+    );
+    const plan = screen.getByRole('group', { name: 'Plan' });
+    expect(plan.getAttribute('data-state')).toBe('waiting');
+    expect(plan.querySelector('.text-th-hi2')?.textContent).toBe('Plan');
+    const cls = (el: Element) => el.getAttribute('class') ?? '';
+    expect(container.querySelector('article')?.className).not.toMatch(/opacity-/);
+    for (const el of plan.querySelectorAll('span')) {
+      if (el.textContent && !el.closest('[aria-hidden="true"]')) expect(cls(el)).not.toMatch(/opacity-/);
+    }
+    expect(plan.firstElementChild?.className).not.toMatch(/opacity-/);
+  });
+
   it('an empty phase waits; its text can be renamed and comes from the provider', () => {
     const { rerender } = render(<WorkflowBoard phases={phases} agents={[]} />);
     expect(screen.getByRole('group', { name: 'Plan' }).getAttribute('data-state')).toBe('waiting');

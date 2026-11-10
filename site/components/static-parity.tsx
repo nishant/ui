@@ -11,16 +11,26 @@ import type { ComponentDoc } from './types';
 function Loading() {
   return (
     <div className="grid w-full max-w-sm gap-4">
-      <div className="nish-skeleton-group" aria-busy="true" style={{ display: 'grid', gap: 8 }}>
+      <div className="nish-skeleton-group" role="status" aria-busy="true" style={{ display: 'grid', gap: 8 }}>
+        <span className="sr-only">Loading</span>
         <span className="nish-skeleton nish-skeleton--text" style={{ width: '60%' }} />
         <span className="nish-skeleton nish-skeleton--text" />
         <div className="nish-skeleton nish-skeleton--thumb" />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span className="nish-spinner nish-spinner--sm" role="status" aria-label="Loading" />
-        <span className="nish-spinner" role="status" aria-label="Loading" />
-        <span className="nish-spinner nish-spinner--lg" role="status" aria-label="Loading" />
-        <button type="button" className="nish-btn nish-btn--primary" aria-busy="true">
+        <span role="status">
+          <span className="nish-spinner nish-spinner--sm" aria-hidden="true" />
+          <span className="sr-only">Loading</span>
+        </span>
+        <span role="status">
+          <span className="nish-spinner" aria-hidden="true" />
+          <span className="sr-only">Loading</span>
+        </span>
+        <span role="status">
+          <span className="nish-spinner nish-spinner--lg" aria-hidden="true" />
+          <span className="sr-only">Loading</span>
+        </span>
+        <button type="button" className="nish-btn nish-btn--primary" aria-busy="true" disabled>
           Save
         </button>
       </div>
@@ -88,9 +98,7 @@ function Checklist() {
   const items = ['Passport', 'Charger', 'Adapter', 'Swimsuit'];
   return (
     <div className="w-full max-w-sm">
-      <div className="nish-checklist-progress" aria-live="polite">
-        0 of {items.length}
-      </div>
+      <div className="nish-checklist-progress" aria-live="polite" />
       <ul ref={list} className="nish-checklist" data-store="docs-static-packing">
         {items.map((it) => (
           <li key={it} data-id={it.toLowerCase()}>
@@ -198,11 +206,11 @@ export const staticParity: ComponentDoc = {
   source: 'src/css/components.css',
   summary:
     'The same new pieces for pages without React (the hub, mc, trips): skeletons, spinners and busy buttons, bottom sheets, checkboxes and switches, a scrollspy subnav, link cards, sticky bars, a bottom nav and persistent checklists. Plain markup with nish-components.css, plus small helpers from nish-ui/theme (window.nishTheme in classic scripts).',
-  importLine: "import { openSheet, mountScrollspy, mountStuck, mountChecklist, mountHeightVar } from 'nish-ui/theme';",
+  importLine: "import { openSheet, mountScrollspy, mountStuck, mountChecklist, mountHeightVar } from '@nish/ui/theme';",
   controls: [],
   initial: {},
   render: () => <Loading />,
-  code: () => '<span class="nish-spinner" role="status" aria-label="Loading"></span>\n<button class="nish-btn nish-btn--primary" aria-busy="true">Save</button>',
+  code: () => '<span role="status"><span class="nish-spinner" aria-hidden="true"></span><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">Loading</span></span>\n<button class="nish-btn nish-btn--primary" aria-busy="true" disabled>Save</button>',
   stories: [
     { id: 'loading', name: '.nish-skeleton, .nish-spinner, busy buttons', render: () => <Loading /> },
     { id: 'sheet', name: '.nish-sheet and openSheet()', note: 'A bottom sheet on a phone, a centered dialog from 640px. Use the Theme picker above to see it in every theme.', render: () => <Sheet /> },

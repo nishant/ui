@@ -26,9 +26,9 @@ export const spinner: ComponentDoc = {
   html: {
     height: 120,
     code: `<div style="display:flex;align-items:center;gap:16px">
-  <span class="nish-spinner nish-spinner--sm" role="status" aria-label="Loading"></span>
-  <span class="nish-spinner" role="status" aria-label="Loading"></span>
-  <span class="nish-spinner nish-spinner--lg" role="status" aria-label="Loading"></span>
+  <span role="status"><span class="nish-spinner nish-spinner--sm" aria-hidden="true"></span><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">Loading</span></span>
+  <span role="status"><span class="nish-spinner" aria-hidden="true"></span><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">Loading</span></span>
+  <span role="status"><span class="nish-spinner nish-spinner--lg" aria-hidden="true"></span><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">Loading</span></span>
   <button class="nish-btn nish-btn--primary" aria-busy="true" disabled>Save</button>
 </div>`,
   },
@@ -71,10 +71,11 @@ export const spinner: ComponentDoc = {
     {
       id: 'card',
       name: 'In a card',
+      note: 'The visible text is the status, so the Spinner has no label and the sentence is announced once.',
       render: () => (
-        <Card className="flex w-full max-w-sm flex-col items-center gap-3 py-10" aria-busy="true">
-          <Spinner size="lg" className="text-th-accent" label="Loading positions" />
-          <p className="text-xs text-th-hi3">Loading positions</p>
+        <Card className="flex w-full max-w-sm flex-col items-center gap-3 py-10">
+          <Spinner size="lg" className="text-th-accent" />
+          <p role="status" className="text-xs text-th-hi3">Loading positions</p>
           <Button size="sm" variant="ghost">
             Cancel
           </Button>

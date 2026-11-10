@@ -56,7 +56,7 @@ export function OverviewPage() {
         {[
           [String(PRESETS.length), 'themes', '/themes'],
           [String(colorCount), 'color roles', '/color'],
-          [String(DOCS.length), 'components', '/components/button'],
+          [String(DOCS.filter((d) => d.exports.length > 0).length), 'components', '/components/button'],
           [String(WHERE.length), 'ways to use it', '/getting-started'],
         ].map(([n, label, to]) => (
           <a key={label} href={href(to)} className="block rounded-xl">
@@ -74,7 +74,7 @@ export function OverviewPage() {
             ['Tokens', 'src/tokens.mjs is the one source: colors per theme, type, spacing, radii, shadows, motion, z-index. The build turns it into CSS variables (--nish-*) and Tailwind classes (bg-th-surface).'],
             ['Themes', 'Dark (the default), Light, and the presets Slate, Terminal, Mocha, Ocean and High contrast. Every pair of text and background is checked against WCAG in CI.'],
             ['Theme switching', 'theme-init.js applies the saved choice before first paint; theme.ts handles switching. The choice is saved in localStorage and, for sites that opt in, a cookie on your domain, so it is the same on every subdomain.'],
-            ['Components', 'Button, IconButton, Card, Badge, fields, skeletons, empty and error states, toasts, Modal, Tooltip and ThemeToggle. Small, accessible, and 44px tap targets on touch screens.'],
+            ['Components', '100+ components: buttons, forms, tables, overlays, charts, navigation, toasts and more. Small, accessible, and 44px tap targets on touch screens.'],
           ].map(([t, d]) => (
             <Card key={t}>
               <p className="font-semibold text-th-hi">{t}</p>

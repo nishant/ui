@@ -190,7 +190,7 @@ export function IconButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      aria-pressed={pressed || undefined}
+      aria-pressed={active === undefined ? undefined : pressed}
       data-state={active === undefined ? undefined : pressed ? 'active' : 'inactive'}
       data-disabled={disabled ? '' : undefined}
       className={iconButtonClass({ size, variant, tone, active: pressed, className })}

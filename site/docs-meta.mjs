@@ -35,7 +35,7 @@ function propsOf(obj) {
 
 function readDoc(file, identifier, dir) {
   const path = join(dir, file);
-  if (!existsSync(path)) throw new Error(`docs-meta: ${identifier} is not exported by site/components/${file}`);
+  if (!existsSync(path)) throw new Error(`docs-meta: no doc file site/components/${file} (imported for ${identifier}; doc files must be .tsx)`);
   const sf = parse(path);
   let init = null;
   for (const st of sf.statements) {

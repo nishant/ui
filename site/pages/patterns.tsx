@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Badge, Button, Card, cn, EmptyState, ErrorState, IconButton, Input, Label, Select, Skeleton } from '../../src';
+import { Badge, Button, Card, cn, EmptyState, ErrorState, Field, IconButton, Input, Select, Skeleton } from '../../src';
 import { CodeBlock } from '../lib/code';
 import { DownloadIcon, InboxIcon, RefreshIcon, SearchIcon } from '../lib/icons';
 import { href } from '../lib/router';
@@ -48,7 +48,7 @@ function Dashboard() {
           </div>
         ))}
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Site status">
         <table className="w-full min-w-[480px] text-sm">
           <thead>
             <tr className="border-b border-th-line bg-th-elevated/50 text-left text-xs text-th-hi3">
@@ -94,32 +94,22 @@ function Settings() {
         <p className="text-xs text-th-hi3">How trackers tell you about price drops.</p>
       </div>
       <form className="grid gap-4 px-4 py-4 sm:grid-cols-2 sm:px-5" onSubmit={(e) => e.preventDefault()}>
-        <label className="grid gap-1.5">
-          <Label>Email</Label>
+        <Field label="Email">
           <Input type="email" defaultValue="me@nish.software" />
-        </label>
-        <label className="grid gap-1.5">
-          <Label>Send</Label>
+        </Field>
+        <Field label="Send">
           <Select defaultValue="instant">
             <option value="instant">As soon as a price drops</option>
             <option value="daily">Once a day, at 8 am</option>
             <option value="weekly">Weekly digest</option>
           </Select>
-        </label>
-        <label className="grid gap-1.5">
-          <Label>Minimum drop</Label>
-          <Input inputMode="decimal" defaultValue="5" aria-describedby="drop-hint" />
-          <span id="drop-hint" className="text-xs text-th-hi3">
-            Percent below the price when you added it.
-          </span>
-        </label>
-        <label className="grid gap-1.5">
-          <Label>Webhook URL</Label>
-          <Input invalid defaultValue="hooks.slack.com/T0/B0" aria-describedby="hook-err" />
-          <span id="hook-err" className="text-xs text-th-loss">
-            Start with https://
-          </span>
-        </label>
+        </Field>
+        <Field label="Minimum drop" hint="Percent below the price when you added it.">
+          <Input inputMode="decimal" defaultValue="5" />
+        </Field>
+        <Field label="Webhook URL" error="Start with https://">
+          <Input defaultValue="hooks.slack.com/T0/B0" />
+        </Field>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-th-line pt-4 sm:col-span-2">
           <p className="text-xs text-th-hi3">Last saved Oct 24 at 9:12 pm</p>
           <div className="flex gap-2">
@@ -193,13 +183,20 @@ const PATTERNS: { id: string; title: string; note: string; render: () => ReactNo
   {
     id: 'settings',
     title: 'Settings form',
-    note: 'Label over each field, hints and errors tied with aria-describedby, and the actions in a footer row.',
+    note: 'Field gives each control a label, a hint or error tied with aria-describedby, and the actions sit in a footer row.',
     render: () => <Settings />,
-    code: `<label className="grid gap-1.5">
-  <Label>Webhook URL</Label>
-  <Input invalid aria-describedby="hook-err" />
-  <span id="hook-err" className="text-xs text-th-loss">Start with https://</span>
-</label>`,
+    code: `<form className="grid gap-4 sm:grid-cols-2">
+  <Field label="Minimum drop" hint="Percent below the price when you added it.">
+    <Input inputMode="decimal" />
+  </Field>
+  <Field label="Webhook URL" error="Start with https://">
+    <Input />
+  </Field>
+  <div className="flex justify-end gap-2 sm:col-span-2">
+    <Button variant="ghost">Discard</Button>
+    <Button variant="primary" type="submit">Save changes</Button>
+  </div>
+</form>`,
   },
   {
     id: 'states',

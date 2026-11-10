@@ -39,7 +39,8 @@ export const skeletonPresets: ComponentDoc = {
         : jsx('SkeletonCard', { lines: Number(a.lines) === 3 ? undefined : Number(a.lines), media: a.media === 'none' ? undefined : a.media }),
   html: {
     height: 410,
-    code: `<div class="nish-skeleton-group" aria-busy="true" aria-label="Loading" style="display:grid;gap:12px;max-width:28rem">
+    code: `<div class="nish-skeleton-group" role="status" aria-busy="true" style="display:grid;gap:12px;max-width:28rem">
+  <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">Loading</span>
   <div class="nish-card" style="display:grid;gap:10px;padding:16px">
     <div class="nish-skeleton nish-skeleton--thumb"></div>
     <span class="nish-skeleton nish-skeleton--text" style="width: 70%"></span>

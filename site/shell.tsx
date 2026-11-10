@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } 
 import pkg from 'virtual:nish-pkg';
 import { AppHeader, cn, CommandPalette, Drawer, IconButton, Kbd, Spinner, ThemeToggle, Toaster, type CommandItem } from '../src';
 import { DOCS, docMeta } from './lib/docs';
+import { PageErrorBoundary } from './lib/error-boundary';
 import { GithubIcon, MenuIcon, SearchIcon } from './lib/icons';
 import { href, useRoute, type Route } from './lib/router';
 import { baseItems, cssItems, propItems } from './lib/search';
@@ -250,6 +251,15 @@ function Shell() {
     setDrawer(false);
   }, [route.path, title]);
 
+  // After a client-side route change (not the first load) move focus to <main>, so a screen reader
+  // reads the new page and focus is not lost with the drawer link that was clicked.
+  const shownPath = useRef(route.path);
+  useEffect(() => {
+    if (shownPath.current === route.path) return;
+    shownPath.current = route.path;
+    document.getElementById('main')?.focus({ preventScroll: true });
+  }, [route.path]);
+
   const openSearch = () => setSearch(true);
 
   // Demo links written as href="#" would send a hash-routed site to its start page. Inside the page
@@ -271,7 +281,7 @@ function Shell() {
           e.preventDefault();
           document.getElementById('main')?.focus();
         }}
-        className="fixed left-3 top-3 z-[70] -translate-y-24 rounded-lg bg-th-accent px-3 py-2 text-sm font-medium text-th-on-accent transition-transform focus:translate-y-0"
+        className="fixed left-3 top-3 z-[70] inline-flex min-h-11 -translate-y-24 items-center rounded-lg bg-th-accent px-3 py-2 text-sm font-medium text-th-on-accent transition-transform focus:translate-y-0"
       >
         Skip to content
       </a>
@@ -326,9 +336,11 @@ function Shell() {
 
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
           <div className={cn('mx-auto px-4 pb-16 pt-8 sm:px-8 sm:pt-10', wide ? 'max-w-[1400px]' : 'max-w-4xl')}>
-            <Suspense key={route.path} fallback={<PageLoading />}>
-              <div data-page={route.path}>{node}</div>
-            </Suspense>
+            <PageErrorBoundary resetKey={route.path}>
+              <Suspense key={route.path} fallback={<PageLoading />}>
+                <div data-page={route.path}>{node}</div>
+              </Suspense>
+            </PageErrorBoundary>
             {prev || next ? (
               <div className="mt-16 grid gap-3 border-t border-th-line pt-6 sm:grid-cols-2">
                 {prev ? (
@@ -351,7 +363,7 @@ function Shell() {
               <span>
                 {pkg.name} v{pkg.version}, built from this repo&apos;s own src.
               </span>
-              <a className="doc-link" href={GITHUB} target="_blank" rel="noreferrer">
+              <a className="doc-link inline-flex min-h-11 items-center" href={GITHUB} target="_blank" rel="noreferrer">
                 github.com/nishant/ui
               </a>
             </footer>
@@ -371,7 +383,10 @@ function Shell() {
           footer={
             <div className="w-full space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-th-hi3">Theme</p>
+                {/* The toggle group is already named "Theme"; the caption is only a visual label. */}
+                <p aria-hidden="true" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-th-hi3">
+                  Theme
+                </p>
                 <a href={GITHUB} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-th-hi2 hover:text-th-hi">
                   <GithubIcon size={16} /> GitHub
                 </a>

@@ -172,7 +172,7 @@ function snapshot(sim: Sim, now: number): FlowDemo {
   return { steps, done: doneCount, total, running: !finished, phases, agents, items: sim.feed, now };
 }
 
-/** Drives a fake run on a timer. Every piece of the result changes only when the run does. */
+/** Drives a fake run on a timer. The result is a new object on every 250ms tick (elapsed times and `now` move), so consumers re-render each tick. */
 export function useFlowDemo(): FlowDemo {
   const [view, setView] = useState<FlowDemo>(() => snapshot(newSim(0, Date.now()), Date.now()));
   useEffect(() => {

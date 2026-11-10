@@ -35,11 +35,11 @@ export const scrollRow: ComponentDoc = {
     { key: 'initial', label: 'Pressed chip', type: 'select', options: TAGS },
   ],
   initial: { fade: true, snap: false, initial: 'Cruises' },
-  render: (a) => <Chips key={String(a.initial)} fade={!!a.fade} snap={!!a.snap} initial={String(a.initial)} label="Categories" />,
+  render: (a) => <Chips key={String(a.initial)} fade={!!a.fade} snap={!!a.snap} initial={String(a.initial)} label="Categories" role="group" />,
   code: (a) =>
     jsx(
       'ScrollRow',
-      { label: 'Categories', fade: a.fade ? undefined : '{false}', snap: a.snap ? true : undefined },
+      { label: 'Categories', role: 'group', fade: a.fade ? undefined : '{false}', snap: a.snap ? true : undefined },
       '\n  {tags.map((t) => <Chip key={t} pressed={t === tag} onClick={() => setTag(t)}>{t}</Chip>)}\n',
     ),
   html: {
@@ -57,8 +57,8 @@ export const scrollRow: ComponentDoc = {
 <script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,
   },
   stories: [
-    { id: 'chips', name: 'Chips', note: 'Narrow the window: the row scrolls instead of wrapping.', render: () => <Chips initial="Visas" label="Categories" /> },
-    { id: 'nofade', name: 'No fades', render: () => <Chips fade={false} label="Categories" /> },
+    { id: 'chips', name: 'Chips', note: 'Narrow the window: the row scrolls instead of wrapping.', render: () => <Chips initial="Visas" label="Categories" role="group" /> },
+    { id: 'nofade', name: 'No fades', render: () => <Chips fade={false} label="Categories" role="group" /> },
     {
       id: 'bleed',
       name: 'Bleed to the screen edges',
@@ -66,15 +66,15 @@ export const scrollRow: ComponentDoc = {
       render: () => (
         <div className="w-full overflow-hidden rounded-lg border border-th-line py-3">
           <div className="px-[var(--nish-page-gutter)] pb-2 text-sm text-th-hi3">Page content</div>
-          <Chips bleed label="Categories" initial="Hotels" />
+          <Chips bleed label="Categories" role="group" initial="Hotels" />
         </div>
       ),
     },
-    { id: 'snap', name: 'Snap to chips', render: () => <Chips snap label="Categories" initial="Cars" /> },
+    { id: 'snap', name: 'Snap to chips', render: () => <Chips snap label="Categories" role="group" initial="Cars" /> },
   ],
   usage: `import { Chip, ScrollRow } from '@nish/ui';
 
-<ScrollRow label="Categories" bleed>
+<ScrollRow label="Categories" role="group" bleed>
   {tags.map((t) => (
     <Chip key={t} pressed={t === tag} onClick={() => setTag(t)}>{t}</Chip>
   ))}
@@ -83,6 +83,7 @@ export const scrollRow: ComponentDoc = {
     'Children must not shrink: give chips shrink-0 so the row overflows instead of squeezing labels.',
     'Mark the current child with aria-pressed, aria-selected or aria-current; ScrollRow brings it into view.',
     'Segmented and Tabs already scroll with fades. Use ScrollRow for your own chip rows, filter bars and link lists.',
-    'as="ul" or as="nav" gives the row the right landmark; pass label to name it.',
+    'label sets aria-label, which a bare div ignores: pair it with role="group" (chip rows) or use as="nav" (link rows). A list is not a landmark.',
+    'as="ul" or as="ol" needs <li> children, so wrap each chip or link in an <li>.',
   ],
 };

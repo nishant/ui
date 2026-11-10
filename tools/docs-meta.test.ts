@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { docsMeta } from '../site/docs-meta.mjs';
 import { COMPONENT_DOCS } from '../site/components/index';
@@ -20,5 +20,22 @@ describe('docs-meta', () => {
 
   it('points at doc files that exist', () => {
     for (const m of meta) expect(existsSync(join(root, 'site', 'components', m.file)), m.file).toBe(true);
+  });
+});
+
+// site-all.visual.json is run by hand, so this test is what keeps it complete (see docs/adoption/COMPONENTS.md).
+describe('site-all.visual.json', () => {
+  const cfg = JSON.parse(readFileSync(join(root, 'tools', 'site-all.visual.json'), 'utf8')) as { pages: { url: string }[] };
+  const ids = COMPONENT_DOCS.map((d) => d.id);
+
+  it('has an entry for every COMPONENT_DOCS id', () => {
+    const urls = cfg.pages.map((p) => p.url);
+    const missing = ids.filter((id) => !urls.some((u) => u.endsWith(`#/components/${id}`)));
+    expect(missing).toEqual([]);
+  });
+
+  it('names only real component ids', () => {
+    const named = cfg.pages.map((p) => /#\/components\/([^/]+)/.exec(p.url)?.[1]).filter((x): x is string => !!x);
+    expect(named.filter((id) => !ids.includes(id))).toEqual([]);
   });
 });

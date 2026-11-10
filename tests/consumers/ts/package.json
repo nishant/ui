@@ -3,15 +3,15 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "hono": "^4.0.0",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "hono": "4.13.14",
     "nish-ui": "__NISH_UI_TARBALL__",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "ts54": "npm:typescript@5.4",
-    "ts59": "npm:typescript@5.9",
-    "ts60": "npm:typescript@6.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "ts54": "npm:typescript@5.4.5",
+    "ts59": "npm:typescript@5.9.3",
+    "ts60": "npm:typescript@6.0.3"
   }
 }

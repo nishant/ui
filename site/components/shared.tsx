@@ -16,9 +16,11 @@ export const Row = ({ children, className = '' }: { children: ReactNode; classNa
 );
 
 export const Field = ({ label, children, hint, error, id }: { label: string; children: ReactNode; hint?: string; error?: string; id?: string }) => (
-  <label className="grid w-full gap-1.5">
-    <Label>{label}</Label>
-    {children}
+  <div className="grid w-full gap-1.5">
+    <label className="grid gap-1.5">
+      <Label>{label}</Label>
+      {children}
+    </label>
     {error ? (
       <span id={id} className="text-xs text-th-loss">
         {error}
@@ -28,5 +30,5 @@ export const Field = ({ label, children, hint, error, id }: { label: string; chi
         {hint}
       </span>
     ) : null}
-  </label>
+  </div>
 );

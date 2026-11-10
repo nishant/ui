@@ -43,7 +43,8 @@ export const skeleton: ComponentDoc = {
         : jsx('SkeletonLines', { lines: a.lines === 3 ? undefined : Number(a.lines) }),
   html: {
     height: 330,
-    code: `<div class="nish-skeleton-group" aria-busy="true" aria-label="Loading" style="display:grid;gap:12px;max-width:24rem">
+    code: `<div class="nish-skeleton-group" role="status" aria-busy="true" style="display:grid;gap:12px;max-width:24rem">
+  <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">Loading</span>
   <span class="nish-skeleton nish-skeleton--text" style="width: 60%"></span>
   <span class="nish-skeleton nish-skeleton--text"></span>
   <span class="nish-skeleton nish-skeleton--circle" style="width: 40px"></span>

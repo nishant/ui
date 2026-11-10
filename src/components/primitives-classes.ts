@@ -28,9 +28,9 @@ export const BUTTON_VARIANT: Record<ButtonVariant, string> = {
 };
 
 export const BUTTON_SIZE: Record<ButtonSize, string> = {
-  xs: 'h-6 gap-1 px-2 text-2xs pointer-coarse:min-h-11',
-  sm: 'h-7 gap-1.5 px-2.5 text-xs pointer-coarse:min-h-11',
-  md: 'h-9 gap-2 px-3.5 text-sm pointer-coarse:min-h-11',
+  xs: 'h-6 gap-1 px-2 text-2xs pointer-coarse:min-h-11 pointer-coarse:min-w-11',
+  sm: 'h-7 gap-1.5 px-2.5 text-xs pointer-coarse:min-h-11 pointer-coarse:min-w-11',
+  md: 'h-9 gap-2 px-3.5 text-sm pointer-coarse:min-h-11 pointer-coarse:min-w-11',
   lg: 'h-11 gap-2 px-5 text-base',
 };
 

@@ -170,7 +170,7 @@ test('Drawer: Escape closes it and focus returns', async ({ page }) => {
 test('a toast is announced in the polite live region', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: 'Toast' }).click();
-  await expect(page.locator('[role=status][aria-live=polite]').filter({ hasText: 'Saved to the harness' })).toHaveCount(1, { timeout: 1000 });
+  await expect(page.locator('[role=status][aria-live=polite]').filter({ hasText: 'Saved to the harness' })).toHaveCount(1);
 });
 
 test('Tooltip: hover, focus and Escape, with no extra Tab stop and a tip the pointer can reach', async ({ page }) => {

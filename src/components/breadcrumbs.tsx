@@ -48,7 +48,7 @@ export interface BreadcrumbsProps extends Omit<ComponentPropsWithoutRef<'nav'>, 
 
 const LINK = cn(
   'inline-flex items-center rounded text-th-hi3 transition-colors duration-150 hover:text-th-hi hover:underline',
-  'pointer-coarse:min-h-11',
+  'pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center',
 );
 const CURRENT = 'inline-flex items-center font-medium text-th-hi pointer-coarse:min-h-11';
 
