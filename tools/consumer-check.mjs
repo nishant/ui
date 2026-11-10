@@ -188,7 +188,7 @@ async function checkNext(work, tarball, browser) {
     // Each value is in its own <span data-testid="...">; read them one by one.
     const field = (id) => {
       const m = sub.match(new RegExp(`<span[^>]*data-testid="${id}"[^>]*>(.*?)</span>`, 's'));
-      return m ? m[1].replace(/<!-- -->/g, '').replace(/<[^>]+>/g, '').trim() : null;
+      return m ? m[1].split('<!-- -->').join('').trim() : null;
     };
     const got = Object.fromEntries(['money', 'pct', 'date', 'presets', 'themes', 'series'].map((id) => [id, field(id)]));
     const bad = [];
