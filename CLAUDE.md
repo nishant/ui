@@ -9,7 +9,7 @@ package is used: [README.md](README.md). Repo layout and dev commands: [docs/DEV
 Claude sessions build, commit, push, open and merge PRs and cut releases on their own judgment,
 without asking Nish. A release runs in CI: merge the release's `## [x.y.z]` CHANGELOG entry to master, then
 `gh workflow run release.yml -R nishant/ui -f bump=<patch|minor|major>`. It refuses unless HEAD is
-origin/master and master's ci.yml run is green, pushes master before the tag, creates the GitHub Release and starts the fan-out
+origin/master, pushes master before the tag, creates the GitHub Release and starts the fan-out
 (`.github/workflows/fanout.yml`). `npm run release` is the local fallback. The fan-out moves
 every app and hosting: it opens a `ui/vX.Y.Z` PR in each repo and merges it when the checks and the
 Fold check pass. A held bump PR is adopted on its `ui/vX.Y.Z` branch (make the app's code changes
