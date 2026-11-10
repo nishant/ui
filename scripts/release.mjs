@@ -3,8 +3,10 @@
 //
 // Normally run by .github/workflows/release.yml (workflow_dispatch, with --ci). It still works
 // from a clean local master as a fallback. In CI it requires a green ci.yml run on master HEAD
-// (skipping [skip ci] commits). Third-party checks and builds run without GH_TOKEN; only the
-// git pushes and the gh calls get it.
+// (skipping [skip ci] commits). Checks and builds run with GH_TOKEN removed from their env, and
+// only the git pushes (hooks off) and the gh calls get it. This is not full isolation: this parent
+// process still holds the token in its environment, so a check run as the same user could read it
+// (for example from /proc/$PPID/environ). Splitting checks and pushes into separate jobs would fix that.
 //
 // master never carries dist/. A release bumps the version on master, then makes a
 // tag commit on top of it that adds the built dist/, so `github:nishant/ui#vX.Y.Z`
@@ -46,7 +48,7 @@ const push = (ref) => {
           GIT_CONFIG_VALUE_0: 'AUTHORIZATION: basic ' + Buffer.from('x-access-token:' + process.env.GH_TOKEN).toString('base64'),
         }
       : process.env;
-  execFileSync('git', ['push', '-q', 'origin', ref], { stdio: 'inherit', env });
+  execFileSync('git', ['-c', 'core.hooksPath=/dev/null', 'push', '-q', '--no-verify', 'origin', ref], { stdio: 'inherit', env });
 };
 const bump = args.find((a) => !a.startsWith('--'));
 if (!bump) {

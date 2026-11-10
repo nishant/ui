@@ -10,6 +10,12 @@ afterEach(() => {
   vi.doUnmock('./toast-card');
 });
 
+// The factory runs asynchronously, after module resolution, so a retried import would only show up in factoryRuns
+// a few macrotask turns later. Let those turns pass before asserting the count did not move.
+async function settle() {
+  for (let i = 0; i < 5; i++) await act(async () => new Promise<void>((r) => setTimeout(r, 0)));
+}
+
 async function setup() {
   vi.resetModules();
   factoryRuns = 0;
@@ -51,6 +57,7 @@ describe('Toaster when the card chunk cannot load', () => {
       id3 = toast('Third', { duration: 'sticky' });
     });
     expect(screen.getByText('Third').closest('[data-nish-toast-fallback]')).not.toBeNull();
+    await settle();
     expect(factoryRuns).toBe(1);
     act(() => {
       dismissToast(id);
@@ -77,6 +84,7 @@ describe('Toaster when the card chunk cannot load', () => {
       id2 = toast('Two', { duration: 'sticky' });
     });
     expect(screen.getByText('Two').closest('[data-nish-toast-fallback]')).not.toBeNull();
+    await settle();
     expect(factoryRuns).toBe(1);
     act(() => {
       dismissToast(id);
