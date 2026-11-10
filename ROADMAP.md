@@ -8,6 +8,20 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
 - **Release the audit phase 2 and phase 3 fixes** (2026-11-09, audit-p2, audit-p3): both sets are merged to master and sit under `## [Unreleased]` in CHANGELOG.md; not released (v3.1.0 had just fanned out). Tomorrow: rename `## [Unreleased]` to `## [3.1.1] - <date>` in a PR, merge it, then `gh workflow run release.yml -R nishant/ui -f bump=patch`.
 - **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids
   `UI-nnn`). What is left:
+  - UI-135: `src/components/breadcrumbs.tsx:176`: the collapsed "..." menu calls `window.location.assign`; route a menu
+    item with an href through `renderLink` (or an `onNavigate` prop) so router apps navigate client-side, and test it.
+  - UI-139: `src/components/calendar-classes.ts:330`: `y = 2000 + y` turns "99" into 2099; use a CLDR pivot window
+    (80 years back, 19 ahead), add tests for '99' and '30', and document the rule in the DatePicker JSDoc.
+  - UI-141: `src/components/canvas/follow-caption.tsx`: drop `role="status"`/`aria-live` from the auto-cycling caption;
+    add an always-mounted sr-only live region that announces only mode changes.
+  - UI-176: `src/components/display.tsx` Disclosure `onToggle`: when `open` is set and the toggle disagrees, call
+    `onOpenChange` then write `e.currentTarget.open = open` back; assert `el.open` is false in the test.
+  - UI-177: `CopyButton`: add `copyFailed` to the display strings and use `failedLabel ?? strings.copyFailed`; add a
+    provider override test.
+  - UI-181: `src/components/error-boundary.tsx:24`: make `CHUNK_MESSAGE` case-insensitive and add Firefox's "error
+    loading dynamically imported module" and Vite's "Unable to preload CSS"; one test per message.
+  - UI-182: `error-boundary.tsx:61`: `componentDidUpdate` must check `prevState.error` was already set before resetting,
+    so `onError` fires once; add a test.
   - UI-400: the docs site's CSP is only `frame-ancestors 'self'`; the build should emit the theme-init sha256 and
     hosting should serve a strict policy for design.nish.software (needs the hosting repo).
   - UI-402: Firefox and WebKit run only the overlay specs; widen the WebKit project's testMatch to the elements,
