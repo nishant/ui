@@ -4,6 +4,7 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
 
 ## Ideas
 
+- **Touch hit area on the Tooltip hint variant** (2026-11-10, trading term-tooltips): an inline `variant="hint"` term is one text line tall, well under 44px on a phone. Trading's `Term` adds the `linkClass()` recipe (`LINK_HIT`: a coarse-pointer `::after` at `-inset-x-2 -inset-y-3`) itself. Put it on the hint variant here (watch for the box covering a term on the line above in dense text), release, then drop `TOUCH_HIT` from `apps/web/src/components/Term.tsx` in trading.
 - **Release the audit phase 2 fixes** (2026-11-09, audit-p2): merged to master, not released (v3.1.0 had just fanned out). Tomorrow: rename `## [Unreleased]` in CHANGELOG.md to `## [3.1.1] - <date>` in a PR, merge it, then `gh workflow run release.yml -R nishant/ui -f bump=patch`.
 - **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids
   `UI-nnn`). 3.1.0 and phase 2 (audit-p2) fixed the listed high, medium and low findings; about 230 low and nit findings
