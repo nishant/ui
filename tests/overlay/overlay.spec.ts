@@ -270,3 +270,28 @@ test('the lazily loaded More sheet closes on Back and leaves the URL as it was',
   await expect(sheet).toHaveCount(0);
   expect(page.url()).toBe(url);
 });
+
+test.describe('360px cover screen, dark', () => {
+  test.use({ viewport: { width: 360, height: 780 }, colorScheme: 'dark' });
+
+  const cases: Array<[string, string, string]> = [
+    ['Modal', 'Open modal', 'Harness modal'],
+    ['Drawer', 'Open drawer', 'Harness drawer'],
+    ['Popover', 'Flip anchor', 'Flip panel'],
+  ];
+  for (const [label, button, name] of cases) {
+    test(`${label} fits the screen`, async ({ page }) => {
+      await open(page);
+      await page.getByRole('button', { name: button }).click();
+      const panel = page.getByRole('dialog', { name });
+      await expect(panel).toBeVisible();
+      // Poll: a drawer slides in, so the box settles after the first frame.
+      await expect.poll(async () => { const b = (await panel.boundingBox())!; return b.x + b.width; }).toBeLessThanOrEqual(360.5);
+      const box = (await panel.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+      await page.keyboard.press('Escape');
+      await expect(panel).toHaveCount(0);
+    });
+  }
+});

@@ -8,7 +8,7 @@ import { fieldClass } from './primitives';
 import { useStrings } from './provider';
 import { FIELD_STRINGS, MULTI_SELECT_STRINGS } from './strings';
 import { indexComboboxOptions, setRef } from './forms-classes';
-import { COMBOBOX_DEBOUNCE_MS, COMBOBOX_MAX_SHOWN } from '../combobox-filter';
+import { COMBOBOX_DEBOUNCE_MS, COMBOBOX_MAX_SHOWN, matchesComboboxNeedle } from '../combobox-filter';
 import type { ComboboxOption } from './combobox';
 
 export interface MultiSelectProps
@@ -160,7 +160,7 @@ export function MultiSelect({
       if (needle && !serverFiltered) {
         if (filter) {
           if (!filter(it.option, text)) continue;
-        } else if (!it.label.includes(needle) && !(it.hint?.includes(needle) ?? false)) continue;
+        } else if (!matchesComboboxNeedle(it.label, it.hint, needle)) continue;
       }
       out.push(it.option);
     }

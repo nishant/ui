@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button, CommandPalette, Kbd, type CommandItem } from '../../src';
 import { BellIcon, ChartIcon, LayersIcon, SettingsIcon } from '../lib/icons';
-import { Device } from './bottom-nav';
+import { Device } from './device';
 import type { ComponentDoc } from './types';
 
 // --- CommandPalette -------------------------------------------------------------------------

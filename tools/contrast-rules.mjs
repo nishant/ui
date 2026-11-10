@@ -96,11 +96,9 @@ export function checkTheme(colors) {
     const tint = mix(colors[role], colors.bg, 0.14);
     add(role, `${role}-soft-solid`, colors[role], tint, TEXT, `${role} on ${role}-soft-solid`);
   }
-  // Hue tints (th-<hue>-soft): hub tile icons and calendar dots put the hue on its own
-  // tint straight on the page (a mark, 3:1), and tag chips put hi text on it.
+  // Hue tints (th-<hue>-soft): hue marks on their own tint (hub icons, calendar dots) are
+  // covered by the <hue>-soft-solid 4.5:1 check in SOFT_TEXT; this loop checks hi text on the hue tints.
   for (const h of HUES) {
-    const onBg = mix(colors[h], colors.bg, 0.14);
-    add(h, `${h}-soft`, colors[h], onBg, UI, `${h} on ${h}-soft over bg`);
     for (const under of ['bg', 'surface', 'elevated']) {
       const tint = mix(colors[h], colors[under], 0.14);
       add('hi', `${h}-soft`, colors.hi, tint, TEXT, `hi on ${h}-soft over ${under}`);

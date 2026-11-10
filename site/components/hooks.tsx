@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BREAKPOINTS, Button, NARROW_QUERY, PHONE_QUERY, useBreakpoint, useDocumentTitle, useLocalStorage, useMediaQuery, useNarrow, useNow, usePhone, useScrollSpy } from '../../src';
 import { ago, time } from '../../src/format';
-import { Device } from './bottom-nav';
+import { Device } from './device';
 import type { ComponentDoc } from './types';
 
 // --- Hooks ----------------------------------------------------------------------------------

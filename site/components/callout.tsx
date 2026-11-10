@@ -45,14 +45,20 @@ export const callout: ComponentDoc = {
     { key: 'compact', label: 'Compact', type: 'boolean' },
     { key: 'icon', label: 'Icon', type: 'boolean' },
     { key: 'action', label: 'Action', type: 'boolean' },
+    { key: 'sticky', label: 'Sticky', type: 'boolean' },
+    { key: 'clamp', label: 'Clamp', type: 'select', options: ['none', '1', '2', '3'] },
+    { key: 'count', label: 'Count', type: 'number', min: 0, max: 99 },
   ],
-  initial: { tone: 'warn', variant: 'box', title: COPY.warn.title, body: COPY.warn.body, compact: false, icon: true, action: true },
+  initial: { tone: 'warn', variant: 'box', title: COPY.warn.title, body: COPY.warn.body, compact: false, icon: true, action: true, sticky: false, clamp: 'none', count: 0 },
   render: (a) => (
     <Callout
       tone={a.tone as CalloutTone}
       variant={a.variant as 'box'}
       title={String(a.title) || undefined}
       compact={!!a.compact}
+      sticky={!!a.sticky}
+      clamp={a.clamp === 'none' ? undefined : (Number(a.clamp) as 1 | 2 | 3)}
+      count={Number(a.count) > 0 ? Number(a.count) : undefined}
       icon={a.icon ? undefined : false}
       action={a.action ? <Button size="sm">Reconnect</Button> : undefined}
       className="w-full max-w-xl"
@@ -68,6 +74,9 @@ export const callout: ComponentDoc = {
         variant: a.variant === 'box' ? undefined : a.variant,
         title: a.title || undefined,
         compact: a.compact || undefined,
+        sticky: a.sticky || undefined,
+        clamp: a.clamp === 'none' ? undefined : `{${a.clamp}}`,
+        count: Number(a.count) > 0 ? `{${a.count}}` : undefined,
         icon: a.icon ? undefined : '{false}',
         action: a.action ? '{<Button size="sm">Reconnect</Button>}' : undefined,
       },
@@ -171,6 +180,63 @@ export const callout: ComponentDoc = {
       ),
     },
     {
+      id: 'link',
+      name: 'Link callout',
+      note: 'href makes the whole row one link (44px tall, with a chevron); onClick makes it a button.',
+      render: () => (
+        <div className="grid w-full gap-3">
+          <Callout tone="info" title="What is new" href="#callout">
+            See the release notes for this version.
+          </Callout>
+          <Callout tone="accent" title="Open the changelog" onClick={() => {}}>
+            Opens in a panel.
+          </Callout>
+        </div>
+      ),
+    },
+    {
+      id: 'clamp',
+      name: 'Clamped body',
+      note: 'clamp limits the body to 1, 2 or 3 lines with an ellipsis.',
+      render: () => (
+        <Callout tone="warn" title="Token expires soon" clamp={2}>
+          The Schwab token expires in 2 days. Reconnect to keep syncing positions, orders and balances; until then the
+          dashboard shows the last values it fetched, and alerts based on live prices are paused for this account.
+        </Callout>
+      ),
+    },
+    {
+      id: 'count',
+      name: 'Count badge',
+      note: 'count shows a "+n" badge after the title, for "and 3 more" notices.',
+      render: () => (
+        <Callout tone="info" title="Sync warnings" count={3}>
+          The store returned 503.
+        </Callout>
+      ),
+    },
+    {
+      id: 'sticky',
+      name: 'Sticky bar',
+      note: 'sticky pins the bar under the app header; here the header height is 0 and the box scrolls.',
+      wide: true,
+      render: () => (
+        <div
+          className="h-48 w-full overflow-auto rounded-xl border border-th-line bg-th-bg"
+          style={{ ['--nish-header-h' as string]: '0px' }}
+        >
+          <Callout tone="warn" variant="bar" sticky title="Scheduled maintenance" className="border-t-0">
+            Tonight at 11 pm.
+          </Callout>
+          <div className="grid gap-3 p-4 text-sm text-th-hi3">
+            {Array.from({ length: 12 }, (_, i) => (
+              <p key={i}>Page content, row {i + 1}</p>
+            ))}
+          </div>
+        </div>
+      ),
+    },
+    {
       id: 'card',
       name: 'In a card',
       render: () => (
@@ -197,6 +263,6 @@ export const callout: ComponentDoc = {
     'Use the tone for meaning: info for context, ok for success, warn for something to check soon, loss for a failure.',
     'Set live only when the callout appears in response to something; a notice present on page load needs no role.',
     'One action at most. A callout with several decisions is a dialog or a section.',
-    'The bar variant is for one page-level alert at a time, usually sticky under the header.',
+    'The bar variant is for one page-level alert at a time, usually sticky under the header (sticky).',
   ],
 };

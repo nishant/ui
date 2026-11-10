@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AppHeader, Button, LoadingBar } from '../../src';
-import { Device, Filler } from './bottom-nav';
+import { Device, Filler } from './device';
 import type { ComponentDoc } from './types';
 
 // --- LoadingBar -----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import ts from 'typescript';
 import { docgen } from '../site/docgen.mjs';
@@ -57,12 +57,10 @@ it('docs page ids are unique and every page documents an export, an api name or 
 // Runtime exports of `.` with no docs-site mention today. A new export must be mentioned on a docs
 // page (its name in a page's source: exports, api, usage, guidelines or a story); do not add here.
 const UNDOCUMENTED_EXPORTS = new Set<string>([
-  'VERSION', 'useIsClient', 'useIsoLayoutEffect', 'isRtl', 'THEMES',
-  'COLOR_ROLES', 'SOFT_ROLES', 'SHADOWS', 'DEFAULT_THEME', 'revealClass',
-  'navigateFromLayer', 'usePrefersReducedMotion',
-  'paginationRange', 'avatarInitials', 'avatarHueIndex', 'registerThemes',
-  'isThemeName', 'getThemeChoice', 'resolveTheme', 'schemeOf', 'applyTheme',
-  'readToken', 'TOGGLE_ORDER', 'countLeaves', 'computeRects', 'computeDividers',
+  'VERSION', 'useIsClient', 'useIsoLayoutEffect', 'isRtl',
+  'revealClass', 'navigateFromLayer', 'usePrefersReducedMotion',
+  'paginationRange', 'avatarInitials', 'avatarHueIndex',
+  'countLeaves', 'computeRects', 'computeDividers',
   'resizeAt', 'NARROW_MAX', 'NARROW_BREAKPOINT',
 ]);
 
@@ -106,8 +104,9 @@ const UNDESCRIBED_PROPS = new Set<string>([
   'Breadcrumbs.ref', 'Accordion.ref', 'AccordionItem.ref', 'Separator.ref',
 ]);
 
-function programOf() {
-  const program = ts.createProgram([join(root, 'src/index.ts')], {
+function programOf(src = 'src/index.ts') {
+  const file = join(root, src);
+  const program = ts.createProgram([file], {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
@@ -117,7 +116,7 @@ function programOf() {
     noEmit: true,
   });
   const checker = program.getTypeChecker();
-  const entry = checker.getSymbolAtLocation(program.getSourceFile(join(root, 'src/index.ts'))!)!;
+  const entry = checker.getSymbolAtLocation(program.getSourceFile(file)!)!;
   const exports = checker.getExportsOfModule(entry).map((s) => ({
     name: s.name,
     sym: s.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(s) : s,
@@ -125,18 +124,19 @@ function programOf() {
   return { checker, exports };
 }
 
+// Every .ts/.tsx under site/components and every .tsx under site/pages (the Icons page lists every icon).
+function docsText() {
+  const read = (dir: string, re: RegExp) =>
+    readdirSync(join(root, dir)).filter((f) => re.test(f)).map((f) => readFileSync(join(root, dir, f), 'utf8'));
+  return [...read('site/components', /\.tsx?$/), ...read('site/pages', /\.tsx$/)].join('\n');
+}
+
 describe('docs coverage of the `.` entry', () => {
   const { checker, exports } = programOf();
   const runtime = exports.filter((e) => e.sym.flags & ts.SymbolFlags.Value);
 
   it('every runtime export has a docs mention', () => {
-    const dir = join(root, 'site/components');
-    const text = readdirSync(dir)
-      .filter((f) => /\.tsx?$/.test(f))
-      .map((f) => readFileSync(join(dir, f), 'utf8'))
-      // The Icons page lists every exported icon.
-      .concat(readFileSync(join(root, 'site/pages/icons.tsx'), 'utf8'))
-      .join('\n');
+    const text = docsText();
     const missing = runtime.map((e) => e.name).filter((n) => !new RegExp(`\\b${n}\\b`).test(text));
     const fresh = missing.filter((n) => !UNDOCUMENTED_EXPORTS.has(n));
     if (process.env.NISH_DOCGEN_DUMP) console.log(JSON.stringify(missing));
@@ -167,4 +167,82 @@ describe('docs coverage of the `.` entry', () => {
     expect(fresh, 'add a JSDoc description to these props').toEqual([]);
     expect([...UNDESCRIBED_PROPS].filter((g) => !gaps.includes(g)), 'remove from the allow-list').toEqual([]);
   }, 120000);
+});
+
+// Runtime exports of the subpath entries with no docs-site mention today, keyed by subpath. A new export
+// must be mentioned on a docs page; do not add here, document new exports.
+const UNDOCUMENTED_SUBPATH_EXPORTS: Record<string, string[]> = {
+  './system-canvas': [
+    'DEFAULT_CANVAS_LABELS',
+  ],
+  './inbox': [
+    'DEFAULT_INBOX_LABELS', 'INBOX_SOURCE_LABELS', 'INBOX_DEFAULT_SETTINGS', 'INBOX_ACTION_HEADER', 'INBOX_ACTION_TIMEOUT_MS',
+  ],
+  './split-layout': [
+    'countLeaves', 'computeRects', 'computeDividers', 'resizeAt', 'NARROW_MAX', 'NARROW_BREAKPOINT',
+  ],
+  './inbox-client': [
+    'parseInboxEvent', 'INBOX_ACTION_HEADER', 'INBOX_ACTION_TIMEOUT_MS', 'INBOX_DEFAULT_SETTINGS', 'INBOX_SOURCE_LABELS',
+  ],
+  './elements': [
+    'NishElement', 'NishBottomNav', 'NishDialog', 'NishSheet', 'NishThemeToggle',
+  ],
+  './eslint': [
+    'TH_COLOR_NAMES',
+  ],
+  './server': [
+    'createSessionToken', 'verifySessionToken', 'passwordMatches', 'readCookie', 'createSessionAuth', 'SESSION_DAYS', 'MIN_SECRET_BYTES', 'isLoopback', 'clientIp', 'createLimiter', 'appRoot', 'loadAppEnv', 'envNumber', 'installProcessHandlers', 'errorResponse', 'createSpaHandler', 'parseInboxEvent', 'INBOX_ACTION_HEADER', 'INBOX_ACTION_TIMEOUT_MS', 'INBOX_DEFAULT_SETTINGS', 'INBOX_SOURCE_LABELS', 'isInboxCall', 'parseInboxActionCall', 'newActionToken', 'hashActionToken', 'actionTokenMatches', 'inboxAction', 'INBOX_ACTION_PATH', 'ACTION_TOKEN_FIELD', 'inboxActionTarget', 'mintServiceToken', 'loadServiceTokens', 'jsonRevocationStore', 'createServiceTokens', 'isDirectLoopback', 'hashServiceToken', 'isCrossSiteWrite',
+  ],
+  './server/hono': [
+    'remoteAddressOf', 'clientIpOf', 'isAuthed', 'startSession', 'endSession', 'loginHandler', 'mountSessionRoutes', 'crossSiteGuard', 'serveSpa', 'onErrorHandler', 'mountInboxAction', 'NO_ADDRESS_KEY',
+  ],
+};
+
+// Subpaths with no source module under src/ (they are built from somewhere else), so there is nothing to check.
+const SKIPPED_SUBPATHS: Record<string, string> = {
+  './tokens': 'built from src/tokens.mjs (plain JS with a hand-written .d.mts), not a src/tokens.ts module',
+  './elements/forms': 'a tsup bundle of several src/elements/*.ts files with no single source module',
+  './elements/data': 'a tsup bundle of several src/elements/*.ts files with no single source module',
+  './elements/charts': 'a tsup bundle of several src/elements/*.ts files with no single source module',
+  './elements/all': 'a tsup bundle of every element with a generated .d.ts',
+};
+
+function subpathSources() {
+  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { exports: Record<string, unknown> };
+  const found: { subpath: string; src: string }[] = [];
+  const skipped: string[] = [];
+  for (const [subpath, v] of Object.entries(pkg.exports)) {
+    const types = v && typeof v === 'object' ? (v as { types?: unknown }).types : undefined;
+    if (typeof types !== 'string' || !types.endsWith('.d.ts') || subpath === '.') continue;
+    const rest = types.replace(/^\.\/dist\//, '').replace(/\.d\.ts$/, '');
+    const src = [`src/${rest}.ts`, `src/${rest}.tsx`, `src/${rest}/index.ts`].find((c) => existsSync(join(root, c)));
+    if (src) found.push({ subpath, src });
+    else skipped.push(subpath);
+  }
+  return { found, skipped };
+}
+
+describe('docs coverage of the subpath entries', () => {
+  const { found, skipped } = subpathSources();
+  console.log(`docgen-coverage: skipped subpaths: ${JSON.stringify(skipped)}`);
+
+  it('every skipped subpath is listed with a reason', () => {
+    expect(skipped.filter((s) => !(s in SKIPPED_SUBPATHS))).toEqual([]);
+    expect(Object.keys(SKIPPED_SUBPATHS).filter((s) => !skipped.includes(s))).toEqual([]);
+  });
+
+  for (const { subpath, src } of found) {
+    it(`${subpath} runtime exports have a docs mention`, () => {
+      const { exports } = programOf(src);
+      const text = docsText();
+      const runtime = exports.filter((e) => e.sym.flags & ts.SymbolFlags.Value).map((e) => e.name);
+      const missing = runtime.filter((n) => !new RegExp(`\\b${n}\\b`).test(text));
+      const allowed = UNDOCUMENTED_SUBPATH_EXPORTS[subpath] ?? [];
+      const fresh = missing.filter((n) => !allowed.includes(n));
+      if (process.env.NISH_DOCGEN_DUMP) console.log(`DUMP ${subpath} ${JSON.stringify(missing)}`);
+      console.log(`docgen-coverage: ${subpath}: ${missing.length} of ${runtime.length} runtime exports lack a docs mention (allow-listed: ${allowed.length})`);
+      expect(fresh, `document these ${subpath} exports on a docs page`).toEqual([]);
+      expect(allowed.filter((n) => !missing.includes(n)), 'remove from the allow-list').toEqual([]);
+    }, 120000);
+  }
 });

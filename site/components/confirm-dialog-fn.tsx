@@ -32,7 +32,7 @@ const DELETE: ConfirmDialogOptions = {
   tone: 'danger',
 };
 
-export const confirmDialogFnDoc: ComponentDoc & { source: string } = {
+export const confirmDialogFnDoc: ComponentDoc = {
   id: 'confirm-dialog-fn',
   name: 'confirmDialog',
   exports: [],

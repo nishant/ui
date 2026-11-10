@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+import { navRailItemClass } from '../../src/components/nav-classes';
+// The tools slot takes any node in React; the element side uses .nish-nav-rail-item.
 import {
   AppHeader,
   BarChart,
@@ -434,9 +436,6 @@ const RAIL_ITEMS = [
   { key: 'trips', label: 'Trips', icon: ico('M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', 22), href: '/trips' },
 ];
 const HALVES_COL = { type: 'split', dir: 'col', sizes: [0.5, 0.5], children: [{ type: 'leaf', slot: 0 }, { type: 'leaf', slot: 1 }] } as const;
-// A NavRail item's classes, for the tools slot (React takes any node there, the element version a .nish-nav-rail-item).
-const RAIL_TOOL_LINK =
-  'group flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-2xs leading-tight font-normal text-th-hi3 hover:text-th-hi';
 const TOPICS = ['All', 'Guides', 'Builds', 'Redstone', 'Farms', 'Mods', 'Seeds', 'Servers'];
 const HALVES = { type: 'split', dir: 'row', sizes: [0.5, 0.5], children: [{ type: 'leaf', slot: 0 }, { type: 'leaf', slot: 1 }] } as const;
 const LINE_DATA = [
@@ -531,7 +530,7 @@ const WAVE3: Record<string, () => ReactNode> = {
       showFrom="sm"
       hideFrom={false}
       tools={
-        <a className={RAIL_TOOL_LINK} href="/search">
+        <a className={navRailItemClass(false)} href="/search">
           <span className="relative inline-flex h-8 w-14 items-center justify-center rounded-full transition-colors group-hover:bg-th-elevated">
             {ico('M21 21l-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 22)}
           </span>

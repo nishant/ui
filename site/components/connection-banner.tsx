@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { AppHeader, ConnectionBanner } from '../../src';
-import { Device, Filler } from './bottom-nav';
+import { Device, Filler } from './device';
 import type { ComponentDoc } from './types';
 
 // --- ConnectionBanner -----------------------------------------------------------------------

@@ -25,7 +25,7 @@ const Sample = ({ size, className }: { size?: 'xs' | 'sm' | 'base'; className?: 
   </div>
 );
 
-export const prose: ComponentDoc & { source: string } = {
+export const prose: ComponentDoc = {
   id: 'prose',
   name: 'Prose',
   exports: [],

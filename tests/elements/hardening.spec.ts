@@ -273,9 +273,17 @@ test.describe('command palette URLs', () => {
 });
 
 test.describe('Trusted Types', () => {
-  test('chip-group and filter-bar mount on a page that blocks innerHTML strings', async ({ page }) => {
-    // A default policy that throws turns any string-to-HTML sink the elements use into a failure.
-    // Lit's own template parsing goes through its 'lit-html' policy, which a real CSP allows by name.
+  test('chip-group and filter-bar mount on a page that blocks innerHTML strings', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Trusted Types is Chromium-only');
+    // Enforce Trusted Types with a real CSP header so every string-to-HTML sink reaches the default policy.
+    // The policy records the string instead of throwing; Lit's own parsing goes through 'lit-html', which the CSP allows by name.
+    await page.route('**/data.html', async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({
+        response: res,
+        headers: { ...res.headers(), 'content-security-policy': "require-trusted-types-for 'script'; trusted-types default lit-html" },
+      });
+    });
     await page.addInitScript(() => {
       const tt = (window as unknown as { trustedTypes?: { createPolicy(n: string, o: object): unknown } }).trustedTypes;
       (window as unknown as { ttErrors: string[] }).ttErrors = [];
@@ -293,7 +301,12 @@ test.describe('Trusted Types', () => {
     await expect(page.locator('#hfb .nish-filter-bar')).toHaveCount(1);
     await page.setViewportSize({ width: 360, height: 800 });
     await expect(page.locator('#hfb .nish-filter-btn svg')).toHaveCount(1);
+    // Enforcement is live: a plain innerHTML write must reach the default policy.
+    await page.evaluate(() => {
+      document.createElement('div').innerHTML = '<b>probe</b>';
+    });
     const sinks = await page.evaluate(() => (window as unknown as { ttErrors: string[] }).ttErrors);
+    expect(sinks).toContain('<b>probe</b>');
     // Only Lit templates (the page's own markup) may reach createHTML; none of ours is an <svg> icon string.
     expect(sinks.filter((s) => s.includes('M18 6 6 18') || s.includes('M22 3H2'))).toEqual([]);
   });

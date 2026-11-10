@@ -17,6 +17,7 @@ import { chipClass } from './forms';
 import { useMediaQuery } from './hooks';
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from './icons';
 import { useHeightVar, useScrollEdges } from './layout-vars';
+import { navRailItemClass } from './nav-classes';
 import { NavBadge, FOCUS, renderItem, useEndSide, visibleNavItems } from './nav-items';
 import { IconButton } from './primitives';
 import { useStrings } from './provider';
@@ -258,7 +259,7 @@ export function NavRail({
       {shown.map((item) => {
         const node = renderItem(
           item,
-          cn('group flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-2xs leading-tight', FOCUS, item.active ? 'font-medium text-th-accent' : 'text-th-hi3 hover:text-th-hi'),
+          navRailItemClass(!!item.active),
           <>
             <span
               className={cn(

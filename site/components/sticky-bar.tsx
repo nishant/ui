@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Chip, ScrollRow, SearchInput, StickyBar } from '../../src';
-import { Device } from './bottom-nav';
+import { Device } from './device';
 import type { ComponentDoc } from './types';
 
 // --- StickyBar ------------------------------------------------------------------------------
