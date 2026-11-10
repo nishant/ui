@@ -15,3 +15,8 @@ installs the tarball next to its own dependencies and builds or type-checks it.
   `exactOptionalPropertyTypes` and `skipLibCheck: false`.
 
 `package.json` files here are templates: the tool fills in the `nish-ui` tarball path.
+
+Every dependency in these `package.json` files is pinned to an exact version (no `^` or `~`),
+and installs run with `--ignore-scripts`, so a third-party release cannot turn the check red or
+run install scripts. The pins are moved by hand, to the newest release that is at least 14 days
+old; Dependabot cannot parse the `__NISH_UI_TARBALL__` placeholder.

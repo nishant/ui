@@ -43,8 +43,13 @@ async function main() {
     return res.json();
   };
 
-  const comments = await call('GET', `/issues/${PR_NUMBER}/comments?per_page=100`);
-  const existing = comments.find((c) => typeof c.body === 'string' && c.body.startsWith(MARKER));
+  // Page through every comment: on a long PR the report is not on the first page.
+  let existing;
+  for (let page = 1; !existing; page++) {
+    const batch = await call('GET', `/issues/${PR_NUMBER}/comments?per_page=100&page=${page}`);
+    existing = batch.find((c) => typeof c.body === 'string' && c.body.startsWith(MARKER));
+    if (batch.length < 100) break;
+  }
   if (existing) {
     await call('PATCH', `/issues/comments/${existing.id}`, { body });
     console.log(`Updated Fold check comment ${existing.id} on #${PR_NUMBER}`);

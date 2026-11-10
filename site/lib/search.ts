@@ -12,23 +12,38 @@ export interface SearchPage {
 
 /** Headings of the sections on each foundation page. They are not routes, so a hit opens the page. */
 const SECTIONS: { path: string; page: string; headings: string[] }[] = [
-  { path: '/overview', page: 'Overview', headings: ['What is in it', 'Who uses it', 'How a release reaches them', 'Seven themes, one set of components'] },
+  { path: '/overview', page: 'Overview', headings: ['What is in it', 'Where it works', 'Getting started in four steps', 'Seven themes, one set of components'] },
   {
     path: '/getting-started',
     page: 'Getting started',
-    headings: ['Install', '1. Import the CSS', '2. Apply the theme before first paint', '3. Start the theme and mount the toaster', '4. Style with roles'],
+    headings: [
+      'Install',
+      '1. Import the CSS',
+      '2. Apply the theme before first paint',
+      '3. Start the theme and mount the toaster',
+      '4. Style with roles',
+      '1. Copy the dist files',
+      '2. Link them',
+      '3. Use the variables',
+      '3. Storage and the window chrome',
+      'Languages and right-to-left',
+      'Content Security Policy',
+      'Testing your app',
+      'Troubleshooting',
+      'Versioning and support',
+    ],
   },
+  { path: '/static-sites', page: 'Static sites', headings: ['Vendoring the files', 'Link them', 'Elements', 'Live example', 'Component classes'] },
+  { path: '/themes', page: 'Themes', headings: ['The themes', 'Contrast matrix', 'Choosing a theme'] },
   {
-    path: '/static-sites',
-    page: 'Static sites',
-    headings: ['1. Copy the dist files', '2. Link them', '3. Use the variables', '3. Storage and the window chrome', 'How hosting vendors them'],
+    path: '/color',
+    page: 'Color',
+    headings: ['Surfaces and lines', 'Text', 'Accents', 'Status', 'Fills', 'On colors', 'Scrim and inverted', 'Chart series', 'Hues', 'Using them'],
   },
-  { path: '/themes', page: 'Themes', headings: ['The themes', 'Choosing a theme'] },
-  { path: '/color', page: 'Color', headings: ['Hues', 'Using them', 'Families'] },
-  { path: '/typography', page: 'Typography', headings: ['Scale', 'Weights and tracking', 'Numbers'] },
+  { path: '/typography', page: 'Typography', headings: ['Families', 'Scale', 'Weights and tracking', 'Numbers'] },
   { path: '/spacing', page: 'Spacing & radius', headings: ['Space', 'Radius', 'Layout'] },
   { path: '/elevation', page: 'Shadows & motion', headings: ['Shadows', 'Easing and duration'] },
-  { path: '/z-index', page: 'Z-index & breakpoints', headings: ['Stacking order'] },
+  { path: '/z-index', page: 'Z-index & breakpoints', headings: ['Stacking order', 'Breakpoints'] },
 ];
 
 const SKIP_PROPS = new Set(['className', 'children']);
@@ -36,11 +51,12 @@ const SKIP_PROPS = new Set(['className', 'children']);
 const hasDoc = (id: string) => DOCS.some((d) => d.id === id);
 
 /** Where a CSS variable is documented. */
-function tokenPath(name: string): string {
+export function tokenPath(name: string): string {
   if (/^--nish-(header-h|bottom-|sticky-extra|page-gutter)/.test(name)) return hasDoc('layout-contract') ? '/components/layout-contract' : '/z-index';
-  if (/shadow|ease|dur/.test(name)) return '/elevation';
-  if (/font|text|leading|tracking/.test(name)) return '/typography';
-  if (/space|radius|-r-|gutter/.test(name)) return '/spacing';
+  if (/^--nish-z-/.test(name)) return '/z-index';
+  if (/^--nish-(shadow-|ease-|dur-)/.test(name)) return '/elevation';
+  if (/^--nish-(text-|font-|leading-|weight-|tracking-)/.test(name)) return '/typography';
+  if (/^--nish-(space-|radius-|r-|page-max|gutter|tap-min|focus-)/.test(name)) return '/spacing';
   return '/color';
 }
 

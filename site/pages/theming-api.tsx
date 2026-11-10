@@ -96,8 +96,8 @@ const STATIC: Entry[] = [
   },
   {
     name: 'mountScrollspy',
-    signature: 'mountScrollspy(nav: HTMLElement, opts?: { offset?: number; height?: boolean }): () => void',
-    text: 'Scrollspy for a .nish-subnav: the link whose section is current gets aria-current, and the nav publishes its height as --nish-sticky-extra.',
+    signature: 'mountScrollspy(nav: HTMLElement, opts?: MountScrollspyOptions): (() => void) & { lock(id: string): void }',
+    text: 'Scrollspy for a .nish-subnav: the link whose section is current gets aria-current, and the nav publishes its height as --nish-sticky-extra. The returned cleanup also has lock(id), which keeps a clicked link current until the user scrolls.',
   },
   {
     name: 'mountStuck',
@@ -119,7 +119,7 @@ const STATIC: Entry[] = [
 const CONSTANTS: Entry[] = [
   {
     name: 'THEMES',
-    signature: "THEMES: Record<ThemeId, { label: string; scheme: 'dark' | 'light'; colors: Record<Role, string> }>",
+    signature: "THEMES: Record<'dark' | 'light' | 'slate' | 'terminal' | 'mocha' | 'ocean' | 'contrast', ThemeDef>  // ThemeDef = { label: string; scheme: Scheme; colors: Record<string, string> }",
     text: 'Every shared theme (dark, light, slate, terminal, mocha, ocean, contrast) with the value of each color role. The source of the generated CSS.',
   },
   {
@@ -144,7 +144,7 @@ const CONSTANTS: Entry[] = [
   },
   {
     name: 'SCALE, SHADOWS',
-    signature: 'SCALE: { ... }; SHADOWS: { ... }',
+    signature: "SCALE: Record<string, string>; SHADOWS: Record<'card' | 'pop' | 'modal', string>",
     text: 'The type, spacing, radius, motion, z-index, breakpoint and layout scale, and the shadow tokens, as data. Shown on the Typography, Spacing, Shadows and Z-index pages.',
   },
 ];
@@ -206,8 +206,7 @@ import { THEMES, PRESETS } from 'nish-ui';                                    //
         <EntryList entries={STATIC} />
         <Prose>
           <p>
-            <code>theme.global.js</code> exposes initTheme, setThemeChoice, cycleTheme, onThemeChange, readToken, registerThemes, getThemeChoice and the helpers
-            above as <code>window.nishTheme</code> for pages that cannot load modules.
+            <code>theme.global.js</code> exposes initTheme, setThemeChoice, cycleTheme, onThemeChange, readToken, registerThemes, getThemeChoice and every helper above (mountThemeToggle, showToast, confirmDialog, mountTooltips, openSheet, mountScrollspy, mountStuck, mountChecklist, mountHeightVar) as <code>window.nishTheme</code> for pages that cannot load modules.
           </p>
         </Prose>
       </Section>

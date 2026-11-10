@@ -95,7 +95,7 @@ export const iconButton: ComponentDoc = {
     {
       id: 'active',
       name: 'Active (pressed)',
-      note: 'For toggles: sets aria-pressed.',
+      note: 'For toggles: sets aria-pressed (active={false} gives aria-pressed="false" and data-state="inactive").',
       render: () => (
         <Row>
           <IconButton label="Pin to top" active>
@@ -279,6 +279,6 @@ import { RefreshCw, Trash2, ExternalLink } from 'lucide-react';
     'A missing label logs a development warning: an icon-only button must have a name.',
     'size="2xs" is 20px visually and keeps a 24px hit area under a mouse (44px on touch).',
     'Button uses variant="danger" for destructive actions; IconButton keeps tone="danger". The two names differ on purpose and neither is renamed.',
-    'active sets aria-pressed and data-state="active"; pass active={false} on a toggle to get data-state="inactive".',
+    'active sets aria-pressed="true" and data-state="active"; pass active={false} on a toggle to get aria-pressed="false" and data-state="inactive".',
   ],
 };

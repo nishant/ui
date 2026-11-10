@@ -15,6 +15,16 @@ afterEach(async () => {
     /* storage can be blocked */
   }
   document.body.innerHTML = '';
-  document.documentElement.removeAttribute('data-theme');
-  document.documentElement.removeAttribute('style');
+  const root = document.documentElement;
+  // Everything applyTheme()/suspendTransitions() write on <html>; a stale data-theme-choice makes
+  // initTheme skip applyTheme, so a later test would start with no theme painted.
+  for (const a of ['data-theme', 'data-scheme', 'data-theme-choice', 'data-nish-theme-switching']) root.removeAttribute(a);
+  root.classList.remove('dark');
+  root.style.colorScheme = '';
+  root.removeAttribute('style');
+  try {
+    localStorage.removeItem('nish-theme');
+  } catch {
+    /* storage can be blocked */
+  }
 });

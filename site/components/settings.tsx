@@ -4,8 +4,6 @@ import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 
 // --- Settings blocks ------------------------------------------------------------------
-// Registered by the integrator: needs the settings exports in src/index.ts and the names in
-// site/docgen.mjs COMPONENTS before COMPONENT_DOCS can list it.
 
 const fakeSave = (fail = false) =>
   new Promise<void>((resolve, reject) => setTimeout(() => (fail ? reject(new Error('Could not reach the server')) : resolve()), 700));
@@ -190,7 +188,11 @@ function Alerts({ settings, patch }) {
           min={0}
           max={100}
           suffix="%"
-          onCommit={(n) => save.run(patch({ drop: n }))}
+          onCommit={async (n) => {
+            const p = patch({ drop: n });
+            save.run(p); // shows the status
+            await p; // rethrows, so NumberField restores the old value on failure
+          }}
         />
       </SettingRow>
     </SettingsSection>

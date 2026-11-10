@@ -1,7 +1,6 @@
-import { Badge, Card, Input, Label } from '../../src';
+import { Badge, Card, Field, Input, Label } from '../../src';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
-import { Field } from './shared';
 
 // --- Label --------------------------------------------------------------------------
 
@@ -9,7 +8,7 @@ export const label: ComponentDoc = {
   id: 'label',
   name: 'Label',
   exports: ['Label'],
-  summary: 'The small uppercase label above fields and over sections of a card.',
+  summary: 'The small uppercase label over sections of a card. For form fields, use Field.',
   importLine: "import { Label } from '@nish/ui';",
   controls: [{ key: 'text', label: 'Text', type: 'text' }],
   initial: { text: 'Price target' },
@@ -54,14 +53,17 @@ export const label: ComponentDoc = {
       ),
     },
   ],
-  usage: `import { Label } from '@nish/ui';
+  usage: `import { Field, Input, Label } from '@nish/ui';
 
-<label className="grid gap-1.5">
-  <Label>Email</Label>
+// Form field: Field draws the sentence-case label and wires the ids.
+<Field label="Email">
   <Input type="email" />
-</label>`,
+</Field>
+
+// Section or card label: Label.
+<Label>Upcoming</Label>`,
   guidelines: [
-    'Label renders a span. Wrap the Label and the field in a <label> element (or use htmlFor on your own label) so clicking it focuses the field.',
+    'Label renders a span. It is for section and card labels. For a form field, use Field, which gives the control a real <label>. If you must label a control yourself, wrap both in a <label> or use htmlFor.',
     'Label takes ref and any span attribute.',
   ],
 };

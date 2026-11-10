@@ -77,7 +77,10 @@ describe('Toaster when the card chunk cannot load', () => {
       id2 = toast('Two', { duration: 'sticky' });
     });
     expect(screen.getByText('Two').closest('[data-nish-toast-fallback]')).not.toBeNull();
-    await new Promise((r) => setTimeout(r, 20));
+    // Let every pending microtask and a few timer turns run, so a second import would have started.
+    await act(async () => {
+      for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+    });
     expect(factoryRuns).toBe(1);
     act(() => {
       dismissToast(id);

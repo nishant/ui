@@ -288,7 +288,19 @@ test('envNumber', () => {
   assert.equal(envNumber('Infinity', 7), 7);
 });
 
-test('installProcessHandlers: shutdown, grace timer, second install', async () => {
+const PROCESS_EVENTS = ['SIGINT', 'SIGTERM', 'SIGBREAK', 'unhandledRejection', 'uncaughtException'];
+
+/** Record the process listeners now; the returned function removes every one added since. */
+function snapshotProcessListeners() {
+  const before = new Map(PROCESS_EVENTS.map((e) => [e, new Set(process.listeners(e))]));
+  return () => {
+    for (const e of PROCESS_EVENTS) for (const f of process.listeners(e)) if (!before.get(e).has(f)) process.removeListener(e, f);
+  };
+}
+
+test('installProcessHandlers: shutdown, grace timer, second install', async (t) => {
+  t.after(snapshotProcessListeners());
+  const sigbreakBefore = process.listenerCount('SIGBREAK');
   const before = { rej: process.listenerCount('unhandledRejection'), exc: process.listenerCount('uncaughtException') };
   const lines = [];
   const exits = [];
@@ -306,7 +318,8 @@ test('installProcessHandlers: shutdown, grace timer, second install', async () =
   });
   assert.equal(process.listenerCount('unhandledRejection'), before.rej + 1);
   assert.equal(process.listenerCount('uncaughtException'), before.exc + 1);
-  assert.equal(process.listeners('SIGBREAK').some((f) => String(f).includes('shutdown')), false);
+  // A task stop sends CTRL+BREAK on Windows and must not run the graceful path: SIGBREAK stays unhandled.
+  assert.equal(process.listenerCount('SIGBREAK'), sigbreakBefore, 'SIGBREAK is not registered');
   assert.equal(installProcessHandlers({ name: 'again', exit: () => assert.fail('second install must not act') }), handle);
   assert.equal(process.listenerCount('unhandledRejection'), before.rej + 1);
 
@@ -321,7 +334,8 @@ test('installProcessHandlers: shutdown, grace timer, second install', async () =
   for (const type of ['SIGINT', 'SIGTERM']) assert.ok(process.listenerCount(type) >= 1);
 });
 
-test('installProcessHandlers: graceMs forces the exit and hook errors are logged', async () => {
+test('installProcessHandlers: graceMs forces the exit and hook errors are logged', async (t) => {
+  t.after(snapshotProcessListeners());
   // Fresh module instance, so the once-per-process state is new.
   const fresh = await import(`../dist/server/index.js?fresh=${Date.now()}`);
   const lines = [];

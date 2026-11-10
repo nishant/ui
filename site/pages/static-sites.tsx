@@ -67,7 +67,9 @@ export function StaticSitesPage() {
           <p>
             <code>cycleTheme()</code> steps System, Light, Dark. A preset chosen on another subdomain (Mocha on jobs, say) still applies here, and the next
             click goes back to System. <code>window.nishTheme</code> has <code>initTheme</code>, <code>setThemeChoice</code>, <code>cycleTheme</code>,{' '}
-            <code>onThemeChange</code>, <code>readToken</code>, <code>registerThemes</code> and <code>getThemeChoice</code>.
+            <code>onThemeChange</code>, <code>readToken</code>, <code>registerThemes</code>, <code>getThemeChoice</code>, <code>mountThemeToggle</code>,{' '}
+            <code>showToast</code>, <code>confirmDialog</code>, <code>mountTooltips</code>, <code>openSheet</code>, <code>mountScrollspy</code>,{' '}
+            <code>mountStuck</code>, <code>mountChecklist</code> and <code>mountHeightVar</code>.
           </p>
           <p>
             For a ready-made toggle, give a <code>{'<button class="nish-theme-btn">'}</code> to <code>mountThemeToggle(button)</code>: it fills in the

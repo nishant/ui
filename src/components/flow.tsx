@@ -456,7 +456,7 @@ export interface AgentNodeProps extends Omit<ComponentPropsWithoutRef<'article'>
 }
 
 const AGENT_STATE: Record<AgentNodeState, string> = {
-  queued: 'border-dashed border-th-line opacity-70',
+  queued: 'border-dashed border-th-line bg-th-bg',
   running: 'border-th-accent',
   done: 'border-th-ok-fill/40',
   failed: 'border-th-loss-fill',
@@ -700,13 +700,13 @@ export function WorkflowBoard({ phases, agents, label, otherLabel, waitingLabel,
                 state === 'active' ? 'border-th-accent/50' : 'border-th-line',
               )}
             >
-              <div className={cn('flex min-w-0 items-center gap-2', state === 'waiting' && 'opacity-60')}>
+              <div className="flex min-w-0 items-center gap-2">
                 {state === 'done' ? (
                   <span className="grid size-4 shrink-0 place-items-center rounded-full bg-th-ok-fill text-th-on-ok">
                     <CheckSvg size={10} />
                   </span>
                 ) : null}
-                <span className={cn('min-w-0 flex-1 truncate text-sm font-medium', state === 'active' ? 'text-th-accent' : 'text-th-hi')}>
+                <span className={cn('min-w-0 flex-1 truncate text-sm font-medium', state === 'active' ? 'text-th-accent' : state === 'waiting' ? 'text-th-hi2' : 'text-th-hi')}>
                   {phase.title}
                 </span>
                 {phase.model ? <ModelBadge model={phase.model} /> : null}

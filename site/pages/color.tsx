@@ -22,7 +22,8 @@ const GROUPS: { title: string; note: string; roles: Role[] }[] = [
       { role: 'elevated', purpose: 'Popovers, hovered rows, inputs, raised things inside cards', cls: 'bg-th-elevated' },
       { role: 'overlay', purpose: 'The deepest layer: chips inside raised things, skeleton sheen', cls: 'bg-th-overlay' },
       { role: 'line', purpose: 'Borders and dividers', cls: 'border-th-line' },
-      { role: 'line-strong', purpose: 'Input borders, outlines that are not the accent', cls: 'border-th-line-strong' },
+      { role: 'line-strong', purpose: 'Strong dividers, outlines that are not the accent', cls: 'border-th-line-strong' },
+      { role: 'line-control', purpose: 'Form-control borders (3:1 on surface and elevated)', cls: 'border-th-line-control' },
     ],
   },
   {
@@ -103,7 +104,7 @@ const ON_PAIRS: [string, string][] = [
 
 const CHART = Array.from({ length: 8 }, (_, i) => `chart-${i + 1}`);
 const HUES = ['emerald', 'indigo', 'amber', 'lime', 'rose', 'sky', 'violet', 'teal'];
-/** The light chart series before the unreleased change, to show what moved. */
+/** The light chart series before the change in 0.2.0, to show what moved. */
 const OLD_LIGHT_CHART = ['#4f46e5', '#047857', '#b45309', '#be123c', '#0369a1', '#7e22ce', '#c2410c', '#4d7c0f'];
 
 /** Live values from the page, re-read whenever the theme changes. */
@@ -217,7 +218,7 @@ export function ColorPage() {
           </div>
         </div>
         <div className="rounded-xl border border-th-line bg-th-surface p-4">
-          <p className="text-sm font-semibold text-th-hi">Brighter light series (unreleased)</p>
+          <p className="text-sm font-semibold text-th-hi">Brighter light series (changed in 0.2.0)</p>
           <p className="mt-1 text-sm text-th-hi2">
             The light theme&apos;s series used to be text-dark shades; chart-3 read as rust brown on a line. Chart marks need 3:1, not 4.5, so each moved to
             the most vivid shade of its hue that still clears 3:1 on bg, surface and elevated. Shown on the light surface:

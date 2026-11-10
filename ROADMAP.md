@@ -4,16 +4,21 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
 
 ## Ideas
 
-- **Release the audit phase 2 fixes** (2026-11-09, audit-p2): merged to master, not released (v3.1.0 had just fanned out). Tomorrow: rename `## [Unreleased]` in CHANGELOG.md to `## [3.1.1] - <date>` in a PR, merge it, then `gh workflow run release.yml -R nishant/ui -f bump=patch`.
+- **Release the audit phase 2 and phase 3 fixes** (2026-11-09, audit-p2, audit-p3): both sets are merged or waiting on
+  master and sit under `## [Unreleased]` in CHANGELOG.md; not released (v3.1.0 had just fanned out). Tomorrow: rename
+  `## [Unreleased]` to `## [3.1.1] - <date>` in a PR, merge it, then
+  `gh workflow run release.yml -R nishant/ui -f bump=patch`.
 - **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids
-  `UI-nnn`). 3.1.0 and phase 2 (audit-p2) fixed the listed high, medium and low findings; about 230 low and nit findings
-  remain, plus the chunks never read because of the usage cut: `site/components/` from `accordion.tsx` on, `site/docgen*`,
-  `site/pages/`, `site/public/`, `tests/` (consumers, elements, overlay) and `tools/` other than `tools/fanout/`, and the
-  tests-and-CI and live-site lenses.
+  `UI-nnn`). 3.1.0, phase 2 and phase 3 fixed the listed high and medium findings and some lows. Left: the open low and
+  nit findings of phase 3 (UI-375 to UI-586, except those fixed in the phase 3 CHANGELOG entry), UI-569
+  (`classic.html`), and UI-378: `site-all.visual.json` is complete and tested but never runs in CI or on a schedule;
+  run it on a schedule or behind a path filter.
 - **Fan-out fixes from the audit** (2026-11-09, audit-1108): UI-089: real isolation of repo-controlled commands from
   FLEET_TOKEN (a token-less job or container); the comment now says they are not isolated.
 - **CI and docs drift from the audit** (2026-11-09, audit-1108): UI-009: the release job runs devDependency code with a
-  `contents: write` + `actions: write` token; split the release build from the push.
+  `contents: write` + `actions: write` token; split the release build from the push (build job with a read-only token
+  hands a git bundle to a publish job that verifies it before pushing). A draft was tried in audit-p3 and dropped: it
+  cannot be exercised without cutting a real release, so build it on a branch and test it with a throwaway release.
 - **3.1.0 review leftovers** (2026-11-09, audit-1108):
   - `configureApi` config now lives in `shared('api')`, so any nish-ui bundle on the page can change `baseUrl`; consider
     sharing only between same-version copies.

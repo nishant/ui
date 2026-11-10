@@ -6,6 +6,9 @@ on:
   schedule:
     - cron: '23 5 * * 1'
 permissions: { contents: read }
+concurrency:
+  group: codeql-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   analyze:

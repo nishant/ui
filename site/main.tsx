@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { initTheme } from '../src/theme';
+import { PageErrorBoundary } from './lib/error-boundary';
 import { guardFrameFocus } from './lib/frame-guard';
 import { useRoute } from './lib/router';
 
@@ -16,7 +17,11 @@ const FramePage = lazy(() => import('./pages/frame').then((m) => ({ default: m.F
 
 function App() {
   const route = useRoute();
-  return <Suspense fallback={null}>{route.segments[0] === 'frame' ? <FramePage route={route} /> : <Shell />}</Suspense>;
+  return (
+    <PageErrorBoundary resetKey={route.path}>
+      <Suspense fallback={null}>{route.segments[0] === 'frame' ? <FramePage route={route} /> : <Shell />}</Suspense>
+    </PageErrorBoundary>
+  );
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

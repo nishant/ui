@@ -215,10 +215,11 @@ export function docgen(root) {
     return undefined;
   }
 
+  const notExported = (name) => `docgen: ${name} is not exported from any docs entry (${entries.map((e) => e.slice(root.length + 1)).join(', ')})`;
   const components = {};
   for (const name of COMPONENTS) {
     const sym = exported.get(name);
-    if (!sym) throw new Error(`docgen: ${name} is not exported from src/index.ts`);
+    if (!sym) throw new Error(notExported(name));
     const decl = sym.valueDeclaration ?? sym.declarations[0];
     const fn = implementation(decl);
     const ctype = checker.getTypeOfSymbolAtLocation(sym, decl);
@@ -250,12 +251,15 @@ export function docgen(root) {
         const iface = resolved?.declarations?.find(ts.isInterfaceDeclaration);
         if (iface && fromPackage(iface)) {
           for (const h of iface.heritageClauses ?? []) for (const t of h.types) inherits.add(t.getText());
-        } else {
+        } else if (!resolved?.declarations?.some(fromPackage)) {
+          // Only a type from outside the package (ComponentPropsWithoutRef<'div'>) is a base;
+          // the component's own alias or union is not "every attribute of" itself.
           inherits.add(typeNode.getText());
         }
       }
     }
-    const forwardsRef = ts.isVariableDeclaration(decl) && /^forwardRef\b/.test(decl.initializer?.getText() ?? '');
+    // React 19: a component forwards its ref when `ref` is one of its props.
+    const forwardsRef = props.some((p) => p.name === 'ref');
     components[name] = {
       name,
       description: doc(sym),
@@ -269,6 +273,7 @@ export function docgen(root) {
   const functions = {};
   for (const name of FUNCTIONS) {
     const sym = exported.get(name);
+    if (!sym) throw new Error(notExported(name));
     const decl = sym.valueDeclaration ?? sym.declarations[0];
     const type = checker.getTypeOfSymbolAtLocation(sym, decl);
     const sig = (s) => checker.signatureToString(s).replaceAll(' | undefined', '');
@@ -283,6 +288,7 @@ export function docgen(root) {
   const interfaces = {};
   for (const name of INTERFACES) {
     const sym = exported.get(name);
+    if (!sym) throw new Error(notExported(name));
     const decl = sym.declarations[0];
     const type = checker.getDeclaredTypeOfSymbol(sym);
     if (ts.isTypeAliasDeclaration(decl)) {

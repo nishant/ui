@@ -374,6 +374,301 @@
       "waitFor": "[data-page]"
     },
     {
+      "name": "settings",
+      "url": "http://localhost:5191/#/components/settings",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "filter-bar",
+      "url": "http://localhost:5191/#/components/filter-bar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "combobox",
+      "url": "http://localhost:5191/#/components/combobox",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "date-picker",
+      "url": "http://localhost:5191/#/components/date-picker",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "date-range-picker",
+      "url": "http://localhost:5191/#/components/date-range-picker",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "calendar",
+      "url": "http://localhost:5191/#/components/calendar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "range-calendar",
+      "url": "http://localhost:5191/#/components/range-calendar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "time-field",
+      "url": "http://localhost:5191/#/components/time-field",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "multi-select",
+      "url": "http://localhost:5191/#/components/multi-select",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "radio-group",
+      "url": "http://localhost:5191/#/components/radio-group",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "slider",
+      "url": "http://localhost:5191/#/components/slider",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "tag-input",
+      "url": "http://localhost:5191/#/components/tag-input",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "file-dropzone",
+      "url": "http://localhost:5191/#/components/file-dropzone",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "separator",
+      "url": "http://localhost:5191/#/components/separator",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "avatar",
+      "url": "http://localhost:5191/#/components/avatar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "progress",
+      "url": "http://localhost:5191/#/components/progress",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "visually-hidden",
+      "url": "http://localhost:5191/#/components/visually-hidden",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "pagination",
+      "url": "http://localhost:5191/#/components/pagination",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "breadcrumbs",
+      "url": "http://localhost:5191/#/components/breadcrumbs",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "accordion",
+      "url": "http://localhost:5191/#/components/accordion",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "bottom-nav",
+      "url": "http://localhost:5191/#/components/bottom-nav",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "more-sheet",
+      "url": "http://localhost:5191/#/components/more-sheet",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "nav-rail",
+      "url": "http://localhost:5191/#/components/nav-rail",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "scroll-row",
+      "url": "http://localhost:5191/#/components/scroll-row",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "carousel",
+      "url": "http://localhost:5191/#/components/carousel",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "section-nav",
+      "url": "http://localhost:5191/#/components/section-nav",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "sticky-bar",
+      "url": "http://localhost:5191/#/components/sticky-bar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "sticky-action-bar",
+      "url": "http://localhost:5191/#/components/sticky-action-bar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "loading-bar",
+      "url": "http://localhost:5191/#/components/loading-bar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "page-container",
+      "url": "http://localhost:5191/#/components/page-container",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "app-shell",
+      "url": "http://localhost:5191/#/components/app-shell",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "connection-banner",
+      "url": "http://localhost:5191/#/components/connection-banner",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "responsive-table",
+      "url": "http://localhost:5191/#/components/responsive-table",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "link-card",
+      "url": "http://localhost:5191/#/components/link-card",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "favicon",
+      "url": "http://localhost:5191/#/components/favicon",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "async-panel",
+      "url": "http://localhost:5191/#/components/async-panel",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "use-resource",
+      "url": "http://localhost:5191/#/components/use-resource",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "app-error-boundary",
+      "url": "http://localhost:5191/#/components/app-error-boundary",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "skeleton-presets",
+      "url": "http://localhost:5191/#/components/skeleton-presets",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "line-chart",
+      "url": "http://localhost:5191/#/components/line-chart",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "bar-chart",
+      "url": "http://localhost:5191/#/components/bar-chart",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "range-bar",
+      "url": "http://localhost:5191/#/components/range-bar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "flow-steps",
+      "url": "http://localhost:5191/#/components/flow-steps",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "step-bar",
+      "url": "http://localhost:5191/#/components/step-bar",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "agent-node",
+      "url": "http://localhost:5191/#/components/agent-node",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "workflow-board",
+      "url": "http://localhost:5191/#/components/workflow-board",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "activity-feed",
+      "url": "http://localhost:5191/#/components/activity-feed",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "ticker-text",
+      "url": "http://localhost:5191/#/components/ticker-text",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "animated-list",
+      "url": "http://localhost:5191/#/components/animated-list",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "system-canvas",
+      "url": "http://localhost:5191/#/components/system-canvas",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "command-palette",
+      "url": "http://localhost:5191/#/components/command-palette",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "relative-time",
+      "url": "http://localhost:5191/#/components/relative-time",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "format",
+      "url": "http://localhost:5191/#/components/format",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "hooks",
+      "url": "http://localhost:5191/#/components/hooks",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "portal",
+      "url": "http://localhost:5191/#/components/portal",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "provider",
+      "url": "http://localhost:5191/#/components/provider",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "layout-contract",
+      "url": "http://localhost:5191/#/components/layout-contract",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "static-parity",
+      "url": "http://localhost:5191/#/components/static-parity",
+      "waitFor": "[data-page]"
+    },
+    {
+      "name": "vite-plugin",
+      "url": "http://localhost:5191/#/components/vite-plugin",
+      "waitFor": "[data-page]"
+    },
+    {
       "name": "button-themes",
       "url": "http://localhost:5191/#/components/button/themes",
       "waitFor": "[data-page]",
@@ -727,22 +1022,12 @@
     {
       "name": "inbox",
       "url": "http://localhost:5191/#/components/inbox",
-      "waitFor": "[data-page]",
-      "viewports": [
-        "phone-small",
-        "fold",
-        "desktop"
-      ]
+      "waitFor": "[data-page]"
     },
     {
       "name": "inbox-themes",
       "url": "http://localhost:5191/#/components/inbox/themes",
       "waitFor": "[data-page]",
-      "viewports": [
-        "phone-small",
-        "fold",
-        "desktop"
-      ],
       "settle": 1200
     },
     {
@@ -811,8 +1096,9 @@
     }
   ],
   "viewports": [
-    "desktop",
-    "phone"
+    "phone-small",
+    "fold",
+    "desktop"
   ],
   "themes": [
     "dark",

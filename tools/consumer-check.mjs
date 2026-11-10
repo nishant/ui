@@ -106,7 +106,7 @@ function prepare(work, name, tarball) {
   const file = join(dir, 'package.json');
   const url = 'file:' + tarball.split('\\').join('/');
   writeFileSync(file, readFileSync(file, 'utf8').replace('__NISH_UI_TARBALL__', url));
-  const r = run('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error', '--prefer-offline'], { cwd: dir });
+  const r = run('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error', '--prefer-offline', '--ignore-scripts'], { cwd: dir });
   if (r.code !== 0) throw new Error(`npm install failed for ${name}:\n${r.out.slice(-3000)}`);
   return dir;
 }
@@ -185,8 +185,22 @@ async function checkNext(work, tarball, browser) {
     else ok('next Modal from a server component', 'dialog visible after hydration');
 
     const sub = await (await fetch(base + '/subpaths')).text();
-    if (!/\$1,234\.50|1,234\.5/.test(sub)) fail('next subpaths', 'money() output missing from the server HTML');
-    else ok('next subpaths', 'format, theme and tokens work in a server component');
+    // The page prints `{money} {pct} {date} {PRESETS.length} {THEMES keys} {seriesColor(2)}` as one line of text.
+    const text = sub.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    const m = text.match(/(\$[\d,]+\.\d+) (\d+(?:\.\d+)?%) ([A-Z][a-z]{2} \d{1,2}(?:, \d{4})?) (\d+) (\d+) (var\(--nish-chart-\d+\))/);
+    const bad = [];
+    if (!m) bad.push('the money/pct/date/PRESETS/THEMES/seriesColor line is missing or malformed');
+    else {
+      const [, money, pct, dt, presets, themes, series] = m;
+      if (money !== '$1,234.50') bad.push(`money ${money}`);
+      if (pct !== '12.3%') bad.push(`pct ${pct}`);
+      if (!/^(Dec 31|Jan 1)$/.test(dt)) bad.push(`date ${dt}`); // 2026-01-01 UTC, shown in the server's zone
+      if (presets !== '7') bad.push(`PRESETS.length ${presets}, expected 7`);
+      if (themes !== '7') bad.push(`THEMES keys ${themes}, expected 7`);
+      if (series !== 'var(--nish-chart-3)') bad.push(`seriesColor(2) ${series}`);
+    }
+    if (bad.length) fail('next subpaths', bad.join('; '));
+    else ok('next subpaths', 'money, pct, date, PRESETS, THEMES and seriesColor render correctly in a server component');
   } finally {
     app.child.kill();
   }
@@ -196,6 +210,10 @@ async function checkNext(work, tarball, browser) {
 async function checkVite(work, tarball, browser) {
   const dir = prepare(work, 'vite', tarball);
   const viteBin = join(dir, 'node_modules/vite/bin/vite.js');
+  // Vite strips types without checking them, so run the fixture's own TypeScript (strict, skipLibCheck false) first.
+  const tsc = run(process.execPath, [join(dir, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json', '--noEmit', '--pretty', 'false'], { cwd: dir });
+  if (tsc.code !== 0) return fail('vite typecheck', tsc.out.slice(-3000));
+  ok('vite typecheck', 'tsc strict, skipLibCheck false');
   const build = run(process.execPath, [viteBin, 'build'], { cwd: dir });
   if (build.code !== 0) return fail('vite build', build.out.slice(-3000));
   ok('vite build', 'passed');

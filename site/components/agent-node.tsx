@@ -72,7 +72,7 @@ export const agentNode: ComponentDoc = {
     jsx('AgentNode', {
       label: String(a.label),
       state: a.state,
-      model: String(a.model),
+      model: a.model === 'other' ? 'custom-model' : String(a.model),
       activity: String(a.activity) || undefined,
       meta: String(a.meta) || undefined,
       onClick: a.clickable ? '{() => open(agent)}' : undefined,

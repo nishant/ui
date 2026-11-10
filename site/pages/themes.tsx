@@ -195,13 +195,12 @@ export function ThemesPage() {
           </>
         }
       >
-        <div role="radiogroup" aria-label="Theme for the matrix" className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label="Theme for the matrix" className="flex flex-wrap gap-1.5">
           {PRESETS.map((p) => (
             <button
               key={p.id}
               type="button"
-              role="radio"
-              aria-checked={shown === p.id}
+              aria-pressed={shown === p.id}
               onClick={() => setPicked(p.id)}
               className={cn(
                 'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors pointer-coarse:min-h-11',
@@ -218,13 +217,13 @@ export function ThemesPage() {
       <Section title="Choosing a theme" note="The choice ('system' or a theme name) is shared across subdomains through one cookie.">
         <Prose>
           <p>
-            <code>setThemeChoice()</code> writes <code>nish-theme</code> to <code>localStorage</code> and, when the page names a shared domain, to a cookie on it.
+            <code>setThemeChoice()</code> writes <code>nish-theme</code> to <code>localStorage</code> and to a cookie on the shared domain. On <code>*.nish.software</code> that cookie goes on <code>.nish.software</code> automatically.
             theme-init.js reads the cookie first, then localStorage (the only store on localhost and in Electron), then follows the OS. Pick Mocha on
             one app and a sibling app on the same domain opens in Mocha.
           </p>
           <p>
-            A site shares the choice across its own subdomains with <code>&lt;html data-nish-domain="example.com"&gt;</code>; it applies only on that
-            domain and its subdomains. Without it the choice stays in <code>localStorage</code>. <code>data-nish-storage-key</code> renames the key. See the{' '}
+            Another site shares the choice across its own subdomains with <code>&lt;html data-nish-domain="example.com"&gt;</code>; it applies only on that
+            domain and its subdomains. Anywhere else (localhost, Electron, other hosts) the choice stays in <code>localStorage</code>. <code>data-nish-storage-key</code> renames the key. See the{' '}
             <a href={href('/theming-api')}>Theming API</a> for every function.
           </p>
         </Prose>

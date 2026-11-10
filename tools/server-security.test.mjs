@@ -120,14 +120,15 @@ test('login: non-string and over-long passwords are refused, 1024 characters is 
 });
 
 test('login: failDelayMs delays a wrong answer, password and secure may be functions', async () => {
-  const { app } = loginApp({ failDelayMs: 60, password: () => 'Dyn1', secure: () => true });
+  const { app } = loginApp({ failDelayMs: 400, password: () => 'Dyn1', secure: () => true });
   const t0 = Date.now();
   assert.equal((await app.request('/api/login', post({ password: 'x' }), env('198.51.100.10'))).status, 401);
-  assert.ok(Date.now() - t0 >= 50, 'waited');
+  const failMs = Date.now() - t0;
+  assert.ok(failMs >= 350, 'waited');
   const t1 = Date.now();
   const ok = await app.request('/api/login', post({ password: 'Dyn1' }), env('198.51.100.10'));
   assert.equal(ok.status, 200);
-  assert.ok(Date.now() - t1 < 50, 'no delay on success');
+  assert.ok(Date.now() - t1 < 200, 'success is clearly faster than the failure delay');
   assert.match(ok.headers.get('set-cookie'), /; Secure$/);
 });
 

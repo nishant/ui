@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -19,10 +19,11 @@ test('mint, verify, scope', () => {
   assert.equal(JSON.stringify(t.list()).includes(sha256), false);
 });
 
-test('load from file and env, skipping bad entries', () => {
+test('load from file and env, skipping bad entries', (ctx) => {
   const a = mintServiceToken('jobs');
   const b = mintServiceToken('jobs');
   const dir = mkdtempSync(join(tmpdir(), 'st-'));
+  ctx.after(() => rmSync(dir, { recursive: true, force: true }));
   const file = join(dir, 'service-tokens.json');
   writeFileSync(file, JSON.stringify([{ id: 'f', name: 'F', scopes: ['read'], sha256: a.sha256, created: 'x' }, { id: 'bad' }]));
   const t = loadServiceTokens({ file, env: JSON.stringify([{ id: 'e', name: 'E', scopes: ['read'], sha256: b.sha256, created: 'x' }]) });
@@ -36,6 +37,10 @@ test('load from file and env, skipping bad entries', () => {
 test('direct loopback only', () => {
   assert.equal(isDirectLoopback(headers({ host: '127.0.0.1:8805' }), 8805), true);
   assert.equal(isDirectLoopback(headers({ host: 'localhost:8805' }), 8805), true);
+  // IPv6 loopback is accepted too (service callers on ::1), with the app's port.
+  assert.equal(isDirectLoopback(headers({ host: '[::1]:8805' }), 8805), true);
+  assert.equal(isDirectLoopback(headers({ host: '[::1]:8804' }), 8805), false);
+  assert.equal(isDirectLoopback(headers({ host: '[::1]:8805', 'x-forwarded-for': '1.2.3.4' }), 8805), false);
   assert.equal(isDirectLoopback(headers({ host: '127.0.0.1:8804' }), 8805), false);
   assert.equal(isDirectLoopback(headers({ host: 'trackers.nish.software' }), 8804), false);
   assert.equal(isDirectLoopback(headers({ host: '127.0.0.1:8804', 'x-forwarded-for': '1.2.3.4' }), 8804), false);

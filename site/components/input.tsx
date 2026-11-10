@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Card, IconButton, Input } from '../../src';
+import { Card, Field, IconButton, Input } from '../../src';
 import { fieldClass } from '../../src';
 import { CloseIcon, SearchIcon } from '../lib/icons';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
-import { Field, Row } from './shared';
+import { Row } from './shared';
 
 // --- Input --------------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ export const input: ComponentDoc = {
   initial: { type: 'text', size: 'md', placeholder: 'Company or title', leading: false, invalid: false, disabled: false },
   render: (a) => (
     <div className="w-full max-w-xs">
-      <Field label="Search" error={a.invalid ? 'Enter at least 2 characters.' : undefined} id="canvas-input-msg">
+      <Field label="Search" error={a.invalid ? 'Enter at least 2 characters.' : undefined}>
         <Input
           type={String(a.type)}
           size={a.size as 'md'}
@@ -55,7 +55,6 @@ export const input: ComponentDoc = {
           leading={a.leading ? <SearchIcon size={15} /> : undefined}
           invalid={!!a.invalid}
           disabled={!!a.disabled}
-          aria-describedby={a.invalid ? 'canvas-input-msg' : undefined}
         />
       </Field>
     </div>
@@ -68,7 +67,6 @@ export const input: ComponentDoc = {
       leading: a.leading ? '{<Search size={15} />}' : undefined,
       invalid: a.invalid,
       disabled: a.disabled,
-      'aria-describedby': a.invalid ? 'search-error' : undefined,
     }),
   html: {
     height: 280,
@@ -138,8 +136,8 @@ export const input: ComponentDoc = {
       id: 'invalid',
       name: 'Invalid',
       render: () => (
-        <Field label="Price target" error="Enter a number." id="story-invalid">
-          <Input invalid defaultValue="abc" aria-describedby="story-invalid" />
+        <Field label="Price target" error="Enter a number.">
+          <Input defaultValue="abc" />
         </Field>
       ),
     },
@@ -193,28 +191,25 @@ export const input: ComponentDoc = {
     },
   ],
   api: { functions: ['fieldClass'], interfaces: [] },
-  usage: `import { Input, Label, fieldClass } from '@nish/ui';
+  usage: `import { Field, Input, fieldClass } from '@nish/ui';
 import { Search } from 'lucide-react';
 
-<label className="grid gap-1.5">
-  <Label>Price target</Label>
+// Field adds the label, ids, aria-describedby and aria-invalid for you.
+<Field label="Price target" hint="In dollars, without the $." error={error}>
   <Input
     inputMode="decimal"
     leading="$"
     value={value}
     onChange={(e) => setValue(e.target.value)}
-    invalid={!!error}
-    aria-describedby="target-error"
   />
-  {error ? <span id="target-error" className="text-xs text-th-loss">{error}</span> : null}
-</label>
+</Field>
 
 <Input size="sm" type="search" aria-label="Search" leading={<Search size={15} />} />
 
 <input type="date" className={fieldClass({ size: 'sm' })} />`,
   guidelines: [
-    'Always give the field a visible Label. Placeholders vanish as soon as someone types.',
-    'With invalid, show the reason as text and tie it to the input with aria-describedby.',
+    'Always give the field a visible label: wrap it in Field. Placeholders vanish as soon as someone types.',
+    'With invalid, show the reason as text. Field passes error to the input through aria-describedby; without Field, tie it yourself.',
     'Use inputMode for numbers ("decimal", "numeric") so phones show the right keyboard.',
     'Use size="sm" or "xs" in dense toolbars; phones still get 16px text and a 44px field.',
     'With leading or trailing, className stays on the <input>; wrapperClassName styles the wrapper (width, margin).',

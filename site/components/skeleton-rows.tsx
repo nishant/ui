@@ -30,7 +30,8 @@ export const skeletonRows: ComponentDoc = {
     }),
   html: {
     height: 300,
-    code: `<div class="nish-skeleton-group" aria-busy="true" aria-label="Loading" style="display:grid;gap:12px;max-width:28rem">
+    code: `<div class="nish-skeleton-group" role="status" aria-busy="true" style="display:grid;gap:12px;max-width:28rem">
+  <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">Loading</span>
   <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>
   <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>
   <div class="nish-skeleton nish-skeleton--card" style="height:56px"></div>

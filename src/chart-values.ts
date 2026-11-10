@@ -7,7 +7,8 @@ import { readToken } from './theme';
 
 /** The categorical series color for index i (0-based), cycling through chart-1…chart-8. */
 export function seriesColor(i: number): string {
-  const n = ((Math.trunc(i) % 8) + 8) % 8;
+  const k = Number.isFinite(i) ? Math.trunc(i) : 0;
+  const n = ((k % 8) + 8) % 8;
   return `var(--nish-chart-${n + 1})`;
 }
 

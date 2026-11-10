@@ -6,14 +6,18 @@
 //
 // Writes <out>/index.html plus <out>/shots/{before,after}/<page>/<file>. Publish with
 // the Artifact tool: file_path <out>/index.html, files = every shots/ path.
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { join, relative, resolve, sep } from 'node:path';
 
 const args = process.argv.slice(2);
 const flag = (n) => {
   const i = args.indexOf(n);
   return i >= 0 ? args[i + 1] : undefined;
 };
+if (!flag('--after')) {
+  console.error('usage: gallery.mjs --after <dir> [--before <dir>] [--title <text>] [--out <dir>] [--notes <file>] [--fixed <file>]');
+  process.exit(2);
+}
 const afterDir = resolve(flag('--after'));
 const beforeDir = flag('--before') ? resolve(flag('--before')) : null;
 const out = resolve(flag('--out') ?? 'gallery');
@@ -25,11 +29,13 @@ const load = (dir) => JSON.parse(readFileSync(join(dir, 'report.json'), 'utf8'))
 const after = load(afterDir);
 const before = beforeDir && existsSync(join(beforeDir, 'report.json')) ? load(beforeDir) : null;
 
+// Start clean so files.json lists only the shots this run produced.
+rmSync(join(out, 'shots'), { recursive: true, force: true });
 mkdirSync(join(out, 'shots'), { recursive: true });
 const copy = (dir, tag, shot) => {
   // A page taller than JPEG's 65,535px limit leaves a 0-byte file; show it as missing.
   if (!shot?.file || !existsSync(join(dir, shot.file)) || statSync(join(dir, shot.file)).size === 0) return null;
-  const rel = join('shots', tag, shot.file);
+  const rel = ['shots', tag, ...shot.file.split(/[\\/]/)].join('/'); // forward slashes: it becomes a URL
   mkdirSync(join(out, rel, '..'), { recursive: true });
   cpSync(join(dir, shot.file), join(out, rel));
   return rel;
@@ -97,11 +103,11 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -0.015em; text-wrap: balance; }
 .group { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .group > span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg3); }
 .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); background: var(--raised); border-radius: 9px; padding: 2px; gap: 2px; }
-.seg button { font: inherit; font-size: 12.5px; border: 0; background: transparent; color: var(--fg2); padding: 5px 10px; border-radius: 7px; cursor: pointer; min-height: 30px; }
+.seg button { font: inherit; font-size: 12.5px; border: 0; background: transparent; color: var(--fg2); padding: 5px 12px; border-radius: 7px; cursor: pointer; min-height: 44px; min-width: 44px; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .seg button:focus-visible, a:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .toc { display: flex; flex-wrap: wrap; gap: 6px; }
-.toc a { color: var(--fg2); text-decoration: none; font-size: 12.5px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+.toc a { color: var(--fg2); text-decoration: none; font-size: 12.5px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; justify-content: center; }
 .toc a:hover { color: var(--fg); border-color: var(--fg3); }
 main { display: grid; gap: 40px; padding-block: 24px 64px; }
 section.page { display: grid; gap: 14px; scroll-margin-top: 80px; }
@@ -144,7 +150,7 @@ dialog img { display: block; max-width: 96vw; max-height: 94vh; width: auto; hei
   <div class="group" style="min-width:0"><span>Pages</span><nav class="toc" id="toc"></nav></div>
 </div></div>
 <main class="wrap" id="main"></main>
-<dialog id="zoom"><img alt="" id="zoom-img"></dialog>
+<dialog id="zoom" aria-label="Full-size screenshot"><img alt="" id="zoom-img"></dialog>
 <script>
 const DATA = ${JSON.stringify(data).replace(/</g, '\\u003c')};
 const $ = (id) => document.getElementById(id);
@@ -188,11 +194,13 @@ function seg(container, options, current, onPick) {
 function save() { try { localStorage.setItem('gallery-state', JSON.stringify(state)); } catch (e) {} }
 
 function shotFig(src, phone, label, cls) {
-  const box = el('a', { class: 'shot' + (phone ? ' phone' : ''), href: src || '#', 'aria-label': 'Open full size' });
+  const klass = 'shot' + (phone ? ' phone' : '');
+  let box;
   if (src) {
+    box = el('a', { class: klass, href: src, 'aria-label': 'Open full size: ' + label });
     box.append(el('img', { src, alt: label, loading: 'lazy' }));
-    box.addEventListener('click', (e) => { e.preventDefault(); $('zoom-img').src = src; $('zoom').showModal(); });
-  } else box.append(el('div', { class: 'missing', text: 'No shot' }));
+    box.addEventListener('click', (e) => { e.preventDefault(); $('zoom-img').src = src; $('zoom-img').alt = label; $('zoom').showModal(); });
+  } else box = el('div', { class: klass }, el('div', { class: 'missing', text: 'No screenshot' }));
   return el('figure', {}, el('figcaption', {}, el('span', { class: 'tag ' + cls, text: cls }), label), box);
 }
 
@@ -248,7 +256,7 @@ const walk = (d) => {
   for (const f of readdirSync(d)) {
     const p = join(d, f);
     if (statSync(p).isDirectory()) walk(p);
-    else files.push(relative(out, p));
+    else files.push(relative(out, p).split(sep).join('/'));
   }
 };
 walk(join(out, 'shots'));

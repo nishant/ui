@@ -77,9 +77,17 @@ test.describe('44px targets under a coarse pointer', () => {
   test('a chip has no 44px minimum with a fine pointer at 1440px', async ({ browser }) => {
     const { page, close } = await visit(browser, DESKTOP, 'forms.html');
     try {
-      const mins = await page.evaluate(() => Array.from(document.querySelectorAll('.nish-chip')).map((el) => getComputedStyle(el).minWidth));
-      expect(mins.length).toBeGreaterThan(0);
-      for (const m of mins) expect(m).not.toBe('44px');
+      const chips = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('.nish-chip')).map((el) => ({
+          minWidth: getComputedStyle(el).minWidth,
+          height: el.getBoundingClientRect().height,
+        })),
+      );
+      expect(chips.length).toBeGreaterThan(0);
+      for (const c of chips) {
+        expect(parseFloat(c.minWidth) || 0).toBeLessThan(44);
+        expect(c.height).toBeLessThan(44);
+      }
     } finally {
       await close();
     }

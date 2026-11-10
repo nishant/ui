@@ -20,7 +20,7 @@ The cross-repo rollout plan (which app changes what, gates, order, checks) lives
 - Every interactive control grows to 44px on touch (`pointer-coarse:min-h-11` and/or `min-w-11`)
   and stays compact under a mouse. That is the existing rule; new components keep it.
 - Every new export gets: JSDoc on each prop (docgen reads it), a docs-site page with stories in the
-  all-themes view, an entry in `tools/site-all.visual.json`, and a CHANGELOG line.
+  all-themes view, an entry in `tools/site-all.visual.json` (`tools/docs-meta.test.ts` checks it exists; site-all is run by hand, not in CI: `node tools/visual-check.mjs tools/site-all.visual.json` against a site preview on 5191), and a CHANGELOG line.
 - **Keep one recipe per look.** Where a component also needs a class form (links, router
   `NavLink`s, static pages), export a `*Class()` function and have the component call it.
 

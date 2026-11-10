@@ -3,7 +3,7 @@
   "pages": [
     { "name": "gallery", "url": "http://localhost:5190/", "waitFor": "main" },
     { "name": "modal", "url": "http://localhost:5190/?modal", "waitFor": "[role=dialog]", "fullPage": false },
-    { "name": "toasts", "url": "http://localhost:5190/?toasts", "waitFor": "[role=alert]", "fullPage": false }
+    { "name": "toasts", "url": "http://localhost:5190/?toasts", "waitFor": ".pointer-events-auto.shadow-pop", "settle": 800, "fullPage": false }
   ],
   "viewports": ["desktop", "phone"],
   "themes": ["dark", "light", "slate", "terminal", "mocha", "ocean", "contrast"]
