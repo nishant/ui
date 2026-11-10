@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import '../../src/css/components.css';
 import { mountChecklist, mountHeightVar, mountScrollspy, mountStuck, openSheet } from '../../src/theme';
-import { Device } from './bottom-nav';
+import { Device } from './device';
 import type { ComponentDoc } from './types';
 
 // --- Static parity --------------------------------------------------------------------------

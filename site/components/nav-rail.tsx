@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { IconButton, NavRail, ThemeToggle } from '../../src';
 import { SettingsIcon } from '../lib/icons';
-import { DEMO_ITEMS, Device, Filler, withState } from './bottom-nav';
+import { DEMO_ITEMS, Device, Filler, withState } from './device';
 import type { ComponentDoc } from './types';
 
 // --- NavRail --------------------------------------------------------------------------------

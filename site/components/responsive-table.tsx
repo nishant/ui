@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge, ResponsiveTable, type Column } from '../../src';
 import { money, pct } from '../../src/format';
-import { Device } from './bottom-nav';
+import { Device } from './device';
 import type { ComponentDoc } from './types';
 
 // --- ResponsiveTable ------------------------------------------------------------------------

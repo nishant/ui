@@ -44,6 +44,8 @@ a minor adds, and a patch fixes.
 
 - Docs site: scrollable tables, device frames and demo rows are keyboard-focusable regions; wrong or stale samples, guidelines and stories corrected on about 60 component pages; the Default column reads destructured defaults inside the component body; frames load lazily; `<meta charset>` stays in the first 1024 bytes.
 - Tests and tooling: new unit tests for the combobox and command filters, `useHeightVar` and overlay placement; many weak browser, SSR and consumer assertions tightened; a missing `dist/` fails in CI instead of skipping; the canvas routing time gate retries once before failing.
+- Combobox, MultiSelect and the docs site share one substring-match helper and one command-palette result cap; `NavRail` item classes come from one function used by the parity harness.
+- Docs site: the bottom nav, More sheet and callout moved into smaller device and callout modules; Playwright starts its own harness servers (no reuse), and the visual-check, canvas-layout, contrast and inbox-client tools report problems through one shared helper.
 - `FilterBar` in a server-rendered app shows the inline row until hydration; render it client-only.
 
 ## [3.1.0] - 2026-11-09

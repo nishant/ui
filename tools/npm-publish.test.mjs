@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -81,8 +81,9 @@ test('metadata a tag already has is kept', () => {
   assert.equal(m.license, 'ISC');
 });
 
-test('a dry run leaves package.json byte-identical', async () => {
+test('a dry run leaves package.json byte-identical', async (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'npm-publish-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   mkdirSync(join(dir, 'dist', 'esm'), { recursive: true });
   writeFileSync(join(dir, 'dist', 'esm', 'index.js'), '');
   const text = '{"name":"@nish/ui","version":"1.1.0","scripts":{"x":"y"}}\n';

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BottomNav, Button, StickyActionBar } from '../../src';
-import { DEMO_ITEMS, Device, Filler, withState } from './bottom-nav';
+import { DEMO_ITEMS, Device, Filler, withState } from './device';
 import type { ComponentDoc } from './types';
 
 // --- Layout contract ------------------------------------------------------------------------

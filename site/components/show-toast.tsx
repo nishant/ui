@@ -25,7 +25,7 @@ function Trigger({ label, opts, content }: { label: string; opts?: ShowToastOpti
   );
 }
 
-export const showToastDoc: ComponentDoc & { source: string } = {
+export const showToastDoc: ComponentDoc = {
   id: 'show-toast',
   name: 'showToast',
   exports: [],

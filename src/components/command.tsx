@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { cn } from '../cn';
+import { COMMAND_MAX_RESULTS } from '../command-filter';
 import { safeUrl } from '../url';
 import { XIcon } from './icons';
 import { Modal } from './modal';
@@ -73,8 +74,6 @@ export interface CommandPaletteProps {
   onSubmitQuery?: (q: string) => void;
 }
 
-const MAX_RESULTS = 50;
-
 /** An item with its label and keywords lowercased once, not on every keystroke. */
 interface Indexed {
   item: CommandItem;
@@ -126,9 +125,10 @@ function matchText(text: string, q: string): { tier: number; idx: number[] } | n
   return { tier: 3, idx };
 }
 
+// The <nish-command-palette> element filters with matchesCommandQuery (command-filter.ts), which differs; see UI-490.
 function rankItems(items: Indexed[], query: string): Ranked[] {
   const q = query.trim().toLowerCase();
-  if (!q) return items.slice(0, MAX_RESULTS).map(({ item }) => ({ item, marks: [] }));
+  if (!q) return items.slice(0, COMMAND_MAX_RESULTS).map(({ item }) => ({ item, marks: [] }));
   const scored: { r: Ranked; score: number; order: number }[] = [];
   items.forEach(({ item, label: lower, keywords }, order) => {
     const label = matchText(lower, q);
@@ -146,7 +146,7 @@ function rankItems(items: Indexed[], query: string): Ranked[] {
     if (best !== null) scored.push({ r: { item, marks: [] }, score: 4 + best, order });
   });
   scored.sort((a, b) => a.score - b.score || a.order - b.order);
-  return scored.slice(0, MAX_RESULTS).map((s) => s.r);
+  return scored.slice(0, COMMAND_MAX_RESULTS).map((s) => s.r);
 }
 
 /** Groups ranked rows by `group` (first appearance order, ungrouped first), keeping rank
@@ -321,7 +321,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, e
       res = [];
     }
     if (Array.isArray(res)) {
-      setDynamic(res.slice(0, MAX_RESULTS));
+      setDynamic(res.slice(0, COMMAND_MAX_RESULTS));
       setPending(false);
       return;
     }
@@ -329,7 +329,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, e
     res.then(
       (r) => {
         if (stale) return;
-        setDynamic(r.slice(0, MAX_RESULTS));
+        setDynamic(r.slice(0, COMMAND_MAX_RESULTS));
         setPending(false);
       },
       () => {

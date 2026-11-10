@@ -1,7 +1,7 @@
 // Tests for @nish/ui/server/hono (dist/server/hono.js). Run after `npm run build`:
 // node --test tools/server-kit.test.mjs tools/server-hono.test.mjs
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -101,8 +101,9 @@ test('clientIpOf ignores forwarding headers unless told to trust them; remoteAdd
   assert.deepEqual(await bare.json(), { ip: null, proxy: null, cf: null, peer: null });
 });
 
-test('serveSpa serves a deep link and assets', async () => {
+test('serveSpa serves a deep link and assets', async (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'spa-hono-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   mkdirSync(join(dir, 'assets'));
   writeFileSync(join(dir, 'index.html'), '<!doctype html><title>app</title>');
   writeFileSync(join(dir, 'assets', 'a.js'), 'export {}');

@@ -21,6 +21,18 @@ const built = buildSync({
 const { layoutSystem, pickLayout, GROUP_GAP_X, BAND_TITLE } = await import(
   `data:text/javascript;base64,${Buffer.from(built.outputFiles[0].contents).toString("base64")}`
 );
+// view.ts has no DOM or React imports, so it bundles the same way; PHONE_K and FIT_PAD come from it.
+const viewBuilt = buildSync({
+  entryPoints: ["src/components/canvas/view.ts"],
+  bundle: true,
+  write: false,
+  format: "esm",
+  platform: "node",
+  logLevel: "silent",
+});
+const { PHONE_K, FIT_PAD } = await import(
+  `data:text/javascript;base64,${Buffer.from(viewBuilt.outputFiles[0].contents).toString("base64")}`
+);
 
 const sizes = [2, 5, 1, 7, 3, 4, 6, 2, 1, 4, 3];
 const groups = sizes.map((n, i) => ({
@@ -500,13 +512,13 @@ for (const [w, h] of [
   for (const mode of ["auto", "bands"]) {
     const chosen = pickLayout(bg, bedges, { w, h }, mode);
     const fit = Math.min(
-      (w - 2 * 48) / chosen.width,
-      (h - 2 * 48) / (chosen.height + chosen.titleRoom),
+      (w - 2 * FIT_PAD) / chosen.width,
+      (h - 2 * FIT_PAD) / (chosen.height + chosen.titleRoom),
       1,
     );
     assert.ok(
-      chosen.width * Math.max(fit, 0.55) <= w + 0.5,
-      `${mode} ${w}x${h}: layout ${chosen.width} wide fits at k >= 0.55`,
+      chosen.width * Math.max(fit, PHONE_K) <= w + 0.5,
+      `${mode} ${w}x${h}: layout ${chosen.width} wide fits at k >= ${PHONE_K}`,
     );
   }
 }

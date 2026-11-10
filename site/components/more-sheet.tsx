@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BottomNav, MoreSheet } from '../../src';
-import { BottomNavDemo, DEMO_ITEMS, Device, Filler, MORE_ITEMS, withState } from './bottom-nav';
+import { BottomNavDemo } from './bottom-nav';
+import { DEMO_ITEMS, Device, Filler, MORE_ITEMS, withState } from './device';
 import type { ComponentDoc } from './types';
 
 // --- MoreSheet ------------------------------------------------------------------------------
@@ -50,7 +51,9 @@ export const moreSheet: ComponentDoc = {
       '/>',
     ].join('\n'),
   html: {
-    height: 360,
+    height: 420,
+    // The static version is the generic <nish-sheet> holding a .nish-list of links; the React
+    // MoreSheet adds the BottomNav offset and the Theme row that the static sheet does not have.
     code: `<button type="button" class="nish-btn" data-sheet-open="more">Open the sheet</button>
 
 <nish-sheet id="more" label="More">
@@ -58,9 +61,30 @@ export const moreSheet: ComponentDoc = {
     <h2 class="nish-sheet-title">More</h2>
     <button type="button" class="nish-icon-btn" data-sheet-close aria-label="Close">×</button>
   </header>
-  <div class="nish-sheet-body">
-    <p>A bottom sheet under 640px, a centered panel from 640px. Swipe down, press Escape or tap the backdrop to close it.</p>
-  </div>
+  <nav class="nish-sheet-body" aria-label="More">
+    <ul class="nish-list">
+      <li><a class="nish-list-row" href="#inbox">
+        <span class="nish-list-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13v6h16v-6"/><path d="M4 13l3-8h10l3 8h-5a3 3 0 0 1-6 0z"/></svg></span>
+        <span class="nish-list-text"><span class="nish-list-title">Inbox</span><span class="nish-list-subtitle">Messages from your apps</span></span>
+        <svg class="nish-list-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </a></li>
+      <li><a class="nish-list-row" href="#security">
+        <span class="nish-list-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span>
+        <span class="nish-list-text"><span class="nish-list-title">Security</span><span class="nish-list-subtitle">Sign-ins and devices</span></span>
+        <svg class="nish-list-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </a></li>
+      <li><a class="nish-list-row" href="#appearance">
+        <span class="nish-list-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="15.5" cy="10" r="1"/></svg></span>
+        <span class="nish-list-text"><span class="nish-list-title">Appearance</span><span class="nish-list-subtitle">Theme and density</span></span>
+        <svg class="nish-list-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </a></li>
+      <li><a class="nish-list-row" href="#settings">
+        <span class="nish-list-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></span>
+        <span class="nish-list-text"><span class="nish-list-title">Settings</span><span class="nish-list-subtitle">Account and preferences</span></span>
+        <svg class="nish-list-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </a></li>
+    </ul>
+  </nav>
   <footer class="nish-sheet-footer">
     <button type="button" class="nish-btn nish-btn--primary" data-sheet-close>Done</button>
   </footer>
@@ -119,6 +143,7 @@ const [moreOpen, setMoreOpen] = useState(false);
     'Render it next to BottomNav and drive it with the same state as the More button, so aria-expanded stays true.',
     'Choosing a row runs its onSelect or follows its href and closes the sheet; you do not close it yourself.',
     'Use the hint line for what the page is for, not for its name. Keep it to one line.',
+    "Pass renderLink to render each row's link yourself, for your router's Link. Spread the props it receives (className, children, aria-current, onClick) onto the link; replace is true inside the sheet.",
     'Without a BottomNav (--nish-bottom-nav-h is 0) it is a plain bottom sheet.',
   ],
 };

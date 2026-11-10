@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Badge, Chip, ChipGroup, FilterBar, Select, useUrlState, type UrlStateAdapter } from '../../src';
 import { jsx } from '../lib/jsx';
-import { Device } from './bottom-nav';
+import { Device } from './device';
 import type { ComponentDoc } from './types';
 
 // --- FilterBar, FilterSheet and useUrlState -------------------------------------------------

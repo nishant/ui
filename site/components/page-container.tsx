@@ -1,5 +1,5 @@
 import { BottomNav, PageContainer } from '../../src';
-import { DEMO_ITEMS, Device, withState } from './bottom-nav';
+import { DEMO_ITEMS, Device, withState } from './device';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

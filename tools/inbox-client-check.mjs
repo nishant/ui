@@ -85,6 +85,15 @@ assert.equal(parseInboxEvent({ source: 'ok', kind: 'ok', title: '', url: 'x' }).
   assert.equal(exact.ok, true);
   assert.equal(new TextEncoder().encode(JSON.stringify(exact.value.data)).length, 4096);
   assert.equal(parseInboxEvent({ ...good, data: { a: 'x'.repeat(4097 - overhead) } }).error, 'data is larger than 4 KB');
+  // Multi-byte: under 4096 UTF-16 characters but over 4096 UTF-8 bytes is refused.
+  const enc = new TextEncoder();
+  const multiOver = { a: 'é'.repeat(2045) };
+  assert.ok(JSON.stringify(multiOver).length < 4096 && enc.encode(JSON.stringify(multiOver)).length > 4096);
+  assert.equal(parseInboxEvent({ ...good, data: multiOver }).error, 'data is larger than 4 KB');
+  // 2-byte chars: overhead + 2n = 4096 exactly when n = (4096 - overhead) / 2 (overhead is even).
+  const multiExact = { a: 'é'.repeat((4096 - overhead) / 2) };
+  assert.equal(enc.encode(JSON.stringify(multiExact)).length, 4096);
+  assert.equal(parseInboxEvent({ ...good, data: multiExact }).ok, true);
   assert.equal(parseInboxEvent({ ...good, data: { a: 1, b: true, c: null, d: 's' } }).ok, true);
   // Future occurredAt is clamped to now.
   const future = parseInboxEvent({ ...good, occurredAt: '2999-01-01T00:00:00Z' });

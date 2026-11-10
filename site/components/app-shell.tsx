@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AppShell, Button, Callout, IconButton } from '../../src';
 import type { NavItem, PageContainerProps } from '../../src';
 import { BellIcon, ChartIcon, InboxIcon, LayersIcon, PinIcon, SettingsIcon } from '../lib/icons';
-import { Device } from './bottom-nav';
+import { Device } from './device';
 import { jsx } from '../lib/jsx';
 import type { ComponentDoc } from './types';
 

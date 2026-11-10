@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BottomNav, Button, Input, StickyActionBar } from '../../src';
-import { DEMO_ITEMS, Device, Filler, withState } from './bottom-nav';
+import { DEMO_ITEMS, Device, Filler, withState } from './device';
 import type { ComponentDoc } from './types';
 
 // --- StickyActionBar ------------------------------------------------------------------------

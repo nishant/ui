@@ -30,25 +30,26 @@ export default defineConfig({
         ]
       : []),
   ],
+  // Never reuse a server: a leftover one from another worktree would silently test that checkout (ports are --strictPort).
   webServer: [
     {
       command: 'npx vite --config tests/overlay/vite.config.ts --port 5193 --strictPort',
       url: 'http://localhost:5193/harness.html',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 60_000,
     },
     // Elements specs (tests/elements): the custom elements and their React twins, on port 5194.
     {
       command: 'npx vite --config tests/elements/vite.config.ts --port 5194 --strictPort',
       url: 'http://localhost:5194/index.html',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 60_000,
     },
     // A11y specs (tests/a11y): a broad component page for axe, forced colors and RTL, on port 5195.
     {
       command: 'npx vite --config tests/a11y/vite.config.ts --port 5195 --strictPort',
       url: 'http://localhost:5195/index.html',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 60_000,
     },
   ],

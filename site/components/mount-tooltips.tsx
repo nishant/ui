@@ -21,7 +21,7 @@ const SIDES = `<div style="display:flex;flex-wrap:wrap;gap:8px">
   <span class="nish-badge nish-tooltip nish-tooltip--bottom nish-tooltip--end" tabindex="0" aria-describedby="tip-e">Below, end<span class="nish-tooltip-content" role="tooltip" id="tip-e">Below and aligned to the right edge, for a trigger at the top right of a page.</span></span>
 </div>`;
 
-export const mountTooltipsDoc: ComponentDoc & { source: string } = {
+export const mountTooltipsDoc: ComponentDoc = {
   id: 'mount-tooltips',
   name: 'Static tooltip',
   exports: [],
