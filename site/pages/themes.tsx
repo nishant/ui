@@ -96,7 +96,7 @@ function Matrix({ theme }: { theme: ThemeName }) {
   const fails = results.filter((r) => !r.pass);
   return (
     <div className="space-y-6">
-      <div className="overflow-x-auto rounded-xl border border-th-line bg-th-surface">
+      <div className="overflow-x-auto rounded-xl border border-th-line bg-th-surface focus-visible:outline-2 focus-visible:outline-th-accent" tabIndex={0} role="region" aria-label="Contrast table">
         <table className="w-full min-w-[620px] border-separate border-spacing-0 text-sm">
           <caption className="sr-only">Contrast of each text color on each background in {theme}</caption>
           <thead>

@@ -99,7 +99,7 @@ export const multiSelect: ComponentDoc = {
       options: '{states}',
       value: '{picked}',
       onValueChange: '{setPicked}',
-      maxSelected: a.maxSelected === 6 ? undefined : a.maxSelected,
+      maxSelected: a.maxSelected,
       size: a.size === 'md' ? undefined : a.size,
       disabled: a.disabled,
     }),

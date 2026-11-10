@@ -17,17 +17,17 @@ async function open(page: Page) {
 }
 
 /** What a CSS system color keyword computes to on this page. */
-async function system(page: Page, keyword: string, property: 'color' | 'backgroundColor' = 'color') {
+async function system(page: Page, keyword: string) {
   return page.evaluate(
-    ([k, prop]) => {
+    (k) => {
       const probe = document.createElement('div');
-      probe.style.color = k as string;
+      probe.style.color = k;
       document.body.append(probe);
       const value = getComputedStyle(probe).color;
       probe.remove();
-      return prop === 'color' ? value : value;
+      return value;
     },
-    [keyword, property],
+    keyword,
   );
 }
 
@@ -114,7 +114,7 @@ test.describe('forced colors', () => {
         };
         // The ring may be on the control, a visual sibling (peer) or a wrapper (focus-within).
         const near = [n, n.nextElementSibling, n.parentElement, n.parentElement?.parentElement].filter(Boolean) as Element[];
-        const ok = near.some((e) => drawn(e) && (e === n || e.matches(':has(:focus-visible)')));
+        const ok = near.some((e) => drawn(e) && (e === n || e === n.nextElementSibling || e.matches(':has(:focus-visible)')));
         return ok ? 'ok' : (n.getAttribute('role') ?? n.tagName) + ':' + (n.getAttribute('aria-label') ?? n.id);
       });
       if (r && r !== 'ok') missing.push(r);

@@ -1,5 +1,5 @@
 // A broad page of components for the a11y specs. Query string:
-//   ?open=modal|drawer|confirm|menu|popover|command   opens that overlay on load
+//   ?open=modal|drawer|confirm|popover|command   opens that overlay on load
 //   ?dir=rtl                                          right-to-left
 // The theme comes from localStorage 'nish-theme' (applyTheme), like an app.
 import { useRef, useState } from 'react';

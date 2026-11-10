@@ -29,9 +29,7 @@ function StaticThemeButton({
 
 const SPANISH: ThemeToggleLabels = { system: 'Sistema', light: 'Claro', dark: 'Oscuro' };
 
-// `source` (the file the page links to, for pages with no component export) is a field
-// the integrator adds to ComponentDoc; see LANE.md.
-export const mountThemeToggleDoc: ComponentDoc & { source: string } = {
+export const mountThemeToggleDoc: ComponentDoc = {
   id: 'mount-theme-toggle',
   name: 'mountThemeToggle',
   exports: [],
@@ -96,7 +94,7 @@ export const mountThemeToggleDoc: ComponentDoc & { source: string } = {
       name: 'In a static page header',
       wide: true,
       render: () => (
-        <Card padded={false} className="flex w-full items-center justify-between gap-3 px-4 py-2.5">
+        <Card padding="none" className="flex w-full items-center justify-between gap-3 px-4 py-2.5">
           <a className="nish-pill-link" href="https://nish.software" title="Back to nish.software">
             ← nish.software
           </a>

@@ -19,11 +19,13 @@ body {
   a.doc-link {
     color: var(--nish-accent);
     font-weight: 500;
-    text-underline-offset: 3px;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--nish-accent) 40%, transparent);
+    text-underline-offset: 2px;
   }
   .doc-prose a:hover,
   a.doc-link:hover {
-    text-decoration: underline;
+    text-decoration-color: currentColor;
   }
   .doc-prose code,
   code.inline {

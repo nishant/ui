@@ -54,6 +54,7 @@ export const rangeCalendar: ComponentDoc = {
       locale: a.locale === 'en-US' ? undefined : a.locale,
       isDateDisabled: a.weekends ? '{isWeekend}' : undefined,
       allowDisabledInRange: a.allowDisabled ? true : undefined,
+      dir: a.locale === 'ar-EG' ? 'rtl' : undefined,
     }),
   stories: [
     {

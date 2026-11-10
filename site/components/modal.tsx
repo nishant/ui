@@ -317,6 +317,9 @@ export function DeleteTracker({ onDelete }: { onDelete: () => void }) {
     'With header, pass aria-label: the dialog has no visible title to take its name from.',
     'Give every Modal a name: a title, or aria-label / aria-labelledby when you pass header. In development a Modal without one logs a warning.',
     'Modal renders through a Portal: nothing on the server, and into the NishProvider portalContainer when you set one. A body that overflows becomes a focusable region so keyboard users can scroll it.',
+    'sheetHeight sets the phone sheet height under 640px: auto fits the content (up to 92% of the screen), tall is always 92%, full fills the screen.',
+    'On a phone the sheet shows a grab handle and closes on a swipe down. dismissible={false} removes both, so only the close button, Escape, the scrim or back can close it.',
+    'canClose is asked before any close (button, Escape, scrim, swipe, back). Return false to keep the dialog open, for example while a form holds unsaved input, and show the reason yourself.',
     'Page scroll is locked on both <html> and <body>, so apps that scroll the root element need no local lock.',
   ],
 };

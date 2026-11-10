@@ -98,10 +98,13 @@ export const pageHeader: ComponentDoc = {
     {
       id: 'sticky',
       name: 'Sticky',
-      note: 'Scroll the box: the header stays with a glass background.',
+      note: 'Scroll the box: the header stays at the top with an opaque background and a bottom border once stuck.',
       wide: true,
       render: () => (
-        <div className="h-48 w-full overflow-y-auto rounded-xl border border-th-line bg-th-bg px-4">
+        <div
+          className="h-48 w-full overflow-y-auto rounded-xl border border-th-line bg-th-bg px-[var(--nish-page-gutter)]"
+          style={{ ['--nish-header-h' as string]: '0px' }}
+        >
           <PageHeader sticky title="Positions" actions={<Button size="sm">Refresh</Button>} />
           {Array.from({ length: 12 }, (_, i) => (
             <p key={i} className="border-b border-th-line py-2 text-sm text-th-hi2">
@@ -123,6 +126,7 @@ export const pageHeader: ComponentDoc = {
   guidelines: [
     'One PageHeader per page, as its h1. Inside a card or dialog section use as="h2".',
     'Keep actions to one primary and one or two secondary buttons; the rest go in a menu.',
+    'sticky keeps the bar at the top while the page scrolls. By default (collapseWhenStuck) it shrinks once stuck below 640px: the description is hidden and the title becomes one truncated line. Pass collapseWhenStuck={false} to keep the full header.',
     'The back link is the app\'s own router Link styled with buttonClass({ variant: "link" }).',
   ],
 };

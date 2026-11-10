@@ -22,7 +22,7 @@ function NotificationList({ inCards = false }: { inCards?: boolean }) {
       {NOTES.map(([title, meta, tone]) =>
         inCards ? (
           <li key={title}>
-            <Card padded={false} className="p-3">
+            <Card padding="sm">
               <p className="text-sm font-medium text-th-hi">{title}</p>
               <p className="mt-0.5 flex items-center gap-2 text-xs text-th-hi3">
                 <Badge tone={tone}>{tone}</Badge>
@@ -87,7 +87,7 @@ function DrawerPreview({
 
 function MoreSheet() {
   return (
-    <Drawer title="More" side="bottom" size="sm" bottomOffset="4rem" closeOnBack={false} onClose={() => undefined}>
+    <Drawer title="More" side="bottom" size="sm" bottomOffset="var(--nish-bottom-nav-h, calc(4rem + env(safe-area-inset-bottom)))" closeOnBack={false} onClose={() => undefined}>
       <nav aria-label="More pages" className="-mx-2 grid gap-0.5">
         {['Scanner', 'Journal', 'Settings', 'Help'].map((p) => (
           <a key={p} href="#/components/drawer" className="rounded-lg px-3 py-2 text-sm text-th-hi2 hover:bg-th-elevated hover:text-th-hi pointer-coarse:min-h-11">
@@ -181,7 +181,7 @@ export function Notifications() {
     'Render the Drawer only while it is open, like Modal, or pass open and onOpenChange to control it. Unmounting (or open={false}) closes it and returns focus to the opener.',
     'Pass a title, or aria-label / aria-labelledby: in development a Drawer without a name logs a warning. Like Modal it renders through a Portal and makes an overflowing body a focusable region.',
     'Use a Drawer for a side task that keeps the page in view (notifications, filters, details). Use a Modal for one decision.',
-    'Under 640px side drawers take the full width. On phones with a bottom tab bar, use side="bottom" with bottomOffset.',
+    'Under 640px side drawers take the full width. On phones with a bottom tab bar, use side="bottom" with bottomOffset="var(--nish-bottom-nav-h, calc(4rem + env(safe-area-inset-bottom)))".',
     'Header actions are IconButtons with labels; the close button is always there.',
   ],
 };

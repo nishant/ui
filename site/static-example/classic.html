@@ -61,7 +61,7 @@
           <button type="button" aria-pressed="false">Drives</button>
         </div>
       </div>
-      <div class="nish-table-wrap">
+      <div class="nish-table-wrap" tabindex="0" role="region" aria-label="Itinerary">
         <table>
           <thead><tr><th>Day</th><th>Plan</th><th class="num">Distance</th></tr></thead>
           <tbody>
@@ -88,11 +88,11 @@
         <button type="button" class="nish-chip" aria-pressed="false">Views</button>
         <button type="button" class="nish-chip nish-chip--suggestion">Waterfall</button>
       </div>
-      <label class="nish-field">
-        <span class="nish-field-label">Name</span>
-        <input class="nish-input" placeholder="Grotto Falls" aria-describedby="stop-hint">
+      <div class="nish-field">
+        <label class="nish-field-label" for="stop-name">Name</label>
+        <input class="nish-input" id="stop-name" placeholder="Grotto Falls" aria-describedby="stop-hint">
         <small class="nish-hint" id="stop-hint">Shown on the day it falls on.</small>
-      </label>
+      </div>
       <div class="row">
         <button type="button" class="nish-btn nish-btn--primary">Add stop</button>
         <button type="button" class="nish-btn nish-btn--ghost">Cancel</button>

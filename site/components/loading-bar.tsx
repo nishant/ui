@@ -91,6 +91,7 @@ const navigating = useNavigation().state !== 'idle'; // React Router
   guidelines: [
     'Mount one per app, near the root, driven by your router or data layer.',
     'It is a role="progressbar" with aria-busy, which screen readers do not announce when it appears. Pass announce="Loading page" and it writes that text to a persistent polite live region while the bar shows (after the delay), then clears it.',
+    'top defaults to var(--nish-header-h, 0px), just under the app header; pass top for another offset.',
     'Use a Spinner or a skeleton for loading inside a card; the bar is for the whole page.',
     'The delay is the point: under 200ms nothing shows, which avoids a flash on fast navigations.',
   ],

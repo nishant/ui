@@ -88,15 +88,15 @@ export const callout: ComponentDoc = {
   <div><p class="nish-callout-title">Market closed</p><p>Quotes are from the 4:00 pm close.</p></div>
 </div>
 <div class="nish-callout nish-callout--ok" style="margin-bottom:8px">
-  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></span>
   <div><p class="nish-callout-title">All sites are up</p><p>Last checked 2 minutes ago.</p></div>
 </div>
 <div class="nish-callout nish-callout--warn" style="margin-bottom:8px">
-  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></svg></span>
   <div><p class="nish-callout-title">Token expires soon</p><p>Reconnect to keep syncing.</p></div>
 </div>
 <div class="nish-callout nish-callout--loss">
-  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+  <span class="nish-callout-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></svg></span>
   <div><p class="nish-callout-title">Sync failed</p><p>The store returned 503.</p></div>
 </div>
 <div class="nish-callout nish-callout--text nish-callout--warn" style="margin-top:8px">
@@ -163,7 +163,7 @@ export const callout: ComponentDoc = {
       wide: true,
       render: () => (
         <div className="w-full overflow-hidden rounded-xl border border-th-line">
-          <Callout tone="loss" variant="bar" live title="Live alert" action={<Button size="sm">View</Button>} className="border-t-0">
+          <Callout tone="loss" variant="bar" title="Live alert" action={<Button size="sm">View</Button>} className="border-t-0">
             SPY crossed below the 50-day moving average.
           </Callout>
           <div className="bg-th-bg p-4 text-sm text-th-hi3">Page content…</div>

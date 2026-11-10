@@ -48,14 +48,23 @@ export const textarea: ComponentDoc = {
       </Field>
     </div>
   ),
-  code: (a) =>
-    jsx('Textarea', {
-      rows: a.rows === '4' ? undefined : Number(a.rows),
-      size: a.size === 'md' ? undefined : a.size,
-      autoGrow: a.autoGrow,
-      invalid: a.invalid,
-      disabled: a.disabled,
-    }),
+  code: (a) => {
+    const textarea = jsx(
+      'Textarea',
+      {
+        rows: a.rows === '4' ? undefined : Number(a.rows),
+        size: a.size === 'md' ? undefined : a.size,
+        autoGrow: a.autoGrow,
+        disabled: a.disabled,
+      },
+      undefined,
+      '  ',
+    );
+    const open = jsx('Field', { label: 'Notes', error: a.invalid ? 'Keep it under 500 characters.' : undefined }, '');
+    return `${open.replace(/><\/Field>$/, '>')}
+${textarea}
+</Field>`;
+  },
   html: {
     height: 260,
     code: `<div style="display:grid;gap:12px;max-width:24rem">

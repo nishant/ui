@@ -17,7 +17,7 @@ function Item({ row, onRemove }: { row: Row; phase?: string; onRemove?: () => vo
     <Card className="flex items-center gap-3">
       <span className="min-w-0 flex-1 truncate text-sm text-th-hi">{row.name}.nish.software</span>
       {onRemove ? (
-        <Button size="sm" variant="ghost" onClick={onRemove}>
+        <Button size="sm" variant="ghost" onClick={onRemove} aria-label={`Remove ${row.name}.nish.software`}>
           Remove
         </Button>
       ) : null}
@@ -88,7 +88,7 @@ export const animatedList: ComponentDoc = {
   code: (a) =>
     jsx(
       'AnimatedList',
-      { items: '{items}', getKey: '{(item) => item.id}', as: a.as === 'div' ? undefined : a.as, exitMs: Number(a.exitMs) === 420 ? undefined : Number(a.exitMs) },
+      { items: '{items}', getKey: '{(item) => item.id}', as: a.as === 'ul' ? undefined : a.as, exitMs: Number(a.exitMs) === 420 ? undefined : Number(a.exitMs) },
       '{(item) => <Row item={item} />}',
     ),
   stories: [

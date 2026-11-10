@@ -43,7 +43,7 @@ function TooltipPreview({
             IV rank
           </span>
         ) : (
-          <span data-tip-trigger className="cursor-help text-sm text-th-hi2 underline decoration-th-ghost decoration-dotted underline-offset-4">
+          <span data-tip-trigger className="text-sm text-th-hi2">
             IV rank
           </span>
         )}
@@ -129,7 +129,7 @@ export const tooltip: ComponentDoc = {
     {
       id: 'dense',
       name: 'Dense marks, not focusable',
-      note: 'focusable={false} keeps 60 chart bars out of the Tab order. Put the values somewhere reachable too.',
+      note: 'focusable={false} keeps 10 chart bars out of the Tab order. Put the values somewhere reachable too.',
       render: () => <BarsPreview />,
     },
     { id: 'card', name: 'In a card', render: () => <CardPreview /> },

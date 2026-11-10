@@ -20,7 +20,7 @@ const pnlClass = (n: number) => (n > 0 ? 'text-th-ok' : n < 0 ? 'text-th-loss' :
 
 function Positions({ dense = false, zebra = false, tones = false }: { dense?: boolean; zebra?: boolean; tones?: boolean }) {
   return (
-    <TableWrap minWidth={440} className="w-full">
+    <TableWrap minWidth={440} label="Positions" className="w-full">
       <Table dense={dense} zebra={zebra}>
         <thead>
           <tr>
@@ -63,7 +63,7 @@ function Sortable() {
     </Th>
   );
   return (
-    <TableWrap minWidth={440} className="w-full">
+    <TableWrap minWidth={440} label="Positions" className="w-full">
       <Table>
         <thead>
           <tr>
@@ -105,14 +105,14 @@ export const table: ComponentDoc = {
   initial: { dense: false, zebra: false, tones: false },
   render: (a) => <Positions dense={!!a.dense} zebra={!!a.zebra} tones={!!a.tones} />,
   code: (a) =>
-    `<TableWrap minWidth={440}>
+    `<TableWrap minWidth={440} label="Positions">
   ${jsx('Table', { dense: a.dense || undefined, zebra: a.zebra || undefined }, '…')}
 </TableWrap>`,
   api: { functions: [], interfaces: [] },
   html: {
     height: 360,
     code: `<nish-table-sort>
-  <div class="nish-table-wrap" style="--nish-table-min:440px">
+  <div class="nish-table-wrap" tabindex="0" role="region" aria-label="Positions" style="--nish-table-min:440px">
     <table class="nish-table nish-table--zebra">
       <thead>
         <tr>
@@ -144,7 +144,7 @@ export const table: ComponentDoc = {
       name: 'Row tones, muted and interactive',
       wide: true,
       render: () => (
-        <TableWrap className="w-full">
+        <TableWrap label="Positions" className="w-full">
           <Table>
             <thead>
               <tr>
@@ -156,7 +156,7 @@ export const table: ComponentDoc = {
             <tbody>
               <Tr tone="ok" interactive>
                 <Td>
-                  <a href="#" className="font-medium text-th-hi hover:underline">
+                  <a href="#/components/table" className="font-medium text-th-hi hover:underline">
                     jobs.nish.software
                   </a>
                 </Td>
@@ -167,7 +167,7 @@ export const table: ComponentDoc = {
               </Tr>
               <Tr tone="warn" interactive>
                 <Td>
-                  <a href="#" className="font-medium text-th-hi hover:underline">
+                  <a href="#/components/table" className="font-medium text-th-hi hover:underline">
                     minecraft.nish.software
                   </a>
                 </Td>
@@ -178,7 +178,7 @@ export const table: ComponentDoc = {
               </Tr>
               <Tr tone="loss" interactive>
                 <Td>
-                  <a href="#" className="font-medium text-th-hi hover:underline">
+                  <a href="#/components/table" className="font-medium text-th-hi hover:underline">
                     trackers.nish.software
                   </a>
                 </Td>
@@ -202,7 +202,7 @@ export const table: ComponentDoc = {
       name: 'Sticky header',
       wide: true,
       render: () => (
-        <TableWrap maxHeight={200} stickyHeader className="w-full">
+        <TableWrap maxHeight={200} stickyHeader label="Recent activity" className="w-full">
           <Table dense>
             <thead>
               <tr>
@@ -213,7 +213,7 @@ export const table: ComponentDoc = {
             <tbody>
               {Array.from({ length: 14 }, (_, i) => (
                 <Tr key={i}>
-                  <Td>Oct 24, {String(3 + Math.floor(i / 12)).padStart(1, '0')}:{String((i * 5) % 60).padStart(2, '0')} pm</Td>
+                  <Td>Oct 24, {String(3 + Math.floor(i / 12))}:{String((i * 5) % 60).padStart(2, '0')} pm</Td>
                   <Td numeric>{40 + ((i * 7) % 23)} ms</Td>
                 </Tr>
               ))}
@@ -249,7 +249,7 @@ export const table: ComponentDoc = {
   ],
   usage: `import { TableWrap, Table, Th, Td, Tr, tableClass } from '@nish/ui';
 
-<TableWrap minWidth={640} maxHeight="60vh" stickyHeader>
+<TableWrap minWidth={640} maxHeight="60vh" stickyHeader label="Positions">
   <Table dense>
     <thead><tr><Th>Symbol</Th><Th numeric sort={dir} onSort={flip}>P&L</Th></tr></thead>
     <tbody>{rows.map((r) => <Tr key={r.id} tone={r.alert}>…</Tr>)}</tbody>
@@ -263,6 +263,7 @@ export const table: ComponentDoc = {
     'Number columns use numeric: right-aligned with tabular figures, header included.',
     'Row tones are an extra cue; say the status in a cell as well.',
     'An interactive row still needs a real link or button inside it for keyboard users.',
+    'In plain HTML, put tabindex="0", role="region" and an aria-label on .nish-table-wrap so keyboard users can scroll a wide table.',
     'Pass label to TableWrap (or aria-label): while the table overflows, the box becomes a focusable region with that name, so keyboard users can scroll it.',
     "Every part takes ref and its element's attributes. align=\"left\" and \"right\" mean the start and end edge, so they flip under dir=\"rtl\".",
     'In forced-colors mode the status edge becomes a real border, so tones survive high-contrast settings.',

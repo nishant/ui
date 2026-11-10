@@ -124,14 +124,14 @@ toast.success('Saved', 'Watchlist updated with 3 symbols.');
 toast.error('Could not save', err.message); // stays until dismissed
 
 // every call returns the id
-const id = toast('Syncing…', { duration: Infinity });
-dismissToast(id);
+const syncId = toast('Syncing…', { duration: Infinity });
+dismissToast(syncId);
 
 // a pending toast that turns into the result
 toast.promise(save(), { loading: 'Saving…', success: 'Saved', error: (e) => 'Could not save: ' + String(e) });
 
-// One Undo slot: a newer change replaces the old toast, so a stale Undo cannot revert it.
-toast.success('Archived', { action: { label: 'Undo', onClick: () => restore(id) }, id: 'undo' });
+// One Undo slot (item is the record that was archived): a newer change replaces the old toast, so a stale Undo cannot revert it.
+toast.success('Archived', { action: { label: 'Undo', onClick: () => restore(item.id) }, id: 'undo' });
 
 // Lift the stack above a bottom tab bar on phones.
 <Toaster offset="calc(4.5rem + env(safe-area-inset-bottom))" />`,

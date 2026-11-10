@@ -25,8 +25,10 @@ let themeB: typeof import('../../src/theme');
 
 const load = <T>(dir: string, file: string) => import(/* @vite-ignore */ pathToFileURL(resolve(work, dir, file)).href) as Promise<T>;
 
-describe.skipIf(!built)('two copies of nish-ui on one page', () => {
+describe.skipIf(!built && !process.env.CI)('two copies of nish-ui on one page', () => {
   beforeAll(async () => {
+    // Locally a missing dist skips the suite; in CI it fails.
+    if (!built) throw new Error('dist/esm/index.js missing: did the build output move?');
     rmSync(work, { recursive: true, force: true });
     mkdirSync(work, { recursive: true });
     cpSync(dist, resolve(work, 'a'), { recursive: true });

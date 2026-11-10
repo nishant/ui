@@ -97,6 +97,8 @@ test.describe('<nish-theme-toggle>', () => {
   });
 
   test('is removed cleanly on disconnect', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
     await load(page);
     await page.evaluate(() => document.getElementById('tt')?.remove());
     // The cycle keeps working for a toggle that is still on the page.
@@ -107,6 +109,7 @@ test.describe('<nish-theme-toggle>', () => {
     });
     await page.locator('#tt3 button').click();
     await expect(page.locator('#tt3 button')).toHaveAttribute('data-choice', 'light');
+    expect(errors).toEqual([]);
   });
 });
 
@@ -226,6 +229,9 @@ test.describe('<nish-sheet>', () => {
     await expect(page.locator('#s1 > dialog')).toBeVisible();
     await page.evaluate(() => document.getElementById('newparent')?.append(document.getElementById('s1') as Element));
     await expect.poll(() => events(page)).toEqual([{ type: 'nish-close', detail: null, target: 's1' }]);
+    // A second, later nish-close would arrive after the poll has passed.
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 0)))));
+    expect(await events(page)).toHaveLength(1);
     const state = await page.evaluate(() => {
       const h = document.getElementById('s1') as unknown as { open: boolean; dialog: HTMLDialogElement };
       return { open: h.open, dialogOpen: h.dialog.open };
@@ -254,6 +260,15 @@ test.describe('<nish-dialog>', () => {
     await page.locator('#open-dialog').click();
     const open = await page.evaluate(() => (document.querySelector('#d1 > dialog') as HTMLDialogElement).matches(':modal'));
     expect(open).toBe(true);
+    // Tab cannot reach the page behind it: focus stays inside #d1, or passes through the browser UI (body) and back.
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press('Tab');
+      const where = await page.evaluate(() => {
+        const a = document.activeElement;
+        return !a || a === document.body ? 'body' : a.closest('#d1') ? 'inside' : `outside: ${a.localName}#${a.id}`;
+      });
+      expect(['inside', 'body'], `focus after Tab ${i + 1} (${where})`).toContain(where);
+    }
   });
 
   test('data-dialog-open opens it, Escape closes it with an empty value and focus returns', async ({ page }) => {
@@ -422,15 +437,13 @@ test.describe('<nish-bottom-nav>', () => {
     await load(page);
     const hasVar = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--nish-bottom-nav-h') !== '');
     expect(await hasVar()).toBe(true);
-    const host = await page.evaluate(() => {
+    await page.evaluate(() => {
       const el = document.querySelector('nish-bottom-nav') as HTMLElement;
       (window as unknown as { oldLinks: Element[] }).oldLinks = [...el.querySelectorAll('a')];
       el.remove();
       history.pushState(null, '', '/lists');
       dispatchEvent(new PopStateEvent('popstate'));
-      return true;
     });
-    expect(host).toBe(true);
     expect(await hasVar()).toBe(false);
     const marked = await page.evaluate(() =>
       (window as unknown as { oldLinks: Element[] }).oldLinks.filter((a) => a.hasAttribute('aria-current')).map((a) => a.getAttribute('href')),
@@ -537,7 +550,10 @@ test.describe('the bundle', () => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await load(page);
-    const before = await page.evaluate(() => ['nish-theme-toggle', 'nish-sheet', 'nish-dialog', 'nish-bottom-nav'].map((t) => customElements.get(t)?.name));
+    const tags = ['nish-theme-toggle', 'nish-sheet', 'nish-dialog', 'nish-bottom-nav'];
+    await page.evaluate((tags) => {
+      (window as unknown as { __ctors: unknown[] }).__ctors = tags.map((t) => customElements.get(t));
+    }, tags);
     const threw = await page.evaluate(async () => {
       try {
         await window.loadBundle();
@@ -547,10 +563,10 @@ test.describe('the bundle', () => {
       }
     });
     expect(threw).toBeNull();
-    const same = await page.evaluate(
-      (names) => ['nish-theme-toggle', 'nish-sheet', 'nish-dialog', 'nish-bottom-nav'].map((t) => customElements.get(t)?.name === names.shift()),
-      [...before],
-    );
+    const same = await page.evaluate((tags) => {
+      const before = (window as unknown as { __ctors: unknown[] }).__ctors;
+      return tags.map((t, i) => customElements.get(t) !== undefined && customElements.get(t) === before[i]);
+    }, tags);
     expect(same).toEqual([true, true, true, true]);
     expect(errors).toEqual([]);
   });

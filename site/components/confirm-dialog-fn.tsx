@@ -71,7 +71,7 @@ export const confirmDialogFnDoc: ComponentDoc & { source: string } = {
 <!-- Classic scripts: await window.nishTheme.confirmDialog({ … }) from theme.global.js. -->`,
   guidelines: [
     'Use it where a page called window.confirm: it is async, so await it before acting, and run the action (a save) before tearing the page or a dialog down.',
-    'tone: "danger" for destructive actions: a red confirm button, and focus starts on Cancel. Without it the accent confirm button takes the first focus.',
+    "tone: 'danger' for destructive actions: a red confirm button, and focus starts on Cancel. confirmDialog defaults to tone 'primary' (the accent confirm button takes the first focus) while ConfirmDialog defaults to 'danger', so destructive actions here must pass tone: 'danger'.",
     'Escape inside it does not reach the page: an outer framework dialog (an Angular MatDialog) stays open until you close it.',
     'cancelLabel (or strings: { cancel }) renames Cancel for another language; confirmLabel defaults to "Confirm". The dialog is built with DOM calls, so Trusted Types pages accept it.',
     'Title and body are text, or a Node for markup; strings are never parsed as HTML. React apps use <ConfirmDialog> instead.',

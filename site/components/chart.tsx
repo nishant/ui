@@ -141,7 +141,10 @@ export const chartDoc: ComponentDoc = {
 
 // uPlot / canvas: resolved colors, redraw when they change.
 const t = useChartTheme();
-useEffect(() => plot.setSeries(0, { stroke: t.series[0] }), [t]);`,
+useEffect(() => {
+  plot.series.forEach((s, i) => { if (i) s.stroke = () => t.series[i - 1]; });
+  plot.redraw();
+}, [t]);`,
   guidelines: [
     'Series colors come from seriesColor(i), never a hand-picked hex.',
     'Status meaning (up/down bars, alerts) uses the -fill roles (t.ok, t.loss), not chart colors.',

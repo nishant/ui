@@ -117,7 +117,7 @@ export const meter: ComponentDoc = {
     },
     {
       id: 'progress',
-      name: 'Progress',
+      name: 'Inline progress bar',
       render: () => (
         <div className="grid w-full gap-1.5">
           <span className="text-xs text-th-hi3">Importing 340 of 500 listings</span>
@@ -164,7 +164,7 @@ export const meter: ComponentDoc = {
     'In forced-colors mode the track gets a text-colored border and the fill the system highlight color, so the value stays readable. ref, id, data-* and aria-* land on the bar (the element with the meter role); className goes on the bar, or on the wrapper row with showValue.',
     'Always pass label: the bar has no text of its own.',
     'Show the number nearby (showValue, or your own text) so the reading never depends on color.',
-    'Use kind="progress" for work that finishes, meter for a measurement.',
+    'For work that finishes (an upload, an import), use Progress. Keep kind="progress" only for a thin inline bar; use Meter for a measurement.',
     'On an elevated box use track="overlay" so the empty part still shows.',
   ],
 };

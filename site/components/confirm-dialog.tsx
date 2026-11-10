@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { Button } from '../../src';
 import { ConfirmDialog } from '../../src';
 import type { ComponentDoc } from './types';
 
@@ -33,34 +31,6 @@ function ConfirmPreview({
       onConfirm={() => undefined}
       onCancel={() => undefined}
     />
-  );
-}
-
-export function RealConfirmButton() {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  return (
-    <>
-      <Button size="sm" variant="danger" onClick={() => setOpen(true)}>
-        Delete tracker
-      </Button>
-      {open ? (
-        <ConfirmDialog
-          title="Delete this tracker?"
-          body="Its price history goes with it."
-          confirmLabel="Delete"
-          pending={pending}
-          onCancel={() => setOpen(false)}
-          onConfirm={() => {
-            setPending(true);
-            window.setTimeout(() => {
-              setPending(false);
-              setOpen(false);
-            }, 900);
-          }}
-        />
-      ) : null}
-    </>
   );
 }
 

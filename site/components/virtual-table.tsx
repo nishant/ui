@@ -89,7 +89,7 @@ export const virtualTable: ComponentDoc = {
     'A table of thousands of rows that renders only what is on screen, with the same columns as ResponsiveTable: a sticky header, sorting, row tones, a pinned first column, and arrow-key navigation when rows are clickable.',
   importLine: "import { VirtualTable } from '@nish/ui';",
   controls: [
-    { key: 'rows', label: 'Rows', type: 'number', min: 0, max: 50000 },
+    { key: 'rows', label: 'Rows', type: 'number', min: 0, max: 5000 },
     { key: 'dense', label: 'Dense', type: 'boolean' },
     { key: 'zebra', label: 'Zebra', type: 'boolean' },
     { key: 'stickyFirstColumn', label: 'Sticky first column', type: 'boolean' },

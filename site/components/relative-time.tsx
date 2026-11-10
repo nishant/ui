@@ -67,7 +67,7 @@ export const relativeTime: ComponentDoc = {
 <p>Opened <RelativeTime value={opened} style="long" /></p>`,
   guidelines: [
     'Use for recent events (under a few days). For older dates, show the date with date() from @nish/ui/format.',
-    'The visible text is relative; the tooltip and the dateTime attribute carry the exact moment for everyone else.',
+    'The visible text is relative; the dateTime attribute carries the exact moment for machines. The title is mouse-only (touch and keyboard users never see it), so where the exact time matters wrap it in <Tooltip> or print the exact date nearby.',
     'Many instances are fine: each ticks only every refreshMs (30 seconds by default) and pauses in a hidden tab.',
     'Invalid dates render an en dash instead of "NaN ago".',
     'locale defaults to the NishProvider locale, then setDefaultLocale() (en-US). English output is "3m ago"; other languages come from Intl.RelativeTimeFormat.',

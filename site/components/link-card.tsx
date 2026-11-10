@@ -24,7 +24,7 @@ export const linkCard: ComponentDoc = {
   name: 'LinkCard',
   exports: ['LinkCard'],
   summary:
-    'A big link to another page or app: a tinted icon tile, a title and a blurb, with the whole card as the anchor. It is a tile on wide parents and a 64px row on narrow ones, decided by its own container so it works in a 360px column or a grid cell. Disabled cards are dashed and not links.',
+    'A big link to another page or app: a tinted icon tile, a title and a blurb, with the whole card as the anchor. It is a tile on wide parents and a 64px row on narrow ones, decided by the width of its parent element (a row under 600px), so it works in a 360px column or a grid cell. Disabled cards are dashed and not links.',
   importLine: "import { LinkCard } from '@nish/ui';",
   controls: [
     { key: 'layout', label: 'Layout', type: 'select', options: ['auto', 'card', 'row'] },
@@ -103,6 +103,7 @@ export const linkCard: ComponentDoc = {
 </div>`,
   guidelines: [
     'Use a grid with minmax columns; leave layout on auto so a one-column phone list becomes 64px rows by itself.',
+    'meta shows in the card layout only. In the row layout the status becomes a small dot (its label is the accessible name of the dot) and meta is not shown.',
     'The tile color is the app\'s identity: pick one accent per destination and keep it everywhere.',
     'A disabled card is for something not available yet. It is not focusable and says so with aria-disabled.',
     'href goes through safeUrl: a javascript: or data: address makes the card unavailable (dashed, not a link) instead of a live link.',

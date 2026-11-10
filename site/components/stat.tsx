@@ -62,7 +62,7 @@ export const stat: ComponentDoc = {
   <div class="nish-stat"><dt class="nish-stat-label">Drawdown</dt><dd class="nish-stat-value nish-stat-value--loss">-3.2%</dd></div>
 </dl>
 
-<!-- Exactly four tiles: two per row, then four from 640px. -->
+<!-- Exactly four tiles: two per row, then four from 768px. -->
 <dl class="nish-stats nish-stats--4" style="margin-top:12px">
   <div class="nish-stat"><dt class="nish-stat-label">Capacity</dt><dd class="nish-stat-value">640 GB</dd></div>
   <div class="nish-stat"><dt class="nish-stat-label">Read</dt><dd class="nish-stat-value">3.3 GB/s</dd></div>
@@ -101,7 +101,7 @@ export const stat: ComponentDoc = {
       id: 'sizes',
       name: 'Sizes',
       render: () => (
-        <StatGrid cols={{ base: 3, md: 3 }} className="w-full">
+        <StatGrid cols={{ base: 1, md: 3 }} className="w-full">
           {SIZES.map((s) => (
             <Stat key={s} variant="inset" size={s} label={`Size ${s}`} value="99.95%" sub="30 days" />
           ))}
@@ -124,7 +124,7 @@ export const stat: ComponentDoc = {
       name: 'Loading',
       render: () => (
         <StatGrid cols={{ base: 2, md: 2 }} className="w-full">
-          <Stat label="Uptime (30d)" value="" sub="x" loading />
+          <Stat label="Uptime (30d)" value="" sub="30 days" loading />
           <Stat label="Median response" value="" loading />
         </StatGrid>
       ),

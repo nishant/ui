@@ -103,6 +103,17 @@ export const listRow: ComponentDoc = {
       ),
     },
     {
+      id: 'compact-chevron',
+      name: 'Compact and chevron',
+      note: 'compact tightens the row for dense widgets. chevron shows the arrow on a button row too (it is on by default only for a link).',
+      render: () => (
+        <ul className="m-0 w-full list-none rounded-xl border border-th-line bg-th-surface p-1">
+          <ListRow compact icon={<ChartIcon size={20} />} title="Compact row" subtitle="Smaller text, 44px tall" meta="3" href="/portfolio" />
+          <ListRow icon={<BellIcon size={20} />} title="Button row with a chevron" subtitle="chevron on an onClick row" onClick={() => undefined} chevron />
+        </ul>
+      ),
+    },
+    {
       id: 'title-lines',
       name: 'Two-line titles',
       note: 'titleLines={2} lets a long title wrap to two lines before it is cut off. The default, 1, truncates.',
@@ -138,7 +149,7 @@ export const listRow: ComponentDoc = {
 </ul>`,
   guidelines: [
     'Use as="div" when the row is not inside a <ul> or <ol>.',
-    'With a client-side router, pass onClick that navigates instead of href, so the row stays one control and the router handles the transition.',
+    'With a client-side router, pass href plus an onClick that calls event.preventDefault() and navigates, so the row stays a real link (open in new tab, copy address) and the router handles the transition. Keep onClick alone for actions that are not navigation.',
     'href goes through safeUrl: a javascript: or data: URL makes the row a plain row (or the button, when onClick is also given), never a link.',
     'ref and any li attribute (id, data-*, aria-*) go on the wrapper; className goes on the row inside it, where the link or button is. The chevron flips under dir="rtl".',
     'Do not put a second button inside a row that is itself a link or button. Trailing is for non-interactive badges or a Switch in a plain row.',

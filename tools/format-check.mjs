@@ -47,7 +47,7 @@ const cases = [
   // bytes
   ['bytes 0', f.bytes(0), '0 B'],
   ['bytes MB', f.bytes(1258291), '1.2 MB'],
-  ['bytes KB', f.bytes(2048), '2.0 KB'.replace('.0', '')],
+  ['bytes KB', f.bytes(2048), '2 KB'],
   ['bytes null', f.bytes(null), D],
   // duration
   ['duration short', f.duration(24000), '6h 40m'],

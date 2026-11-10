@@ -19,7 +19,7 @@ const ITEMS: CommandItem[] = [
 
 async function remote(q: string): Promise<CommandItem[]> {
   await new Promise((r) => setTimeout(r, 250));
-  return q ? ['Lisbon', 'Libson airport', 'Lima', 'Lyon'].filter((c) => c.toLowerCase().includes(q.toLowerCase())).map((c) => ({ id: c, label: c, group: 'Cities', onSelect: () => undefined })) : [];
+  return q ? ['Lisbon', 'Lisbon airport', 'Lima', 'Lyon'].filter((c) => c.toLowerCase().includes(q.toLowerCase())).map((c) => ({ id: c, label: c, group: 'Cities', onSelect: () => undefined })) : [];
 }
 
 function Demo({ mode = 'list' }: { mode?: 'list' | 'async' | 'submit' }) {

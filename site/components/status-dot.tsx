@@ -94,7 +94,7 @@ export const statusDot: ComponentDoc = {
     {
       id: 'label',
       name: 'Labelled, on its own',
-      note: 'With label the dot carries hidden text for screen readers.',
+      note: 'With label the dot is an image named by the label (role="img", aria-label).',
       render: () => (
         <Row className="gap-3">
           <StatusDot tone="ok" size="lg" label="All systems up" />

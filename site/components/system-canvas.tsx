@@ -174,6 +174,7 @@ export const systemCanvas: ComponentDoc = {
   id: 'system-canvas',
   name: 'SystemCanvas',
   exports: ['SystemCanvas', 'layoutSystem', 'pickLayout', 'routeEdges'],
+  api: { functions: ['layoutSystem', 'pickLayout', 'routeEdges'], interfaces: ['CanvasLayout', 'RoutedEdge'] },
   summary:
     'A pannable, zoomable graph-paper canvas of colored groups holding nodes, joined by edges. It lays itself out in bands or columns, whichever shows the map biggest. Nodes that are being worked on pulse in their group color, edges into them flow, and follow mode flies the view to where work is happening.',
   importLine: "import { SystemCanvas } from '@nish/ui/system-canvas';",
@@ -197,7 +198,7 @@ export const systemCanvas: ComponentDoc = {
         bands={a.labels ? BANDS : undefined}
         edgeKinds={KINDS}
         layout={String(a.layout) as CanvasLayoutMode}
-        follow={Boolean(a.follow)}
+        follow={a.follow ? true : undefined}
         minimap={Boolean(a.minimap)}
         selected={a.selectedNode === 'none' ? null : String(a.selectedNode)}
         height="460px"
@@ -221,7 +222,7 @@ export const systemCanvas: ComponentDoc = {
     {
       id: 'live',
       name: 'Live',
-      note: 'Activity moves to a different node every 1.5 seconds. Drag or scroll to pan, ctrl+scroll or pinch to zoom. Turn on Follow in the controls and the view flies to the newest activity; any pan or zoom turns it off.',
+      note: 'Activity moves to a different node every 1.5 seconds. Drag or scroll to pan, ctrl+scroll or pinch to zoom. Press Follow on the canvas and the view flies to the newest activity; any pan or zoom turns it off.',
       wide: true,
       render: () => <Live />,
     },

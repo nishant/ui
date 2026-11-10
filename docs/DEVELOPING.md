@@ -22,7 +22,7 @@ Other gates:
 | `node --test tools/exports.test.mjs` | every export imports and `require()`s on Node 20.19+; `dist/esm/index.js` loads with no DOM; `"use client"` stays on the right modules |
 | `node --test tools/api-surface.test.mjs` | a removed export or `.nish-*` class fails; `UPDATE_API_SURFACE=1` rewrites `tools/api-surface.snapshot.json` after a build, so removals are deliberate |
 | `npx vitest run tools/docgen-coverage.test.ts` | every runtime export of `.` has a docs page or mention and every prop of an exported component has a description; today's gaps are allow-listed by name and the lists can only shrink (`NISH_DOCGEN_DUMP=1` prints them) |
-| `node tools/canvas-route-bench.mjs` | routing time at 100-1000 nodes; `--check` (in `check`) fails over 60 ms at 500 nodes |
+| `node tools/canvas-route-bench.mjs` | routing time at 100-1000 nodes; `--check` (in `check`) fails when the fastest of 7 runs is over 60 ms twice, at 500 nodes |
 | `node tools/site-bundle-check.mjs` | JS per docs route from `.site-stats.json`; run by `build:site` |
 | `npm run mutation` | Stryker on src/theme.ts, local only; installs Stryker without saving it; report in reports/mutation/. theme.ts: 77.9% on 2026-11-05 (1,010 killed, 263 survived, 23 no coverage) |
 | `node tools/consumer-check.mjs` | packs the package and builds a Next.js App Router app (port 5320), a Vite + Tailwind app and a TypeScript matrix against it |

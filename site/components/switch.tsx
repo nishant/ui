@@ -61,9 +61,9 @@ export const switchDoc: ComponentDoc = {
   html: {
     height: 200,
     code: `<div style="display:grid;gap:12px">
-  <nish-switch label="Alerts" description="Notify me about drops." checked></nish-switch>
-  <nish-switch label="Dark map" size="sm" name="darkmap"></nish-switch>
-  <nish-switch label="Disabled" disabled></nish-switch>
+  <nish-switch label="Alerts" description="Notify me about drops." label-side="start" checked></nish-switch>
+  <nish-switch label="Dark map" size="sm" name="darkmap" label-side="start"></nish-switch>
+  <nish-switch label="Disabled" label-side="start" disabled></nish-switch>
 </div>
 <script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
   },
@@ -114,6 +114,7 @@ const [auto, setAuto] = useState(true);
 // In a native form, an uncontrolled switch posts its value:
 <Switch name="alerts" defaultChecked label="Alerts" />`,
   guidelines: [
+    'The <nish-switch> element puts its label after the switch by default (label-side="end"); React Switch puts it before (labelSide="start"). The HTML sample sets label-side="start" to match the React preview.',
     'Use a Switch for a setting that takes effect immediately. Inside a form that waits for Save, use a Checkbox.',
     'Name it: pass label, or aria-label / aria-labelledby when the label lives elsewhere in the row.',
     'The <nish-switch> element follows the same rule: aria-label names a switch that has no label (property ariaName), and description now shows even without a label.',

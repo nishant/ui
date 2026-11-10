@@ -47,7 +47,7 @@ async function main() {
   let existing;
   for (let page = 1; !existing; page++) {
     const batch = await call('GET', `/issues/${PR_NUMBER}/comments?per_page=100&page=${page}`);
-    existing = batch.find((c) => typeof c.body === 'string' && c.body.startsWith(MARKER));
+    existing = batch.find((c) => c.user?.login === 'github-actions[bot]' && typeof c.body === 'string' && c.body.startsWith(MARKER));
     if (batch.length < 100) break;
   }
   if (existing) {

@@ -28,7 +28,7 @@ export function frameUrl(doc: ComponentDoc, opts: { story?: string; theme?: Them
 }
 
 function Frame({ src, height, title, frameRef }: { src: string; height: number; title: string; frameRef?: React.Ref<HTMLIFrameElement> }) {
-  return <iframe ref={frameRef} src={src} title={title} className="block w-full border-0 bg-th-bg" style={{ height }} />;
+  return <iframe ref={frameRef} loading="lazy" src={src} title={title} className="block w-full border-0 bg-th-bg" style={{ height }} />;
 }
 
 type CodeTab = 'react' | 'html';

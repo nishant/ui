@@ -132,7 +132,7 @@ export const virtualList: ComponentDoc = {
       ...(Number(a.overscan) === 6 ? [] : [`  overscan={${Number(a.overscan)}}`]),
       ...(a.measure ? ['  measure'] : []),
       '  height={360}',
-      '  renderItem={(i) => <PositionRow row={rows[i]} />}',
+      '  renderItem={renderItem} // stable: wrap it in useCallback, as in the usage block below',
       '/>',
     ].join('\n'),
   stories: [

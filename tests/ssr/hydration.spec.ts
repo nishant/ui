@@ -3,9 +3,10 @@
 // The scenarios are in hydration-app.tsx; the server side is rendered here with renderToString
 // from an esbuild bundle of the same module, the client side is bundled for the browser. Both
 // bundles are built from this repo's src, so the spec tests the code being released.
+// `npm run build` must run first: the page loads dist/theme-init.js, and the spec fails without it.
 import { expect, test } from '@playwright/test';
 import { build } from 'esbuild';
-import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -40,7 +41,9 @@ test.beforeAll(async () => {
     external: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
   });
   clientJs = readFileSync(resolve(work, 'client.js'), 'utf8');
-  themeInit = readFileSync(resolve(root, 'dist/theme-init.js'), 'utf8');
+  const themeInitPath = resolve(root, 'dist/theme-init.js');
+  if (!existsSync(themeInitPath)) throw new Error('dist/theme-init.js missing: run `npm run build` before this spec');
+  themeInit = readFileSync(themeInitPath, 'utf8');
   scenarios = (await import(pathToFileURL(resolve(work, 'server.mjs')).href)).scenarios;
   renderToString = (await import('react-dom/server')).renderToString;
 });
@@ -94,6 +97,8 @@ test('keeps the data-theme that theme-init set on <html>', async ({ page }) => {
 });
 
 test('shows the stored value after hydration, not before', async ({ page }) => {
+  // The server HTML has the default, not the stored value.
+  expect(renderToString(scenarios['local-storage']!.render() as never)).toContain('server');
   const errors = await open(page, 'local-storage', { 'hydration-key': JSON.stringify('client') });
   expect(errors).toEqual([]);
   await expect(page.getByTestId('stored')).toHaveText('client');

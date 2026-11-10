@@ -199,7 +199,7 @@ export const dropdownMenu: ComponentDoc = {
     },
     { id: 'card', name: 'From a card', render: () => <CardPreview /> },
   ],
-  usage: `import { DropdownMenu, IconButton, MenuItem, MenuSeparator } from '@nish/ui';
+  usage: `import { DropdownMenu, IconButton, Kbd, MenuItem, MenuSeparator } from '@nish/ui';
 
 <DropdownMenu
   align="end"

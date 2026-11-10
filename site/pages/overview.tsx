@@ -1,5 +1,5 @@
 import pkg from 'virtual:nish-pkg';
-import { Badge, Card, COLOR_ROLES, PRESETS } from '../../src';
+import { Badge, Card, COLOR_ROLES, PRESETS, buttonClass, cardClass } from '../../src';
 import { DOCS } from '../lib/docs';
 import { ArrowRightIcon } from '../lib/icons';
 import { href } from '../lib/router';
@@ -39,13 +39,13 @@ export function OverviewPage() {
         <div className="flex flex-wrap gap-2 pt-2">
           <a
             href={href('/getting-started')}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-th-accent px-4 text-sm font-medium text-th-on-accent transition-colors hover:bg-th-accent/90 pointer-coarse:min-h-11"
+            className={buttonClass({ variant: 'primary' })}
           >
             Get started <ArrowRightIcon size={15} />
           </a>
           <a
             href={href('/components/button')}
-            className="inline-flex h-10 items-center rounded-lg border border-th-line-strong bg-th-surface px-4 text-sm font-medium text-th-hi transition-colors hover:bg-th-elevated pointer-coarse:min-h-11"
+            className={buttonClass({ variant: 'secondary' })}
           >
             Browse components
           </a>
@@ -59,11 +59,11 @@ export function OverviewPage() {
           [String(DOCS.filter((d) => d.exports.length > 0).length), 'components', '/components/button'],
           [String(WHERE.length), 'ways to use it', '/getting-started'],
         ].map(([n, label, to]) => (
-          <a key={label} href={href(to)} className="block rounded-xl">
-            <Card interactive className="h-full">
+          <a key={label} href={href(to)} className={cardClass({ interactive: true, className: 'block h-full' })}>
+            <div>
               <p className="text-3xl font-semibold tabular-nums tracking-tight text-th-hi">{n}</p>
               <p className="text-sm text-th-hi2">{label}</p>
-            </Card>
+            </div>
           </a>
         ))}
       </div>

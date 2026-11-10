@@ -5,8 +5,6 @@ import { Device } from './bottom-nav';
 import type { ComponentDoc } from './types';
 
 // --- FilterBar, FilterSheet and useUrlState -------------------------------------------------
-// Registered by the integrator: needs the filter exports in src/index.ts and the names in
-// site/docgen.mjs COMPONENTS before COMPONENT_DOCS can list it.
 
 type Status = 'open' | 'interview' | 'offer' | 'closed';
 
@@ -129,12 +127,11 @@ export const filterBar: ComponentDoc = {
   controls: [
     { key: 'sticky', label: 'Sticky', type: 'boolean' },
     { key: 'search', label: 'Search box', type: 'boolean' },
-    { key: 'sheetBelow', label: 'Sheet below', type: 'select', options: ['md', 'lg'] },
   ],
-  initial: { sticky: false, search: true, sheetBelow: 'md' },
+  initial: { sticky: false, search: true },
   render: (a) => (
     <Device doc="filter-bar" args={a} title="FilterBar at 360px" height={560}>
-      <JobsList sticky={!!a.sticky} withSearch={!!a.search} sheetBelow={a.sheetBelow === 'lg' ? 'lg' : 'md'} />
+      <JobsList sticky={!!a.sticky} withSearch={!!a.search} />
     </Device>
   ),
   code: (a) =>
@@ -149,7 +146,6 @@ export const filterBar: ComponentDoc = {
           onClear: '{reset}',
           trailing: '{<SortSelect />}',
           sticky: a.sticky ? true : undefined,
-          sheetBelow: a.sheetBelow === 'lg' ? 'lg' : undefined,
           summary: '{`${rows.length} jobs`}',
         },
         '<StatusChips />',
@@ -170,7 +166,10 @@ export const filterBar: ComponentDoc = {
   <span data-slot="summary">42 jobs</span>
 </nish-filter-bar>
 <script>
-  document.querySelector('nish-filter-bar').addEventListener('nish-clear', () => console.log('clear filters'));
+  document.querySelector('nish-filter-bar').addEventListener('nish-clear', (e) => {
+    if (e.target !== e.currentTarget) return;
+    console.log('clear filters');
+  });
 </script>
 <script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>
 <script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-data.js"></script>`,

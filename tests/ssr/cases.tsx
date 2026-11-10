@@ -275,7 +275,7 @@ export const cases: Record<string, Case> = {
   MenuLabel: () => <ui.MenuLabel>Label</ui.MenuLabel>,
   MenuSeparator: () => <ui.MenuSeparator />,
   MenuSubHeader: () => <ui.MenuSubHeader onBack={noop}>Sub</ui.MenuSubHeader>,
-  Meter: () => <ui.Meter value={0.4} label="Meter" />,
+  Meter: () => <ui.Meter value={40} label="Meter" />,
   Modal: () => (
     <ui.Modal open onClose={noop} title="Modal">
       content
