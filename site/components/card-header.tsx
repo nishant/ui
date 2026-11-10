@@ -6,8 +6,6 @@ import type { ComponentDoc } from './types';
 import { MiniTable } from './card';
 
 // --- CardHeader ---------------------------------------------------------------------
-// Registered by the integrator (see LANE.md): needs CardHeader in src/index.ts and in
-// site/docgen.mjs COMPONENTS before COMPONENT_DOCS can list it.
 
 export const cardHeader: ComponentDoc = {
   id: 'card-header',

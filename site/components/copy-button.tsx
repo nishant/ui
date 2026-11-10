@@ -38,6 +38,7 @@ export const copyButton: ComponentDoc = {
       text: '{url}',
       label: a.label && a.label !== 'Copy' ? a.label : undefined,
       iconOnly: a.iconOnly || undefined,
+      failedLabel: a.failedLabel && a.failedLabel !== 'Copy failed' ? a.failedLabel : undefined,
       size: a.size === 'sm' ? undefined : a.size,
       variant: a.variant === 'secondary' ? undefined : a.variant,
     }),
@@ -48,7 +49,8 @@ export const copyButton: ComponentDoc = {
   <code id="install-cmd">npm install nish-ui</code>
   <nish-copy-button for="install-cmd"></nish-copy-button>
   <nish-copy-button value="https://jobs.nish.software/j/4821" label="Copy link" icon></nish-copy-button>
-</div>`,
+</div>
+<script type="module" src="https://cdn.jsdelivr.net/npm/nish-ui@X.Y.Z/dist/elements-forms.js"></script>`,
   },
   stories: [
     {
@@ -85,6 +87,5 @@ if (await copyText(address)) toast.success('Address copied');`,
     'On an insecure origin (plain http) or in a browser without the Clipboard API, CopyButton copies through a hidden textarea and execCommand. When that fails as well it shows failedLabel (default "Copy failed") for 1.5 seconds and announces it; onCopy(false) is called.',
     'Label it with what it copies when there are several on a page ("Copy address").',
     'The live region says "Copied"; do not add a toast as well.',
-    'copyText falls back to a hidden textarea on http:// pages, where the Clipboard API is missing.',
   ],
 };

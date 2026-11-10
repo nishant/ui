@@ -42,9 +42,8 @@ test.describe('44px targets under a coarse pointer', () => {
         const { page, close } = await visit(browser, env, file);
         try {
           const found = await page.evaluate((sel) => {
-            const seen = new Set<Element>();
             return Array.from(document.querySelectorAll(sel))
-              .filter((el) => (seen.has(el) ? false : (seen.add(el), true)) && el.checkVisibility() && el.getBoundingClientRect().width > 0)
+              .filter((el) => el.checkVisibility() && el.getBoundingClientRect().width > 0)
               .map((el) => {
                 const r = el.getBoundingClientRect();
                 return { name: `${el.className} "${el.textContent?.trim()}"`, width: r.width, height: r.height, scrollWidth: el.scrollWidth };
@@ -79,15 +78,20 @@ test.describe('44px targets under a coarse pointer', () => {
     try {
       const chips = await page.evaluate(() =>
         Array.from(document.querySelectorAll('.nish-chip')).map((el) => ({
+          tag: el.localName,
           minWidth: getComputedStyle(el).minWidth,
+          minHeight: getComputedStyle(el).minHeight,
           height: el.getBoundingClientRect().height,
         })),
       );
       expect(chips.length).toBeGreaterThan(0);
       for (const c of chips) {
         expect(parseFloat(c.minWidth) || 0).toBeLessThan(44);
+        expect(parseFloat(c.minHeight) || 0).toBeLessThan(44);
+        expect(c.minHeight).not.toBe('44px');
         expect(c.height).toBeLessThan(44);
       }
+      expect(chips.some((c) => c.tag === 'button'), 'a button chip is measured').toBe(true);
     } finally {
       await close();
     }

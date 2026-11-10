@@ -48,7 +48,7 @@ function Dashboard() {
           </div>
         ))}
       </div>
-      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Site status">
+      <div className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-th-accent" tabIndex={0} role="region" aria-label="Site status">
         <table className="w-full min-w-[480px] text-sm">
           <thead>
             <tr className="border-b border-th-line bg-th-elevated/50 text-left text-xs text-th-hi3">
@@ -175,7 +175,7 @@ const PATTERNS: { id: string; title: string; note: string; render: () => ReactNo
   <div className="grid grid-cols-2 gap-px bg-th-line sm:grid-cols-4">
     <div className="bg-th-surface px-4 py-3">…</div>
   </div>
-  <div className="overflow-x-auto">
+  <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Site status">
     <table className="w-full min-w-[480px] text-sm">…</table>
   </div>
 </Card>`,

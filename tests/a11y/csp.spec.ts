@@ -108,7 +108,11 @@ async function boot(page: Page) {
 }
 
 test.describe('strict CSP and Trusted Types', () => {
-  test.skip(!built, 'dist/ is not built');
+  // Locally a missing dist skips; in CI it is a failure (the build output may have moved).
+  test.skip(!built && !process.env.CI, 'dist/ is not built');
+  test.beforeAll(() => {
+    if (!built) throw new Error('dist/theme-init.sha256 or dist/elements-all.js missing: did the build output move?');
+  });
 
   test('theme-init runs from its hash and sets data-theme', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('nish-theme', 'light'));

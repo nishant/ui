@@ -400,7 +400,7 @@ function markup(): string {
     case 'behavior':
       return BEHAVIOR;
     default:
-      return c in WAVE2 || c in WAVE3
+      return Object.hasOwn(WAVE2, c) || Object.hasOwn(WAVE3, c)
         ? `<div id="stage" style="box-sizing:border-box;padding:16px;max-width:28rem">${WAVE2[c] ?? WAVE3[c]}</div>`
         : '';
   }
@@ -408,15 +408,13 @@ function markup(): string {
 
 if (c === 'nav' || c === 'behavior' || c === 'nav-rail-default') history.replaceState(null, '', `/home?${q}`);
 // The React page has no body margin (Tailwind preflight): give the wave 2 stage the same room.
-if (c in WAVE2 || c in WAVE3) document.body.style.margin = '0';
+if (Object.hasOwn(WAVE2, c) || Object.hasOwn(WAVE3, c)) document.body.style.margin = '0';
 root.innerHTML = markup();
 
-for (const tag of ['nish-sheet', 'nish-dialog']) {
-  document.addEventListener('nish-close', (e) => {
-    const t = e.target as Element;
-    if (t.localName === tag) window.nishEvents.push({ type: 'nish-close', detail: (e as CustomEvent).detail, target: t.id });
-  });
-}
+document.addEventListener('nish-close', (e) => {
+  const t = e.target as Element;
+  if (['nish-sheet', 'nish-dialog'].includes(t.localName)) window.nishEvents.push({ type: 'nish-close', detail: (e as CustomEvent).detail, target: t.id });
+});
 document.getElementById('toast-btn')?.addEventListener('click', () => toast('Saved to the harness'));
 
 if (c === 'toast') {

@@ -317,13 +317,19 @@ export const splitStage: ComponentDoc = {
       render: () => <Icons />,
     },
   ],
-  usage: `import { SplitStage, LayoutPresetPicker, presetOptions } from '@nish/ui';
+  usage: `import { useState } from 'react';
+import { SplitStage, LayoutPresetPicker, presetOptions } from '@nish/ui';
 import { addSlot, swapSlots, type LayoutNode } from '@nish/ui/split-layout';
 
 // items: insertion order, never re-sorted. slots[i]: the item shown in slot i.
 const [items, setItems] = useState(['a', 'b', 'c']);
 const [slots, setSlots] = useState(['a', 'b', 'c']);
 const [layout, setLayout] = useState<LayoutNode | null>(presetOptions(3)[0].node);
+const [presetId, setPresetId] = useState<string | null>(null);
+const choosePreset = (id: string) => {
+  setPresetId(id);
+  setLayout(presetOptions(slots.length as 1 | 2 | 3 | 4).find((o) => o.id === id)!.node);
+};
 
 <LayoutPresetPicker
   options={presetOptions(slots.length as 1 | 2 | 3 | 4)}

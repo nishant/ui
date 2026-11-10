@@ -23,9 +23,9 @@ function Tile({ doc }: { doc: ComponentDoc }) {
       </header>
       {doc.framed ? (
         // Portaled components (Toast, Modal, Tooltip) need a whole document of their own.
-        <iframe key={theme} src={frameUrl(doc, { theme, args: doc.initial })} title={`${doc.name} preview`} className="block w-full border-0 bg-th-bg" style={{ height: doc.framed.height }} />
+        <iframe key={theme} loading="lazy" src={frameUrl(doc, { theme, args: doc.initial })} title={`${doc.name} preview`} className="block w-full border-0 bg-th-bg" style={{ height: doc.framed.height }} />
       ) : (
-        <div className="doc-canvas flex min-h-40 flex-1 items-center justify-center overflow-x-auto p-6">{doc.render(doc.initial)}</div>
+        <div tabIndex={0} role="region" aria-label={`${doc.name} preview canvas`} className="doc-canvas focus-visible:outline-2 focus-visible:outline-th-accent flex min-h-40 flex-1 items-center justify-center overflow-x-auto p-6">{doc.render(doc.initial)}</div>
       )}
       <p className="border-t border-th-line px-4 py-2.5 text-xs leading-relaxed text-th-hi3">{doc.summary}</p>
     </article>

@@ -32,7 +32,7 @@ export const emptyState: ComponentDoc = {
   ),
   code: (a) =>
     jsx('EmptyState', {
-      icon: a.icon ? '{<LineChart />}' : undefined,
+      icon: a.icon ? '{<ChartLine />}' : undefined,
       title: String(a.title),
       detail: a.detail ? 'Trackers check every hour. Changes show up here.' : undefined,
       action: a.action ? '{<Button size="sm">Add a tracker</Button>}' : undefined,

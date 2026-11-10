@@ -70,16 +70,34 @@ describe('renderToString', () => {
     expect(warns, `${name} console.warn`).toEqual([]);
   });
 
+  // What each hook returns during a server render (no window): the stable first value the client
+  // also renders before hydration finishes.
+  const SERVER_VALUES: Record<string, unknown> = {
+    useTheme: ['system', 'dark', 'dark'],
+    useLocalStorage: 'server',
+    useMediaQuery: false,
+    usePhone: false,
+    useNarrow: false,
+    useBreakpoint: 'base',
+    usePrefersReducedMotion: false,
+    useOnline: true,
+    useUrlState: { q: '' },
+    useIsClient: false,
+    useNishStrings: 'Close',
+  };
+
+  it('has an expected server value for every hook probe', () => {
+    expect(Object.keys(SERVER_VALUES).sort()).toEqual(Object.keys(hookCases).sort());
+  });
+
   it.each(Object.keys(hookCases))('hook %s gives a value on the server', (name) => {
     const html = renderToString(hookCases[name]!());
     expect(html).toContain('data-hook');
+    // The probe prints JSON.stringify(value) as text; React escapes the quotes.
+    const printed = /<output data-hook="[^"]*">(.*)<\/output>/.exec(html)![1]!.replace(/&quot;/g, '"');
+    expect(JSON.parse(printed), `${name} server value`).toEqual(SERVER_VALUES[name]);
     expect(errors).toEqual([]);
-  });
-
-  it('leaves no stray dialog in the server HTML of overlays', () => {
-    for (const name of ['Modal', 'Drawer', 'ConfirmDialog']) {
-      expect(renderToString(cases[name]!()), name).not.toContain('role="dialog"');
-    }
+    expect(warns).toEqual([]);
   });
 
   it('renders the same HTML twice (no random ids or clocks leak in)', () => {

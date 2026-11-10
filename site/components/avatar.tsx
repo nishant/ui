@@ -77,7 +77,7 @@ export const avatar: ComponentDoc = {
       note: 'A broken or unsafe src falls back to the initials.',
       render: () => (
         <div className="flex gap-3">
-          <Avatar name="Ada Lovelace" src="/does-not-exist.png" />
+          <Avatar name="Ada Lovelace" src="about:invalid" />
           <Avatar name="Unsafe URL" src="javascript:alert(1)" />
         </div>
       ),
@@ -103,8 +103,7 @@ export const avatar: ComponentDoc = {
 </AvatarGroup>`,
   guidelines: [
     'Pass name even with an image: it is the alt text and the fallback if the image fails.',
-    'The status dot is color only; say the status in text nearby for people who cannot see color.',
-    'The status dot is hidden from screen readers unless you pass statusLabel (for example statusLabel="Online"); it is always hidden when alt="". Without statusLabel it no longer announces the raw tone key.',
+    'The status dot is color only and hidden from screen readers; pass statusLabel ("Online") to announce it, and say the status in text nearby. It is always hidden when alt="".',
     'Next to the name in text, an avatar is decoration: pass alt="" so screen readers do not read the name twice.',
     'AvatarGroup gives children its size and shape unless they set their own; the +N badge is labeled "N more" (strings.avatarMore).',
   ],

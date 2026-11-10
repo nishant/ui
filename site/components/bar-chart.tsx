@@ -19,7 +19,7 @@ export const barChart: ComponentDoc = {
   name: 'BarChart',
   exports: ['BarChart'],
   summary:
-    'A small dependency-free SVG bar chart that fills its container. Hover, tap or Left/Right keys select a bar and show "label: value" under the chart; touch screens print each value above its bar. Zero values keep a 2px stub so the slot is not lost. A hidden table carries the data for screen readers.',
+    'A small dependency-free SVG bar chart that fills its container. Hover, tap or Left/Right keys select a bar and show "label: value" under the chart; touch screens print each value above its bar when there is room (bars at least 26px wide); showValues="always" forces it. Zero values keep a 2px stub so the slot is not lost. A hidden table carries the data for screen readers.',
   importLine: "import { BarChart } from '@nish/ui';",
   controls: [
     { key: 'tone', label: 'Tone', type: 'select', options: ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'ok', 'loss', 'accent'] },
@@ -95,9 +95,10 @@ export const barChart: ComponentDoc = {
     {
       id: 'pnl',
       name: 'Gains and losses',
+      note: 'BarChart has one color, so signed data shows its sign in the value labels.',
       render: () => (
         <div className="w-full min-w-0">
-          <BarChart label="Daily P&L" data={data(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], PNL)} tone="ok" valueFormat={(v) => money(v)} />
+          <BarChart label="Daily P&L" data={data(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], PNL)} tone="chart-1" valueFormat={(v) => money(v)} />
         </div>
       ),
     },

@@ -62,6 +62,7 @@ export const lineChart: ComponentDoc = {
       area={!!a.area}
       baseline={a.baseline ? (PRICE[0].y ?? undefined) : undefined}
       locale={a.locale as string}
+      {...(a.locale !== 'en-US' ? { yFormat: undefined, xFormat: undefined } : {})}
     />
   ),
   code: (a) =>
@@ -72,8 +73,8 @@ export const lineChart: ComponentDoc = {
       height: Number(a.height) === 200 ? undefined : Number(a.height),
       area: a.area ? true : undefined,
       baseline: a.baseline ? '{previousClose}' : undefined,
-      yFormat: '{money}',
-      xFormat: '{time}',
+      yFormat: a.locale === 'en-US' ? '{money}' : undefined,
+      xFormat: a.locale === 'en-US' ? '{time}' : undefined,
       loading: a.state === 'loading' ? true : undefined,
       locale: a.locale === 'en-US' ? undefined : a.locale,
     }),
@@ -142,7 +143,7 @@ import { money, time } from '@nish/ui/format';
   loading={query.isPending}
 />`,
   guidelines: [
-    'Long series are reduced for drawing to at most two points per pixel column (the lowest and highest of each), so a 10,000-point series stays light and spikes still show. The tooltip and the table use every point.',
+    'Long series are reduced for drawing to at most two points per pixel column (the lowest and highest of each), so a 10,000-point series stays light and spikes still show. The tooltip uses every point; the screen-reader table holds the first 200.',
     'Without yFormat and xFormat the axis numbers use the locale prop, else the NishProvider locale, else en-US. When you pass your own formatters (money, time) they win.',
     'Under dir="rtl" (or NishProvider dir) the x axis runs right to left, the y labels move to the right and the arrow keys follow. The empty and no-data texts come from NishProvider strings (noData, noDataNamed).',
     'ref and any div attribute (id, data-*, aria-*, style) go on the root.',

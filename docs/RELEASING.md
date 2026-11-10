@@ -37,7 +37,7 @@ Releases run in CI. Merge the release's `## [x.y.z]` CHANGELOG entry to master, 
 gh workflow run release.yml -R nishant/ui -f bump=patch   # or minor, major, 1.2.3
 ```
 
-The job refuses unless HEAD equals `origin/master`, pushes master before the tag, creates the GitHub
+The job refuses unless HEAD equals `origin/master` and master's `ci.yml` run for HEAD (or for the newest commit under any `[skip ci]` commits) completed green, so wait for CI after a merge. It installs with `npm ci --ignore-scripts` and runs the checks and builds with `GH_TOKEN` removed from their environment, and pushes with git hooks off; only the git pushes and the `gh` calls get the token. This is not full isolation: the release process itself holds the token, so check code running as the same user could still read it from `/proc`. Splitting checks and pushes into separate jobs would close that. It pushes master before the tag, creates the GitHub
 Release from the CHANGELOG entry, then dispatches `publish.yml` (npm) and `fanout.yml` itself, in that order
 (a tag pushed with `GITHUB_TOKEN` does not trigger other workflows). `npm run release patch` is the local fallback. It does not publish to npm: right after it, run `gh workflow run publish.yml -R nishant/ui -f tag=vX.Y.Z` by hand. The tag-push fan-out retries hourly until npm has the version.
 

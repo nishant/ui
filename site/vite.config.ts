@@ -22,9 +22,15 @@ function requireDist(): void {
 function themeInit(): Plugin {
   return {
     name: 'nish-theme-init',
-    transformIndexHtml() {
+    // Right after <meta charset> and the viewport meta: the charset must sit in the first 1024
+    // bytes, so the inline script cannot go first. Still ahead of styles and the app script.
+    transformIndexHtml(html) {
       requireDist();
-      return [{ tag: 'script', children: readFileSync(join(dist, 'theme-init.js'), 'utf8'), injectTo: 'head-prepend' }];
+      const script = `<script>${readFileSync(join(dist, 'theme-init.js'), 'utf8')}</script>`;
+      const metas = /<meta charset[^>]*>\s*(<meta name="viewport"[^>]*>)?/i;
+      if (!metas.test(html)) throw new Error('site/index.html needs <meta charset> in <head>');
+      return html.replace(metas, (m) => `${m}
+    ${script}`);
     },
   };
 }

@@ -146,10 +146,10 @@ const FUNCTIONS = [
   'money', 'signedMoney', 'pct', 'num', 'signed', 'bytes', 'duration', 'ago', 'date', 'time', 'dateTime', 'dateRange',
   'openSheet', 'mountHeightVar', 'mountStuck', 'mountScrollspy', 'mountChecklist',
   'apiFetch', 'configureApi', 'useResource', 'useUrlState', 'useSaveStatus', 'usePhone', 'useNarrow', 'nishThemeInit', 'presetOptions', 'useServiceTokens',
-  'useNishConfig', 'useNishStrings',
+  'useNishConfig', 'useNishStrings', 'layoutSystem', 'pickLayout', 'routeEdges',
 ];
 const INTERFACES = ['DateRange', 'VirtualListHandle', 'ScrollToIndexOptions', 'TreeNode', 'ThemeState', 'ToastItem', 'ToastOptions', 'SegmentedProps', 'SegmentedOption', 'TabItem', 'MountThemeToggleOptions', 'ChartTheme', 'ShowToastOptions', 'ConfirmDialogOptions', 'KeyValueItem', 'ChartLegendItem',
-  'ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource', 'FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter', 'SaveStatus', 'NishThemeInitOptions', 'ServiceTokensSectionProps',
+  'ApiFetchOptions', 'ApiConfig', 'UseResourceOptions', 'Resource', 'FilterBarProps', 'FilterSheetProps', 'UrlStateAdapter', 'SaveStatus', 'NishThemeInitOptions', 'ServiceTokensSectionProps', 'CanvasLayout', 'RoutedEdge',
 ];
 
 const fromPackage = (node) => !node.getSourceFile().fileName.includes('/node_modules/');
@@ -196,11 +196,30 @@ export function docgen(root) {
   function defaults(fn) {
     const out = {};
     const p = fn?.parameters?.[0];
-    if (!p || !ts.isObjectBindingPattern(p.name)) return out;
-    for (const el of p.name.elements) {
-      if (!el.initializer) continue;
-      const key = (el.propertyName ?? el.name).getText();
-      out[key] = el.initializer.getText();
+    if (!p) return out;
+    const read = (pattern) => {
+      for (const el of pattern.elements) {
+        if (!el.initializer) continue;
+        const key = (el.propertyName ?? el.name).getText();
+        out[key] = el.initializer.getText();
+      }
+    };
+    if (ts.isObjectBindingPattern(p.name)) {
+      read(p.name);
+      return out;
+    }
+    // `function X(props) { const { a = 1 } = props as ...; }`: read the binding pattern from the body.
+    if (!ts.isIdentifier(p.name) || !fn.body || !ts.isBlock(fn.body)) return out;
+    const unwrap = (e) => {
+      while (e && (ts.isAsExpression(e) || ts.isParenthesizedExpression(e) || ts.isNonNullExpression(e) || ts.isSatisfiesExpression(e))) e = e.expression;
+      return e;
+    };
+    for (const st of fn.body.statements) {
+      if (!ts.isVariableStatement(st)) continue;
+      for (const d of st.declarationList.declarations) {
+        const init = unwrap(d.initializer);
+        if (ts.isObjectBindingPattern(d.name) && init && ts.isIdentifier(init) && init.text === p.name.text) read(d.name);
+      }
     }
     return out;
   }

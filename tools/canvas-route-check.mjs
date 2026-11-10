@@ -3,7 +3,7 @@
 // and asserts every line is axis-aligned, starts on the source card's bottom border and ends on
 // the target card's top border with `dir === 'down'`, and no segment passes through a card.
 // Then the same for a columns layout (right border to left border, `dir === 'right'`), and
-// determinism. Uses layoutSystem's bands layout once it exists, else a hand-built one.
+// determinism. Uses layoutSystem's bands layout and fails if it does not produce one.
 // Exits non-zero on any failure.
 import assert from 'node:assert/strict';
 import { layoutSystem, routeEdges } from '../dist/esm/system-canvas.js';
@@ -61,42 +61,8 @@ const edges = [
 ];
 
 // --- layouts ------------------------------------------------------------------------
-const size = (g) => {
-  const cols = g.nodes.length > 1 ? 2 : 1;
-  const rows = Math.ceil(g.nodes.length / cols);
-  return { cols, w: 32 + cols * 172 + (cols - 1) * 12, h: 52 + 16 + (rows > 0 ? rows * 56 + (rows - 1) * 12 : 0) };
-};
-/** Three bands, rows of up to four groups, 56 px between groups and 140 px between rows. */
-function handBands() {
-  const out = { mode: 'bands', width: 0, height: 0, titleRoom: 0, headers: [], groups: {}, nodes: {} };
-  const rows = [];
-  for (let b = 0; b < 3; b++) {
-    const list = groups.filter((g) => g.band === b);
-    for (let i = 0; i < list.length; i += 3) rows.push(list.slice(i, i + 3));
-  }
-  const widths = rows.map((r) => r.reduce((s, g) => s + size(g).w, 0) + (r.length - 1) * 56);
-  const widest = Math.max(...widths);
-  let y = 60;
-  rows.forEach((r, ri) => {
-    let x = 60 + (widest - widths[ri]) / 2;
-    let rowH = 0;
-    for (const g of r) {
-      const s = size(g);
-      out.groups[g.id] = { x, y, w: s.w, h: s.h };
-      g.nodes.forEach((n, i) => {
-        out.nodes[n.id] = { x: x + 16 + (i % s.cols) * 184, y: y + 52 + Math.floor(i / s.cols) * 68, w: 172, h: 56 };
-      });
-      x += s.w + 56;
-      rowH = Math.max(rowH, s.h);
-    }
-    y += rowH + 140;
-  });
-  out.width = 60 + widest + 60;
-  out.height = y - 140 + 60;
-  return out;
-}
-let bands = layoutSystem(groups, { mode: 'bands', width: 900, edges });
-if (bands.mode !== 'bands') bands = handBands();
+const bands = layoutSystem(groups, { mode: 'bands', width: 900, edges });
+assert.equal(bands.mode, 'bands');
 const columns = layoutSystem(groups);
 
 // --- checks ---------------------------------------------------------------------------

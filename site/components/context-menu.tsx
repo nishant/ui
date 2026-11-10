@@ -56,6 +56,7 @@ function FilesPreview({ sheetBelow = 'sm', longPressMs = 500, open }: { sheetBel
 
 function BoxPreview({ sheetBelow = 'sm', open }: { sheetBelow?: Sheet; open?: boolean }) {
   const [last, setLast] = useState('none yet');
+  const [isOpen, setIsOpen] = useState(open);
   const items: ReactNode = (
     <>
       <MenuItem onSelect={() => setLast('Refresh')}>Refresh</MenuItem>
@@ -70,7 +71,8 @@ function BoxPreview({ sheetBelow = 'sm', open }: { sheetBelow?: Sheet; open?: bo
     <div className="w-full max-w-sm self-start">
       <ContextMenu
         menu={items}
-        open={open}
+        open={isOpen}
+        onOpenChange={setIsOpen}
         sheetBelow={sheetBelow}
         className="grid h-40 place-items-center rounded-lg border border-dashed border-th-line text-sm text-th-hi3"
       >
@@ -114,7 +116,7 @@ export const contextMenu: ComponentDoc = {
       ...(a.sheetBelow === 'off' ? ['  sheetBelow={false}'] : []),
       ...(Number(a.longPressMs) === 500 ? [] : [`  longPressMs={${Number(a.longPressMs)}}`]),
       '  menu={(target) => {',
-      "    const id = target.closest('[data-id]')?.dataset.id;",
+      "    const id = target.closest<HTMLElement>('[data-id]')?.dataset.id;",
       '    if (!id) return null;',
       '    return <MenuItem onSelect={() => rename(id)}>Rename</MenuItem>;',
       '  }}',

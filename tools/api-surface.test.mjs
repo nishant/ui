@@ -42,7 +42,8 @@ async function current() {
   return { entries, classes };
 }
 
-test('public exports and .nish-* classes only grow unless the snapshot is updated', { skip: !built && 'run npm run build first' }, async () => {
+test('public exports and .nish-* classes only grow unless the snapshot is updated', { skip: !built && !process.env.CI && 'run npm run build first' }, async () => {
+  assert.ok(built, 'dist/esm/index.js or dist/nish-components.css missing: did the build output move?');
   const now = await current();
   if (update) {
     writeFileSync(snapshotPath, JSON.stringify(now, null, 2) + '\n');

@@ -15,7 +15,7 @@ const ROWS = [
 
 export function MiniTable() {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-th-accent" tabIndex={0} role="region" aria-label="Host status">
       <table className="w-full min-w-[420px] text-sm">
         <thead>
           <tr className="border-b border-th-line bg-th-elevated/50 text-left text-xs text-th-hi3">

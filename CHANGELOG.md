@@ -36,9 +36,14 @@ a minor adds, and a patch fixes.
 - `narrowLayout`: a `NaN` split no longer breaks the layout.
 - `<nish-sparkline>`: `values=null` no longer throws.
 - The mixed-version warning is silent in production builds.
+- Static `.nish-stats--4` switches to four columns at 768px, matching React `StatGrid`.
+- The release job installs with `--ignore-scripts`, keeps no git credentials after checkout, runs checks and builds without the write token, and refuses unless master's `ci.yml` run for HEAD is green.
+- The Fold report comment is only reused when the github-actions bot posted it.
 
 ### Docs
 
+- Docs site: scrollable tables, device frames and demo rows are keyboard-focusable regions; wrong or stale samples, guidelines and stories corrected on about 60 component pages; the Default column reads destructured defaults inside the component body; frames load lazily; `<meta charset>` stays in the first 1024 bytes.
+- Tests and tooling: new unit tests for the combobox and command filters, `useHeightVar` and overlay placement; many weak browser, SSR and consumer assertions tightened; a missing `dist/` fails in CI instead of skipping; the canvas routing time gate retries once before failing.
 - `FilterBar` in a server-rendered app shows the inline row until hydration; render it client-only.
 
 ## [3.1.0] - 2026-11-09

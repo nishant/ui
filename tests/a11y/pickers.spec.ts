@@ -1,31 +1,11 @@
 // Browser checks for Calendar, DatePicker, MultiSelect and Carousel on the pickers harness
 // (tests/a11y/pickers.tsx, port 5195): axe, the APG keys, RTL and the 360px phone layout.
 // Needs `npm run build` first (the CSS comes from dist/).
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { load, scan } from './helpers';
 
 const PICKERS = 'http://localhost:5195/pickers.html';
 const THEMES = ['dark', 'light', 'contrast'] as const;
-
-async function scan(page: Page, include?: string) {
-  let builder = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']);
-  if (include) builder = builder.include(include);
-  const { violations } = await builder.analyze();
-  return violations
-    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
-    .map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.slice(0, 5).map((n) => n.target.join(' ') + ' :: ' + n.html.slice(0, 120)) }));
-}
-
-async function load(page: Page, url: string, theme: string, ready: string) {
-  await page.goto(url);
-  await page.waitForSelector(ready);
-  await page.evaluate((t) => {
-    document.documentElement.setAttribute('data-theme', t);
-    document.documentElement.style.colorScheme = t === 'light' ? 'light' : 'dark';
-  }, theme);
-  // Let animations settle so axe reads final colors.
-  await page.waitForTimeout(450);
-}
 
 const activeDate = (page: Page) => page.evaluate(() => document.activeElement?.getAttribute('data-date') ?? null);
 
@@ -296,6 +276,9 @@ test.describe('pickers: ranges and time', () => {
     await expect(page.getByRole('spinbutton', { name: 'Start time Minute' })).toBeFocused();
     await page.keyboard.type('45');
     await page.keyboard.press('p');
+    await expect(page.getByRole('spinbutton', { name: 'Start time Hour' })).toHaveValue('7');
+    await expect(page.getByRole('spinbutton', { name: 'Start time Minute' })).toHaveValue('45');
+    await expect(page.getByRole('combobox', { name: /Start time/ })).toHaveValue('pm');
 
     await page.getByRole('spinbutton', { name: 'Form time Hour' }).focus();
     await page.keyboard.type('7');

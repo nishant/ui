@@ -9,7 +9,9 @@ installs the tarball next to its own dependencies and builds or type-checks it.
   `AppShell` directly (no `'use client'` wrapper). `next build` must pass and `next start`
   must serve pages with no console errors and no hydration warnings (port 5320).
 - `vite/`: a Vite + Tailwind 4 app using `nishThemeInit()`. `vite build` must pass, and the
-  preview must render with no console errors (port 5321).
+  preview must render with no console errors (port 5321). `tsc -p tsconfig.json --noEmit` (strict,
+  `skipLibCheck: false`) runs in the fixture before `vite build` and a non-zero exit fails the check,
+  since Vite strips types without checking them.
 - `ts/`: one file that uses 20 components and every subpath, type-checked with TypeScript 5.4,
   5.9 and 6.0 under `moduleResolution` bundler and node16, with `strict`,
   `exactOptionalPropertyTypes` and `skipLibCheck: false`.

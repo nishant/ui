@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Badge, ResponsiveTable, type Column, type Sort } from '../../src';
+import { Badge, ResponsiveTable, type Column } from '../../src';
 import { money, pct } from '../../src/format';
 import { Device } from './bottom-nav';
 import type { ComponentDoc } from './types';
@@ -37,7 +37,6 @@ const COLUMNS: Column<Position>[] = [
 type Mode = 'data' | 'loading' | 'empty' | 'error';
 
 function Demo({ mode = 'data', link = false, tone = false, sticky = false, minWidth }: { mode?: Mode; link?: boolean; tone?: boolean; sticky?: boolean; minWidth?: number }) {
-  const [sort, setSort] = useState<Sort>(null);
   const [picked, setPicked] = useState<string | null>(null);
   return (
     <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
@@ -51,8 +50,6 @@ function Demo({ mode = 'data', link = false, tone = false, sticky = false, minWi
         rowHref={link ? (r) => `#/components/responsive-table?open=${r.symbol}` : undefined}
         onRowClick={link ? undefined : (r) => setPicked(r.symbol)}
         rowTone={tone ? (r) => r.status : undefined}
-        sort={sort}
-        onSortChange={setSort}
         stickyFirstColumn={sticky}
         minWidth={minWidth}
       />
@@ -84,7 +81,7 @@ export const responsiveTable: ComponentDoc = {
       '  columns={columns}',
       '  rowKey={(r) => r.symbol}',
       ...(a.link ? ['  rowHref={(r) => `/positions/${r.symbol}`}'] : ['  onRowClick={(r) => open(r.symbol)}']),
-      ...(a.tone ? ["  rowTone={(r) => (r.pnl < 0 ? 'loss' : 'ok')}"] : []),
+      ...(a.tone ? ["  rowTone={(r) => r.status}"] : []),
       ...(a.sticky ? ['  stickyFirstColumn'] : []),
       ...(a.mode === 'loading' ? ['  loading'] : []),
       ...(a.mode === 'error' ? ['  error={{ message: "Could not load positions.", onRetry: refetch }}'] : []),
@@ -93,7 +90,7 @@ export const responsiveTable: ComponentDoc = {
   html: {
     height: 380,
     code: `<!-- The table form (from 640px up). On a phone, use a list of .nish-list-row cards instead. -->
-<div class="nish-table-wrap nish-table-wrap--sticky-first nish-table-wrap--fade" style="--nish-table-min:520px">
+<div class="nish-table-wrap nish-table-wrap--sticky-first nish-table-wrap--fade" tabindex="0" role="region" aria-label="Positions" style="--nish-table-min:520px">
   <table class="nish-table nish-table--dense">
     <thead>
       <tr>

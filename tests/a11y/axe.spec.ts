@@ -2,33 +2,13 @@
 // every overlay opened in turn, light/dark/contrast, LTR and RTL), the overlay harness and the
 // custom-elements pages. Zero serious or critical violations. Needs `npm run build` first
 // (the CSS comes from dist/).
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { load, scan } from './helpers';
 
 const A11Y = 'http://localhost:5195/index.html';
 const OVERLAY = 'http://localhost:5193/harness.html';
 const ELEMENTS = 'http://localhost:5194';
 const THEMES = ['dark', 'light', 'contrast'] as const;
-
-async function scan(page: Page, include?: string) {
-  let builder = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']);
-  if (include) builder = builder.include(include);
-  const { violations } = await builder.analyze();
-  return violations
-    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
-    .map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.slice(0, 5).map((n) => n.target.join(' ') + ' :: ' + n.html.slice(0, 120)) }));
-}
-
-async function load(page: Page, url: string, theme: string, ready: string) {
-  await page.goto(url);
-  await page.waitForSelector(ready);
-  await page.evaluate((t) => {
-    document.documentElement.setAttribute('data-theme', t);
-    document.documentElement.style.colorScheme = t === 'light' ? 'light' : 'dark';
-  }, theme);
-  // Let animations (fade-in, Tooltip delay) settle so axe reads final colors.
-  await page.waitForTimeout(450);
-}
 
 test.describe('a11y harness', () => {
   for (const theme of THEMES) {
@@ -106,6 +86,7 @@ test.describe('custom elements pages', () => {
     for (const theme of ['dark', 'light'] as const) {
       test(`${name} in ${theme}`, async ({ page }) => {
         await load(page, ELEMENTS + path, theme, ready);
+        await page.waitForFunction(() => !document.querySelector(':not(:defined)'));
         expect(await scan(page)).toEqual([]);
       });
     }

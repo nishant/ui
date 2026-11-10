@@ -109,6 +109,11 @@ test('table keyboard navigation reaches the last row', async ({ page }) => {
   await first.click();
   await expect(page.getByTestId('clicked')).toHaveText('0');
   for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown');
+  await expect(table.locator('tr[data-index="3"]')).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(table.locator('tr[data-index="2"]')).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(first).toBeFocused();
   await page.keyboard.press('End');
   const last = table.locator('tr[data-index="4999"]');
   await expect(last).toBeFocused();
@@ -155,9 +160,13 @@ test('context menu opens by pointer and keyboard', async ({ page }) => {
   const nearY = Math.abs(m.y - py) <= 12 || Math.abs(m.y + m.height - py) <= 12;
   expect(nearX && nearY).toBe(true);
   await page.keyboard.press('ArrowDown');
+  // Opening focuses the first item (Rename); ArrowDown moves to the second (Delete).
+  const delItem = menu.getByRole('menuitem', { name: 'Delete' });
+  await expect(delItem).toBeFocused();
+  await expect(delItem).toHaveText('Delete');
   await page.keyboard.press('Enter');
   await expect(menu).toHaveCount(0);
-  await expect(page.getByTestId('last')).not.toHaveText('');
+  await expect(page.getByTestId('last')).toHaveText('Delete');
 
   await area.focus();
   await page.keyboard.press('Shift+F10');

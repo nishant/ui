@@ -15,6 +15,11 @@ describe('docs pages vs docgen', () => {
     interfaces: Record<string, unknown>;
   };
 
+  it('reads defaults from a destructure in the body (Accordion headingLevel)', () => {
+    const acc = (data.components as Record<string, { props: { name: string; default: string | null }[] }>).Accordion;
+    expect(acc.props.find((p) => p.name === 'headingLevel')?.default).toBe('3');
+  }, 60000);
+
   it('every api name exists in docgen', () => {
     const missing: string[] = [];
     for (const doc of COMPONENT_DOCS) {

@@ -1,12 +1,19 @@
 import { useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
-import { ContextMenu } from '../../src/components/context-menu';
-import { HoverCard } from '../../src/components/hover-card';
-import { TreeView, type TreeNode } from '../../src/components/tree-view';
-import { VirtualList, type VirtualListHandle } from '../../src/components/virtual';
-import { VirtualTable } from '../../src/components/virtual-table';
-import { Button, MenuItem, MenuSeparator, type Column } from '../../src';
+import {
+  Button,
+  ContextMenu,
+  HoverCard,
+  MenuItem,
+  MenuSeparator,
+  TreeView,
+  VirtualList,
+  VirtualTable,
+  type Column,
+  type TreeNode,
+  type VirtualListHandle,
+} from '../../src';
 
 const SYMBOLS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META', 'TSLA', 'AMD', 'NFLX', 'AVGO'];
 

@@ -94,7 +94,7 @@ const [q, setQ] = useState('');
 <SearchInput value={q} onChange={setQ} aria-label="Search jobs" placeholder="Search jobs" />`,
   guidelines: [
     'Give it a name: a visible label through Field, or aria-label.',
-    'onChange receives the new string (also on Clear and Escape), not the event.',
+    'onChange receives the new string first (and the event on typing); onClear runs when the clear button is pressed.',
     'Escape clears a non-empty field and stops there; a second Escape reaches the dialog behind it.',
     "Uncontrolled use: pass defaultValue and read the value from onChange or the form. Controlled use keeps value and onChange.",
     "The placeholder and the Clear button label come from NishProvider strings (search, clearSearch); placeholder and clearLabel override them.",

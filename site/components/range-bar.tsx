@@ -16,7 +16,7 @@ export const rangeBar: ComponentDoc = {
   name: 'RangeBar',
   exports: ['RangeBar'],
   summary:
-    "A thin range track with a highlighted low-to-high segment and an optional dot for the current value: a day's temperature range against the week, a price's day range inside its 52-week range. It is decorative; always print the numbers beside it.",
+    "A thin range track with a highlighted low-to-high segment and an optional dot for the current value: a day's temperature range against the week, a price's day range inside its 52-week range. It is an image (role=\"img\") named with its numbers, so screen readers read the range; still print the numbers beside it for sighted users, and pass label to name it when the numbers alone are unclear.",
   importLine: "import { RangeBar } from '@nish/ui';",
   controls: [
     { key: 'low', label: 'Low', type: 'number', min: 0, max: 100 },

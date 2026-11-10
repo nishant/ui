@@ -185,20 +185,17 @@ async function checkNext(work, tarball, browser) {
     else ok('next Modal from a server component', 'dialog visible after hydration');
 
     const sub = await (await fetch(base + '/subpaths')).text();
-    // The page prints `{money} {pct} {date} {PRESETS.length} {THEMES keys} {seriesColor(2)}` as one line of text.
-    const text = sub.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    const m = text.match(/(\$[\d,]+\.\d+) (\d+(?:\.\d+)?%) ([A-Z][a-z]{2} \d{1,2}(?:, \d{4})?) (\d+) (\d+) (var\(--nish-chart-\d+\))/);
+    // Each value is in its own <span data-testid="...">; read them one by one.
+    const field = (id) => {
+      const m = sub.match(new RegExp(`<span[^>]*data-testid="${id}"[^>]*>(.*?)</span>`, 's'));
+      return m ? m[1].split('<!-- -->').join('').trim() : null;
+    };
+    const got = Object.fromEntries(['money', 'pct', 'date', 'presets', 'themes', 'series'].map((id) => [id, field(id)]));
     const bad = [];
-    if (!m) bad.push('the money/pct/date/PRESETS/THEMES/seriesColor line is missing or malformed');
-    else {
-      const [, money, pct, dt, presets, themes, series] = m;
-      if (money !== '$1,234.50') bad.push(`money ${money}`);
-      if (pct !== '12.3%') bad.push(`pct ${pct}`);
-      if (!/^(Dec 31|Jan 1)$/.test(dt)) bad.push(`date ${dt}`); // 2026-01-01 UTC, shown in the server's zone
-      if (presets !== '7') bad.push(`PRESETS.length ${presets}, expected 7`);
-      if (themes !== '7') bad.push(`THEMES keys ${themes}, expected 7`);
-      if (series !== 'var(--nish-chart-3)') bad.push(`seriesColor(2) ${series}`);
+    for (const [id, want] of Object.entries({ money: '$1,234.50', pct: '12.3%', presets: '7', themes: '7', series: 'var(--nish-chart-3)' })) {
+      if (got[id] !== want) bad.push(`${id} is ${JSON.stringify(got[id])}, expected ${JSON.stringify(want)}`);
     }
+    if (!/^(Dec 31|Jan 1)(, 2026)?$/.test(got.date ?? '')) bad.push(`date is ${JSON.stringify(got.date)}`); // 2026-01-01 UTC, shown in the server's zone
     if (bad.length) fail('next subpaths', bad.join('; '));
     else ok('next subpaths', 'money, pct, date, PRESETS, THEMES and seriesColor render correctly in a server component');
   } finally {

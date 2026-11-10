@@ -56,7 +56,11 @@ export function Device({ doc, story, args, width = 'min(360px, 100%)', height = 
   const src = `${location.href.split('#')[0]}#/frame/${doc}?${q}`;
   const fixed = typeof width === 'number';
   return (
-    <div ref={wrap} className={fixed ? 'w-full max-w-full overflow-x-auto' : 'w-full'}>
+    <div
+      ref={wrap}
+      className={fixed ? 'w-full max-w-full overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-th-accent' : 'w-full'}
+      {...(fixed ? { tabIndex: 0, role: 'region', 'aria-label': title || 'Device preview' } : {})}
+    >
       <iframe
         key={src}
         src={src}
@@ -225,7 +229,8 @@ export const bottomNav: ComponentDoc = {
       ),
     },
   ],
-  usage: `import { BottomNav, MoreSheet, PageContainer } from '@nish/ui';
+  usage: `import { useState } from 'react';
+import { AppHeader, BottomNav, MoreSheet, PageContainer } from '@nish/ui';
 
 export function Shell({ children }) {
   const [moreOpen, setMoreOpen] = useState(false);

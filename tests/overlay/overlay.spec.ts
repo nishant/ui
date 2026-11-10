@@ -256,7 +256,7 @@ test('Popover flips above its anchor when there is no room below', async ({ page
 });
 
 test('the lazily loaded More sheet closes on Back and leaves the URL as it was', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 800 });
+  await page.setViewportSize({ width: 360, height: 780 });
   await page.goto(URL + '?before');
   await page.goto(URL + '?shell');
   const url = page.url();

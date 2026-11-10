@@ -119,6 +119,6 @@ export const navRail: ComponentDoc = {
     'Reuse the exact items array of BottomNav so the two never drift apart.',
     'The rail is a flex column of fixed width: put it beside your content in a flex row, not over it.',
     'Hints show on fine pointers only; on touch the labels already say what each item is.',
-    'Below md and from lg it is display:none, so it can stay mounted at every width.',
+    'By default (showFrom md, hideFrom lg) it is display:none below md and from lg, so it can stay mounted at every width; pass showFrom or hideFrom to change the range.',
   ],
 };

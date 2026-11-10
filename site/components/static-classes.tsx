@@ -412,7 +412,7 @@ export const STATIC_STORIES: StaticStory[] = [
     mirrors: 'TableWrap, Table',
     name: 'Table',
     note: 'A scroll box with zebra rows and a quiet caps header; .num cells align right. --sticky keeps the header in view (cap with --nish-table-max-h).',
-    html: `<div class="nish-table-wrap nish-table-wrap--sticky" style="--nish-table-max-h:11rem">
+    html: `<div class="nish-table-wrap nish-table-wrap--sticky" tabindex="0" role="region" aria-label="Item sources" style="--nish-table-max-h:11rem">
   <table>
     <thead><tr><th>Item</th><th>Source</th><th class="num">Per hour</th></tr></thead>
     <tbody>

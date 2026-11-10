@@ -57,7 +57,17 @@ export const appErrorBoundary: ComponentDoc = {
   render: () => <Demo />,
   code: () => '<AppErrorBoundary resetKeys={[location.pathname]} onError={(e) => report(e)}>\n  <Routes />\n</AppErrorBoundary>',
   stories: [
-    { id: 'default', name: 'Default fallback', render: () => <Fallback message="Could not render the portfolio chart." /> },
+    {
+      id: 'default',
+      name: 'With details (development)',
+      render: () => (
+        <div className="w-full max-w-lg">
+          <AppErrorBoundary showDetails>
+            <Boom message="Could not render the portfolio chart." />
+          </AppErrorBoundary>
+        </div>
+      ),
+    },
     { id: 'interactive', name: 'Throw on demand', render: () => <Demo /> },
     {
       id: 'production',

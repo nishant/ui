@@ -258,7 +258,8 @@ export const mediaRow: ComponentDoc = {
     'Titles wrap to two lines. Keep meta to one short line (a channel, an author) and put the date or count in detail.',
     'live is a three-way switch: true shows Live, false shows Offline, and leaving it out shows nothing. Use badges for anything else, such as On screen.',
     'Use dense in widget tiles; it shrinks the thumbnail and badges and keeps the 44px target. Use compact where the tile around it uses 11px and 10px text, so the rows match.',
-    'Use as="div" when the row is not inside a <ul> or <ol>. A row with no onClick or href is plain, so put no controls in it that need a keyboard.',
+    'Use as="div" when the row is not inside a <ul> or <ol>. A plain row (no href or onClick) may hold one trailing control, such as a Switch; an interactive row (href or onClick) may hold none, as in ListRow.',
+    'trailing puts a control or element at the far right, after the badges. thumbSize (sm or md) sets the thumbnail size directly; by default it is md, or sm with dense or compact.',
     'MediaChip is 44px tall and truncates its label at 14rem. Put a short action word in action rather than lengthening the label.',
   ],
 };

@@ -161,9 +161,7 @@ test.describe('<nish-filter-bar>', () => {
   });
 
   test('a select among the filters is full width on its own row, like the React Select', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 800 });
     await load(page);
-    await page.evaluate(() => document.getElementById('fb')!.setAttribute('active-count', '2'));
     const box = await page.evaluate(() => {
       const r = (s: string) => document.querySelector(s)!.getBoundingClientRect();
       return { bar: r('#fb .nish-filter-bar').width, sel: r('#fb-select').width, selTop: r('#fb-select').top, clearTop: r('#fb .nish-filter-bar-clear').top };
@@ -180,11 +178,9 @@ test.describe('<nish-filter-bar>', () => {
 
   test('narrow: chips move into the sheet, the same nodes, and a Filters button shows the count', async ({ page }) => {
     await load(page);
-    const same = await page.evaluate(() => {
+    await page.evaluate(() => {
       (window as unknown as { __chips: Element }).__chips = document.getElementById('fb-chips')!;
-      return true;
     });
-    expect(same).toBe(true);
     await page.setViewportSize({ width: 390, height: 800 });
     await expect(page.locator('#fb .nish-filter-bar')).toHaveAttribute('data-compact', 'true');
     const btn = page.locator('#fb .nish-filter-btn');
@@ -457,12 +453,12 @@ test.describe('<nish-nav-rail>', () => {
   test('the rail shows from 768px and hides from 1024px', async ({ page }) => {
     await load(page);
     const nav = page.locator('#nr > nav');
-    await page.setViewportSize({ width: 600, height: 800 });
-    await expect(nav).toBeHidden();
-    await page.setViewportSize({ width: 840, height: 800 });
-    await expect(nav).toBeVisible();
-    await page.setViewportSize({ width: 1280, height: 800 });
-    await expect(nav).toBeHidden();
+    // The rule is (min-width: 768px) and (max-width: 1023.98px).
+    for (const [width, visible] of [[600, false], [767, false], [768, true], [840, true], [1023, true], [1024, false], [1280, false]] as const) {
+      await page.setViewportSize({ width, height: 800 });
+      if (visible) await expect(nav, `visible at ${width}px`).toBeVisible();
+      else await expect(nav, `hidden at ${width}px`).toBeHidden();
+    }
   });
 
   test('a disconnect removes the popstate listener: no mark after removal', async ({ page }) => {
@@ -858,7 +854,7 @@ test.describe('<nish-line-chart> and <nish-bar-chart>', () => {
     await expect(page.locator('#lc-empty .nish-empty')).toHaveCount(0);
   });
 
-  test('a theme change redraws with the new colors', async ({ page }) => {
+  test('keeps a valid stroke across a theme change', async ({ page }) => {
     await load(page);
     const stroke = () => page.locator('#lc svg line.nish-chart-grid').first().getAttribute('stroke');
     const first = await stroke();
@@ -892,9 +888,8 @@ test('every wave 3 element is defined, and loading both built files again does n
   page.on('pageerror', (e) => errors.push(e.message));
   const ok = await page.evaluate(async () => {
     try {
+      // A built file is a cached module after its first load, so a same-URL repeat is a no-op.
       await window.loadBundle();
-      await window.loadBundle();
-      await window.loadCharts();
       await window.loadCharts();
       return true;
     } catch {

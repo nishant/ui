@@ -27,4 +27,10 @@ afterEach(async () => {
   } catch {
     /* storage can be blocked */
   }
+  // theme.ts mirrors the choice into a `nish-theme` cookie (src/theme.ts storageKey()); expire it.
+  try {
+    document.cookie = 'nish-theme=; Max-Age=0; Path=/';
+  } catch {
+    /* cookies can be blocked */
+  }
 });

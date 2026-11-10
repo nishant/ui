@@ -106,7 +106,7 @@ export function TypographyPage() {
             <code>.nish-tabular</code> class.
           </p>
         </Prose>
-        <Card padded={false} className="overflow-x-auto">
+        <Card padded={false} className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-th-accent" tabIndex={0} role="region" aria-label="Typography scale">
           <table className="w-full min-w-[360px] text-sm">
             <tbody>
               {[
@@ -168,7 +168,7 @@ export function SpacingPage() {
             ['focus-offset', 'Focus ring offset'],
           ].map(([k, d]) => (
             <div key={k} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3 sm:px-5">
-              <code className="w-36 font-mono text-sm text-th-hi">--nish-{k}</code>
+              <code className="w-44 shrink-0 font-mono text-sm text-th-hi">--nish-{k}</code>
               <span className="w-16 font-mono text-sm tabular-nums text-th-accent">{SCALE[k]}</span>
               <span className="min-w-0 flex-1 basis-60 text-sm text-th-hi2">{d}</span>
             </div>

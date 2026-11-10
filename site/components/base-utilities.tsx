@@ -159,7 +159,7 @@ export const baseUtilities: ComponentDoc = {
     {
       id: 'hue-chips',
       name: 'Hue tints: tags',
-      note: 'bg-th-<hue>-soft with text-th-hi and a /30 border, the same recipe as Badge for colors with no meaning. The text stays hi so it reads in every theme.',
+      note: 'bg-th-<hue>-soft with text-th-hi and a /30 border, the Badge recipe for colors with no meaning (or call badgeClass({ hue })).',
       wide: true,
       render: () => <HueChips />,
     },
@@ -229,7 +229,12 @@ export const baseUtilities: ComponentDoc = {
       name: 'scrollbar-none',
       note: 'Scrolls sideways with no scrollbar: tab strips and chip rows.',
       render: () => (
-        <div className="scrollbar-none flex w-full gap-2 overflow-x-auto rounded-lg border border-th-line p-2">
+        <div
+          tabIndex={0}
+          role="region"
+          aria-label="Scrollbar-none demo row"
+          className="scrollbar-none flex w-full gap-2 overflow-x-auto rounded-lg border border-th-line p-2 outline-none focus-visible:ring-2 focus-visible:ring-th-accent"
+        >
           {['All', 'Open', 'Applied', 'Interview', 'Offer', 'Rejected', 'Archived', 'Starred', 'Remote'].map((t) => (
             <span key={t} className="shrink-0 rounded-full border border-th-line bg-th-elevated px-3 py-1 text-xs text-th-hi2">
               {t}

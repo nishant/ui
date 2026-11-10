@@ -51,6 +51,8 @@ interface Case {
   sizes?: readonly (typeof SIZES)[number]['name'][];
   /** Sizes the case runs at: 360 and 1440 by default. At a size that is run but not in `sizes`, both versions must be hidden. */
   run?: readonly (typeof SIZES)[number]['name'][];
+  /** The part is not rendered at all (not just hidden) at a size outside `sizes`: skip the attached check there. */
+  unrendered?: boolean;
   /** A step that puts the component in the state to measure (type into the palette, hover a chart, press a divider). It
    *  runs on both pages once the page is ready, before anything is measured. */
   setup?: (page: Page) => Promise<void>;
@@ -330,8 +332,8 @@ const WAVE3_CASES: Case[] = [
     element: { box: 'nish-filter-bar .nish-filter-bar', title: 'nish-filter-bar input[type="search"]', body: '.nish-filter-bar-summary' },
   }),
   // Phone: the Filters button with its count. Desktop: the Clear filters button.
-  { ...wave2('filter-bar', { react: { box: 'button[aria-haspopup="dialog"]', title: 'button[aria-haspopup="dialog"]' }, element: { box: '.nish-filter-btn', title: '.nish-filter-btn' } }), name: 'filter bar button', sizes: ['360'] },
-  { ...wave2('filter-bar', { react: { box: '.case > div:first-child > button:not([aria-haspopup])', title: '.case > div:first-child > button:not([aria-haspopup])' }, element: { box: '.nish-filter-bar-clear', title: '.nish-filter-bar-clear' } }), name: 'filter bar clear', sizes: ['1440'] },
+  { ...wave2('filter-bar', { react: { box: 'button[aria-haspopup="dialog"]', title: 'button[aria-haspopup="dialog"]' }, element: { box: '.nish-filter-btn', title: '.nish-filter-btn' } }), name: 'filter bar button', sizes: ['360'], unrendered: true },
+  { ...wave2('filter-bar', { react: { box: '.case > div:first-child > button:not([aria-haspopup])', title: '.case > div:first-child > button:not([aria-haspopup])' }, element: { box: '.nish-filter-bar-clear', title: '.nish-filter-bar-clear' } }), name: 'filter bar clear', sizes: ['1440'], unrendered: true },
   thumbCase('media-thumb'),
   thumbCase('media-thumb-sm'),
   thumbCase('media-thumb-round'),
@@ -445,6 +447,7 @@ const WAVE3_CASES: Case[] = [
     }),
     name: 'filter bar chip',
     sizes: ['1440'],
+    unrendered: true,
   },
   // Desktop only: on a phone React gives the trailing select a full row (w-full, no ms-auto wrapper) and the element keeps it at its own width.
   { ...wave2('filter-bar', { react: { box: '.case select[aria-label="View"]' }, element: { box: '.nish-filter-bar-trailing select' } }), name: 'filter bar trailing', run: ['1440'] },
@@ -639,7 +642,11 @@ function compare(react: Record<string, Measured>, el: Record<string, Measured>):
     if (box.e[prop] !== box.r[prop]) diffs.push(`box.${prop} ${box.e[prop]} vs ${box.r[prop]}`);
   }
   for (const key of ['title', 'body']) {
-    if (!react[key]) continue;
+    if (!react[key] && !el[key]) continue;
+    if (!react[key] || !el[key]) {
+      diffs.push(`${key} is defined on the ${react[key] ? 'React' : 'element'} side only`);
+      continue;
+    }
     for (const prop of TEXT_PROPS) {
       if (el[key][prop] !== react[key][prop]) diffs.push(`${key}.${prop} ${el[key][prop]} vs ${react[key][prop]}`);
     }
@@ -685,8 +692,10 @@ for (const c of [...CASES, ...WAVE2_CASES, ...WAVE3_CASES]) {
           if (c.sizes && !c.sizes.includes(size.name)) {
             // Hidden from 768px in both versions.
             await open(page, 'react.html', c.query);
+            if (!c.unrendered) await expect(page.locator(c.react.box).first()).toBeAttached();
             await expect(page.locator(c.react.box)).toBeHidden();
             await open(page, 'index.html', c.query);
+            if (!c.unrendered) await expect(page.locator(c.element.box).first()).toBeAttached();
             await expect(page.locator(c.element.box)).toBeHidden();
             return;
           }

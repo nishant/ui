@@ -2,7 +2,11 @@
 // Cut a release: node scripts/release.mjs <patch|minor|major|x.y.z> [--ci]
 //
 // Normally run by .github/workflows/release.yml (workflow_dispatch, with --ci). It still works
-// from a clean local master as a fallback.
+// from a clean local master as a fallback. In CI it requires a green ci.yml run on master HEAD
+// (skipping [skip ci] commits). Checks and builds run with GH_TOKEN removed from their env, and
+// only the git pushes (hooks off) and the gh calls get it. This is not full isolation: this parent
+// process still holds the token in its environment, so a check run as the same user could read it
+// (for example from /proc/$PPID/environ). Splitting checks and pushes into separate jobs would fix that.
 //
 // master never carries dist/. A release bumps the version on master, then makes a
 // tag commit on top of it that adds the built dist/, so `github:nishant/ui#vX.Y.Z`
@@ -22,12 +26,30 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { changelogSection } from '../tools/changelog-section.mjs';
 import { compare } from '../tools/fanout/pin.mjs';
+import { ciGate, parseLog } from '../tools/release-gate.mjs';
 
-const sh = (cmd) => execSync(cmd, { stdio: 'inherit' });
+// Commands that run repo code (checks, tests, builds) never see the write token.
+const SAFE_ENV = { ...process.env };
+delete SAFE_ENV.GH_TOKEN;
+delete SAFE_ENV.GITHUB_TOKEN;
+const sh = (cmd, env = SAFE_ENV) => execSync(cmd, { stdio: 'inherit', env });
 const out = (cmd) => execSync(cmd, { encoding: 'utf8' }).trim();
 
 const args = process.argv.slice(2);
 const ci = args.includes('--ci');
+// Push with explicit auth in CI so the token reaches git only for the push; locally use the credential helper.
+const push = (ref) => {
+  const env =
+    ci && process.env.GH_TOKEN
+      ? {
+          ...SAFE_ENV,
+          GIT_CONFIG_COUNT: '1',
+          GIT_CONFIG_KEY_0: 'http.https://github.com/.extraheader',
+          GIT_CONFIG_VALUE_0: 'AUTHORIZATION: basic ' + Buffer.from('x-access-token:' + process.env.GH_TOKEN).toString('base64'),
+        }
+      : process.env;
+  execFileSync('git', ['-c', 'core.hooksPath=/dev/null', 'push', '-q', '--no-verify', 'origin', ref], { stdio: 'inherit', env });
+};
 const bump = args.find((a) => !a.startsWith('--'));
 if (!bump) {
   console.error('usage: node scripts/release.mjs <patch|minor|major|x.y.z> [--ci]');
@@ -38,6 +60,20 @@ if (out('git rev-parse --abbrev-ref HEAD') !== 'master') throw new Error('releas
 sh('git fetch -q origin master --tags');
 if (out('git rev-parse HEAD') !== out('git rev-parse origin/master')) {
   throw new Error('HEAD is not origin/master: pull or push first');
+}
+if (ci || process.env.GH_TOKEN) {
+  // master's ci.yml run for HEAD (or the newest commit under [skip ci] commits) must be green.
+  try {
+    const log = execFileSync('git', ['log', '-n', '30', '--format=%H%x1f%B%x1e'], { encoding: 'utf8' });
+    const runs = JSON.parse(
+      execFileSync('gh', ['run', 'list', '-w', 'ci.yml', '-b', 'master', '-e', 'push', '-L', '50', '--json', 'headSha,status,conclusion'], { encoding: 'utf8' }),
+    );
+    const gate = ciGate(parseLog(log), runs);
+    if (!gate.ok) throw new Error(gate.reason);
+  } catch (e) {
+    if (ci) throw e;
+    console.warn(`warning: ${e.message} (not blocking a local release)`);
+  }
 }
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -71,8 +107,8 @@ sh(`git commit -qm "${tag} build"`);
 sh(`git tag -a ${tag} -m "${tag}"`);
 sh('git checkout -q master');
 // Everything fallible and local is done; only now push, master first so a failed push leaves no orphan tag.
-sh('git push -q origin master');
-sh(`git push -q origin ${tag}`);
+push('master');
+push(tag);
 console.log(`\nPushed ${tag}.`);
 
 if (ci || process.env.GH_TOKEN) {

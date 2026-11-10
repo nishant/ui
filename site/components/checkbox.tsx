@@ -22,7 +22,7 @@ function SelectAll() {
       {ROWS.map((r) => (
         <Checkbox
           key={r}
-          className="pl-6"
+          className="ps-6"
           label={r}
           checked={picked.includes(r)}
           onChange={() => setPicked((xs) => (xs.includes(r) ? xs.filter((x) => x !== r) : [...xs, r]))}

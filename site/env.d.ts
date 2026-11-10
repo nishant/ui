@@ -30,7 +30,6 @@ declare module 'virtual:nish-pkg' {
 }
 
 declare module 'virtual:nish-docs-meta' {
-  import type { DocMeta } from './docs-meta.mjs';
-  const meta: DocMeta[];
+  const meta: import('./docs-meta.mjs').DocMeta[];
   export default meta;
 }

@@ -89,7 +89,7 @@ export const provider: ComponentDoc = {
       note: `${KEYS.length} keys. Each one is replaceable; a function string receives the arguments shown.`,
       wide: true,
       render: () => (
-        <div className="max-h-96 w-full overflow-auto rounded-lg border border-th-line">
+        <div className="max-h-96 w-full overflow-auto rounded-lg border border-th-line outline-none focus-visible:ring-2 focus-visible:ring-th-accent" tabIndex={0} role="region" aria-label="Every string">
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-th-elevated text-th-hi3">
               <tr>

@@ -9,7 +9,7 @@ import { join } from 'node:path';
 const root = join(import.meta.dirname, '..');
 const statsFile = join(root, '.site-stats.json');
 
-// gzip KB per route: the measured size (2026-11-05: 158.3, 231.1, 119.9) rounded up to the next 5 or 10 KB
+// gzip KB per route: the measured size (2026-11-05: 158.3, 231.1, 119.9) rounded up to the next 5 or 10 KB, with at least 5 KB of room
 // (6.7, 8.9 and 10.1 KB of room; at least 5), never above the caps (/overview 200, /components/button 300, /frame/modal 160). Raise one only with
 // the new measured size in this comment.
 const BUDGETS = {
