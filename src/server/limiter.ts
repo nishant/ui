@@ -3,8 +3,9 @@
 export interface Limiter {
   /** Counts one attempt for key and says whether it may go ahead: true for the first `max`
    *  attempts inside the current window, false after. Synchronous, so check it before any
-   *  `await` and parallel requests cannot all pass. A new key when the limiter is full of locked
-   *  keys gets false. */
+   *  `await` and parallel requests cannot all pass. When the table is full, expired keys go first,
+   *  then the oldest unlocked keys, then the oldest locked keys, so a flood of locked keys can
+   *  never lock out a new client. */
   hit(key: string, now?: number): boolean;
   /** False once `max` failures happened inside the current window for key. */
   allowed(key: string, now?: number): boolean;
@@ -21,13 +22,19 @@ export function createLimiter(o: { max?: number; windowMs?: number; cap?: number
   const entries = new Map<string, { count: number; reset: number }>();
 
   /** Makes room for one new key: expired entries go first, then the oldest live entries that are
-   *  not locked (count below max). A locked key is never evicted. False when still full. */
+   *  not locked (count below max), then the oldest locked entries. Map order is insertion order,
+   *  so the first entries are the oldest. True whenever cap >= 1; false when cap <= 0. */
   const makeRoom = (now: number): boolean => {
+    if (cap <= 0) return false;
     if (entries.size < cap) return true;
     for (const [k, v] of entries) if (v.reset <= now) entries.delete(k);
     for (const [k, v] of entries) {
       if (entries.size < cap) break;
       if (v.count < max) entries.delete(k);
+    }
+    for (const k of entries.keys()) {
+      if (entries.size < cap) break;
+      entries.delete(k);
     }
     return entries.size < cap;
   };

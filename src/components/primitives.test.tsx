@@ -196,6 +196,11 @@ describe('linkClass and revealClass', () => {
     expect(linkClass({ className: 'x' })).toContain('x');
   });
 
+  it('linkClass hit area grows 14px per side so a 16px line reaches 44px', () => {
+    expect(linkClass()).toContain('pointer-coarse:after:-inset-y-3.5');
+    expect(linkClass()).not.toMatch(/after:-inset-y-3(?![.0-9])/);
+  });
+
   it('revealClass hides until hover or focus and shows on touch', () => {
     const c = revealClass('extra');
     expect(c).toContain('opacity-0');

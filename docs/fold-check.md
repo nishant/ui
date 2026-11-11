@@ -24,6 +24,9 @@ the devices Nish uses: the Galaxy Z Fold 7 cover screen (360), unfolded (840) an
    uploads the `fold-report` artifact (14 days): `index.html` with Base, PR and Diff side by
    side, `summary.json`, the images and the two server logs.
 
+Re-runs on the same base reuse cached base screenshots (keyed on the base sha, the PR's config,
+the inputs and the Fold tools commit), so only the PR is built, served and screenshotted again.
+
 The job fails when the PR has any new problem, or when the PR itself does not build or serve.
 If the base does not build or serve, the job carries on with `baseOk: false`: every problem
 counts as new and nothing is compared.
@@ -36,7 +39,7 @@ counts as new and nothing is compared.
 | `install` | string | `npm ci` | install command, run in `working-directory` on both sides |
 | `serve` | string | `npm run fold:serve` | starts the app on `$FOLD_PORT` and keeps running |
 | `ready-path` | string | `/` | polled (up to 300 s) until it answers |
-| `node-version` | string | `22` | Node for the app |
+| `node-version` | string | `24` | Node for the app |
 | `postgres` | boolean | `false` | start Postgres 16 and set `DATABASE_URL` |
 | `working-directory` | string | `.` | folder holding the config and `package.json` |
 
@@ -87,9 +90,13 @@ jobs:
   fold:
     permissions: { contents: read, pull-requests: write }
     if: (github.event.action != 'labeled' || github.event.label.name == 'fold') && (startsWith(github.head_ref, 'ui/') || github.actor == 'dependabot[bot]' || contains(github.event.pull_request.labels.*.name, 'fold'))
-    uses: nishant/ui/.github/workflows/fold-check.yml@master
-    with: { node-version: '22' }
+    uses: nishant/ui/.github/workflows/fold-check.yml@v3.1.0
+    with: { node-version: '24' }
 ```
+
+Pin a release tag, not `@master`, so a push to ui master cannot change what runs in your CI with a
+`pull-requests: write` token. The fan-out does not move this pin (it holds any PR that touches
+`.github/workflows`), so bump it by hand when the Fold check changes.
 
 The job only runs on `ui/*` branches, Dependabot PRs, or PRs labeled `fold`, to spare the
 private repos' Actions minutes. Add the `fold` label to any other PR to get the report.

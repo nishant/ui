@@ -82,12 +82,13 @@ const configs: Options[] = [
     splitting: false,
   },
   {
+    // Static pages vendor these files alone and files.json lists no maps, so a sourceMappingURL comment would 404.
     // theme.js and the small entries must stand alone: static sites vendor them as single files.
     entry: { theme: 'src/theme.ts', ...standalone },
     format: ['esm'],
     dts: true,
     define,
-    sourcemap: true,
+    sourcemap: false,
     target: 'es2022',
     jsx: 'automatic',
     external: ['react', 'react-dom', 'react/jsx-runtime'],
@@ -103,7 +104,7 @@ const configs: Options[] = [
           format: ['esm'],
           dts: false,
           define,
-          sourcemap: true,
+          sourcemap: false,
           target: 'es2022',
           outDir: 'dist',
           clean: false,
@@ -118,7 +119,7 @@ const configs: Options[] = [
     globalName: 'nishTheme',
     dts: false,
     define,
-    sourcemap: true,
+    sourcemap: false,
     target: 'es2017',
     outDir: 'dist',
     clean: false,

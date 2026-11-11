@@ -1,6 +1,10 @@
 // Moved from src/inbox-client.ts: now part of @nish/ui/server (src/server/inbox/client.ts).
 // @nish/ui/inbox-client: the shared inbox event types, the validator the service uses, and a
 // dependency-free client that never throws and never blocks. No React; works in Node and browsers.
+// Secrets for an action (a token the action route checks) go only in data.actionToken (ACTION_TOKEN_FIELD): the inbox
+// strips that key before the browser and /api/v1 see an item, and shows every other data key. The inbox /ingest endpoint
+// trusts every local caller (the source is self-asserted), so every action route must verify actionToken
+// (actionTokenMatches) on every call.
 import type { InboxAction, InboxData, InboxEvent, InboxEventInput, InboxIngestAction, InboxSeverity } from './types';
 
 export * from './types';

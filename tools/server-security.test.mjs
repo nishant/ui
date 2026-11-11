@@ -194,7 +194,7 @@ test('limiter: expired entries are evicted before live ones', () => {
   assert.equal(l.size, 3);
 });
 
-test('limiter: a locked key is never evicted, a new key is refused when the limiter is full of locked keys', () => {
+test('limiter: the oldest locked key is evicted when the limiter is full of locked keys', () => {
   const l = createLimiter({ max: 2, windowMs: 1000, cap: 2 });
   for (const k of ['a', 'b']) {
     assert.equal(l.hit(k, 0), true);
@@ -202,15 +202,10 @@ test('limiter: a locked key is never evicted, a new key is refused when the limi
     assert.equal(l.hit(k, 2), false);
   }
   assert.equal(l.size, 2);
-  assert.equal(l.hit('c', 3), false, 'full of locked keys');
+  assert.equal(l.hit('c', 3), true, 'a new key is admitted');
   assert.equal(l.size, 2);
-  assert.equal(l.allowed('a', 4), false);
-  assert.equal(l.allowed('b', 4), false);
-  l.fail('c', 4);
-  assert.equal(l.size, 2, 'fail() does not evict a locked key either');
-  assert.equal(l.allowed('c', 5), true);
-  assert.equal(l.hit('c', 1000), true, 'once the locked keys expire there is room');
-  assert.equal(l.size, 1);
+  assert.equal(l.allowed('a', 4), true, 'a, the oldest, was evicted');
+  assert.equal(l.allowed('b', 4), false, 'b survived');
 });
 
 test('limiter: the oldest unlocked live key is evicted before a locked one', () => {

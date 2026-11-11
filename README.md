@@ -222,6 +222,10 @@ nonce:
   response. Vite runs the transform once per build, so a fixed real nonce (or a function) is baked into
   the file and gives no protection outside the dev server. In other setups give your own
   `<script nonce>` the file's contents.
+- `serveSpa({ dir, csp: 'strict' })` (and `createSpaHandler`) from `nish-ui/server` sends a strict policy
+  on HTML answers, hashing every inline script in the built index.html (so the Vite plugin's theme-init
+  script is allowed without copying its hash); pass `connect`/`img` for extra origins and
+  `reportOnly: true` to try it first.
 - The components set no inline styles that need `style-src 'unsafe-inline'` beyond CSS custom
   properties on elements, and build their DOM without `innerHTML`, so a Trusted Types policy
   (`require-trusted-types-for 'script'`) passes.

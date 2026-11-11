@@ -54,9 +54,9 @@ const BUTTON_FORCED = 'forced-colors:border forced-colors:border-[ButtonText]';
 export const PRESS = 'pointer-coarse:not-disabled:active:scale-[0.97]';
 
 // A link button's hit area grows to 44px on touch with an invisible ::after, so the
-// layout does not move.
+// layout does not move. A 16px line grows by 14px on each side to 44px.
 export const LINK_HIT =
-  "pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-2 pointer-coarse:after:-inset-y-3 pointer-coarse:after:content-['']";
+  "pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-2 pointer-coarse:after:-inset-y-3.5 pointer-coarse:after:content-['']";
 
 // Disabled reads as disabled in every theme: a flat, quiet fill and faint text, instead
 // of a dimmed copy of the enabled color. A link only fades its text. In forced colors

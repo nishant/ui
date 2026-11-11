@@ -175,7 +175,7 @@ export interface InboxActionRouteOptions {
 
 /** POST <path>: not isInboxCall -> 401 refused (body unread); parseInboxActionCall null -> 400
  *  { error: `Not an inbox action from ${source}.` }; verify false -> log
- *  `inbox action <actionId> on <dedupeKey>: refused (no current action token)` and 401 refused;
+ *  `inbox action <actionId>: refused (no current action token)` (no dedupeKey) and 401 refused;
  *  else run, log `inbox action <actionId> on <dedupeKey>: <status>`, answer c.json(body, status).
  *  Mount before any login middleware covering the path. */
 export function mountInboxAction<E extends Env>(app: Hono<E>, o: InboxActionRouteOptions): void {
@@ -193,7 +193,7 @@ export function mountInboxAction<E extends Env>(app: Hono<E>, o: InboxActionRout
     const call = parseInboxActionCall(body, o.source);
     if (!call) return c.json({ error: `Not an inbox action from ${o.source}.` }, 400);
     if (!(await o.verify(call))) {
-      o.log(`inbox action ${call.actionId} on ${call.dedupeKey}: refused (no current action token)`);
+      o.log(`inbox action ${call.actionId}: refused (no current action token)`);
       return c.json(refused, 401);
     }
     const result = await o.run(call);

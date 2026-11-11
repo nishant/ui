@@ -559,6 +559,11 @@ test('parseInboxActionCall', () => {
   assert.ok(parseInboxActionCall({ ...ok, actionId: 'a'.repeat(32) }, 'status'));
   assert.equal(parseInboxActionCall({ ...ok, kind: 5 }, 'status'), null);
   assert.equal(parseInboxActionCall({ ...ok, dedupeKey: 5 }, 'status'), null);
+  assert.equal(parseInboxActionCall({ ...ok, dedupeKey: 'k'.repeat(201) }, 'status'), null);
+  assert.equal(parseInboxActionCall({ ...ok, dedupeKey: 'a\nb' }, 'status'), null);
+  assert.equal(parseInboxActionCall({ ...ok, dedupeKey: 'a\x7fb' }, 'status'), null);
+  assert.equal(parseInboxActionCall({ ...ok, dedupeKey: '' }, 'status'), null);
+  assert.equal(parseInboxActionCall({ ...ok, dedupeKey: 'k'.repeat(200) }, 'status').dedupeKey, 'k'.repeat(200));
   const { dedupeKey: _d, ...noKey } = ok;
   assert.equal(parseInboxActionCall(noKey, 'status'), null);
   for (const data of [null, undefined, [], 'x', 3]) assert.equal(parseInboxActionCall({ ...ok, data }, 'status'), null);
