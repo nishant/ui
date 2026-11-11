@@ -49,6 +49,26 @@ describe('<nish-table-sort> number parsing', () => {
     expect(await sortAsc(t, 0)).toEqual(['3 GB', '12 GB', '100 GB']);
   });
 
+  it('keeps ID-style cells as text, in natural order', async () => {
+    const t = mountTable([['UI-392'], ['UI-400'], ['UI-35']]);
+    expect(await sortAsc(t, 0)).toEqual(['UI-35', 'UI-392', 'UI-400']);
+  });
+
+  it('does not read a date as a number', async () => {
+    const t = mountTable([['Nov 5, 2026'], ['Nov 5, 2025']]);
+    expect(await sortAsc(t, 0)).toEqual(['Nov 5, 2025', 'Nov 5, 2026']);
+  });
+
+  it('reads the bytes unit B as bytes, not billions', async () => {
+    const t = mountTable([['2 M'], ['512 B'], ['900 B']]);
+    expect(await sortAsc(t, 0)).toEqual(['512 B', '900 B', '2 M']);
+  });
+
+  it('still reads a spaceless B suffix as billions', async () => {
+    const t = mountTable([['$1.2B'], ['$900M']]);
+    expect(await sortAsc(t, 0)).toEqual(['$900M', '$1.2B']);
+  });
+
   it('sorts other currencies and code prefixes', async () => {
     const t = mountTable([['¥1,200'], ['CHF 12'], ['₹5']]);
     expect(await sortAsc(t, 0)).toEqual(['₹5', 'CHF 12', '¥1,200']);

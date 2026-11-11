@@ -33,6 +33,7 @@ a minor adds, and a patch fixes.
 - `AppErrorBoundary` `onError` fires once when a child throws in the update that changes `resetKeys`, and chunk-load errors from Firefox and Vite CSS preload are recognised (case-insensitive).
 - Two-digit years in `DatePicker` / `DateRangePicker` follow the CLDR window (99 is 1999 in 2026).
 - A controlled `Disclosure` stays as `open` says when the summary is clicked.
+- `<nish-table-sort>` reads a letter prefix as a currency only when it is a known code and a digit follows, so IDs ("UI-392") and dates ("Nov 5, 2026") sort as text, and a spaced "512 B" is bytes, not billions.
 - `SystemCanvas` follow caption announces only mode changes, through an sr-only live region.
 
 ## [3.2.0] - 2026-11-11
