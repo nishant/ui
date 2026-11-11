@@ -2046,12 +2046,15 @@
       transform 150ms,
       background-color 150ms;
   }
-  /* Extends the touch target to 44px under a coarse pointer without moving layout. */
+  /* Extends the touch target to 44x44 under a coarse pointer without moving layout (both the 36x20 and the 28x16 small track). */
   @media (pointer: coarse) {
     :where(.nish-switch)::before {
       content: '';
       position: absolute;
       inset: -12px -4px;
+    }
+    :where(.nish-switch--sm)::before {
+      inset: -14px -8px;
     }
     :where(.nish-check-row) {
       align-items: center;

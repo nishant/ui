@@ -120,22 +120,55 @@ export function useBreakpoint(): Breakpoint {
   return useSyncExternalStore(subscribeBreakpoint, currentBreakpoint, () => 'base');
 }
 
+// Every mounted useDocumentTitle keeps one entry here, so nested hooks (a layout and a page) agree
+// on one title and the original comes back when the last one unmounts.
+const titles = () =>
+  shared('documentTitle', () => ({
+    entries: [] as { id: number; next: string; titled: boolean }[],
+    base: null as string | null,
+    seq: 0,
+  }));
+
+function applyTitle(): void {
+  const { entries } = titles();
+  let winner = entries[entries.length - 1];
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].titled) {
+      winner = entries[i];
+      break;
+    }
+  }
+  if (winner) document.title = winner.next;
+}
+
 /**
- * Sets document.title to "title · app" (or just the app, or just the title) and restores
- * the previous title on unmount. An undefined title with no app leaves the title alone.
+ * Sets document.title to "title · app" (or just the app, or just the title). With several
+ * hooks mounted the innermost one that was given a title wins, and the original title comes
+ * back when the last one unmounts. An undefined title with no app leaves the title alone.
  */
 export function useDocumentTitle(title: string | undefined, o: { app?: string } = {}): void {
   const app = o.app;
+  const [id] = useState(() => ++titles().seq);
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const next = title && app ? `${title} · ${app}` : title || app;
     if (!next) return;
-    const previous = document.title;
-    document.title = next;
+    const t = titles();
+    if (t.entries.length === 0) t.base = document.title;
+    const entry = { id, next, titled: !!title };
+    const at = t.entries.findIndex((e) => e.id === id);
+    if (at >= 0) t.entries[at] = entry;
+    else t.entries.push(entry);
+    applyTitle();
     return () => {
-      document.title = previous;
+      const cur = titles();
+      cur.entries = cur.entries.filter((e) => e.id !== id);
+      if (cur.entries.length === 0) {
+        if (cur.base !== null) document.title = cur.base;
+        cur.base = null;
+      } else applyTitle();
     };
-  }, [title, app]);
+  }, [title, app, id]);
 }
 
 /** Date.now() that updates every intervalMs, paused while the tab is hidden. */
@@ -171,11 +204,14 @@ export function useNow(intervalMs = 30000): number {
 // is stable between renders; the parsed value is memoized from it. A write that storage
 // refuses (private mode, quota) is kept in `memory` so the value still lives for this page.
 // Held in shared('localStorage') so every copy of the package on a page sees one set of subscribers.
+// `handler` is the one 'storage' listener on the window, whichever copy added it; the last
+// unsubscribe removes that function (`listening` stays for older copies).
 const local = () =>
   shared('localStorage', () => ({
     subs: new Map<string, Set<() => void>>(),
     memory: new Map<string, string>(),
     listening: false,
+    handler: undefined as ((e: StorageEvent) => void) | undefined,
   }));
 const warned = new Set<string>();
 
@@ -196,16 +232,20 @@ function subscribeKey(key: string, cb: () => void): () => void {
   if (!set) local().subs.set(key, (set = new Set()));
   const subs = set;
   subs.add(cb);
-  if (!local().listening) {
-    local().listening = true;
-    window.addEventListener('storage', onStorageEvent);
+  const rec = local();
+  if (!rec.handler) {
+    rec.handler = onStorageEvent;
+    rec.listening = true;
+    window.addEventListener('storage', rec.handler);
   }
   return () => {
     subs.delete(cb);
-    if (subs.size === 0 && local().subs.get(key) === subs) local().subs.delete(key);
-    if (local().subs.size === 0 && local().listening) {
-      local().listening = false;
-      window.removeEventListener('storage', onStorageEvent);
+    const r = local();
+    if (subs.size === 0 && r.subs.get(key) === subs) r.subs.delete(key);
+    if (r.subs.size === 0 && r.handler) {
+      window.removeEventListener('storage', r.handler);
+      r.handler = undefined;
+      r.listening = false;
     }
   };
 }
@@ -239,7 +279,7 @@ function parseStored<T>(key: string, text: string | null, initial: T, raw: boole
  * State kept in localStorage. JSON by default, the raw string with { raw: true }. Never
  * throws (private mode, quota and bad JSON fall back to the initial value) and follows
  * changes from other tabs (`storage` events) and from other hooks on the same key. The
- * server and the first client render return `initial`.
+ * server and the first client render return `initial`. `initial` is read once per key.
  */
 export function useLocalStorage<T>(
   key: string,
@@ -247,7 +287,9 @@ export function useLocalStorage<T>(
   o: { raw?: boolean } = {},
 ): [T, (next: T | ((prev: T) => T)) => void] {
   const raw = !!o.raw;
-  const [first] = useState(() => initial);
+  const [held, setHeld] = useState(() => ({ key, initial }));
+  if (held.key !== key) setHeld({ key, initial });
+  const first = held.key === key ? held.initial : initial;
   const subscribe = useCallback((onChange: () => void) => subscribeKey(key, onChange), [key]);
   const get = useCallback(() => readText(key), [key]);
   const text = useSyncExternalStore(subscribe, get, () => null);

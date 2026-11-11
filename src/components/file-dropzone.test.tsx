@@ -198,6 +198,19 @@ describe('FileDropzone', () => {
     expect(screen.queryByRole('list')).toBeNull();
   });
 
+  it('keeps keyboard focus after a remove', () => {
+    render(<FileDropzone multiple />);
+    pick([file('a.txt', 1, 'text/plain', 1), file('b.txt', 1, 'text/plain', 2), file('c.txt', 1, 'text/plain', 3)]);
+    const remove = (n: string) => screen.getByRole('button', { name: `Remove ${n}` });
+    remove('b.txt').focus();
+    fireEvent.click(remove('b.txt'));
+    expect(document.activeElement).toBe(remove('c.txt'));
+    fireEvent.click(remove('c.txt'));
+    expect(document.activeElement).toBe(remove('a.txt'));
+    fireEvent.click(remove('a.txt'));
+    expect(document.activeElement).toBe(input());
+  });
+
   it('reads the remove label from the provider', () => {
     render(
       <NishProvider strings={{ removeFile: (n) => `Supprimer ${n}` }}>

@@ -109,6 +109,9 @@ export function FileDropzone({
   const depth = useRef(0);
   const [files, setFiles] = useState<File[]>([]);
   const [dragging, setDragging] = useState(false);
+  const list = useRef<HTMLUListElement | null>(null);
+  // Index of the removed row; after the commit focus moves to the row now there, else the previous one, else the input.
+  const pendingFocus = useRef<number | null>(null);
   const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true';
 
   // A form reset (a reset button, form.reset(), React 19's reset after a form action) empties the
@@ -133,6 +136,14 @@ export function FileDropzone({
     form.addEventListener('reset', onReset);
     return () => form.removeEventListener('reset', onReset);
   }, []);
+
+  useEffect(() => {
+    const index = pendingFocus.current;
+    if (index === null) return;
+    pendingFocus.current = null;
+    const buttons = list.current?.querySelectorAll('button') ?? [];
+    (buttons[index] ?? buttons[index - 1] ?? input.current)?.focus();
+  }, [files]);
 
   const take = (incoming: File[]) => {
     const rejected: RejectedFile[] = [];
@@ -159,6 +170,7 @@ export function FileDropzone({
 
   const removeAt = (index: number) => {
     const next = files.filter((_, i) => i !== index);
+    pendingFocus.current = index;
     setFiles(next);
     syncInput(input.current, next);
     onFilesChange?.(next, []);
@@ -233,7 +245,7 @@ export function FileDropzone({
         </span>
       </label>
       {files.length > 0 ? (
-        <ul className="grid gap-1.5">
+        <ul ref={list} className="grid gap-1.5">
           {files.map((file, i) => (
             <li
               key={`${file.name}-${file.size}-${file.lastModified}-${i}`}

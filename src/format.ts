@@ -267,7 +267,8 @@ export function bytes(v: number | null | undefined, o: LocaleOptions = {}): stri
     i++;
   }
   const text = i === 0 || abs >= 100 ? fixed(abs, 0, 0, locale) : fixed(abs, 0, 1, locale);
-  return (v < 0 ? MINUS : '') + text + ' ' + BYTE_UNITS[i];
+  const zero = Number(text.replace(/[^0-9]/g, '')) === 0;
+  return (v < 0 && !zero ? MINUS : '') + text + ' ' + BYTE_UNITS[i];
 }
 
 const DURATION_PARTS: [number, string, string][] = [

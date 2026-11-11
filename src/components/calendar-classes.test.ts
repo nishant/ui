@@ -24,6 +24,7 @@ import {
   monthNames,
   monthOf,
   monthTitle,
+  msUntilNextMidnight,
   orderRange,
   parseDateField,
   parseIso,
@@ -369,7 +370,9 @@ describe('calendarDayClass', () => {
     cn(
       base,
       !isSelected && !isDisabled && 'hover:bg-th-elevated hover:text-th-hi',
-      isToday && !isSelected && 'font-semibold text-th-accent ring-1 ring-inset ring-th-accent/50',
+      isToday &&
+        !isSelected &&
+        'font-semibold text-th-accent ring-1 ring-inset ring-th-accent/50 forced-colors:outline forced-colors:outline-1 forced-colors:-outline-offset-1 forced-colors:outline-[CanvasText]',
       isSelected &&
         'bg-th-accent font-semibold text-th-on-accent forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:forced-color-adjust-none',
       isDisabled && 'cursor-not-allowed text-th-ghost line-through forced-colors:text-[GrayText]',
@@ -429,5 +432,23 @@ describe('two-digit years', () => {
     vi.setSystemTime(new Date('2026-06-15T12:00:00Z'));
     expect(parseDateField('12/31/99', 'en-US')).toBe('1999-12-31');
     expect(parseDateField('1/2/30', 'en-US')).toBe('2030-01-02');
+  });
+});
+
+describe('msUntilNextMidnight', () => {
+  it('counts down to the next local midnight', () => {
+    expect(msUntilNextMidnight(new Date(2026, 10, 5, 23, 59, 30))).toBe(30000);
+    expect(msUntilNextMidnight(new Date(2026, 10, 5, 0, 0, 0))).toBe(24 * 3600 * 1000);
+  });
+  it('lands on local midnight on a DST day', () => {
+    const now = new Date(2026, 2, 8, 12);
+    const at = new Date(now.getTime() + msUntilNextMidnight(now));
+    expect([at.getFullYear(), at.getMonth(), at.getDate(), at.getHours(), at.getMinutes()]).toEqual([2026, 2, 9, 0, 0]);
+  });
+});
+
+describe('today ring in forced colors', () => {
+  it('adds a forced-colors outline to the today cell', () => {
+    expect(calendarDayClass({ filled: false, today: true, disabled: false })).toContain('forced-colors:outline');
   });
 });

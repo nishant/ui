@@ -143,6 +143,10 @@ describe('bytes', () => {
   it('marks negatives', () => {
     expect(bytes(-2048)).toBe(`${M}2 KB`);
   });
+
+  it('drops the minus when the value rounds to zero', () => {
+    expect(bytes(-0.4)).toBe('0 B');
+  });
 });
 
 describe('duration', () => {

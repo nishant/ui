@@ -415,6 +415,28 @@ describe('CommandPalette dynamic items', () => {
     expect(options().map((o) => o.textContent)).toEqual(['X result']);
   });
 
+  it('Enter while results are pending waits and selects from the newest results, never a stale row', async () => {
+    const resolvers: Record<string, (r: CommandItem[]) => void> = {};
+    const fn = (q: string) => new Promise<CommandItem[]>((res) => (resolvers[q] = res));
+    const onA = vi.fn();
+    const onB = vi.fn();
+    const { input } = await openPalette({ items: fn });
+    type(input, 'ab');
+    await act(async () => {
+      resolvers['ab']([{ id: 'a', label: 'A', onSelect: onA }]);
+    });
+    await waitFor(() => expect(options().map((o) => o.textContent)).toEqual(['A']));
+    type(input, 'abc');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onA).not.toHaveBeenCalled();
+    expect(onB).not.toHaveBeenCalled();
+    await act(async () => {
+      resolvers['abc']([{ id: 'b', label: 'B', onSelect: onB }]);
+    });
+    await waitFor(() => expect(onB).toHaveBeenCalledTimes(1));
+    expect(onA).not.toHaveBeenCalled();
+  });
+
   it('a rejecting or throwing function shows the empty state', async () => {
     const { input } = await openPalette({ items: () => Promise.reject(new Error('down')) });
     await waitFor(() => expect(screen.getByText('No results')).toBeTruthy());

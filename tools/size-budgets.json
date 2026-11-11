@@ -48,7 +48,7 @@
       "name": "DatePicker",
       "from": "nish-ui",
       "import": "DatePicker",
-      "maxKB": 18.8
+      "maxKB": 19
     },
     {
       "name": "RangeCalendar",
@@ -60,7 +60,7 @@
       "name": "DateRangePicker",
       "from": "nish-ui",
       "import": "DateRangePicker",
-      "maxKB": 19.7
+      "maxKB": 19.8
     },
     {
       "name": "TimeField",
@@ -181,7 +181,7 @@
       "name": "everything from .",
       "from": "nish-ui",
       "import": "*",
-      "maxKB": 125.1
+      "maxKB": 126.1
     },
     {
       "name": "nish-ui/theme",

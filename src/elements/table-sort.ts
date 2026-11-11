@@ -32,13 +32,24 @@ function touchesHead(rec: MutationRecord): boolean {
   );
 }
 
-/** A number from a cell key. Reads what `nish-ui/format` writes: U+2212 minus, currency and
- *  grouping marks, a percent sign, and a letters-only unit after the number ("12 GB"). */
+/** Compact suffixes `compactAbs` in `format.ts` writes, with their factors. */
+const COMPACT_FACTOR: Record<string, number> = { k: 1e3, K: 1e3, M: 1e6, B: 1e9, T: 1e12 };
+
+/** A number from a cell key. Reads what `nish-ui/format` writes: U+2212 minus, spaces (also
+ *  no-break and narrow no-break), grouping commas, a percent sign, any currency symbol, a 1-3 letter
+ *  currency code or prefix before the number ("CHF 12", "US$5", "kr 3"), the compact suffixes
+ *  k, M, B and T ("$12.3k" is 12300), and any other letters-only unit after the number ("12 GB"),
+ *  which is ignored. */
 function parseNumber(key: string): number | null {
-  const cleaned = key.replace(/\u2212/g, '-').replace(/[\s,$€£%]/g, '');
-  const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)[a-z/]*$/i.exec(cleaned);
+  const cleaned = key.replace(/−/g, '-').replace(/[\s,%]/g, '').replace(/\p{Sc}/gu, '');
+  let start = 0;
+  while (start < cleaned.length && start < 4 && /[A-Za-z]/.test(cleaned[start])) start++;
+  if (start > 0 && start <= 3 && start < cleaned.length && /[-+\d]/.test(cleaned[start])) {
+    // Keep the sign or digit that follows the letter prefix.
+  } else start = 0;
+  const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)([a-z/]*)$/i.exec(cleaned.slice(start));
   if (!m) return null;
-  const n = Number(m[1]);
+  const n = Number(m[1]) * (COMPACT_FACTOR[m[2]] ?? 1);
   return Number.isFinite(n) ? n : null;
 }
 

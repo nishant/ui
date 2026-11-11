@@ -16,6 +16,7 @@ import {
   useNow,
   usePhone,
 } from './hooks';
+import { shared } from '../runtime';
 import { NishProvider } from './provider';
 
 let width = 1200;
@@ -226,6 +227,26 @@ describe('useDocumentTitle', () => {
     renderHook(() => useDocumentTitle(undefined));
     expect(document.title).toBe('keep');
   });
+
+  it('lets the innermost titled hook win over a layout, and restores the original last', () => {
+    document.title = 'before';
+    function Page({ appName }: { appName: string }) {
+      useDocumentTitle('Inbox', { app: appName });
+      return null;
+    }
+    function Layout({ appName, page }: { appName: string; page: boolean }) {
+      useDocumentTitle(undefined, { app: appName });
+      return page ? <Page appName={appName} /> : null;
+    }
+    const { rerender, unmount } = render(<Layout appName="App" page />);
+    expect(document.title).toBe('Inbox · App');
+    rerender(<Layout appName="App (3)" page />);
+    expect(document.title).toBe('Inbox · App (3)');
+    rerender(<Layout appName="App (3)" page={false} />);
+    expect(document.title).toBe('App (3)');
+    unmount();
+    expect(document.title).toBe('before');
+  });
 });
 
 describe('useNow', () => {
@@ -382,6 +403,43 @@ describe('useLocalStorage', () => {
     expect(remove.mock.calls.filter((c) => c[0] === 'storage')).toHaveLength(0);
     b.unmount();
     expect(remove.mock.calls.filter((c) => c[0] === 'storage')).toHaveLength(1);
+  });
+
+  it('adds and removes one storage listener across copies, removing the registered function', () => {
+    const add = vi.spyOn(window, 'addEventListener');
+    const remove = vi.spyOn(window, 'removeEventListener');
+    const a = renderHook(() => useLocalStorage('l1', 0));
+    const b = renderHook(() => useLocalStorage('l2', 0));
+    a.unmount();
+    b.unmount();
+    const adds = add.mock.calls.filter((c) => c[0] === 'storage');
+    const removes = remove.mock.calls.filter((c) => c[0] === 'storage');
+    expect(adds).toHaveLength(1);
+    expect(removes).toHaveLength(1);
+    expect(removes[0][1]).toBe(adds[0][1]);
+
+    // Another copy of the package registered its own handler first.
+    const other = vi.fn();
+    const rec = shared('localStorage', () => ({}) as { handler?: (e: StorageEvent) => void });
+    rec.handler = other;
+    add.mockClear();
+    remove.mockClear();
+    const c = renderHook(() => useLocalStorage('l3', 0));
+    c.unmount();
+    expect(add.mock.calls.filter((x) => x[0] === 'storage')).toHaveLength(0);
+    const gone = remove.mock.calls.filter((x) => x[0] === 'storage');
+    expect(gone).toHaveLength(1);
+    expect(gone[0][1]).toBe(other);
+    expect(rec.handler).toBeUndefined();
+  });
+
+  it('uses the new initial value when the key changes and nothing is stored', () => {
+    const { result, rerender } = renderHook(({ k, i }) => useLocalStorage(k, i), {
+      initialProps: { k: 'a', i: 1 },
+    });
+    expect(result.current[0]).toBe(1);
+    rerender({ k: 'b', i: 2 });
+    expect(result.current[0]).toBe(2);
   });
 
   it('server render uses the initial value and hydrates without errors', () => {

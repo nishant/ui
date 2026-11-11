@@ -260,9 +260,9 @@ export function ErrorState({
       {onRetry ? (
         <button
           type="button"
-          onClick={onRetry}
-          disabled={retrying}
-          className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-th-line-strong px-3 py-1 text-xs text-th-hi2 transition-colors hover:bg-th-elevated hover:text-th-hi disabled:opacity-50 pointer-coarse:min-h-11"
+          onClick={retrying ? undefined : onRetry}
+          aria-disabled={retrying || undefined}
+          className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-th-line-strong px-3 py-1 text-xs text-th-hi2 transition-colors hover:bg-th-elevated hover:text-th-hi aria-disabled:opacity-50 pointer-coarse:min-h-11"
         >
           {retrying ? <LoaderIcon size={12} className="animate-spin" /> : <RotateIcon size={12} />}
           {retryLabel ?? s.retry}

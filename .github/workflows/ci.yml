@@ -62,7 +62,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  # The overlay specs again in Firefox and WebKit (the Chromium run is in the check job).
+  # The overlay specs again in Firefox, plus the elements, pickers and slider specs in WebKit (the Chromium run is in the check job).
   browsers:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -75,7 +75,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npx playwright install --with-deps firefox webkit
-      - name: Overlay specs in Firefox and WebKit
+      - name: Overlay specs in Firefox; overlay, elements, pickers and slider specs in WebKit
         run: npx playwright test --project=firefox --project=webkit
         env:
           NISH_BROWSERS: all

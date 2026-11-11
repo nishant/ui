@@ -79,3 +79,9 @@ export interface ComboboxIndexed<O> {
 export function indexComboboxOptions<O extends { label: string; hint?: string }>(options: readonly O[]): ComboboxIndexed<O>[] {
   return options.map((option) => ({ option, label: option.label.toLowerCase(), hint: option.hint?.toLowerCase() }));
 }
+
+/** The tag Chip's remove button on a touch screen: the visible button keeps its xs size
+ *  inside the pill, and a centred 44px ::after takes the touch (a min-h-11 box would stick
+ *  out of the fixed-height pill and overlap the next wrapped row's targets). */
+export const TAG_REMOVE_HIT =
+  "pointer-coarse:min-h-0 pointer-coarse:min-w-0 pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:left-1/2 pointer-coarse:after:top-1/2 pointer-coarse:after:size-11 pointer-coarse:after:-translate-x-1/2 pointer-coarse:after:-translate-y-1/2 pointer-coarse:after:rounded-full pointer-coarse:after:content-['']";

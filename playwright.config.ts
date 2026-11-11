@@ -6,8 +6,9 @@ import { defineConfig, devices } from '@playwright/test';
 //
 // Also here: the elements specs (tests/elements), hydration (tests/ssr), axe, forced-colors and
 // RTL checks (tests/a11y, harness on port 5195) and the CSP spec (tests/a11y/csp.spec.ts).
-// Firefox and WebKit run the overlay specs when NISH_BROWSERS=all (CI installs them with
-// `npx playwright install --with-deps firefox webkit`); a plain local run uses Chromium only.
+// Firefox runs the overlay specs; WebKit also runs the elements, pickers and slider specs when
+// NISH_BROWSERS=all (CI installs them with `npx playwright install --with-deps firefox webkit`);
+// a plain local run uses Chromium only.
 const allBrowsers = process.env.NISH_BROWSERS === 'all';
 export default defineConfig({
   testDir: 'tests',
@@ -26,7 +27,7 @@ export default defineConfig({
     ...(allBrowsers
       ? [
           { name: 'firefox', testMatch: 'overlay/**/*.spec.ts', use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 800 } } },
-          { name: 'webkit', testMatch: 'overlay/**/*.spec.ts', use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } } },
+          { name: 'webkit', testMatch: ['overlay/**/*.spec.ts', 'elements/**/*.spec.ts', 'a11y/pickers.spec.ts', 'a11y/slider.spec.ts'], use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } } },
         ]
       : []),
   ],
