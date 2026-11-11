@@ -11,6 +11,10 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
 - **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids `UI-nnn`). What is left:
   - UI-400: the docs site's CSP is only `frame-ancestors 'self'`; the build should emit the theme-init sha256 and
     hosting should serve a strict policy for design.nish.software (needs the hosting repo).
+  - UI-402: Firefox and WebKit run only the overlay specs. Widening the WebKit project's testMatch to the elements,
+    pickers and slider specs was tried in audit-p3 (PR 89) and the CI `browsers` job hit its 30 minute timeout with
+    every `behavior.spec.ts` test timing out at 30 s on WebKit (the theme toggle, sheet): find why those pages hang in
+    Linux WebKit first (needs Playwright runs, so not on the PC), then widen it spec by spec.
   - UI-405: the parity harness (`tests/elements/react.tsx`) and several specs wait fixed sleeps (300 ms, 450 ms, up to 1800 ms) for readiness, and CI's `retries: 1` hides the flakes. Publish a ready flag from the harnesses and wait on it, then turn on `failOnFlakyTests`. Needs Playwright runs, so not on the PC.
 - **Fan-out fixes from the audit** (2026-11-09, audit-1108): UI-089: real isolation of repo-controlled commands from
   FLEET_TOKEN (a token-less job or container); the comment now says they are not isolated.
