@@ -277,11 +277,14 @@ describe('chart-format', () => {
         built++;
       }
     } as typeof Intl.NumberFormat;
-    expect(defaultNum(1234567)).toBe('1,234,567');
-    expect(defaultNum(-2500)).toBe('-2,500');
-    expect(defaultNum(12.3456)).toBe('12.35');
-    expect(defaultNum(1000.4)).toBe('1,000');
-    Intl.NumberFormat = Real;
+    try {
+      expect(defaultNum(1234567)).toBe('1,234,567');
+      expect(defaultNum(-2500)).toBe('-2,500');
+      expect(defaultNum(12.3456)).toBe('12.35');
+      expect(defaultNum(1000.4)).toBe('1,000');
+    } finally {
+      Intl.NumberFormat = Real;
+    }
     expect(built).toBeLessThanOrEqual(1);
   });
 
@@ -290,5 +293,59 @@ describe('chart-format', () => {
     const out = normalizeSeries([{ points: [] }, { label: 'X', points: [] }]);
     expect(out[0]!.label).toBe('Serie 1');
     expect(out[1]!.label).toBe('X');
+  });
+});
+
+describe('static page fixes (T10)', () => {
+  const host = (html: string): HTMLElement => {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    document.body.appendChild(d);
+    return d;
+  };
+
+  it('bottom-nav picks up children rendered after mount', async () => {
+    const d = host('<nish-bottom-nav><a href="/a">A</a></nish-bottom-nav>');
+    await tick();
+    const el = d.querySelector('nish-bottom-nav')!;
+    const late = document.createElement('a');
+    late.href = '/b';
+    el.appendChild(late);
+    await tick();
+    expect(late.parentElement?.localName).toBe('nav');
+    expect(late.classList.contains('nish-bottom-nav-item')).toBe(true);
+    d.remove();
+  });
+
+  it('split host carries .nish-split', async () => {
+    const d = host('<nish-split><div>a</div><div>b</div></nish-split>');
+    await tick();
+    expect(d.querySelector('nish-split')!.classList.contains('nish-split')).toBe(true);
+    d.remove();
+  });
+
+  it('sparkline accepts values = null', async () => {
+    const d = host('<nish-sparkline values="1,2,3"></nish-sparkline>');
+    const el = d.querySelector('nish-sparkline') as Lit & { values: unknown };
+    await el.updateComplete;
+    el.values = null;
+    await expect(el.updateComplete).resolves.toBeTruthy();
+    d.remove();
+  });
+
+  it('combobox option label falls back to the label attribute', async () => {
+    const d = host('<nish-combobox><option value="x" label="X label"></option></nish-combobox>');
+    await tick();
+    const el = d.querySelector('nish-combobox') as HTMLElement & { options: { label: string }[] };
+    expect(el.options[0]?.label).toBe('X label');
+    d.remove();
+  });
+
+  it('section-nav moves focus to the section after the jump', async () => {
+    const d = host('<nish-section-nav><a href="#sec-t10">S</a></nish-section-nav><section id="sec-t10">x</section>');
+    await tick();
+    d.querySelector<HTMLAnchorElement>('nish-section-nav a')!.click();
+    expect(document.activeElement?.id).toBe('sec-t10');
+    d.remove();
   });
 });

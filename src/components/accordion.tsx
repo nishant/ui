@@ -63,6 +63,8 @@ interface AccordionCtx {
   toggle: (value: string) => void;
   headingLevel: AccordionHeadingLevel;
   disabled: boolean;
+  /** type="single" without collapsible: the open item cannot be closed. */
+  locked: boolean;
 }
 const Ctx = /* @__PURE__ */ createContext<AccordionCtx | null>(null);
 
@@ -108,7 +110,7 @@ export function Accordion(props: AccordionProps) {
   );
 
   return (
-    <Ctx.Provider value={{ idBase, open, toggle, headingLevel, disabled }}>
+    <Ctx.Provider value={{ idBase, open, toggle, headingLevel, disabled, locked: type !== 'multiple' && !collapsible }}>
       <div
         role="group"
         aria-label={label ?? strings.accordion}
@@ -154,7 +156,8 @@ export function AccordionItem({ value, title, children, disabled: disabledProp =
     if (!keys.includes(e.key)) return;
     const root = e.currentTarget.closest('[data-accordion]');
     if (!root) return;
-    const all = Array.from(root.querySelectorAll<HTMLButtonElement>(TRIGGER));
+    // Only this accordion's own headers: not those of an Accordion nested in a panel.
+    const all = Array.from(root.querySelectorAll<HTMLButtonElement>(TRIGGER)).filter((b) => b.closest('[data-accordion]') === root);
     if (all.length === 0) return;
     const at = all.indexOf(e.currentTarget);
     let to: number;
@@ -185,6 +188,7 @@ export function AccordionItem({ value, title, children, disabled: disabledProp =
           data-state={state}
           data-disabled={disabled ? '' : undefined}
           aria-expanded={isOpen}
+          aria-disabled={(ctx.locked && isOpen) || undefined}
           aria-controls={panelId}
           disabled={disabled}
           onClick={() => ctx.toggle(value)}

@@ -32,6 +32,10 @@ on:
       working-directory:
         type: string
         default: .
+      tools-ref:
+        description: nishant/ui ref the Fold tools are checked out from (a ui PR passes its head sha)
+        type: string
+        default: master
 
 permissions: { contents: read }
 
@@ -60,7 +64,7 @@ jobs:
         with:
           persist-credentials: false
           repository: nishant/ui
-          ref: master
+          ref: ${{ inputs.tools-ref }}
           path: .fold-ui
 
       - name: Base screenshot cache key
@@ -153,13 +157,13 @@ jobs:
           FOLD_PORT=5302 FOLD_SIDE=head nohup bash -c "$SERVE" > "$RUNNER_TEMP/fold-head.log" 2>&1 &
 
       - name: Wait for the PR to answer
-        run: npx -y wait-on@8 -t 300000 "http://127.0.0.1:5302${READY_PATH}"
+        run: ./.fold-ui/node_modules/.bin/wait-on -t 300000 "http://127.0.0.1:5302${READY_PATH}"
 
       - name: Wait for the base branch to answer
         id: waitbase
         if: steps.buildbase.outcome == 'success'
         continue-on-error: true
-        run: npx -y wait-on@8 -t 300000 "http://127.0.0.1:5301${READY_PATH}"
+        run: ./.fold-ui/node_modules/.bin/wait-on -t 300000 "http://127.0.0.1:5301${READY_PATH}"
 
       # The head's config is used for both sides so the pages match.
       - name: Screenshot the base branch

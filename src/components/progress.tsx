@@ -90,7 +90,8 @@ export function Progress({
             'absolute inset-y-0 start-0 rounded-full transition-[width] duration-300 ease-out motion-reduce:transition-none',
             FILL[tone],
             'forced-color-adjust-none forced-colors:bg-[Highlight]',
-            indeterminate && 'motion-safe:animate-pulse',
+            // Pulses while motion is allowed; under reduced motion and forced colors it is a short bar, never a full one that reads as complete.
+            indeterminate && 'motion-safe:animate-pulse motion-reduce:!w-2/5 forced-colors:!w-2/5',
           )}
           style={{ width: `${pct}%` }}
         />

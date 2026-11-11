@@ -98,11 +98,6 @@ export function explainError(r) {
 }
 
 /**
- * The CLI's exit code: 1 when any repo ended in an error (an unreachable repo, an unreadable pin, a
- * PR that could not be listed or opened, a revert that did not merge), so the run shows red.
- * Held, checking, skipped and current are outcomes, not errors.
- */
-/**
  * Minutes left before bump PRs may open for `newest`, released at `releasedSec` (unix seconds):
  * the fan-out waits until no release has followed for `quietMin` minutes, so a burst of releases
  * costs one round of bump PRs (each round runs every app's PR, Fold and deploy checks) instead of one
@@ -117,6 +112,11 @@ export function quietLeft(releasedSec, nowMs, quietMin) {
 export const quietLine = (tag, left, quietMin) =>
   `Waiting for releases to settle: ${tag} is newer than ${quietMin} min, so bump PRs open in about ${left} min (dispatch with now=true to skip the wait)`;
 
+/**
+ * The CLI's exit code: 1 when any repo ended in an error (an unreachable repo, an unreadable pin, a
+ * PR that could not be listed or opened, a revert that did not merge), so the run shows red.
+ * Held, checking, skipped and current are outcomes, not errors.
+ */
 export function exitCode(results, failed = false) {
   return failed || results.some((r) => r.result === 'error') ? 1 : 0;
 }

@@ -23,6 +23,18 @@ const DEFAULTS = { q: '', page: 1, onlyOpen: false, tags: [] as string[] };
 
 afterEach(cleanup);
 
+describe('useUrlState with a class adapter', () => {
+  it('calls subscribe on the adapter, so `this` works', () => {
+    class A implements UrlStateAdapter {
+      p = new URLSearchParams();
+      get() { return new URLSearchParams(this.p); }
+      set(n: URLSearchParams) { this.p = new URLSearchParams(n); }
+      subscribe(cb: () => void) { void cb; return () => this.p; }
+    }
+    expect(() => renderHook(() => useUrlState(DEFAULTS, { adapter: new A() }))).not.toThrow();
+  });
+});
+
 describe('useUrlState with a memory adapter', () => {
   it('returns defaults for an empty URL', () => {
     const { result } = renderHook(() => useUrlState(DEFAULTS, { adapter: memoryAdapter() }));

@@ -183,6 +183,49 @@ describe('Combobox', () => {
     vi.useRealTimers();
   });
 
+  it('resets a server-filtered list when the typed text is cleared by a pick', () => {
+    vi.useFakeTimers();
+    const onQueryChange = vi.fn();
+    render(<Combobox aria-label="Find" options={OPTIONS} value={null} onChange={() => undefined} onQueryChange={onQueryChange} />);
+    fireEvent.change(input(), { target: { value: 'ap' } });
+    fireEvent.click(screen.getAllByRole('option')[0]);
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+    expect(onQueryChange).toHaveBeenCalledWith('');
+    // The pending debounce for 'ap' is cancelled, so the stale query never reaches the server.
+    vi.advanceTimersByTime(500);
+    expect(onQueryChange).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it('names the listbox by the field label, not by the input value', () => {
+    render(
+      <>
+        <label htmlFor="sym-in">Ticker symbol</label>
+        <Combobox id="sym-in" options={OPTIONS} value="AAPL" onChange={() => undefined} />
+      </>,
+    );
+    fireEvent.click(input());
+    const list = screen.getByRole('listbox');
+    expect(list.getAttribute('aria-labelledby')).not.toBe('sym-in');
+    expect(list.getAttribute('aria-label')).toBe('Ticker symbol');
+  });
+
+  it('announces the result count from the provider strings, a prop wins', () => {
+    const { rerender } = render(
+      <NishProvider strings={{ resultsCount: (n: number) => `${n} Treffer` }}>
+        <Combobox aria-label="Find" options={OPTIONS} value={null} onChange={() => undefined} />
+      </NishProvider>,
+    );
+    fireEvent.click(input());
+    expect(screen.getByRole('status').textContent).toBe('4 Treffer');
+    rerender(
+      <NishProvider strings={{ resultsCount: (n: number) => `${n} Treffer` }}>
+        <Combobox aria-label="Find" options={OPTIONS} value={null} onChange={() => undefined} resultsText={(n) => `${n} hits`} />
+      </NishProvider>,
+    );
+    expect(screen.getByRole('status').textContent).toBe('4 hits');
+  });
+
   it('disabled shows no clear button and does not open', () => {
     render(<Combobox aria-label="Symbol" options={OPTIONS} value="AAPL" onChange={() => undefined} disabled />);
     expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull();

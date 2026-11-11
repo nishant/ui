@@ -16,14 +16,14 @@ import {
 import { cn } from '../cn';
 import { useIsoLayoutEffect } from './client';
 import type { Column, Sort } from './data';
-import { sortRows } from './data-classes';
+import { sortRows, tableInternals } from './data-classes';
 import { useStrings } from './provider';
 import { TABLE_STRINGS, STATUS_STRINGS } from './strings';
 import { useLatest } from './latest';
 import { Table, TableWrap, Td, Th, Tr } from './table';
 import { useVirtualRows, type VirtualListHandle } from './virtual';
 
-const HIDE_BELOW = { sm: 'hidden sm:table-cell', md: 'hidden md:table-cell', lg: 'hidden lg:table-cell' } as const;
+const { HIDE_BELOW } = tableInternals;
 
 const ROW_FOCUS =
   'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-th-accent';
@@ -62,7 +62,7 @@ export interface VirtualTableProps<T> extends Omit<ComponentPropsWithoutRef<'div
   onRowClick?: (row: T, index: number) => void;
   /** A 3px edge at the start of a row: ok, warn or loss. Say the status in a cell too. */
   rowTone?: (row: T) => 'ok' | 'warn' | 'loss' | undefined;
-  /** Shows skeleton rows instead of the data. */
+  /** Shows a skeleton block (224px tall) instead of the data. */
   loading?: boolean;
   /** Shown when there are no rows. Default: the "nothingHere" string. */
   empty?: ReactNode;
@@ -146,6 +146,8 @@ export function VirtualTable<T>({
   const hadFocus = useRef(false);
   const [focusIndex, setFocusIndex] = useState(0);
 
+  // Written after commit (useLatest), so on the one render where rowKey changes, measured keys
+  // still come from the previous rowKey; the next commit corrects it. Accepted: rowKey is rarely swapped.
   const keyRef = useLatest(rowKey);
   const getKey = useCallback((i: number) => keyRef.current(sorted[i]!), [sorted, keyRef]);
   const coverTop = useCallback(() => headRef.current?.offsetHeight ?? 0, []);

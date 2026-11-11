@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -117,6 +117,17 @@ describe('HoverCard', () => {
     act(() => void link.blur());
     wait(300);
     expect(card()).toBeNull();
+  });
+
+  it('keeps the card open when the pointer leaves it while the trigger has keyboard focus', () => {
+    const { link } = setup();
+    vi.spyOn(Element.prototype, 'matches').mockImplementation((sel: string) => sel === ':focus-visible');
+    act(() => void link.focus());
+    wait(500);
+    expect(card()).not.toBeNull();
+    fireEvent.pointerLeave(card()!);
+    wait(1000);
+    expect(card()).not.toBeNull();
   });
 
   it('never opens from touch, and a touch press closes an open card', () => {

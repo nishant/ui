@@ -8,7 +8,7 @@ import { Portal } from './portal';
 import { useStrings } from './provider';
 import { OVERLAY_STRINGS } from './strings';
 import { CLOSE_BUTTON, MODAL_SIZE, SHEET_HEIGHT_CLASS } from './overlay-classes';
-import { isPhoneViewport, closeVetoes, warnDev, useMergedRef, useScrollable } from './overlay-core';
+import { isPhoneViewport, closeVetoes, warnDev, useMergedRef, useScrollable, ov, isTop } from './overlay-core';
 import { useDialog, useSheetExit, useSheetSwipe, SheetHandle } from './overlay-dialog';
 
 // ---------------------------------------------------------------------------------
@@ -115,6 +115,20 @@ function ModalPanel({
   const named = showTitle || !!ariaLabel || !!ariaLabelledBy;
   const scrollable = useScrollable(bodyRef);
   const bodyLabel = typeof title === 'string' ? title : ariaLabel;
+  const bodyLabelledBy = bodyLabel ? undefined : showTitle ? titleId : ariaLabelledBy;
+  const bodyNamed = !!bodyLabel || !!bodyLabelledBy;
+  // A press that lands while a menu or popover is on top only dismisses that layer. The layer's own
+  // pointerdown listener closes it before the scrim's mousedown fires, so capture "covered" first.
+  const covered = useRef(false);
+  useEffect(() => {
+    const stack = ov().layerStack;
+    const self = stack[stack.length - 1];
+    const down = () => {
+      covered.current = !!self && !isTop(self);
+    };
+    document.addEventListener('pointerdown', down, true);
+    return () => document.removeEventListener('pointerdown', down, true);
+  }, []);
 
   useEffect(() => {
     if (!named) warnDev('nish-ui: <Modal> has no accessible name. Pass `title`, `aria-label` or `aria-labelledby`.');
@@ -131,7 +145,7 @@ function ModalPanel({
         placement === 'top' ? 'sm:items-start sm:pt-[12vh]' : 'sm:items-center',
       )}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) requestClose();
+        if (e.target === e.currentTarget && !covered.current) requestClose();
       }}
     >
       <div
@@ -180,9 +194,10 @@ function ModalPanel({
         {subtitle ? <div className="shrink-0 border-b border-th-line px-5 pb-3 text-sm text-th-hi2">{subtitle}</div> : null}
         <div
           ref={bodyRef}
-          tabIndex={scrollable ? 0 : undefined}
-          role={scrollable && bodyLabel ? 'region' : undefined}
+          tabIndex={scrollable && bodyNamed ? 0 : undefined}
+          role={scrollable && bodyNamed ? 'region' : undefined}
           aria-label={scrollable ? bodyLabel : undefined}
+          aria-labelledby={scrollable ? bodyLabelledBy : undefined}
           className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5 text-sm text-th-hi2', header !== undefined && 'pt-3')}
         >
           {children}

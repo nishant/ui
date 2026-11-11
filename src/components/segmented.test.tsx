@@ -222,7 +222,11 @@ describe('Segmented', () => {
     fireEvent.mouseEnter(radios()[0]);
     expect(screen.getByText('About A')).toBeTruthy();
     expect(radios()[0].getAttribute('aria-describedby')).toBeTruthy();
+    const parentKey = vi.fn();
+    document.addEventListener('keydown', parentKey);
     fireEvent.keyDown(screen.getByRole('radiogroup'), { key: 'Escape' });
+    document.removeEventListener('keydown', parentKey);
+    expect(parentKey).not.toHaveBeenCalled();
     expect(screen.queryByText('About A')).toBeNull();
     fireEvent.mouseEnter(radios()[0]);
     fireEvent.pointerDown(radios()[0]);

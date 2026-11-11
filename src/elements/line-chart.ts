@@ -266,6 +266,7 @@ export class NishLineChart extends NishChartBase {
     return html`<div class="nish-chart" style="position:relative;width:100%;user-select:none">
         <div style="position:relative;height:${height}px">
           ${chart}${tooltip}
+          <div aria-live="polite" style=${SR_ONLY}>${this.fromKey && ax != null ? `${xFormat(ax)}: ${tipRows.map((r) => `${lines.length > 1 ? `${r.s.label} ` : ''}${yFormat(r.y as number)}`).join(', ')}` : ''}</div>
           <table style=${SR_ONLY}>
             <caption>${label}</caption>
             <thead>

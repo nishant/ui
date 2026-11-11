@@ -22,6 +22,7 @@ import {
 } from './display';
 import { signTone as pureSignTone, toneFor as pureToneFor } from './display-classes';
 import { NishProvider } from './provider';
+import { MenuItem } from './menu';
 
 beforeEach(() => {
   window.matchMedia = ((query: string) => ({
@@ -696,6 +697,33 @@ describe('AppHeader', () => {
     );
     expect(screen.getByRole('button', { name: 'Plus' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Act' })).toBeTruthy();
+  });
+
+  it('inline overflow MenuItems are plain tabbable buttons, and a disabled one is aria-disabled', () => {
+    render(
+      <AppHeader
+        name="Jobs"
+        themeToggle={false}
+        overflowActions={
+          <>
+            <MenuItem onSelect={() => {}}>Export</MenuItem>
+            <MenuItem disabled onSelect={() => {}}>Archive</MenuItem>
+          </>
+        }
+      />,
+    );
+    const exportEl = screen.getByText('Export').closest('button')!;
+    const archiveEl = screen.getByText('Archive').closest('button')!;
+    expect(exportEl.hasAttribute('role')).toBe(false);
+    expect(exportEl.tabIndex).toBe(0);
+    expect(archiveEl.hasAttribute('role')).toBe(false);
+    expect(archiveEl.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('wraps Callout content in phrasing elements so a button callout holds no block elements', () => {
+    render(<Callout title="T" onClick={() => {}}>Body</Callout>);
+    const btn = screen.getByRole('button');
+    expect(btn.querySelector('div, p')).toBeNull();
   });
 
   it('renders the default theme toggle unless themeToggle is false or a node', () => {

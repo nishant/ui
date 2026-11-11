@@ -2,6 +2,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -58,11 +59,13 @@ export function StickyBar({
   const ref = useRef<HTMLElement | null>(null);
   const stuck = useStuck(ref);
   useHeightVar(ref, '--nish-sticky-extra');
+  // One merged callback per ref pair: an inline one is a new ref every render, so React would detach and re-attach it each time.
+  const mergedRef = useMemo(() => mergeRefs<HTMLElement>(ref, refProp), [refProp]);
   const Tag = as as ElementType;
   return (
     <Tag
       {...rest}
-      ref={mergeRefs<HTMLElement>(ref, refProp)}
+      ref={mergedRef}
       data-nish-bar=""
       style={{ top, ...style } satisfies CSSProperties}
       className={cn(
@@ -113,12 +116,13 @@ export function StickyActionBar({
 }: StickyActionBarProps) {
   const strings = useStrings(STATUS_STRINGS);
   const ref = useRef<HTMLDivElement | null>(null);
+  const mergedRef = useMemo(() => mergeRefs<HTMLDivElement>(ref, refProp), [refProp]);
   useHeightVar(ref, '--nish-bottom-bar-h', open);
   if (!open) return null;
   return (
     <div
       {...rest}
-      ref={mergeRefs<HTMLDivElement>(ref, refProp)}
+      ref={mergedRef}
       role="region"
       aria-label={label ?? strings.actions}
       data-state="open"
@@ -302,7 +306,7 @@ export interface ConnectionBannerProps extends Omit<ComponentPropsWithoutRef<'di
   healthUrl?: string;
   /** Base interval between probes. After failures it doubles up to 4x. Default 30000. */
   intervalMs?: number;
-  /** Shown when the probe fails. Default "Can't reach the server". */
+  /** Shown when the probe fails. Default: the `serverUnreachable` string ("Can't reach the server"). */
   message?: string;
   /** Shown when the browser is offline. Default: the provider's `offline` string. */
   offlineMessage?: string;
@@ -320,7 +324,7 @@ export interface ConnectionBannerProps extends Omit<ComponentPropsWithoutRef<'di
 export function ConnectionBanner({
   healthUrl,
   intervalMs = 30000,
-  message = "Can't reach the server",
+  message,
   offlineMessage,
   retryLabel,
   onRetry,
@@ -416,7 +420,7 @@ export function ConnectionBanner({
         </Button>
       }
     >
-      {online ? message : (offlineMessage ?? strings.offline)}
+      {online ? (message ?? strings.serverUnreachable) : (offlineMessage ?? strings.offline)}
     </Callout>
   );
 }

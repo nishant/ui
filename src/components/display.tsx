@@ -180,23 +180,23 @@ export function Callout({
   const interactive = href != null || onClick != null;
   const iconEl = shown ? <span className={cn('shrink-0', compact ? 'mt-px' : 'mt-0.5', t.icon)}>{shown}</span> : null;
   const text = (
-    <div className="min-w-0 flex-1 basis-60">
+    <span className="block min-w-0 flex-1 basis-60">
       {title || count != null ? (
-        <p className="flex items-center gap-2 font-medium leading-snug text-th-hi">
+        <span className="flex items-center gap-2 font-medium leading-snug text-th-hi">
           {title ? <span className="min-w-0">{title}</span> : null}
           {count != null ? (
             <Badge tone={tone} aria-label={strings.moreCount(count)} className="shrink-0">
               +{count}
             </Badge>
           ) : null}
-        </p>
+        </span>
       ) : null}
       {children ? (
-        <div className={cn('leading-snug text-th-hi2', title || count != null ? 'mt-0.5' : null, clamp && CALLOUT_CLAMP[clamp])}>
+        <span className={cn('block leading-snug text-th-hi2', title || count != null ? 'mt-0.5' : null, clamp && CALLOUT_CLAMP[clamp])}>
           {children}
-        </div>
+        </span>
       ) : null}
-    </div>
+    </span>
   );
   const actionEl = action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null;
   const dismissEl = onDismiss ? (
@@ -885,7 +885,7 @@ export function PageHeader({
   ...rest
 }: PageHeaderProps) {
   const ref = useRef<HTMLElement>(null);
-  const stuck = useStuck(ref) && sticky;
+  const stuck = useStuck(ref, sticky) && sticky;
   const collapsed = stuck && collapseWhenStuck;
   return (
     <header
@@ -1017,7 +1017,7 @@ export function AppHeader({
   const strings = useStrings(DISPLAY_STRINGS, SHELL_STRINGS);
   const ref = useRef<HTMLElement>(null);
   useHeightVar(ref, '--nish-header-h', sticky);
-  const stuck = useStuck(ref) && sticky;
+  const stuck = useStuck(ref, sticky) && sticky;
   // From sm the overflow actions sit in the header row, outside any menu: MenuItem renders
   // as a menu row (role=menuitem, tabIndex -1), so make them ordinary tabbable buttons.
   const inlineActionsRef = useRef<HTMLDivElement>(null);

@@ -256,6 +256,30 @@ describe("useServiceTokens", () => {
   });
 });
 
+describe("useServiceTokens url change", () => {
+  it("drops the old url's list and error and reports loading until the new url answers", async () => {
+    let release: (r: Response) => void = () => {};
+    const fn = vi.fn((url: string) =>
+      url === "/a"
+        ? Promise.resolve(json({ tokens: [tok({ id: "a1", name: "A one" })] }))
+        : new Promise<Response>((res) => {
+            release = res;
+          }),
+    );
+    vi.stubGlobal("fetch", fn);
+    const { result, rerender } = renderHook(({ u }) => useServiceTokens(u), { initialProps: { u: "/a" } });
+    await waitFor(() => expect(result.current.tokens).toHaveLength(1));
+    rerender({ u: "/b" });
+    expect(result.current.tokens).toBeUndefined();
+    expect(result.current.loading).toBe(true);
+    expect(result.current.error).toBeNull();
+    await act(async () => release(json({ error: "B is down" }, 500)));
+    await waitFor(() => expect(result.current.error).toBe("B is down"));
+    expect(result.current.tokens).toBeUndefined();
+    expect(result.current.loading).toBe(false);
+  });
+});
+
 describe("ServiceTokensSection contract", () => {
   it("puts ref and rest props on the section, merges className", () => {
     const ref = { current: null as HTMLElement | null };
@@ -298,6 +322,23 @@ describe("ServiceTokensSection contract", () => {
     const dialog = screen.getByRole("alertdialog");
     expect(within(dialog).getByText("Révoquer nish MCP (handle) ?")).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "Annuler" })).toBeTruthy();
+  });
+
+  it("takes the empty, created, env and revoke-body defaults from the provider", () => {
+    const { rerender } = render(
+      <NishProvider strings={{ tokenEmpty: "Aucun jeton", tokenCreated: (w: string) => `créé le ${w}`, tokenFromEnv: "depuis l'env", tokenRevokeBody: "Corps français" }}>
+        <ServiceTokensSection tokens={[]} onRevoke={async () => {}} />
+      </NishProvider>,
+    );
+    expect(screen.getByText("Aucun jeton")).toBeTruthy();
+    rerender(
+      <NishProvider strings={{ tokenCreated: (w: string) => `créé le ${w}`, tokenFromEnv: "depuis l'env", tokenRevokeBody: "Corps français" }}>
+        <ServiceTokensSection tokens={[tok({ id: "e", name: "Env one", source: "env" })]} onRevoke={async () => {}} />
+      </NishProvider>,
+    );
+    expect(screen.getByText(/créé le .*depuis l'env/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Env one/ }));
+    expect(within(screen.getByRole("alertdialog")).getByText("Corps français")).toBeTruthy();
   });
 
   it("emptyMessage, createdLabel and envSourceLabel are per-instance", () => {

@@ -33,6 +33,7 @@ test('react adds the DOM and react-jsx', () => {
   const o = show('react.json');
   assert.equal(o.jsx, 'react-jsx');
   assert.ok(o.lib.includes('dom'));
+  assert.deepEqual(o.types, ['vite/client']);
   assert.equal(o.strict, true);
 });
 
@@ -40,4 +41,6 @@ test('node uses NodeNext and node types', () => {
   const o = show('node.json');
   assert.equal(o.module, 'nodenext');
   assert.deepEqual(o.types, ['node']);
+  // Inherited from base: a node app built with tsc on this preset emits nothing unless it sets noEmit:false and outDir.
+  assert.equal(o.noEmit, true);
 });

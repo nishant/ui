@@ -426,3 +426,18 @@ describe('Tabs hideFrom / showFrom', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
   });
 });
+
+describe('Tabs ids', () => {
+  it('links a tab to its panel when the value has spaces', () => {
+    render(
+      <Tabs label="T" items={[{ value: 'Open items', label: 'Open' }]} defaultValue="Open items">
+        <TabPanel value="Open items">Body</TabPanel>
+      </Tabs>,
+    );
+    const tab = screen.getByRole('tab', { name: 'Open' });
+    const controls = tab.getAttribute('aria-controls')!;
+    expect(controls).not.toMatch(/\s/);
+    const panel = document.getElementById(controls);
+    expect(panel?.getAttribute('aria-labelledby')).toBe(tab.id);
+  });
+});

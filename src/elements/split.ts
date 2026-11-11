@@ -202,6 +202,7 @@ export class NishSplit extends NishElement {
     const row = this.orientation !== 'column';
     const sizes = this.#current;
     const s = getStrings();
+    this.classList.add('nish-split');
     this.style.display = 'flex';
     this.style.flexDirection = this.#stacked ? 'column' : row ? 'row' : 'column';
     this.style.minWidth = '0';

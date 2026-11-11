@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type Ref } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type Ref } from 'react';
 import { cn } from '../cn';
 import { getDefaultLocale } from '../format';
 import { resolveLocale } from './calendar-classes';
@@ -174,6 +174,13 @@ export function TimeField({
   // The boxes as typed, with the value they committed. The text stays as typed while focus is in the group; it is
   // dropped on blur, or when the value is no longer the one the draft committed (the parent changed it).
   const hourRef = useRef<HTMLInputElement | null>(null);
+  const setHourNode = useCallback(
+    (node: HTMLInputElement | null) => {
+      hourRef.current = node;
+      setRef(ref, node);
+    },
+    [ref],
+  );
   const minuteRef = useRef<HTMLInputElement | null>(null);
   const [draftState, setDraft] = useState<{ d: TimeDraft; base: string | null; prev: string | null } | null>(null);
   const [bad, setBad] = useState(false);
@@ -263,10 +270,22 @@ export function TimeField({
       }
     } else if (key === 'Home') {
       e.preventDefault();
-      update(which === 'h' ? { ...shown, h: hourText(0, cycle), pm: false } : { ...shown, m: '00' });
+      update(
+        which === 'h'
+          ? cycle === 12
+            ? { ...shown, h: '1' }
+            : { ...shown, h: hourText(0, cycle), pm: false }
+          : { ...shown, m: '00' },
+      );
     } else if (key === 'End') {
       e.preventDefault();
-      update(which === 'h' ? { ...shown, h: hourText(23, cycle), pm: true } : { ...shown, m: pad2(lastMinute(st)) });
+      update(
+        which === 'h'
+          ? cycle === 12
+            ? { ...shown, h: '12' }
+            : { ...shown, h: hourText(23, cycle), pm: true }
+          : { ...shown, m: pad2(lastMinute(st)) },
+      );
     } else if (cycle === 12 && (key === 'a' || key === 'A' || key === 'p' || key === 'P')) {
       e.preventDefault();
       update({ ...shown, pm: key === 'p' || key === 'P' });
@@ -344,10 +363,7 @@ export function TimeField({
       <span dir="ltr" className="inline-flex items-center gap-1">
         <input
           {...common}
-          ref={(node) => {
-            hourRef.current = node;
-            setRef(ref, node);
-          }}
+          ref={setHourNode}
           id={inputId}
           value={shown.h}
           aria-labelledby={names(hId)}

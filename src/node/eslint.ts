@@ -41,7 +41,7 @@ function stringRule(description: string, check: (text: string) => string[]): Nis
   };
 }
 
-/** A rule that reports `message` once per match of `re` (the same `(^|[\s:])` lead trading used, so `hover:bg-red-500` matches). */
+/** A rule that reports `message` once per string that matches `re` (the same `(^|[\s:])` lead trading used, so `hover:bg-red-500` matches). */
 function patternRule(description: string, re: RegExp, message: string): NishRule {
   return stringRule(description, (text) => (re.test(text) ? [message] : []));
 }

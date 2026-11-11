@@ -66,7 +66,7 @@ export interface InboxEventInput {
   kind: string;
   /** Headline, trimmed, 1-140 characters. Longer text is cut to 139 plus an ellipsis. */
   title: string;
-  /** Details, trimmed, up to 2000 characters. Longer text is cut to 1999 plus an ellipsis; an empty string becomes undefined. */
+  /** Details, trimmed, up to 2000 characters. Longer text is cut to 1999 plus an ellipsis; an empty string becomes null. */
   body?: string;
   /** Link opened when the notification or item is tapped. http: or https:, up to 2000 characters. */
   url?: string;

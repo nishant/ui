@@ -37,7 +37,7 @@ export or token change: the README is the npm page, so absolute links only, no t
 - 3.0: the fleet-only names are only on `nish-ui/inbox`, `nish-ui/service-tokens` and
   `nish-ui/system-canvas`; `Switch` has only `onCheckedChange`.
 - Bundlers load `dist/esm/` (one file per module). The standalone files at the old `dist/` paths stay for
-  static pages. `npm run size` and `tools/api-surface.test.mjs` run in `check`; regenerate the snapshot
+  static pages. `npm run size` runs in `check`; `tools/api-surface.test.mjs` runs in `npm run test:tools`; regenerate the snapshot
   (`UPDATE_API_SURFACE=1`) after the final build.
 - Docs site samples are written as `@nish/ui` and shown as `nish-ui` by `nishName()` in `site/lib/code.tsx`.
 

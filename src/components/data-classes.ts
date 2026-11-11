@@ -21,15 +21,15 @@ const ROW_TONE: Record<RowTone, string> = {
   ok:
     '[&>td:first-child]:shadow-[inset_3px_0_0_var(--nish-ok-fill)] [&>th:first-child]:shadow-[inset_3px_0_0_var(--nish-ok-fill)] ' +
     'rtl:[&>td:first-child]:shadow-[inset_-3px_0_0_var(--nish-ok-fill)] rtl:[&>th:first-child]:shadow-[inset_-3px_0_0_var(--nish-ok-fill)] ' +
-    'forced-colors:[&>td:first-child]:border-s-[3px] forced-colors:[&>td:first-child]:border-s-[color:Highlight]',
+    'forced-colors:[&>td:first-child]:border-s-[3px] forced-colors:[&>td:first-child]:border-s-[color:Highlight] forced-colors:[&>th:first-child]:border-s-[3px] forced-colors:[&>th:first-child]:border-s-[color:Highlight]',
   warn:
     '[&>td:first-child]:shadow-[inset_3px_0_0_var(--nish-warn-fill)] [&>th:first-child]:shadow-[inset_3px_0_0_var(--nish-warn-fill)] ' +
     'rtl:[&>td:first-child]:shadow-[inset_-3px_0_0_var(--nish-warn-fill)] rtl:[&>th:first-child]:shadow-[inset_-3px_0_0_var(--nish-warn-fill)] ' +
-    'forced-colors:[&>td:first-child]:border-s-[3px] forced-colors:[&>td:first-child]:border-s-[color:Highlight]',
+    'forced-colors:[&>td:first-child]:border-s-[3px] forced-colors:[&>td:first-child]:border-s-[color:Highlight] forced-colors:[&>th:first-child]:border-s-[3px] forced-colors:[&>th:first-child]:border-s-[color:Highlight]',
   loss:
     '[&>td:first-child]:shadow-[inset_3px_0_0_var(--nish-loss-fill)] [&>th:first-child]:shadow-[inset_3px_0_0_var(--nish-loss-fill)] ' +
     'rtl:[&>td:first-child]:shadow-[inset_-3px_0_0_var(--nish-loss-fill)] rtl:[&>th:first-child]:shadow-[inset_-3px_0_0_var(--nish-loss-fill)] ' +
-    'forced-colors:[&>td:first-child]:border-s-[3px] forced-colors:[&>td:first-child]:border-s-[color:Highlight]',
+    'forced-colors:[&>td:first-child]:border-s-[3px] forced-colors:[&>td:first-child]:border-s-[color:Highlight] forced-colors:[&>th:first-child]:border-s-[3px] forced-colors:[&>th:first-child]:border-s-[color:Highlight]',
 };
 
 const WRAP = 'relative overflow-auto rounded-xl border border-th-line bg-th-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-th-accent';
@@ -78,8 +78,11 @@ export const tableClass = {
   tone: ROW_TONE,
 } as const;
 
+/** Hides a column below a breakpoint. Shared by ResponsiveTable and VirtualTable. */
+const HIDE_BELOW = { sm: 'hidden sm:table-cell', md: 'hidden md:table-cell', lg: 'hidden lg:table-cell' } as const;
+
 /** @internal Alignment and pinned-column recipes the table components share. */
-export const tableInternals = { ALIGN, STICKY_COL, WRAP, STICKY, TABLE, ZEBRA, TH, TD, PAD, TR, TR_INTERACTIVE } as const;
+export const tableInternals = { HIDE_BELOW, ALIGN, STICKY_COL, WRAP, STICKY, TABLE, ZEBRA, TH, TD, PAD, TR, TR_INTERACTIVE } as const;
 
 // =====================================================================================
 // Refs

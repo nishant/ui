@@ -13,6 +13,7 @@ import {
   registerThemes,
   resolveTheme,
   setThemeChoice,
+  showToast,
 } from './theme';
 
 // The static layout helpers of theme.ts (sheets, height vars, stuck, scrollspy, checklists) plus
@@ -274,6 +275,18 @@ describe('openSheet', () => {
     const { dialog } = makeSheet();
     openSheet(dialog);
     dialog.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
+    expect(dialog.open).toBe(false);
+  });
+
+  it('does not close when the press began inside and the release is on the backdrop', () => {
+    stubMedia(reduced);
+    const { dialog, child } = makeSheet();
+    openSheet(dialog);
+    child.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 150, clientY: 300 }));
+    dialog.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 150, clientY: 99 }));
+    expect(dialog.open).toBe(true);
+    dialog.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 150, clientY: 99 }));
+    dialog.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 150, clientY: 99 }));
     expect(dialog.open).toBe(false);
   });
 
@@ -999,17 +1012,16 @@ describe('mountScrollspy', () => {
   });
 
   it('ignores links that are not in-page hashes or are a bare "#"', () => {
-    build(['a', 'b'], ['#a', '#', '#b']);
-    links[1]!.setAttribute('href', 'https://example.com/#a');
-    links[1]!.setAttribute('href', '#');
+    build(['a', 'b'], ['#a', 'https://example.com/#a', '#', '#b']);
     mountScrollspy(nav, { offset: 100 });
     tops.a = -10;
     tops.b = -5;
     window.dispatchEvent(new Event('scroll'));
     flush();
-    expect(current()).toEqual([links[2]]);
+    expect(current()).toEqual([links[3]]);
     links[1]!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(current()).toEqual([links[2]]);
+    links[2]!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(current()).toEqual([links[3]]);
   });
 
   it('at the bottom of the page the last link with a target is current', () => {
@@ -1330,6 +1342,12 @@ describe('mountChecklist', () => {
     box.dispatchEvent(new Event('change', { bubbles: true }));
   };
 
+  it('writes the progress through opts.format', () => {
+    const { list, progress } = build();
+    mountChecklist(list, { format: (d, t) => `${d} von ${t}` });
+    expect(progress.textContent).toBe('0 von 3');
+  });
+
   it('restores the checked ids from localStorage', () => {
     localStorage.setItem('k', JSON.stringify(['a', 'c']));
     const { list, boxes, progress } = build({ store: 'k' });
@@ -1496,6 +1514,15 @@ describe('mountChecklist', () => {
 // --- branches theme.test.ts leaves out ---------------------------------------------
 
 describe('themeLabel through mountThemeToggle', () => {
+  it('skips registerThemes names the cookie readers cannot round-trip', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    registerThemes({ paper_warm: 'light', 'ok-name': 'dark' });
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+    localStorage.setItem('nish-theme', 'paper_warm');
+    expect(getThemeChoice()).not.toBe('paper_warm');
+  });
+
   it('capitalizes the name of a registered theme that is not a preset', () => {
     registerThemes({ oceanic: 'dark' });
     localStorage.setItem('nish-theme', 'oceanic');
@@ -1503,7 +1530,8 @@ describe('themeLabel through mountThemeToggle', () => {
     document.body.append(button);
     const off = mountThemeToggle(button, { showLabel: true });
     expect(button.querySelector('[data-theme-word]')!.textContent).toBe('Oceanic');
-    expect(button.getAttribute('aria-label')).toContain('Oceanic (set on another site)');
+    expect(button.getAttribute('aria-label')).toContain('Oceanic');
+    expect(button.getAttribute('aria-label')).not.toContain('another site');
     off();
   });
 
@@ -1513,6 +1541,7 @@ describe('themeLabel through mountThemeToggle', () => {
     document.body.append(button);
     const off = mountThemeToggle(button, { showLabel: true });
     expect(button.querySelector('[data-theme-word]')!.textContent).toBe('Mocha');
+    expect(button.getAttribute('aria-label')).toContain('Mocha (set on another site)');
     off();
   });
 
@@ -1659,5 +1688,25 @@ describe('without a document', () => {
     setThemeChoice('mocha');
     expect(set).not.toHaveBeenCalled();
     expect(localStorage.getItem('nish-theme')).toBe('mocha');
+  });
+});
+
+describe('showToast focus return', () => {
+  it('returns focus to the element focused before the toast when it is dismissed with Escape', () => {
+    vi.useFakeTimers();
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    opener.focus();
+    const hide = showToast('Saved', { duration: 'sticky' });
+    vi.advanceTimersByTime(60);
+    const close = document.querySelector<HTMLElement>('.nish-toast-close')!;
+    close.dispatchEvent(new FocusEvent('focusin', { bubbles: true, relatedTarget: opener }));
+    close.focus();
+    close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(document.querySelector('.nish-toast')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+    hide();
+    vi.useRealTimers();
+    opener.remove();
   });
 });

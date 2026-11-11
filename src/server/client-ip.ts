@@ -1,6 +1,6 @@
 // Which key a rate limiter should use for a request. Framework-free: pass a header getter.
 
-/** 127.0.0.0/8, ::1 and ::ffff:127.x. */
+/** 127.0.0.0/8, ::1 and ::ffff:127.x. Not authentication: behind Caddy every public request arrives from loopback. */
 export function isLoopback(address: string | null | undefined): boolean {
   if (!address) return false;
   const a = address.trim().toLowerCase();

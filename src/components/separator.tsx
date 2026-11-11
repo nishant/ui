@@ -1,4 +1,6 @@
-import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
+'use client';
+
+import { useId, type ComponentPropsWithoutRef, type ReactNode, type Ref } from 'react';
 import { cn } from '../cn';
 
 export interface SeparatorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
@@ -15,6 +17,7 @@ const LINE = 'bg-th-line forced-colors:bg-[CanvasText]';
 
 /** A thin rule between groups of content, optionally with a label in the middle. */
 export function Separator({ orientation = 'horizontal', decorative = true, label, className, ref, ...rest }: SeparatorProps) {
+  const labelId = useId();
   const a11y = decorative
     ? { role: 'none' as const }
     : { role: 'separator' as const, 'aria-orientation': orientation };
@@ -24,12 +27,13 @@ export function Separator({ orientation = 'horizontal', decorative = true, label
       <div
         data-orientation={orientation}
         {...a11y}
+        {...(!decorative && rest['aria-label'] === undefined && rest['aria-labelledby'] === undefined ? { 'aria-labelledby': labelId } : {})}
         {...rest}
         ref={ref}
         className={cn('flex w-full items-center gap-3 text-xs text-th-hi3', className)}
       >
         <span aria-hidden="true" className={cn('h-px flex-1', LINE)} />
-        <span className="shrink-0">{label}</span>
+        <span id={labelId} className="shrink-0">{label}</span>
         <span aria-hidden="true" className={cn('h-px flex-1', LINE)} />
       </div>
     );

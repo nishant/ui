@@ -201,10 +201,10 @@ export function money(v: number | null | undefined, o: MoneyOptions = {}): strin
   return v < 0 && Math.round(Math.abs(v) * 100) > 0 ? MINUS + text : text;
 }
 
-/** Signed money: "+$12.30", "−$4.00", and "No change" when |v| < 0.005. */
-export function signedMoney(v: number | null | undefined, o: MoneyOptions = {}): string {
+/** Signed money: "+$12.30", "−$4.00", and "No change" when |v| < 0.005. Pass `zero` for another language. */
+export function signedMoney(v: number | null | undefined, o: MoneyOptions & { zero?: string } = {}): string {
   if (!finite(v)) return DASH;
-  if (Math.abs(v) < 0.005) return 'No change';
+  if (Math.abs(v) < 0.005) return o.zero ?? 'No change';
   return (v < 0 ? MINUS : '+') + moneyAbs(Math.abs(v), o, loc(o));
 }
 
@@ -229,7 +229,7 @@ export function pct(v: number | null | undefined, o: PctOptions = {}): string {
 }
 
 export interface NumOptions extends LocaleOptions {
-  /** Fixed fraction digits. Default: up to 2, trailing zeros trimmed (1 when compact). */
+  /** Fixed fraction digits. Default: up to 2, trailing zeros trimmed (1 when compact). With `compact`, digits is a maximum: 12000 gives "12k", not "12.00k". */
   digits?: number;
   /** Short form: 12.3k, 4.5M. */
   compact?: boolean;

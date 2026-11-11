@@ -143,6 +143,16 @@ describe('Carousel structure', () => {
   });
 });
 
+describe('Carousel slide keys', () => {
+  it('keeps the DOM node when slides are inserted before it', () => {
+    const items = (ids: string[]) => ids.map((id) => <p key={id}>Content {id}</p>);
+    const { rerender } = render(<Carousel aria-label="Trips">{items(['a', 'b'])}</Carousel>);
+    const b = screen.getByText('Content b').parentElement;
+    rerender(<Carousel aria-label="Trips">{items(['z', 'a', 'b'])}</Carousel>);
+    expect(screen.getByText('Content b').parentElement).toBe(b);
+  });
+});
+
 describe('Carousel announcements', () => {
   it('puts the new slide in the live node on next, a dot and a key, not on mount', () => {
     setup(3);
@@ -155,10 +165,10 @@ describe('Carousel announcements', () => {
     expect(live().textContent).toBe('1 of 3');
   });
 
-  it('names the focusable track', () => {
+  it('leaves the name on the section, not the focusable track', () => {
     setup(3);
-    expect(track().getAttribute('aria-label')).toBe('Trips');
-    expect(track().getAttribute('role')).toBe('group');
+    expect(track().hasAttribute('aria-label')).toBe(false);
+    expect(document.querySelector('section')!.getAttribute('aria-label')).toBe('Trips');
     expect(track().hasAttribute('aria-live')).toBe(false);
   });
 });

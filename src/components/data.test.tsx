@@ -862,3 +862,31 @@ describe('server rendering', () => {
     expect(html).not.toContain('<img');
   });
 });
+
+describe('ResponsiveTable row and layout fixes', () => {
+  it('opens the row link in a new tab on a middle click (auxclick)', () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    const onNavigate = vi.fn();
+    renderTable({ rowHref: (r) => `/items/${r.id}`, onNavigate });
+    fireEvent(screen.getAllByRole('row')[1], new MouseEvent('auxclick', { bubbles: true, button: 1 }));
+    expect(open).toHaveBeenCalledWith('/items/a', '_blank', 'noopener');
+    fireEvent(screen.getAllByRole('row')[1], new MouseEvent('auxclick', { bubbles: true, button: 2 }));
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+  it('keeps the ref and rest props in the error state', () => {
+    const ref = createRef<HTMLDivElement>();
+    renderTable({ error: { message: 'Boom' }, ref, 'data-testid': 'tbl', className: 'x' } as never);
+    expect(ref.current).toBe(screen.getByTestId('tbl'));
+    expect(ref.current?.className).toContain('x');
+    expect(screen.getByText('Boom')).toBeTruthy();
+  });
+  it('server-renders both layouts, each behind its show class, so desktop is not empty', async () => {
+    const { renderToString } = await import('react-dom/server');
+    const html = renderToString(<ResponsiveTable<Item> label="Items" rows={ITEMS} columns={COLS} rowKey={(r) => r.id} />);
+    expect(html).toContain('<table');
+    expect(html).toContain('hidden md:block');
+    expect(html).toContain('md:hidden');
+    expect(html).toContain('<ul');
+  });
+});

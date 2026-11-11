@@ -1,9 +1,11 @@
 # @nish/ui: components to add and extend (adoption round 1)
 
+**Historical record of adoption round 1 (v0.3 to v0.5), not current.** Many APIs below have changed or been removed since (for example `AppHeader` `hubHref`, the `Switch` spec, and everything in the Tier 3 list, which now ships). For current APIs see [design.nish.software](https://design.nish.software).
+
 Status: **Tier 1 and Tier 2 shipped in v0.3.0; gap round 1 shipped in v0.4.0** (see "Gap round 1" below). Written 2026-10-25 from an audit of every app and site that uses
 @nish/ui v0.2.1: jobs, trading, Nishboard, the hub, status, trackers, mc, trips and the trip-plan
-skill. v0.2.2 through v0.2.6 shipped the same day (see below). Refreshed 2026-10-25 15:55 CDT. Each app had hand-rolled the same pieces. This file is the source of truth for the **APIs and
-looks** of what @nish/ui adds next, so the apps can delete their local copies.
+skill. v0.2.2 through v0.2.6 shipped the same day (see below). Refreshed 2026-10-25 15:55 CDT. Each app had hand-rolled the same pieces. This file was the source of truth for the **APIs and
+looks** of what @nish/ui added next, so the apps could delete their local copies.
 
 The cross-repo rollout plan (which app changes what, gates, order, checks) lives in the private
 `nishant/hosting` repo at `docs/design-system/SPEC.md`. It links here for every API.
@@ -407,7 +409,7 @@ What came back after the apps adopted v0.5.0: prose values in a KeyValueList, an
 | `confirmDialog` and `.nish-dialog` | `confirmDialog({ title, body?, confirmLabel = 'Confirm', cancelLabel = 'Cancel', tone?: 'danger' \| 'primary' }): Promise<boolean>` in `@nish/ui/theme` and `window.nishTheme`. Native `<dialog>` + `showModal()`: focus trap, Escape cancels (and stops there), backdrop click cancels, focus returns to the opener, 44px buttons on touch. Classes `.nish-dialog`, `-title`, `-body`, `-actions`. | startpage notes dialog `window.confirm('Do you want to save before closing?')` |
 | `.nish-tooltip` and `mountTooltips` | `.nish-tooltip` (focusable trigger, `aria-describedby`) > `.nish-tooltip-content[role=tooltip]`; shows on `:hover`, `:focus-visible`, `:focus-within`; `--bottom` `--start` `--end`. `mountTooltips(root?)` adds Escape. Elevated, line-strong border, radius-sm, shadow-pop, 12px hi text, like the React Tooltip. | hub Tailnet badge `title=` |
 
-## Tier 3 (stay local; listed to avoid duplicates)
+## Tier 3 (stayed local in round 1; all of these ship from nish-ui now)
 
 RadioGroup with dot radios (trackers 1), Slider (Nishboard 5), TagInput (jobs 3), Avatar (jobs 3, Nishboard 2),
 ConfirmButton (trackers' two-step remove; prefer ConfirmDialog), Timeline (trackers 2), CommandDialog (Nishboard; becomes

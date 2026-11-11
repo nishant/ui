@@ -106,6 +106,15 @@ export interface NishCommandSelectDetail {
   id: string;
 }
 
+export declare class NishSheet extends NishElement {
+  open: boolean;
+  label: string | null;
+  /** The wrapping <dialog>, once children are moved in. */
+  dialog: HTMLDialogElement | null;
+  show(): void;
+  close(): void;
+}
+
 export declare class NishTableSort extends NishElement {
   /** Only fire `nish-sort` (the server sorts); the rows are not reordered. */
   manual: boolean;
@@ -161,6 +170,7 @@ export declare class NishCommandPalette extends NishElement {
 
 declare global {
   interface HTMLElementTagNameMap {
+    'nish-sheet': NishSheet;
     'nish-table-sort': NishTableSort;
     'nish-filter-bar': NishFilterBar;
     'nish-split': NishSplit;

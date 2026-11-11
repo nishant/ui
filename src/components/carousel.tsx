@@ -1,6 +1,7 @@
 'use client';
 import {
   Children,
+  isValidElement,
   useCallback,
   useEffect,
   useRef,
@@ -322,15 +323,13 @@ export function Carousel({
         <div
           ref={trackRef}
           tabIndex={0}
-          role="group"
-          aria-label={ariaLabel}
           onKeyDown={onTrackKey}
           onScroll={onScroll}
           className="flex w-full min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {slides.map((child, i) => (
             <div
-              key={i}
+              key={isValidElement(child) && child.key != null ? child.key : i}
               role="group"
               aria-roledescription={strings.slideRole}
               aria-label={label(i + 1, count)}

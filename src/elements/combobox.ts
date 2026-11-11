@@ -139,7 +139,7 @@ export class NishCombobox extends NishElement {
     const fromChildren = children.map(
       (o): NishComboboxOption => ({
         value: o.value,
-        label: o.textContent?.trim() ?? o.value,
+        label: o.getAttribute('label') || o.textContent?.trim() || o.value,
         hint: o.dataset.hint || undefined,
         disabled: o.disabled || undefined,
       }),
@@ -225,10 +225,16 @@ export class NishCombobox extends NishElement {
     return this.#selected?.label ?? this.value ?? '';
   }
 
+  #vis: { options: NishComboboxOption[]; filter: unknown; text: string; dirty: boolean; list: NishComboboxOption[] } | null = null;
+
+  /** The filtered, capped list, recomputed only when the options, filter or typed text change. */
   get #visible(): NishComboboxOption[] {
+    const c = this.#vis;
+    if (c && c.options === this.options && c.filter === this.filter && c.text === this.#text && c.dirty === this.#dirty) return c.list;
     const test = this.filter ?? defaultComboboxFilter;
-    const list = this.#dirty ? this.options.filter((o) => test(o, this.#text)) : this.options;
-    return list.slice(0, COMBOBOX_MAX_SHOWN);
+    const list = (this.#dirty ? this.options.filter((o) => test(o, this.#text)) : this.options).slice(0, COMBOBOX_MAX_SHOWN);
+    this.#vis = { options: this.options, filter: this.filter, text: this.#text, dirty: this.#dirty, list };
+    return list;
   }
 
   #clampActive(): void {

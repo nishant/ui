@@ -214,6 +214,15 @@ describe('Pagination', () => {
     expect(screen.getByRole('button', { name: 'P2' })).toBeTruthy();
   });
 
+  it('takes the compact text from the provider whole, so the word order can change', () => {
+    render(
+      <NishProvider strings={{ pageOfCount: (p: number, c: number) => `Seite ${p} von ${c}` }}>
+        <Pagination pageCount={10} page={3} compact />
+      </NishProvider>,
+    );
+    expect(screen.getByText('Seite 3 von 10')).toBeTruthy();
+  });
+
   it('compactLabel overrides the compact text', () => {
     render(<Pagination pageCount={4} page={2} compact compactLabel={(p, c) => `${p}/${c}`} />);
     expect(screen.getByText('2/4')).toBeTruthy();

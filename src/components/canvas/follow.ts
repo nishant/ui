@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CanvasGroup } from './types';
 import type { CanvasLayout } from './layout';
 import type { Box } from './route';
-import { centerOn, clampK, type View } from './view';
+import { centerOn, clampK, FIT_PAD, PHONE_K, PHONE_MAX_W, type View } from './view';
 
 export interface FollowTarget {
   id: string;
@@ -17,16 +17,15 @@ export interface FollowTarget {
 }
 
 export interface FollowStep {
-  /** 'all': every active node is in view (`targets`); 'one': visiting a single node (`targets` holds just that one); 'idle': nothing active. */
   view: View;
   targets: FollowTarget[];
+  /** 'all': every active node is in view (`targets`); 'one': visiting a single node (`targets` holds just that one); 'idle': nothing active. */
   mode: 'all' | 'one' | 'idle';
 }
 
 const CYCLE_MS = 6000;
 const BBOX_PAD = 80;
-const VIEW_PAD = 96; // 2 x FIT_PAD
-const PHONE_W = 600;
+const VIEW_PAD = 2 * FIT_PAD;
 const PHONE_TOP = 0.45;
 
 /** Active nodes newest first (activeAt desc, missing = 0; ties keep layout order: group order, then node order). */
@@ -46,7 +45,7 @@ export function followTargets(groups: CanvasGroup[], layout: CanvasLayout): Foll
 /** `view` for centering a world rect at zoom `k`; on a phone the center sits in the top 45% of the viewport (the drawer may cover the rest). */
 function place(w: number, h: number, k: number, box: Box, groupBox?: Box, top = 0): View {
   const v = centerOn(w, h, k, box);
-  if (w >= PHONE_W) return v;
+  if (w >= PHONE_MAX_W) return v;
   // Never let the box head slide under the overlay row (`top` px): center at max(22.5% of h, top + half the box).
   const y = Math.max((h * PHONE_TOP) / 2, top + (box.h * k) / 2) - (box.y + box.h / 2) * k;
   // Center x on the node's group when the group fits the width, so its title and left cards stay on screen.
@@ -57,7 +56,7 @@ function place(w: number, h: number, k: number, box: Box, groupBox?: Box, top = 
 /** The view for step `i` (0-based) of following `targets` in a w x h viewport. */
 export function followStep(targets: FollowTarget[], i: number, w: number, h: number, fit: View, top = 0): FollowStep {
   if (targets.length === 0) return { mode: 'idle', view: fit, targets: [] };
-  const phone = w < PHONE_W;
+  const phone = w < PHONE_MAX_W;
   const single = phone ? 0.8 : 1;
   if (targets.length === 1) {
     return { mode: 'all', targets, view: place(w, h, single, targets[0]!.box, targets[0]!.groupBox, top) };
@@ -74,7 +73,7 @@ export function followStep(targets: FollowTarget[], i: number, w: number, h: num
   }
   const bbox: Box = { x: x0 - BBOX_PAD, y: y0 - BBOX_PAD, w: x1 - x0 + 2 * BBOX_PAD, h: y1 - y0 + 2 * BBOX_PAD };
   const kAll = Math.min((w - VIEW_PAD) / bbox.w, (h - VIEW_PAD) / bbox.h, 1.1);
-  if (kAll >= (phone ? 0.55 : 0.75)) {
+  if (kAll >= (phone ? PHONE_K : 0.75)) {
     return { mode: 'all', targets, view: place(w, h, clampK(kAll), bbox, undefined, top) };
   }
   const target = targets[((i % targets.length) + targets.length) % targets.length]!;

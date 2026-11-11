@@ -59,7 +59,7 @@ export interface AppShellProps {
   hub?: AppHeaderHub | false;
   /** Every destination, in order. All show in the rail and the desktop header nav (or the sidebar); the BottomNav shows the first `primary` and puts the rest in a MoreSheet. Empty or left out, the shell has no nav at all (no tabs, rail, sidebar, BottomNav or sheet): the signed-out frame. */
   nav?: NavItem[];
-  /** How many items the BottomNav shows before "More". Default 4; when nav.length <= 5 all fit and there is no More. */
+  /** How many items the BottomNav shows before "More". Default 4; when nav.length <= 5 all fit (with moreItems, 4 fit and the sixth cell is More). */
   primary?: number;
   /** Extra MoreSheet-only items (settings, sign out) shown after the overflow nav items. From md up they sit in a "More" menu in the header. Give them `onSelect`: the menu runs it, and only follows `href` (a full page load) when there is no `onSelect`. */
   moreItems?: NavItem[];
@@ -215,7 +215,8 @@ export function AppShell({
     if (bottomNav.length > 5) warnDev('nish-ui: AppShell bottomNav has more than 5 items; they do not fit a 360px screen.');
     overflow = nav.filter((i) => !bottomItems.includes(i));
   } else {
-    const n = nav.length <= 5 ? nav.length : Math.max(0, primary);
+    const fitAll = nav.length <= (moreItems.length > 0 ? 4 : 5);
+    const n = fitAll ? nav.length : Math.max(0, primary);
     bottomItems = nav.slice(0, n);
     overflow = nav.slice(n);
   }
@@ -265,18 +266,20 @@ export function AppShell({
   );
   const showHeaderTabs = hasNav && !side && (headerMode || tabs !== 'pill');
   const showPills = hasNav && !side && !headerMode && tabs === 'pill';
-  const headerNav =
-    !hasNav && navPending > 0
-      ? [
-          // Skeleton is already aria-hidden; this keeps the placeholder landmark from being empty.
-          <span key="loading" className="sr-only">
-            {strings.loading}
-          </span>,
-          ...Array.from({ length: navPending }, (_, i) => <Skeleton key={i} className={cn('w-24 rounded-lg pointer-coarse:h-11', tabs === 'pill' ? 'h-8' : 'h-10')} />),
-        ]
-      : showHeaderTabs
-        ? tabNodes(tabs === 'pill' ? 'pill' : 'underline')
-        : undefined;
+  // While nav loads, the placeholders go where the real tabs will: the first-row pill slot for adaptive pill tabs
+  // (no second row, so the header does not shrink when nav arrives), otherwise the second row.
+  const pendingNav = !hasNav && navPending > 0;
+  const pendingInFirstRow = pendingNav && !side && !headerMode && tabs === 'pill';
+  const pendingNodes = pendingNav
+    ? [
+        // Skeleton is already aria-hidden; this keeps the placeholder landmark from being empty.
+        <span key="loading" className="sr-only">
+          {strings.loading}
+        </span>,
+        ...Array.from({ length: navPending }, (_, i) => <Skeleton key={i} className={cn('w-24 rounded-lg pointer-coarse:h-11', tabs === 'pill' ? 'h-8' : 'h-10')} />),
+      ]
+    : null;
+  const headerNav = pendingNav && !pendingInFirstRow ? pendingNodes : showHeaderTabs ? tabNodes(tabs === 'pill' ? 'pill' : 'underline') : undefined;
 
   const moreMenuNode = (menuSide?: 'top') => (
     <DropdownMenu
@@ -350,6 +353,8 @@ export function AppShell({
               <nav aria-label={navLabel} className="hidden items-center gap-1 lg:flex">
                 {tabNodes('pill')}
               </nav>
+            ) : pendingInFirstRow ? (
+              <div className="hidden items-center gap-1 lg:flex">{pendingNodes}</div>
             ) : null}
             {hasNav && side?.tools != null ? <span className="flex items-center gap-2 lg:hidden">{side.tools}</span> : null}
             {actions}

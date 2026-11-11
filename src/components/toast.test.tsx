@@ -187,6 +187,23 @@ describe('toast store', () => {
     expect(titles()).toEqual([]);
   });
 
+  it('a second finger during a swipe does not leak the pause', async () => {
+    render(<Toaster />);
+    fire(() => toast('swipe'));
+    tick(10);
+    await fullCard();
+    const card = screen.getByText('swipe').closest('div[class*="rounded-xl"]') as HTMLElement;
+    card.setPointerCapture = () => {};
+    const t = { pointerType: 'touch' };
+    fireEvent.pointerDown(card, { ...t, pointerId: 1, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(card, { ...t, pointerId: 1, clientX: 20, clientY: 0 });
+    fireEvent.pointerDown(card, { ...t, pointerId: 2, clientX: 50, clientY: 0 });
+    fireEvent.pointerUp(card, { ...t, pointerId: 2, clientX: 50, clientY: 0 });
+    fireEvent.pointerUp(card, { ...t, pointerId: 1, clientX: 20, clientY: 0 });
+    tick(10_000);
+    expect(titles()).toEqual([]);
+  });
+
   it('counts overlapping hover and focus pauses', async () => {
     render(<Toaster />);
     fire(() => toast('both'));

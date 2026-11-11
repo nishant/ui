@@ -1,5 +1,5 @@
 // nish-ui/inbox: the Inbox component, its labels and the inbox data types. Fleet-only: built for the
-// nish.software apps, may change in a minor release. Since 3.0 this is the only entry point for these names.
+// nish.software apps, may change in a minor release. The component and its labels are only here; the names and types are also exported from nish-ui/inbox-client and nish-ui/server.
 export { Inbox } from './components/inbox';
 export type { InboxProps, InboxLabels } from './components/inbox';
 export { DEFAULT_INBOX_LABELS } from './components/inbox-classes';

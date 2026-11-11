@@ -37,7 +37,7 @@ export interface BreadcrumbsProps extends Omit<ComponentPropsWithoutRef<'nav'>, 
   onNavigate?: (href: string, item: BreadcrumbItem) => void;
   /** The separator between crumbs. Default: a chevron that mirrors in RTL. */
   separator?: ReactNode;
-  /** More crumbs than this collapse the middle ones into a "…" menu (default 4). */
+  /** More crumbs than this collapse the middle ones into a "…" menu (default 4; values under 3 act as 3, so first, "…" and the current crumb always fit). */
   maxItems?: number;
   /** auto (default): collapse only under 640px of container width. always: whenever there are more than maxItems. never: show every crumb. */
   collapse?: 'auto' | 'always' | 'never';
@@ -86,8 +86,10 @@ function Crumb({
   const href = item.href !== undefined ? safeUrl(item.href) : null;
   if (current) {
     return (
-      <span aria-current="page" className={cn(CURRENT, 'min-w-0 truncate')}>
-        {item.label}
+      <span className={cn(CURRENT, 'min-w-0')}>
+        <span aria-current="page" className="min-w-0 truncate">
+          {item.label}
+        </span>
       </span>
     );
   }
@@ -152,7 +154,7 @@ export function Breadcrumbs({
   const nodes: ReactNode[] = [];
 
   if (items) {
-    const limit = Math.max(2, Math.floor(maxItems));
+    const limit = Math.max(3, Math.floor(maxItems));
     const shouldCollapse = items.length > limit && (collapse === 'always' || (collapse === 'auto' && narrow));
     const tail = Math.max(1, limit - 2);
     const hidden = shouldCollapse ? items.slice(1, items.length - tail) : [];

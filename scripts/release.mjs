@@ -114,7 +114,13 @@ console.log(`\nPushed ${tag}.`);
 if (ci || process.env.GH_TOKEN) {
   const file = join(mkdtempSync(join(tmpdir(), 'ui-release-')), 'notes.md');
   writeFileSync(file, notes || `Release ${tag}.`);
-  execFileSync('gh', ['release', 'create', tag, '--title', tag, '--notes-file', file, '--verify-tag'], { stdio: 'inherit' });
+  // The tag is already pushed: a failed Release must not stop the npm publish and the fan-out below.
+  try {
+    execFileSync('gh', ['release', 'create', tag, '--title', tag, '--notes-file', file, '--verify-tag'], { stdio: 'inherit' });
+  } catch {
+    console.error(`Could not create the GitHub Release: gh release create ${tag} --title ${tag} --notes-file <notes> --verify-tag -R nishant/ui`);
+    process.exitCode = 1;
+  }
 }
 if (ci) {
   // npm (nish-ui) before the fan-out: apps pin npm:nish-ui@X.Y.Z, and the fan-out waits for npm

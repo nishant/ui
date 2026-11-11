@@ -52,7 +52,7 @@ export function ToastCard({ t }: { t: ToastItem }) {
     el.style.opacity = dx === 0 ? '' : String(Math.max(0, 1 - Math.abs(dx) / width));
   };
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType === 'mouse') return;
+    if (e.pointerType === 'mouse' || drag.current) return;
     drag.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -83,8 +83,9 @@ export function ToastCard({ t }: { t: ToastItem }) {
   const onUp = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     const el = ref.current;
+    if (d && d.pointerId !== e.pointerId) return;
     drag.current = null;
-    if (!d || !el || d.pointerId !== e.pointerId || !d.active) return;
+    if (!d || !el || !d.active) return;
     const dx = e.clientX - d.startX;
     const width = el.offsetWidth;
     const flung = Math.abs(d.velocity) > SWIPE_DISMISS_VELOCITY && Math.sign(d.velocity) === Math.sign(dx);
@@ -101,8 +102,9 @@ export function ToastCard({ t }: { t: ToastItem }) {
   };
   const onCancel = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
+    if (d && d.pointerId !== e.pointerId) return;
     drag.current = null;
-    if (!d?.active || d.pointerId !== e.pointerId) return;
+    if (!d?.active) return;
     setOffset(0, ref.current?.offsetWidth || 1);
     resumeTimer(t.id);
   };

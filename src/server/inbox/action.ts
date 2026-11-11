@@ -39,7 +39,7 @@ function validDedupeKey(k: unknown): k is string {
 
 /** The body as an InboxActionCall for `source`, or null: itemId a positive safe integer, actionId
  *  matching /^[a-z0-9][a-z0-9-]{0,31}$/, source === `source`, kind a string, dedupeKey null or a string of 1..200 chars with no control characters (below 0x20 or 0x7f),
- *  data a plain object. */
+ *  data a plain object or null (null becomes {}). */
 export function parseInboxActionCall(body: unknown, source: string): (InboxActionCall & { data: InboxData }) | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) return null;
   const b = body as Record<string, unknown>;
@@ -49,14 +49,14 @@ export function parseInboxActionCall(body: unknown, source: string): (InboxActio
   if (typeof b.kind !== 'string') return null;
   if (b.dedupeKey !== null && !validDedupeKey(b.dedupeKey)) return null;
   const data = b.data;
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) return null;
+  if (data !== null && data !== undefined && (typeof data !== 'object' || Array.isArray(data))) return null;
   return {
     itemId: b.itemId,
     actionId: b.actionId,
     source,
     kind: b.kind,
     dedupeKey: b.dedupeKey as string | null,
-    data: data as InboxData,
+    data: (data ?? {}) as InboxData,
   };
 }
 

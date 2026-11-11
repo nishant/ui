@@ -54,10 +54,15 @@ async function hydrates(el: ReactElement) {
   document.body.appendChild(container);
   container.innerHTML = renderToString(el);
   const before = container.innerHTML;
+  let root!: ReturnType<typeof hydrateRoot>;
   await act(async () => {
-    hydrateRoot(container, el, { onRecoverableError: (e) => errors(e) });
+    root = hydrateRoot(container, el, { onRecoverableError: (e) => errors(e) });
   });
   const messages = errors.mock.calls.map((c) => String(c[0] instanceof Error ? c[0].message : c[0]));
+  // Unmount the React root so its effects, listeners and timers do not leak into later tests.
+  await act(async () => {
+    root.unmount();
+  });
   container.remove();
   return { before, messages };
 }

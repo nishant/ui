@@ -27,8 +27,6 @@ jobs:
       # dom + node (SSR, multi-copy) vitest projects, with the coverage thresholds in vitest.config.ts
       - name: Unit tests (dom and SSR projects) with coverage
         run: npm run test:unit -- --coverage
-      - name: Bundle size budgets
-        run: npm run size
       - run: npx playwright install --with-deps chromium
       # overlay, elements, hydration, axe, forced-colors, RTL and CSP specs (Chromium)
       - name: Browser specs
@@ -41,6 +39,7 @@ jobs:
       - name: Visual check of the docs site
         run: |
           npx vite build --config site/vite.config.ts
+          node tools/site-bundle-check.mjs
           npx vite preview --config site/vite.config.ts --port 5191 &
           npx wait-on -t 60000 http://localhost:5191
           node tools/visual-check.mjs tools/site.visual.json
@@ -123,3 +122,4 @@ jobs:
       config: fold.visual.json
       serve: npm run build:site && exec npx vite preview --config site/vite.config.ts --host 127.0.0.1 --port "$FOLD_PORT" --strictPort
       node-version: '24'
+      tools-ref: ${{ github.event.pull_request.head.sha }}

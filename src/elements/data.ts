@@ -1,6 +1,7 @@
 // nish-ui/elements/data: the wave 3 custom elements except charts, for pages without React.
 // Importing this file registers <nish-table-sort>, <nish-filter-bar>, <nish-split>, <nish-nav-rail>,
-// <nish-scroll-row>, <nish-section-nav> and <nish-command-palette> (a tag that is already defined
+// <nish-scroll-row>, <nish-section-nav> and <nish-command-palette>, plus <nish-sheet> (the filter bar
+// imports it) (a tag that is already defined
 // is skipped). Self-contained: it needs no other element file.
 import { NishCommandPalette } from './command-palette';
 import { NishFilterBar } from './filter-bar';

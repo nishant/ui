@@ -40,7 +40,9 @@ const CORNER_W = 200;
 const initialHidden = (kinds: CanvasEdgeKind[]) => new Set(kinds.filter((k) => k.hidden).map((k) => k.id));
 
 // SystemCanvas: a pannable, zoomable graph-paper canvas of grouped nodes and edges that
-// light up where work is happening. The layout is computed (layoutSystem), never stored.
+// light up where work is happening. The layout candidates are computed (layoutCandidates, memoized);
+// chooseLayout picks one for the canvas size and the pick is kept in the `picked` state, so the layout
+// follows the width without recomputing the candidates.
 //
 // Pan and zoom never go through React state: the view lives in a ref and is written
 // straight to the world layer (`transform`) and the viewport's background-position and
@@ -242,8 +244,11 @@ export function SystemCanvas({
     [apply, reduced],
   );
 
-  /** The fitted view: the whole layout with 48 px padding; on a phone (fit below 0.55) the
-   *  zoom stays 0.55 and the view centers on the first active node, else the first group. */
+  /** The fitted view: the whole layout with 48 px padding (a strip is kept clear under the legend and
+   *  minimap only when a card would land under one). When the fit is below PHONE_K, and the canvas is
+   *  not wide enough (PHONE_MAX_W) to settle for the SCROLL_K floor, the zoom stays at the phone zoom
+   *  (wide enough to fill the width, never below PHONE_K) and the view centers on the first active node;
+   *  with none active it opens on the top of the map, centered across when the map fits the width. */
   const fitView = useCallback((): View => {
     const { w, h } = size.current;
     const { groups: gs, layout: lay, minimap: mini } = latest.current;
@@ -605,6 +610,10 @@ export function SystemCanvas({
       g.mode = 'pan';
       g.lastX = rest.x;
       g.lastY = rest.y;
+    } else if (pointers.current.size >= 2 && g.mode === 'pinch') {
+      // A third finger was down and one of the first two lifted: re-baseline on the pair that is left,
+      // or the next move measures a different pair against the old distance and the view jumps.
+      startPinch();
     } else if (pointers.current.size === 0) {
       if (g.mode === 'pending' && e.pointerType === 'touch' && e.type === 'pointerup') {
         // A touch tap that did not drag; two close together on the same thing are a double-tap.
@@ -866,7 +875,7 @@ export function SystemCanvas({
       ref={setViewportRef}
       role="application"
       aria-label={label}
-      aria-roledescription="canvas"
+      aria-roledescription={strings.canvasRole}
       tabIndex={0}
       className={cn('nish-canvas', className)}
       style={{ height, ...style }}

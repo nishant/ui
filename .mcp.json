@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "nish-remote": {
-      "type": "http",
-      "url": "https://mcp.nish.software/mcp"
-    }
-  }
-}

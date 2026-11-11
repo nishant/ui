@@ -14,7 +14,7 @@ test('row 2: missing checks hold', () => {
 test('row 3: failed checks hold', () => {
   assert.deepEqual(decide(ui({ checks: 'failure' })), { action: 'hold', reason: 'Checks failed' });
 });
-test('row 4: major release from 1.0 holds, 0.x majors do not', () => {
+test('row 4: a bump to a higher major (>= 1) holds; a 0.x minor does not', () => {
   assert.equal(decide(ui({ from: 'v1.4.0', to: 'v2.0.0' })).reason, 'Major release: a session has to adopt it');
   assert.equal(decide(ui({ from: 'v0.9.0', to: 'v1.0.0' })).reason, 'Major release: a session has to adopt it');
   assert.equal(decide(ui({ from: 'v0.6.1', to: 'v0.7.0' })).action, 'merge');

@@ -62,11 +62,15 @@ interface Inflight {
   promise: Promise<unknown>;
   ctl: AbortController;
   refs: number;
+  /** Position in `clock` when the request started. */
+  seq: number;
 }
 
 /** Requests running now, by key. Two hooks that ask for the same key (with the default fetcher, or
  *  the same fetcher function) share one request; it is aborted when the last of them lets go. */
 const inflight = new Map<string, Inflight>();
+/** Orders request starts against mutates, so a mutate can tell which responses are older than it. */
+let clock = 0;
 
 function sharedFetch<T>(key: string, fetcher: ((signal: AbortSignal) => Promise<T>) | undefined, signal: AbortSignal): Promise<T> {
   let entry = inflight.get(key);
@@ -76,6 +80,7 @@ function sharedFetch<T>(key: string, fetcher: ((signal: AbortSignal) => Promise<
       fetcher,
       ctl,
       refs: 0,
+      seq: ++clock,
       promise: fetcher ? fetcher(ctl.signal) : apiFetch<T>(key, { signal: ctl.signal }),
     };
     const forget = () => {
@@ -160,7 +165,7 @@ export function useResource<T>(
       const ctl = new AbortController();
       ctlRef.current = ctl;
       const run = ++runRef.current;
-      const mutatedAtStart = mutatedRef.current;
+      let startedAt = 0;
       pollSkippedRef.current = false;
       setState((s) =>
         s.key === k
@@ -177,10 +182,19 @@ export function useResource<T>(
       );
       try {
         const fn = fetcherRef.current;
-        const data = await (fresh ? (fn ? fn(ctl.signal) : apiFetch<T>(k, { signal: ctl.signal })) : sharedFetch<T>(k, fn, ctl.signal));
+        let pending: Promise<T>;
+        if (fresh) {
+          startedAt = ++clock;
+          pending = fn ? fn(ctl.signal) : apiFetch<T>(k, { signal: ctl.signal });
+        } else {
+          pending = sharedFetch<T>(k, fn, ctl.signal);
+          // A joined request started when its first asker made it, which may be before our mutate.
+          startedAt = inflight.get(k)?.seq ?? ++clock;
+        }
+        const data = await pending;
         if (run !== runRef.current || ctl.signal.aborted) return;
         failuresRef.current = 0;
-        if (mutatedRef.current !== mutatedAtStart) {
+        if (mutatedRef.current > startedAt) {
           // The data was asked for before a local mutate: keep the mutated data.
           setState((s) => ({ ...s, key: k, error: undefined, fetching: false, settled: s.settled + 1, loaded: true }));
           return;
@@ -268,7 +282,7 @@ export function useResource<T>(
   }, [intervalMs, updatedAt]);
 
   const mutate = useCallback((next: T | ((prev: T | undefined) => T)) => {
-    mutatedRef.current++;
+    mutatedRef.current = ++clock;
     setState((s) => ({
       ...s,
       data: typeof next === 'function' ? (next as (prev: T | undefined) => T)(s.data) : next,

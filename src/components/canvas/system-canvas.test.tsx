@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { hydrateRoot } from 'react-dom/client';
 import { readFileSync } from 'node:fs';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -90,6 +91,33 @@ describe('SystemCanvas root', () => {
     expect(calls[0]).toBeInstanceOf(HTMLDivElement);
     unmount();
     expect(calls.at(-1)).toBeNull();
+  });
+
+  it('the role description comes from the provider, defaulting to "canvas"', () => {
+    const { rerender } = render(canvas());
+    expect(screen.getByRole('application').getAttribute('aria-roledescription')).toBe('canvas');
+    rerender(<NishProvider strings={{ canvasRole: 'carte' }}>{canvas()}</NishProvider>);
+    expect(screen.getByRole('application').getAttribute('aria-roledescription')).toBe('carte');
+  });
+
+  it('a third finger that lifts the first pair does not make the zoom jump', () => {
+    const { container } = render(canvas());
+    const vp = screen.getByRole('application');
+    const world = container.querySelector('.nish-canvas-world') as HTMLElement;
+    const scale = () => parseFloat(world.style.transform.split("scale(")[1] ?? "");
+    const ev = (type: string, id: number, x: number, y: number) =>
+      fireEvent(vp, new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, pointerType: 'touch', bubbles: true }));
+    ev('pointerdown', 1, 100, 100);
+    ev('pointerdown', 2, 200, 100);
+    // A no-op move writes the pinch's own scale to the world layer.
+    ev('pointermove', 2, 200, 100);
+    const before = scale();
+    expect(before).toBeGreaterThan(0);
+    ev('pointerdown', 3, 400, 400);
+    ev('pointerup', 2, 200, 100);
+    // The pair is now fingers 1 and 3, 424px apart; against the old 100px baseline that would zoom about 4x.
+    ev('pointermove', 3, 400, 401);
+    expect(Math.abs(scale() / before - 1)).toBeLessThan(0.05);
   });
 
   it('the name comes from label, then the provider, then "System map"', () => {
@@ -312,8 +340,13 @@ describe('SystemCanvas line legend', () => {
   it('Escape closes the panel and returns focus to the button', () => {
     render(canvas({ edgeKinds: kinds }));
     fireEvent.click(screen.getByRole('button', { name: /Lines/ }));
+    // Put focus inside the menu first, so the assertion proves it moved back to the button.
+    const first = within(screen.getByRole('group', { name: 'Lines' })).getAllByRole('switch')[0]!;
+    first.focus();
+    expect(document.activeElement).toBe(first);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('group', { name: 'Lines' })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Lines/ }));
   });
 
   it('the label and the hidden count come from the provider and labels', () => {
@@ -340,6 +373,23 @@ describe('SystemCanvas on the server', () => {
     expect(html).toContain('nish-canvas');
     expect(html).toContain('Zoom in');
     expect(html).toContain('Caddy');
+  });
+
+  it('hydrates the server markup without a mismatch', async () => {
+    const el = canvas({ edgeKinds: [{ id: 'traffic', label: 'Traffic' }] });
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(el);
+    document.body.appendChild(container);
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, el);
+    });
+    const hydration = errors.mock.calls.filter((c) => /hydrat|did not match|mismatch/i.test(String(c[0])));
+    expect(hydration).toEqual([]);
+    expect(container.querySelector('.nish-canvas')).not.toBeNull();
+    act(() => root?.unmount());
+    container.remove();
   });
 });
 

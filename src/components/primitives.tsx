@@ -91,7 +91,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   /** Link variant only: skip the 44px touch hit area, for a link inside running text. */
   inline?: boolean;
-  /** Shows a spinner, disables the button and sets aria-busy. */
+  /** Shows a spinner, blocks clicks and form submit, and sets aria-busy. The button stays focusable (aria-disabled, not the native disabled attribute), so keyboard focus survives the action. */
   loading?: boolean;
   /** Icon before the label (16px for md and lg, 12–14px for xs and sm). Replaced by the
    *  spinner while loading. */
@@ -114,20 +114,40 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const off = !!disabled || loading;
+  // Loading alone keeps focus (aria-disabled); a real `disabled` stays native.
+  const softOff = loading && !disabled;
+  const { onClick, ...restProps } = rest;
   return (
     <button
       ref={ref}
       type={type}
-      disabled={off}
+      disabled={!!disabled}
+      aria-disabled={softOff ? true : undefined}
       aria-busy={loading || undefined}
       data-disabled={off ? '' : undefined}
+      onClick={
+        softOff
+          ? (e) => {
+              // Blocks the handler and a submit button's form submit.
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          : onClick
+      }
       className={buttonClass({
         variant,
         size,
         inline,
-        className: cn(variant === 'link' ? LINK_DISABLED : BUTTON_DISABLED, className),
+        className: cn(
+          variant === 'link' ? LINK_DISABLED : BUTTON_DISABLED,
+          softOff &&
+            (variant === 'link'
+              ? 'pointer-events-none text-th-ghost no-underline forced-colors:text-[GrayText]'
+              : 'pointer-events-none border border-th-line bg-th-elevated text-th-ghost shadow-none forced-colors:border-[GrayText] forced-colors:text-[GrayText]'),
+          className,
+        ),
       })}
-      {...rest}
+      {...restProps}
     >
       {loading ? (
         <LoaderIcon
@@ -260,7 +280,7 @@ export function CardHeader({
           {description ? <p className="mt-0.5 text-xs text-th-hi3">{description}</p> : null}
         </div>
       </div>
-      {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
+      {action ? <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{action}</div> : null}
     </div>
   );
 }
@@ -284,6 +304,8 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
   /** Renders a CardHeader first. On an unpadded card the header is divided (its own
    *  padding and a bottom border). */
   title?: ReactNode;
+  /** The title's heading level; only with title. Default "h2". */
+  titleAs?: 'h2' | 'h3' | 'h4';
   /** The header's description; only with title. */
   description?: ReactNode;
   /** The header's end-aligned action slot; only with title. */
@@ -298,6 +320,7 @@ export function Card({
   interactive = false,
   variant = 'surface',
   title,
+  titleAs,
   description,
   action,
   className,
@@ -319,6 +342,7 @@ export function Card({
       {title != null ? (
         <CardHeader
           title={title}
+          as={titleAs}
           description={description}
           action={action}
           titleId={headingId}

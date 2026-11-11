@@ -279,7 +279,7 @@ line an app has to change. Moving from 2.x: [the 3.0 guide](https://design.nish.
 
 ## [2.0.0] - 2026-11-03
 
-The production-hardening release: server components, SSR, tree-shaking, one shared runtime, strings, locale and direction, forms that post, accessibility and safer defaults. Moving from 1.x: [docs/MIGRATING-2.0.md](docs/MIGRATING-2.0.md).
+The production-hardening release: server components, SSR, tree-shaking, one shared runtime, strings, locale and direction, forms that post, accessibility and safer defaults. Moving from 1.x: [docs/MIGRATING-2.0.md](https://github.com/nishant/ui/blob/master/docs/MIGRATING-2.0.md).
 
 ### Breaking
 

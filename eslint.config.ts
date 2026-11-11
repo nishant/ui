@@ -28,6 +28,8 @@ export default tseslint.config(
       'test-results/**',
       'playwright-report/**',
       'visual-out/**',
+      '.stryker-tmp*/**',
+      'reports/**',
     ],
   },
   js.configs.recommended,

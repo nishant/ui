@@ -133,6 +133,7 @@ export function jsonRevocationStore(file: string): RevocationStore {
   };
   return {
     load() {
+      kept.length = 0; // a second load() must not duplicate the invalid records on save
       let text: string;
       try {
         text = readFileSync(file, 'utf8');
@@ -261,6 +262,7 @@ export function createServiceTokens(entries: ServiceTokenEntry[]): ServiceTokens
       const m = /^Bearer ([^\s]+)$/.exec(authorization ?? '');
       if (!m || !TOKEN_RE.test(m[1])) return { ok: false, status: 401 };
       const hash = hashServiceToken(m[1]);
+      // The Map lookup by hash is the constant-time part; the comparison below is a belt-and-braces check.
       const entry = byHash.get(hash);
       if (!entry || !timingSafeEqual(Buffer.from(entry.sha256, 'hex'), Buffer.from(hash, 'hex'))) return { ok: false, status: 401 };
       if (!entry.scopes.includes(scope)) return { ok: false, status: 403 };
@@ -273,8 +275,9 @@ export function createServiceTokens(entries: ServiceTokenEntry[]): ServiceTokens
 const PROXY_HEADERS = ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'forwarded', 'cf-connecting-ip', 'cf-ray', 'x-real-ip'];
 
 /**
- * True only for a request made straight to the app on loopback: Host is 127.0.0.1, localhost or
+ * Header-only check for a request made straight to the app: Host is 127.0.0.1, localhost or
  * [::1] with the app's port, there are no proxy headers and no Origin (browsers never get in).
+ * Every header is client-controlled, so this does not prove the socket peer is loopback.
  * @deprecated Checks only headers; prefer isDirectCall, which also checks the socket peer.
  */
 export function isDirectLoopback(get: (name: string) => string | undefined, port: number): boolean {

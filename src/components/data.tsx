@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ComponentPropsWithoutRef,
   type CSSProperties,
   type KeyboardEvent,
@@ -25,6 +26,7 @@ import {
   hostnameOf,
   mergeRefs,
   sortRows,
+  tableInternals,
   warnOnce,
   type FaviconResolver,
 } from './data-classes';
@@ -124,14 +126,12 @@ export type Sort = { key: string; dir: 'asc' | 'desc' } | null;
 
 type CardsBelow = 'sm' | 'md' | 'lg';
 
+const subscribeNever = () => () => {};
+
 const TABLE_SHOW: Record<CardsBelow, string> = { sm: 'hidden sm:block', md: 'hidden md:block', lg: 'hidden lg:block' };
 const BP_PX: Record<CardsBelow, number> = { sm: 640, md: 768, lg: 1024 };
 const CARDS_SHOW: Record<CardsBelow, string> = { sm: 'sm:hidden', md: 'md:hidden', lg: 'lg:hidden' };
-const HIDE_BELOW: Record<NonNullable<Column<unknown>['hideBelow']>, string> = {
-  sm: 'hidden sm:table-cell',
-  md: 'hidden md:table-cell',
-  lg: 'hidden lg:table-cell',
-};
+const { HIDE_BELOW } = tableInternals;
 const TONE_EDGE = {
   ok: 'border-s-[3px] border-s-[var(--nish-ok-fill)]',
   warn: 'border-s-[3px] border-s-[var(--nish-warn-fill)]',
@@ -221,6 +221,14 @@ const BodyRow = /* @__PURE__ */ memo(function BodyRow<T>({ row, columns, tone, i
             }
           : undefined
       }
+      onAuxClick={
+        interactive
+          ? (e) => {
+              // The middle button fires auxclick, not click: open the row's link in a new tab.
+              if (e.button === 1 && !fromInteractive(e)) onGo(row, e);
+            }
+          : undefined
+      }
       onKeyDown={
         interactive
           ? (e) => {
@@ -280,6 +288,11 @@ export function ResponsiveTable<T>({
   const [announcement, setAnnouncement] = useState('');
   const sortId = useId();
   const wide = useMediaQuery(`(min-width: ${BP_PX[cardsBelow]}px)`);
+  // False on the server and while hydrating, true on every later render. Until then both
+  // layouts are built and the CSS classes show the right one, so the first paint is not empty.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const showTable = wide || !hydrated;
+  const showCards = !wide || !hydrated;
   const external = sort !== undefined || onSortChange !== undefined;
   const current: Sort = sort !== undefined ? sort : innerSort;
   const sortKey = current?.key;
@@ -320,13 +333,19 @@ export function ResponsiveTable<T>({
     else window.location.assign(href);
   }, [latest]);
 
-  if (error) return <ErrorState message={error.message} onRetry={error.onRetry} className={className} />;
+  if (error) {
+    return (
+      <div {...rest} ref={ref} className={className}>
+        <ErrorState message={error.message} onRetry={error.onRetry} />
+      </div>
+    );
+  }
 
   const emptyNode = empty ?? <EmptyState title={t.nothingHere} />;
   const hasRows = sorted.length > 0;
 
   // Only the active layout is built: the other one would call every cell renderer for nothing.
-  const table = !wide ? null : loading ? (
+  const table = !showTable ? null : loading ? (
     <SkeletonRows rows={5} height={44} label={t.loadingNamed(label)} />
   ) : !hasRows ? (
     emptyNode
@@ -412,7 +431,7 @@ export function ResponsiveTable<T>({
     return <div className={cardClassFor(tone, false)}>{cardBody(row)}</div>;
   };
 
-  const cards = wide ? null : loading ? (
+  const cards = !showCards ? null : loading ? (
     <CardListSkeleton count={3} lines={2} />
   ) : !hasRows ? (
     emptyNode
@@ -457,9 +476,10 @@ export function ResponsiveTable<T>({
 
   return (
     <div {...rest} ref={ref} className={className}>
-      {/* Only the active layout is rendered. Before the media query is known (server render,
-          first paint) the CSS classes keep the wrong one hidden. */}
-      {wide ? <div className={TABLE_SHOW[cardsBelow]}>{table}</div> : <div className={CARDS_SHOW[cardsBelow]}>{cards}</div>}
+      {/* Only the active layout is rendered. Before hydration (server render) both are, and
+          the CSS classes show the right one. */}
+      {showTable ? <div className={TABLE_SHOW[cardsBelow]}>{table}</div> : null}
+      {showCards ? <div className={CARDS_SHOW[cardsBelow]}>{cards}</div> : null}
       <div role="status" aria-live="polite" className="sr-only">
         {announcement}
       </div>

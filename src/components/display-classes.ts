@@ -26,8 +26,7 @@ export function warnDev(message: string): void {
 /** Status tones shared by the display components. */
 export type StatusTone = 'ok' | 'warn' | 'loss' | 'info' | 'accent' | 'neutral';
 
-/** Solid fills for marks (dots, bars, meters). */
-/** @internal */
+/** @internal Solid fills for marks (dots, bars, meters). */
 export const FILL: Record<StatusTone, string> = {
   ok: 'bg-th-ok-fill',
   warn: 'bg-th-warn-fill',

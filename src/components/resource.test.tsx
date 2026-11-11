@@ -108,6 +108,13 @@ describe('apiFetch', () => {
     expect(err.status).toBe(401);
   });
 
+  it('passes a ReadableStream body through untouched', async () => {
+    fetchMock.mockResolvedValue(json({ ok: true }));
+    const body = new ReadableStream();
+    await apiFetch('/x', { method: 'POST', body, duplex: 'half' } as never);
+    expect(fetchMock.mock.calls[0][1].body).toBe(body);
+  });
+
   it('serializes a JSON body and resolves null on 404 with nullOn404', async () => {
     fetchMock.mockResolvedValue(json({ error: 'gone' }, { status: 404 }));
     expect(await apiFetch('/x', { method: 'POST', body: { a: 1 }, nullOn404: true })).toBeNull();
@@ -273,6 +280,31 @@ describe('useResource', () => {
     });
     act(() => result.current.mutate((p) => (p ?? 0) + 10));
     expect(result.current.data).toBe(11);
+  });
+
+  it('a mutate is not overwritten by a shared request that started before it', async () => {
+    let done!: (v: number) => void;
+    const fetcher = vi.fn(() => new Promise<number>((res) => (done = res)));
+    renderHook(() => useResource<number>('shared-k', fetcher));
+    const { result, rerender } = renderHook(({ e }) => useResource<number>('shared-k', fetcher, { enabled: e, initialData: 0 }), { initialProps: { e: false } });
+    act(() => result.current.mutate(5));
+    rerender({ e: true });
+    await flush();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      done(99);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.data).toBe(5);
+  });
+
+  it('reload does not fetch while enabled is false', async () => {
+    const fetcher = vi.fn().mockResolvedValue(1);
+    const { result } = renderHook(() => useResource<number>('k', fetcher, { enabled: false }));
+    await act(async () => {
+      await result.current.reload();
+    });
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it('aborts on unmount', async () => {

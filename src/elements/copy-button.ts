@@ -11,7 +11,7 @@ const COPY_ICON = svg`<svg width="14" height="14" viewBox="0 0 24 24" fill="none
 const CHECK_ICON = svg`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nish-ok)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"></path></svg>`;
 
 /** Writes text with the Clipboard API, falling back to a hidden textarea on insecure origins. */
-async function writeText(text: string): Promise<boolean> {
+async function writeText(text: string, host: HTMLElement): Promise<boolean> {
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
@@ -25,7 +25,8 @@ async function writeText(text: string): Promise<boolean> {
   ta.setAttribute('readonly', '');
   ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
   const active = document.activeElement as HTMLElement | null;
-  document.body.appendChild(ta);
+  // Next to the button (or inside its open modal dialog): everything outside a modal is inert.
+  (host.closest('dialog[open]') ?? host).appendChild(ta);
   ta.select();
   let ok = false;
   try {
@@ -90,7 +91,7 @@ export class NishCopyButton extends NishElement {
 
   async #onClick(): Promise<void> {
     const text = this.#text();
-    if (!(await writeText(text))) {
+    if (!(await writeText(text, this))) {
       await this.#manualCopy();
       return;
     }

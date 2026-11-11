@@ -63,6 +63,13 @@ describe('Progress', () => {
     expect(ref.current!.id).toBe('p');
     expect(ref.current!.getAttribute('data-x')).toBe('1');
   });
+  it('indeterminate fill is a short bar under reduced motion and forced colors', () => {
+    render(<Progress />);
+    const fill = document.querySelector('[data-part="fill"]') as HTMLElement;
+    expect(fill.className).toContain('motion-reduce:!w-2/5');
+    expect(fill.className).toContain('forced-colors:!w-2/5');
+  });
+
   it('reads the indeterminate label from the provider', () => {
     render(
       <NishProvider strings={{ progressIndeterminate: 'Chargement' }}>

@@ -20,6 +20,7 @@ export class NishBottomNav extends NishElement {
   #nav: HTMLElement | null = null;
   #stopHeight: (() => void) | null = null;
   #stopCurrent: (() => void) | null = null;
+  #late: MutationObserver | null = null;
 
   constructor() {
     super();
@@ -45,11 +46,20 @@ export class NishBottomNav extends NishElement {
     this.#sync();
     this.#stopCurrent = mountCurrentLink(nav, (a) => a.classList.add('nish-bottom-nav-item'));
     this.#stopHeight = mountHeightVar(nav, '--nish-bottom-nav-h');
+    // Children a framework renders after mount join the bar.
+    this.#late = new MutationObserver(() => {
+      const n = this.#nav;
+      if (!n) return;
+      for (const c of Array.from(this.children)) if (c !== n) n.appendChild(c);
+    });
+    this.#late.observe(this, { childList: true });
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this.#nav = null;
+    this.#late?.disconnect();
+    this.#late = null;
     this.#stopCurrent?.();
     this.#stopCurrent = null;
     this.#stopHeight?.();

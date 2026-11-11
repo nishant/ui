@@ -7,7 +7,7 @@ import { Portal } from './portal';
 import { useStrings } from './provider';
 import { OVERLAY_STRINGS } from './strings';
 import { DRAWER_SHEET_HEIGHT, DRAWER_WIDTH } from './overlay-classes';
-import { warnDev, useMergedRef, useScrollable } from './overlay-core';
+import { warnDev, useMergedRef, useScrollable, ov, isTop } from './overlay-core';
 import { useDialog, useSheetExit, useSheetSwipe, SheetHandle } from './overlay-dialog';
 
 // ---------------------------------------------------------------------------------
@@ -108,6 +108,20 @@ function DrawerPanel({
   const named = hasTitle || !!ariaLabel || !!ariaLabelledBy;
   const scrollable = useScrollable(bodyRef);
   const bodyLabel = typeof title === 'string' ? title : ariaLabel;
+  const bodyLabelledBy = bodyLabel ? undefined : hasTitle ? titleId : ariaLabelledBy;
+  const bodyNamed = !!bodyLabel || !!bodyLabelledBy;
+  // A press that lands while a menu or popover is on top only dismisses that layer. The layer's own
+  // pointerdown listener closes it before the scrim's mousedown fires, so capture "covered" first.
+  const covered = useRef(false);
+  useEffect(() => {
+    const stack = ov().layerStack;
+    const self = stack[stack.length - 1];
+    const down = () => {
+      covered.current = !!self && !isTop(self);
+    };
+    document.addEventListener('pointerdown', down, true);
+    return () => document.removeEventListener('pointerdown', down, true);
+  }, []);
 
   useEffect(() => {
     if (!named) warnDev('nish-ui: <Drawer> has no accessible name. Pass `title`, `aria-label` or `aria-labelledby`.');
@@ -124,7 +138,7 @@ function DrawerPanel({
       )}
       style={bottom && bottomOffset ? { bottom: bottomOffset } : undefined}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) requestClose();
+        if (e.target === e.currentTarget && !covered.current) requestClose();
       }}
     >
       <div
@@ -187,9 +201,10 @@ function DrawerPanel({
         </div>
         <div
           ref={bodyRef}
-          tabIndex={scrollable ? 0 : undefined}
-          role={scrollable && bodyLabel ? 'region' : undefined}
+          tabIndex={scrollable && bodyNamed ? 0 : undefined}
+          role={scrollable && bodyNamed ? 'region' : undefined}
           aria-label={scrollable ? bodyLabel : undefined}
+          aria-labelledby={scrollable ? bodyLabelledBy : undefined}
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 text-sm text-th-hi2"
         >
           {children}

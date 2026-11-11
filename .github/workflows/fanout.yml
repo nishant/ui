@@ -23,6 +23,7 @@ jobs:
       # The release dispatches this run right after `npm publish`, and npm can take minutes to serve
       # the new tarball. Bump PRs opened before that fail `npm ci` with E404, so wait for it first.
       - name: Wait until npm serves the tarball
+        if: github.event_name != 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_INPUT: ${{ github.event_name == 'push' && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.tag || 'latest') }}
@@ -64,7 +65,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     concurrency:
-      group: fanout-${{ matrix.repo }}
+      group: fanout-${{ matrix.repo }}-${{ inputs.now == true && 'now' || 'std' }}
       cancel-in-progress: false
     env:
       GH_TOKEN: ${{ secrets.FLEET_TOKEN }}

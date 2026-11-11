@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
-
-const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+'use client';
+import { useRef, type RefObject } from 'react';
+import { useIsoLayoutEffect } from './client';
 
 /** A ref that holds the latest `value`, written after each commit and before any passive
  *  effect runs. Read it in effects and event handlers to call the newest callback without

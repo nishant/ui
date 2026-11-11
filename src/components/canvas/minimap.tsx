@@ -2,7 +2,7 @@
 import { memo, useCallback, useEffect, useImperativeHandle, useRef, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import type { CanvasLayout } from './layout';
 import type { CanvasGroup } from './types';
-import type { View } from './view';
+import { PHONE_MAX_W, type View } from './view';
 
 export interface MinimapHandle {
   setView(v: View, size: { w: number; h: number }): void;
@@ -11,7 +11,6 @@ export interface MinimapHandle {
 const MAP_W = 176;
 const MAP_MAX_H = 132;
 const MAP_MIN_H = 60;
-const MIN_CANVAS_W = 600;
 
 const hueVar = (hue: string | undefined, soft: boolean) => (hue ? `var(--nish-${hue}${soft ? '-soft' : ''})` : soft ? 'var(--nish-accent-soft)' : 'var(--nish-accent)');
 
@@ -45,7 +44,7 @@ export const Minimap = memo(function Minimap({
     const rect = rectRef.current;
     if (!cur || !wrap || !rect) return;
     const { v, size } = cur;
-    wrap.style.display = size.w < MIN_CANVAS_W ? 'none' : '';
+    wrap.style.display = size.w < PHONE_MAX_W ? 'none' : '';
     const x0 = Math.max(0, ox + (-v.x / v.k) * s);
     const y0 = Math.max(0, oy + (-v.y / v.k + layout.titleRoom) * s);
     const x1 = Math.min(MAP_W, ox + ((-v.x + size.w) / v.k) * s);
@@ -87,7 +86,7 @@ export const Minimap = memo(function Minimap({
       ref={wrapRef}
       data-canvas-ui
       aria-hidden="true"
-      className="nish-canvas-minimap absolute right-3 top-3 z-[5] overflow-hidden rounded-xl border border-th-line bg-th-surface shadow-pop"
+      className="nish-canvas-minimap absolute end-3 top-3 z-[5] overflow-hidden rounded-xl border border-th-line bg-th-surface shadow-pop"
       style={{ display: 'none' }}
     >
       <svg

@@ -2,7 +2,10 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NumberField, SettingRow, SettingsSection, useSaveStatus } from './settings';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 function setup(props: Partial<Parameters<typeof NumberField>[0]> = {}) {
   const onCommit = vi.fn();
@@ -225,6 +228,20 @@ describe('SettingsSection and SettingRow', () => {
     expect(screen.getByRole('region', { name: 'Scanner' })).toBeTruthy();
     expect(screen.getByLabelText('Interval').id).toBe('iv');
     expect(screen.getByText('Saved').className).toContain('text-th-ok');
+  });
+});
+
+describe('SettingRow description', () => {
+  it('links the description to the control named by htmlFor', () => {
+    render(
+      <SettingRow label="Interval" description="Minutes between runs" htmlFor="iv2">
+        <input id="iv2" aria-describedby="other" />
+      </SettingRow>,
+    );
+    expect(screen.getByLabelText('Interval').getAttribute('aria-describedby')?.split(' ')).toContain(
+      screen.getByText('Minutes between runs').id,
+    );
+    expect(screen.getByLabelText('Interval').getAttribute('aria-describedby')).toContain('other');
   });
 });
 

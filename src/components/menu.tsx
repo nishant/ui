@@ -144,6 +144,16 @@ export function DropdownMenu({
   const dismiss = useCallback((reason: PopoverCloseReason) => setOpen(false, reason), [setOpen]);
   // As a sheet, the Drawer owns Escape, the scrim and the back gesture.
   useDismiss(shown && !asSheet, menuRef, triggerRef, dismiss);
+  // The sheet's own close carries no reason; tell Escape from a scrim press / swipe by the last key.
+  const sheetEscape = useRef(false);
+  useEffect(() => {
+    if (!(shown && asSheet)) return;
+    const key = (e: KeyboardEvent) => {
+      sheetEscape.current = e.key === 'Escape';
+    };
+    document.addEventListener('keydown', key, true);
+    return () => document.removeEventListener('keydown', key, true);
+  }, [shown, asSheet]);
   useReturnFocus(shown, menuRef, triggerRef);
 
   // Focus in on open, and again whenever the focused row disappears (a submenu view
@@ -261,7 +271,7 @@ export function DropdownMenu({
       {triggerEl}
       {open && asSheet ? (
         <MenuContext.Provider value={{ close }}>
-          <drawer.Drawer side="bottom" size="md" title={sheetTitle ?? strings.menu} onClose={close}>
+          <drawer.Drawer side="bottom" size="md" title={sheetTitle ?? strings.menu} onClose={() => dismiss(sheetEscape.current ? 'escape' : 'outside')}>
             <div
               {...menuProps}
               style={style}

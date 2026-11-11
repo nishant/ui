@@ -350,3 +350,47 @@ describe('VirtualList dev warnings', () => {
     expect(warn).toHaveBeenCalledWith('nish-ui: VirtualList: give the list an aria-label or aria-labelledby.');
   });
 });
+
+describe('VirtualList fixes', () => {
+  it('downgrades a smooth scrollToIndex to auto under prefers-reduced-motion', () => {
+    const mm = vi.fn((q: string) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener() {}, removeEventListener() {} }));
+    vi.stubGlobal('matchMedia', mm);
+    const api = createRef<VirtualListHandle>();
+    const { getByTestId } = render(<VirtualList data-testid="vl" aria-label="Rows" count={10000} itemSize={40} height={BOX} apiRef={api} renderItem={renderRow} />);
+    const root = getByTestId('vl');
+    const scrollBy = vi.fn();
+    root.scrollBy = scrollBy as unknown as typeof root.scrollBy;
+    act(() => api.current?.scrollToIndex(500, { align: 'start', behavior: 'smooth' }));
+    expect(scrollBy).toHaveBeenLastCalledWith({ top: 20000, behavior: 'auto' });
+    vi.unstubAllGlobals();
+  });
+
+  it('gives the focusable scroll box a region role and name, and keeps a caller tabIndex', () => {
+    const { getByTestId, rerender } = render(<VirtualList data-testid="vl" aria-label="Rows" count={50} itemSize={40} height={BOX} renderItem={renderRow} />);
+    const root = getByTestId('vl');
+    expect(root.getAttribute('role')).toBe('region');
+    expect(root.getAttribute('aria-label')).toBe('Rows');
+    expect(root.tabIndex).toBe(0);
+    rerender(<VirtualList data-testid="vl" aria-label="Rows" count={50} itemSize={40} height={BOX} tabIndex={-1} renderItem={renderRow} />);
+    expect(getByTestId('vl').tabIndex).toBe(-1);
+  });
+
+  it('goes back to the fixed itemSize when measure is turned off', () => {
+    class RO {
+      static last: RO | null = null;
+      constructor(public cb: ResizeObserverCallback) { RO.last = this; }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', RO);
+    const el = (m: boolean) => <VirtualList aria-label="Rows" count={100} itemSize={40} measure={m} height={BOX} renderItem={renderRow} />;
+    const { container, rerender } = render(el(true));
+    const row0 = container.querySelector<HTMLElement>('[data-index="0"]') as HTMLElement;
+    act(() => RO.last?.cb([{ target: row0, borderBoxSize: [{ blockSize: 80, inlineSize: 0 }] } as unknown as ResizeObserverEntry], RO.last as unknown as ResizeObserver));
+    expect(container.querySelector<HTMLElement>('[data-index="1"]')?.style.transform).toBe('translateY(80px)');
+    rerender(el(false));
+    expect(container.querySelector<HTMLElement>('[data-index="1"]')?.style.transform).toBe('translateY(40px)');
+    vi.unstubAllGlobals();
+  });
+});

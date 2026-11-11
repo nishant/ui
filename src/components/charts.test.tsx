@@ -138,9 +138,22 @@ describe('LineChart', () => {
     expect(container.querySelector('tbody th')!.textContent).toBe('t0');
     expect(container.querySelector('text')!.textContent).toMatch(/^\$/);
   });
-  it('lists at most 200 rows in the table', () => {
+  it('lists at most 200 rows in the table, then says it was cut', () => {
     const { container } = render(<LineChart label="S" data={line(500)} />);
-    expect(container.querySelectorAll('tbody tr')).toHaveLength(200);
+    const rows = container.querySelectorAll('tbody tr');
+    expect(rows).toHaveLength(201);
+    expect(rows[200].textContent).toBe('First 200 of 500 points');
+    const full = render(<LineChart label="S" data={line(200)} />);
+    expect(full.container.querySelectorAll('tbody tr')).toHaveLength(200);
+  });
+  it('keeps the root ref callback across renders', () => {
+    const calls: (HTMLDivElement | null)[] = [];
+    const ref = (el: HTMLDivElement | null) => void calls.push(el);
+    const { rerender } = render(<LineChart ref={ref} label="S" data={line(3)} />);
+    const before = calls.length;
+    rerender(<LineChart ref={ref} label="S" data={line(3)} />);
+    rerender(<LineChart ref={ref} label="S" data={line(3)} />);
+    expect(calls.length).toBe(before);
   });
 
   describe('crosshair', () => {
@@ -161,6 +174,17 @@ describe('LineChart', () => {
       expect(tip(c)!.textContent).toContain('x0');
       fireEvent.keyDown(svg(c), { key: 'Escape' });
       expect(tip(c)).toBeNull();
+    });
+    it('announces the point to screen readers on a keyboard move, not on a pointer move', () => {
+      const c = open();
+      const live = () => c.querySelector('[aria-live="polite"]') as HTMLElement;
+      expect(live().textContent).toBe('');
+      fireEvent.keyDown(svg(c), { key: 'ArrowRight' });
+      expect(live().textContent).toBe('x0: 0');
+      fireEvent.keyDown(svg(c), { key: 'ArrowRight' });
+      expect(live().textContent).toBe('x1: 10');
+      fireEvent.pointerMove(svg(c), { clientX: 400 });
+      expect(live().textContent).toBe('');
     });
     it('starts at the last point with the left arrow and stops at the ends', () => {
       const c = open();
@@ -447,6 +471,14 @@ describe('RangeBar', () => {
   it('names the range, the current value and the bounds', () => {
     render(<RangeBar min={0} max={1000} low={100} high={1500} current={250} />);
     expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Range 100 to 1,500, current 250, within 0 to 1,000');
+  });
+  it('takes the default name from the provider strings', () => {
+    render(
+      <NishProvider strings={{ rangeLabel: (l: string, h: string, c: string | null, mn: string, mx: string) => `Spanne ${l}-${h}${c ? ` jetzt ${c}` : ''} in ${mn}-${mx}` }}>
+        <RangeBar min={0} max={10} low={1} high={2} current={3} />
+      </NishProvider>,
+    );
+    expect(screen.getByRole('img').getAttribute('aria-label')).toBe('Spanne 1-2 jetzt 3 in 0-10');
   });
   it('leaves out the current value when there is none', () => {
     render(<RangeBar min={0} max={10} low={1} high={2} />);

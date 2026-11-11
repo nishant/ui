@@ -198,7 +198,11 @@ export function ContextMenu({
     if (!active || active === document.body || active.hasAttribute('data-nish-context-anchor')) returnTo.current?.focus({ preventScroll: true });
   }, [open]);
 
-  const content = typeof menu === 'function' ? (target ? menu(target) : null) : menu;
+  // The root element is a fallback anchor for a menu opened before a target was recorded (keyboard open).
+  /* eslint-disable react-hooks/refs */
+  const anchor = target ?? rootRef.current;
+  const content = typeof menu === 'function' ? (anchor ? menu(anchor) : null) : menu;
+  /* eslint-enable react-hooks/refs */
   const shown = open && content != null && content !== false;
 
   return (

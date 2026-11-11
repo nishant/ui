@@ -1,5 +1,5 @@
 // Shared by <nish-line-chart> and <nish-bar-chart>: format specs, scales, ticks, series colors
-// and the base class that tracks width and theme changes. No React, so the charts bundle stays
+// and the base class that tracks width. No React, so the charts bundle stays
 // self-contained (src/chart.ts imports React and cannot be bundled into an element file).
 import { date, money, num, pct, time } from '../format';
 import { NishElement } from './base';
@@ -187,8 +187,8 @@ export const jsonList = {
   },
 };
 
-/** Base of the two chart elements: keeps `width` current with a ResizeObserver and redraws when
- *  the theme changes. Listeners are removed on disconnect. */
+/** Base of the two chart elements: keeps `width` current with a ResizeObserver. Colors are `var(--nish-*)`
+ *  references, so a theme change needs no redraw. The observer is removed on disconnect. */
 export abstract class NishChartBase extends NishElement {
   static override properties = {
     label: { type: String, reflect: true },
@@ -210,7 +210,6 @@ export abstract class NishChartBase extends NishElement {
   declare width: number;
 
   private ro: ResizeObserver | null = null;
-  private themeObserver: MutationObserver | null = null;
 
   constructor() {
     super();
@@ -232,16 +231,12 @@ export abstract class NishChartBase extends NishElement {
       });
       this.ro.observe(this);
     }
-    this.themeObserver = new MutationObserver(() => this.requestUpdate());
-    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this.ro?.disconnect();
     this.ro = null;
-    this.themeObserver?.disconnect();
-    this.themeObserver = null;
   }
 
   protected get plotHeight(): number {

@@ -18,10 +18,12 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    # The job holds the OIDC token npm trusts, so only master's tooling may run it.
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      # master for the tooling, the tag (which carries dist/) as the package.
+      # master for the tooling (the job only runs on master), the tag (which carries dist/) as the package.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
@@ -29,9 +31,9 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-      # Trusted publishing needs npm 11.5.1 or later.
+      # Trusted publishing needs npm 11.5.1 or later; pinned so the job that holds id-token does not float.
       - name: Update npm
-        run: npm install -g npm@11
+        run: npm install -g npm@11.6.2
       - name: Check out the tag
         env:
           TAG: ${{ inputs.tag }}

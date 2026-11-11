@@ -121,6 +121,20 @@ describe('CommandPalette rendering', () => {
   });
 });
 
+describe('CommandPalette provider strings', () => {
+  it('takes the external mark and the result count from the provider, props still win', async () => {
+    const strings = { opensInNewTab: 'ouvre un onglet', resultsCount: (n: number) => `${n} resultats` };
+    render(
+      <NishProvider strings={strings}>
+        <CommandPalette open onOpenChange={() => {}} items={ITEMS} />
+      </NishProvider>,
+    );
+    await screen.findByRole('combobox');
+    expect(screen.getByRole('img', { name: 'ouvre un onglet' })).toBeTruthy();
+    expect(document.querySelector('[aria-live="polite"]')!.textContent).toBe('4 resultats');
+  });
+});
+
 describe('CommandPalette filtering', () => {
   it('filters by label prefix, word start, substring and subsequence, best match first', async () => {
     const items: CommandItem[] = [
@@ -489,6 +503,18 @@ describe('hotkeys', () => {
     render(<Harness />);
     fireEvent.keyDown(document, { key: 'K', metaKey: true });
     expect(await screen.findByRole('combobox')).toBeTruthy();
+  });
+
+  it('Ctrl+K opens it on a non-Latin layout through the physical key, but not for another Latin key', async () => {
+    render(<Harness />);
+    fireEvent.keyDown(document, { key: 'л', code: 'KeyK', ctrlKey: true });
+    expect(await screen.findByRole('combobox')).toBeTruthy();
+    cleanup();
+    render(<Harness />);
+    // A Latin layout that puts another letter on the K position (Dvorak: e.key 't') must not open it.
+    fireEvent.keyDown(document, { key: 't', code: 'KeyK', ctrlKey: true });
+    await act(async () => {});
+    expect(screen.queryByRole('combobox')).toBeNull();
   });
 
   it('/ opens it unless focus is in a field', async () => {

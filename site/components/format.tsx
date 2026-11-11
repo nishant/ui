@@ -191,7 +191,7 @@ pct(0.0214, { signed: true });     // "+2.1%"
 ago(Date.now() - 180_000);         // "3m ago"
 dateRange(depart, ret);            // "Dec 12 – 16"
 
-// Static pages, no bundler:
+// Static pages, no bundler: copy dist/format.js yourself (files.json does not list it).
 // import { money } from './nish/format.js';`,
   guidelines: [
     'Use these everywhere a number or date reaches the screen, so Trading, Trips and the hub agree on how $1,234.56 and "3m ago" look.',

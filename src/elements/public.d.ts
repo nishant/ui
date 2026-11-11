@@ -127,6 +127,7 @@ export interface ToastOptions {
   duration?: number | 'sticky';
   action?: { label: string; href?: string; onClick?: () => void };
   dismissLabel?: string;
+  strings?: { dismiss?: string };
 }
 
 /** Show a toast. Returns a function that hides it now. Needs nish-components.css. */
