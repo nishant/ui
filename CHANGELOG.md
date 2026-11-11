@@ -8,17 +8,33 @@ a minor adds, and a patch fixes.
 
 ### Added
 
+- `NishStrings` keys `resultsCount`, `opensInNewTab`, `serverUnreachable`, `rangeLabel`, `chartTruncated`, `onThisPage`, `canvasRole`, `pageOfCount`, `tokenEmpty`, `tokenRevokeBody`, `tokenCreated` and `tokenFromEnv`, so the matching component text can be translated (UI-284, UI-285, UI-286).
+- `signedMoney(v, { zero })` sets the text for a zero change; `mountChecklist(list, { format })` sets the progress text; `Card` `titleAs` (`'h2' | 'h3' | 'h4'`) sets the title's heading level.
+- `@nish/ui/nish.min.css` and `@nish/ui/nish-components.min.css` package exports for the minified stylesheets.
 - `Breadcrumbs` `onNavigate(href, item)`: called for an item picked in the collapsed "..." menu, so router apps navigate client-side instead of a full page load.
 - `NishStrings` `copyFailed`, the default `failedLabel` of `CopyButton`.
 - `LoginOptions` `failBudget`: an optional budget of failed logins across all keys that adds delay instead of locking.
 
 ### Changed
 
+- `Button` `loading` is now `aria-disabled` and stays focusable instead of natively disabled; a real `disabled` stays native.
+- `Combobox` calls `onQueryChange('')` when an option is picked and when the field is cleared.
+- `ResponsiveTable` renders both layouts until hydration (CSS picks one), then only the active one, and opens a row's link on middle-click.
+- `registerThemes` skips (with a console warning) theme names outside `[a-z0-9-]`, since the cookie readers would not match them after a reload.
+- `parseInboxActionCall` accepts `data: null` and treats it as `{}`.
+- `ConnectionBanner` default message comes from the `serverUnreachable` string.
+- The tokens module ships as `dist/esm/tokens.mjs` only; `dist/tokens.js` is no longer written (the `@nish/ui/tokens` export is unchanged).
+- fan-out keeps one concurrency group per repo (`fanout-<repo>`), so a `now=true` dispatch and the hourly run never open the same bump PR twice (UI-098); a `now=true` dispatch dropped while queued behind a running job needs a re-run.
 - `<nish-command-palette>` ranks like `CommandPalette`: hints are not searched and a multi-word query is one phrase.
 - Internal: the command-palette spec tests the new ranking; ROADMAP names the audit findings still open (UI-400, UI-405); size budgets for DatePicker, DateRangePicker and the root bundle are raised by 0.1 to 0.2 KB for the Calendar fixes.
 
 ### Fixed
 
+- `loginHandler` reads the body capped at 16 KB and answers 413 for a larger declared or actual body (UI-369).
+- `AppShell` and `Card` heading refs are memoised, so React no longer detaches and re-attaches the merged ref every render.
+- Toast: focus returns to where it was before the toast took it when the toast closes, and a toast region already in the page is reused.
+- Modal and Drawer backdrop close needs the press to start on the backdrop, so a text selection dragged out of the box no longer closes it.
+- The theme cookie reader matches the whole value, and a theme registered by the page itself is not labelled "set on another site".
 - `FilterBar` server-renders the Filters button below the breakpoint (CSS picks the layout until hydration), so phones no longer see the inline filter row first.
 - `Calendar` / `RangeCalendar` today ring shows in forced colors, today re-reads at midnight and when the tab becomes visible, and the month and year pickers respect `min` and `max`.
 - `CommandPalette`: Enter pressed while async results are pending acts on the newest results once they arrive.
