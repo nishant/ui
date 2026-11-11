@@ -15,7 +15,7 @@ a minor adds, and a patch fixes.
 ### Changed
 
 - `<nish-command-palette>` ranks like `CommandPalette`: hints are not searched and a multi-word query is one phrase.
-- Internal: ROADMAP lists only the audit items still open.
+- Internal: the command-palette spec tests the new ranking; ROADMAP names every audit finding still open (UI-392, 400, 402, 405, 418, 504, 519, 523, 534, 035).
 
 ### Fixed
 

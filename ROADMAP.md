@@ -16,6 +16,13 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
   - UI-405: the parity harness (`tests/elements/react.tsx`) and several specs wait fixed sleeps (300 ms, 450 ms, up to 1800 ms) for readiness, and CI's `retries: 1` hides the flakes. Publish a ready flag from the harnesses and wait on it, then turn on `failOnFlakyTests`. Needs Playwright runs, so not on the PC.
   - UI-035: FilterBar server-renders the desktop layout, so phones see the inline filter row until hydration. Needs a
     design choice (rendering both branches would mount the children twice).
+  - Phase 3 findings still open (section 'Phase 3 findings (2026-11-09)' of the same report):
+    - UI-392 (medium): `tools/site-all.visual.json` runs 360 and 840 only for the inbox page; add both widths for every page.
+    - UI-418: the skip-link story's `href="#main"` breaks the docs site's hash router.
+    - UI-504: `tests/consumers/vite/tsconfig.json` (strict, `skipLibCheck: false`) is never type-checked.
+    - UI-519: `isDirectLoopback` accepts localhost and `[::1]` Hosts; `[::1]` is untested and the rule differs from `isInboxCall`.
+    - UI-523: the toasts shot in `tools/demo.visual.json` waits for the always-present sr-only live region, not for a toast.
+    - UI-534: `tools/fold-comment.mjs` reads only the first 100 comments, so a long PR gets a new report comment each run.
 - **Fan-out fixes from the audit** (2026-11-09, audit-1108): UI-089: real isolation of repo-controlled commands from
   FLEET_TOKEN (a token-less job or container); the comment now says they are not isolated.
 - **CI and docs drift from the audit** (2026-11-09, audit-1108): UI-009: the release job runs devDependency code with a
