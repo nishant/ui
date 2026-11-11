@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NishProvider } from '../provider';
+import type { FollowStep, FollowTarget } from './follow';
+import { FollowCaption } from './follow-caption';
 import { SystemCanvas } from './system-canvas';
 import type { CanvasEdge, CanvasGroup } from './types';
 
@@ -196,7 +198,7 @@ describe('SystemCanvas controls', () => {
       }),
     );
     act(() => void vi.advanceTimersByTime(0));
-    expect(screen.getByRole('status').textContent).toContain('Suit · Apps › Web');
+    expect(document.querySelector('[data-follow-caption]')!.textContent).toContain('Suit · Apps › Web');
     vi.useRealTimers();
   });
 
@@ -204,10 +206,36 @@ describe('SystemCanvas controls', () => {
     vi.useFakeTimers();
     render(canvas({ follow: true }));
     act(() => void vi.advanceTimersByTime(0));
-    expect(screen.getByRole('status').textContent).toContain('Following · Apps › Web');
-    expect(document.querySelector('[role="status"] .text-th-hi3')).not.toBeNull();
-    expect(document.querySelector('[role="status"] .text-th-ghost')).toBeNull();
+    const pill = document.querySelector('[data-follow-caption]')!;
+    expect(pill.textContent).toContain('Following · Apps › Web');
+    expect(pill.querySelector('.text-th-hi3')).not.toBeNull();
+    expect(pill.querySelector('.text-th-ghost')).toBeNull();
+    expect(pill.getAttribute('role')).toBeNull();
+    expect(pill.getAttribute('aria-live')).toBeNull();
     vi.useRealTimers();
+  });
+
+  it('the follow caption announces only mode changes, not each target in a cycle', () => {
+    const box = { x: 0, y: 0, w: 10, h: 10 };
+    const target = (id: string, label: string): FollowTarget => ({ id, label, group: 'Apps', box, at: 0 });
+    const view = { x: 0, y: 0, k: 1 };
+    const one = (t: FollowTarget): FollowStep => ({ mode: 'one', targets: [t], view });
+    const labels = { followOne: (g: string, l: string) => `Suit ${g} ${l}`, followIdle: 'Nothing active' } as React.ComponentProps<typeof FollowCaption>['labels'];
+    const region = () => screen.getByRole('status');
+    const pill = () => document.querySelector('[data-follow-caption]');
+    const { rerender } = render(<FollowCaption step={null} labels={labels} />);
+    expect(region().textContent).toBe('');
+    expect(pill()).toBeNull();
+    rerender(<FollowCaption step={one(target('a', 'Web'))} labels={labels} />);
+    expect(region().textContent).toBe('Suit Apps Web');
+    expect(pill()!.textContent).toContain('Suit Apps Web');
+    rerender(<FollowCaption step={one(target('b', 'API'))} labels={labels} />);
+    expect(pill()!.textContent).toContain('Suit Apps API');
+    expect(region().textContent).toBe('Suit Apps Web');
+    rerender(<FollowCaption step={{ mode: 'idle', targets: [], view }} labels={labels} />);
+    expect(region().textContent).toBe('Nothing active');
+    rerender(<FollowCaption step={null} labels={labels} />);
+    expect(region().textContent).toBe('');
   });
 
   it('the + and - keys zoom, 0 fits, arrows pan', () => {

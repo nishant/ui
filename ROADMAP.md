@@ -5,39 +5,15 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
 ## Ideas
 
 - **Touch hit area on the Tooltip hint variant** (2026-11-10, trading term-tooltips): an inline `variant="hint"` term is one text line tall, well under 44px on a phone. Trading's `Term` adds the `linkClass()` recipe (`LINK_HIT`: a coarse-pointer `::after` at `-inset-x-2 -inset-y-3.5`) itself. Put it on the hint variant here (watch for the box covering a term on the line above in dense text), release, then drop `TOUCH_HIT` from `apps/web/src/components/Term.tsx` in trading.
-- **Global failed-login budget** (2026-11-10, audit XR-029 remainder): the limiter now evicts the oldest locked key when full, but one attacker with many keys still gets 5 tries each. Add an optional budget across all keys (for example 200 failed logins a window) in `createLimiter` / `loginHandler` that adds delay instead of locking.
 - **Fold callers still on @master** (2026-11-10, audit XR-031 remainder): callers run fold-check from `@master`, and the reusable workflow checks out its Fold tools at ui master even for a pinned caller. Move callers to a tag pin (the fan-out holds PRs touching `.github/workflows`, so it cannot do it) and make the tools checkout follow the called ref.
 - **eslint 10 for `@nish/ui/eslint`** (2026-11-10, audit XR-037): move to eslint 10 + `@eslint/js` 10 in one hand-made PR, confirm the shared config and `eslint-plugin-react-hooks` load, declare the supported range in `peerDependencies`, release; apps then drop their overrides.
 - **Adopt `isDirectCall` in apps** (2026-11-10, audit XR-033 follow-up, after release): trackers replaces its local `isDirectLoopback` with `isDirectCall` (audit XR-048), and apps pass `remoteAddressOf(c)` to `checkServiceRequest`.
-- **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids
-  Phase 3 (2026-11-09) closed 183 of its 212 findings; 29 are still open: 1 medium, 17 low, 11 nit (none critical or high).
-  Medium: UI-392 (docs-site all-pages visual config skips 360 and 840 for every page except inbox). The lows and nits
-  are mostly flaky or leaky test and harness code (fixed sleeps, tight timeouts, leftover temp dirs and signal handlers),
-  gallery script bugs (backslash paths, stale shots, 44px targets) and stale doc comments. Full list: the 'Phase 3
-  findings (2026-11-09)' section of `C:\Code\.audit\2026-11-08\ui.md` (PC only); UI-400, UI-402 and UI-490 are below.
-  `UI-nnn`). What is left:
-  - UI-135: `src/components/breadcrumbs.tsx:176`: the collapsed "..." menu calls `window.location.assign`; route a menu
-    item with an href through `renderLink` (or an `onNavigate` prop) so router apps navigate client-side, and test it.
-  - UI-139: `src/components/calendar-classes.ts:330`: `y = 2000 + y` turns "99" into 2099; use a CLDR pivot window
-    (80 years back, 19 ahead), add tests for '99' and '30', and document the rule in the DatePicker JSDoc.
-  - UI-141: `src/components/canvas/follow-caption.tsx`: drop `role="status"`/`aria-live` from the auto-cycling caption;
-    add an always-mounted sr-only live region that announces only mode changes.
-  - UI-176: `src/components/display.tsx` Disclosure `onToggle`: when `open` is set and the toggle disagrees, call
-    `onOpenChange` then write `e.currentTarget.open = open` back; assert `el.open` is false in the test.
-  - UI-177: `CopyButton`: add `copyFailed` to the display strings and use `failedLabel ?? strings.copyFailed`; add a
-    provider override test.
-  - UI-181: `src/components/error-boundary.tsx:24`: make `CHUNK_MESSAGE` case-insensitive and add Firefox's "error
-    loading dynamically imported module" and Vite's "Unable to preload CSS"; one test per message.
-  - UI-182: `error-boundary.tsx:61`: `componentDidUpdate` must check `prevState.error` was already set before resetting,
-    so `onError` fires once; add a test.
+- **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids `UI-nnn`). What is left:
   - UI-400: the docs site's CSP is only `frame-ancestors 'self'`; the build should emit the theme-init sha256 and
     hosting should serve a strict policy for design.nish.software (needs the hosting repo).
   - UI-402: Firefox and WebKit run only the overlay specs; widen the WebKit project's testMatch to the elements,
     pickers and slider specs and skip the Chromium-only cases (CDP, forced-colors emulation).
-  - UI-490: `<nish-command-palette>` (`src/command-filter.ts` `matchesCommandQuery`: every word as a substring of
-    label, hint or keywords, grouped, then capped) filters and orders differently from the React CommandPalette
-    (`rankItems` in `src/components/command.tsx`: prefix > word start > substring > subsequence on the label and
-    keywords, no hint). Move the ranking into `command-filter.ts`, use it in both, and add a parity test.
+  - UI-405: the parity harness (`tests/elements/react.tsx`) and several specs wait fixed sleeps (300 ms, 450 ms, up to 1800 ms) for readiness, and CI's `retries: 1` hides the flakes. Publish a ready flag from the harnesses and wait on it, then turn on `failOnFlakyTests`. Needs Playwright runs, so not on the PC.
   - UI-035: FilterBar server-renders the desktop layout, so phones see the inline filter row until hydration. Needs a
     design choice (rendering both branches would mount the children twice).
 - **Fan-out fixes from the audit** (2026-11-09, audit-1108): UI-089: real isolation of repo-controlled commands from

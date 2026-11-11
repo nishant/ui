@@ -653,10 +653,20 @@ export function Disclosure({
       open={isOpen}
       data-state={isOpen ? 'open' : 'closed'}
       onToggle={(e) => {
-        const now = e.currentTarget.open;
-        if (open === undefined) setInner(now);
-        // Skip the toggle event React's own write of `open` causes.
-        if (open === undefined || now !== open) onOpenChange?.(now);
+        const el = e.currentTarget;
+        const now = el.open;
+        if (open === undefined) {
+          setInner(now);
+          onOpenChange?.(now);
+          return;
+        }
+        // Controlled: the native element toggled on a summary click, but React only writes
+        // `open` when its value changes, so put the element back to the parent's value. That
+        // write fires one more toggle with now === open, which this branch ignores.
+        if (now !== open) {
+          onOpenChange?.(now);
+          el.open = open;
+        }
       }}
       className={cn(
         'group',
@@ -763,7 +773,7 @@ export interface CopyButtonProps extends Omit<ComponentPropsWithoutRef<'button'>
   /** Shown for 1.5s after a copy and announced politely. Default: the provider's `copied` string. */
   copiedLabel?: string;
   /** Shown for 1.5s when neither the Clipboard API nor the textarea fallback worked, and
-   *  announced politely. Default "Copy failed". */
+   *  announced politely. Default: the provider's `copyFailed` string ("Copy failed"). */
   failedLabel?: string;
   /** A square IconButton instead of a labelled Button. */
   iconOnly?: boolean;
@@ -782,7 +792,7 @@ export function CopyButton({
   text,
   label,
   copiedLabel,
-  failedLabel = 'Copy failed',
+  failedLabel,
   iconOnly = false,
   size = 'sm',
   variant = 'secondary',
@@ -794,6 +804,7 @@ export function CopyButton({
   const strings = useStrings(DISPLAY_STRINGS, SHELL_STRINGS);
   const idleText = label ?? strings.copy;
   const doneText = copiedLabel ?? strings.copied;
+  const failText = failedLabel ?? strings.copyFailed;
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -809,7 +820,7 @@ export function CopyButton({
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setState('idle'), COPIED_MS);
   };
-  const shownText = state === 'copied' ? doneText : state === 'failed' ? failedLabel : idleText;
+  const shownText = state === 'copied' ? doneText : state === 'failed' ? failText : idleText;
   const iconSize = size === 'sm' ? 14 : 16;
   const icon = state === 'copied' ? <CheckIcon size={iconSize} className="text-th-ok" /> : <CopyIcon size={iconSize} />;
   return (
@@ -824,7 +835,7 @@ export function CopyButton({
         </Button>
       )}
       <span role="status" aria-live="polite" className="sr-only">
-        {state === 'copied' ? doneText : state === 'failed' ? failedLabel : ''}
+        {state === 'copied' ? doneText : state === 'failed' ? failText : ''}
       </span>
     </>
   );

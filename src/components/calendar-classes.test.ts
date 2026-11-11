@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cn } from '../cn';
 import {
   addDays,
@@ -11,6 +11,7 @@ import {
   datePlaceholder,
   dayNumber,
   daysInMonth,
+  expandTwoDigitYear,
   endOfWeek,
   firstDisabledIn,
   firstOfMonth,
@@ -406,5 +407,27 @@ describe('calendarDayClass', () => {
     );
     expect(calendarDayClass({ filled: false, today: false, disabled: false, band: 'middle' })).not.toContain(outline);
     expect(calendarDayClass({ filled: true, today: false, disabled: false })).not.toContain('outline');
+  });
+});
+
+describe('two-digit years', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('expandTwoDigitYear uses the CLDR window', () => {
+    expect(expandTwoDigitYear(99, 2026)).toBe(1999);
+    expect(expandTwoDigitYear(30, 2026)).toBe(2030);
+    expect(expandTwoDigitYear(45, 2026)).toBe(2045);
+    expect(expandTwoDigitYear(46, 2026)).toBe(1946);
+    expect(expandTwoDigitYear(0, 2026)).toBe(2000);
+    expect(expandTwoDigitYear(5, 2026)).toBe(2005);
+  });
+
+  it('parseDateField applies the window to the current year', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-15T12:00:00Z'));
+    expect(parseDateField('12/31/99', 'en-US')).toBe('1999-12-31');
+    expect(parseDateField('1/2/30', 'en-US')).toBe('2030-01-02');
   });
 });

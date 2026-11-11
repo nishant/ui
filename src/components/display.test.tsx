@@ -332,6 +332,18 @@ describe('Sparkline', () => {
 });
 
 describe('Disclosure', () => {
+  it('stays closed when controlled open={false} and a toggle fires, reporting once', () => {
+    const fn = vi.fn();
+    render(<Disclosure summary="More" open={false} onOpenChange={fn} data-testid="d">Body</Disclosure>);
+    const el = screen.getByTestId('d') as HTMLDetailsElement;
+    el.open = true;
+    fireEvent(el, new Event('toggle'));
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith(true);
+    expect(el.open).toBe(false);
+    expect(el.getAttribute('data-state')).toBe('closed');
+  });
+
   it('starts closed or open and reflects it in data-state', () => {
     const { unmount } = render(<Disclosure summary="More" data-testid="d">Body</Disclosure>);
     expect(screen.getByTestId('d').getAttribute('data-state')).toBe('closed');
@@ -516,6 +528,21 @@ describe('CopyButton', () => {
       fireEvent.click(screen.getByRole('button'));
     });
     expect(screen.getByRole('status').textContent).toBe('Copy failed');
+  });
+
+  it('takes the failure string from a provider', async () => {
+    setClipboard(undefined, false);
+    setExec('throw');
+    render(
+      <NishProvider strings={{ copyFailed: 'Kopieren fehlgeschlagen' }}>
+        <CopyButton text="x" />
+      </NishProvider>,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button'));
+    });
+    expect(screen.getByRole('button').textContent).toBe('Kopieren fehlgeschlagen');
+    expect(screen.getByRole('status').textContent).toBe('Kopieren fehlgeschlagen');
   });
 
   it('takes its labels from a provider, and a prop wins', () => {

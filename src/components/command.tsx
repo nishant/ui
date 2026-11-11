@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { cn } from '../cn';
-import { COMMAND_MAX_RESULTS } from '../command-filter';
+import { COMMAND_MAX_RESULTS, matchText, rankCommandItems } from '../command-filter';
 import { safeUrl } from '../url';
 import { XIcon } from './icons';
 import { Modal } from './modal';
@@ -74,79 +74,14 @@ export interface CommandPaletteProps {
   onSubmitQuery?: (q: string) => void;
 }
 
-/** An item with its label and keywords lowercased once, not on every keystroke. */
-interface Indexed {
-  item: CommandItem;
-  label: string;
-  keywords: string[];
-}
-
-function indexItems(items: CommandItem[]): Indexed[] {
-  return items.map((item) => ({ item, label: item.label.toLowerCase(), keywords: (item.keywords ?? []).map((k) => k.toLowerCase()) }));
-}
-
 interface Ranked {
   item: CommandItem;
   /** Indices of `label` to highlight (empty when only a keyword matched). */
   marks: number[];
 }
 
-function isWordStart(text: string, i: number): boolean {
-  return i === 0 || !/[a-z0-9]/i.test(text[i - 1]!);
-}
-
-/** Match tier of `q` in `text` (both lowercase): 0 prefix, 1 word start, 2 substring,
- *  3 subsequence; null when no match. `idx` are the matched character positions. */
-function matchText(text: string, q: string): { tier: number; idx: number[] } | null {
-  const at = text.indexOf(q);
-  if (at >= 0) {
-    let tier = at === 0 ? 0 : 2;
-    let start = at;
-    if (tier === 2) {
-      for (let from = at; from >= 0; from = text.indexOf(q, from + 1)) {
-        if (isWordStart(text, from)) {
-          tier = 1;
-          start = from;
-          break;
-        }
-        if (from + 1 >= text.length) break;
-      }
-    }
-    return { tier, idx: Array.from({ length: q.length }, (_, k) => start + k) };
-  }
-  const idx: number[] = [];
-  let from = 0;
-  for (const ch of q) {
-    const found = text.indexOf(ch, from);
-    if (found < 0) return null;
-    idx.push(found);
-    from = found + 1;
-  }
-  return { tier: 3, idx };
-}
-
-// The <nish-command-palette> element filters with matchesCommandQuery (command-filter.ts), which differs; see UI-490.
-function rankItems(items: Indexed[], query: string): Ranked[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return items.slice(0, COMMAND_MAX_RESULTS).map(({ item }) => ({ item, marks: [] }));
-  const scored: { r: Ranked; score: number; order: number }[] = [];
-  items.forEach(({ item, label: lower, keywords }, order) => {
-    const label = matchText(lower, q);
-    if (label) {
-      scored.push({ r: { item, marks: label.idx }, score: label.tier, order });
-      return;
-    }
-    let best: number | null = null;
-    for (const kw of keywords) {
-      const m = matchText(kw, q);
-      // Keywords match by prefix, word start or substring only; a loose subsequence
-      // over long keywords (summaries) would match almost any short query.
-      if (m && m.tier < 3 && (best === null || m.tier < best)) best = m.tier;
-    }
-    if (best !== null) scored.push({ r: { item, marks: [] }, score: 4 + best, order });
-  });
-  scored.sort((a, b) => a.score - b.score || a.order - b.order);
-  return scored.slice(0, COMMAND_MAX_RESULTS).map((s) => s.r);
+function rankItems(items: CommandItem[], query: string): Ranked[] {
+  return rankCommandItems(items, query);
 }
 
 /** Groups ranked rows by `group` (first appearance order, ungrouped first), keeping rank
@@ -343,12 +278,10 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, e
     };
   }, [query, isFn, itemsRef]);
 
-  // Lowercased once per items array, not per keystroke.
-  const indexed = useMemo(() => (isFn ? [] : indexItems(items as CommandItem[])), [isFn, items]);
   const rows = useMemo<Ranked[]>(() => {
     if (isFn) return dynamic.map((item) => ({ item, marks: matchText(item.label.toLowerCase(), query.trim().toLowerCase())?.idx ?? [] }));
-    return rankItems(indexed, query);
-  }, [isFn, dynamic, indexed, query]);
+    return rankItems(items as CommandItem[], query);
+  }, [isFn, dynamic, items, query]);
   const groups = useMemo(() => groupRows(rows), [rows]);
   // Keyboard order follows the grouped display order.
   const flat = useMemo(() => groups.flatMap((g) => g.rows.map((x) => x.r.item)), [groups]);
