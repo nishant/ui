@@ -111,6 +111,53 @@ describe('Breadcrumbs', () => {
     expect(screen.getAllByRole('listitem').length).toBe(3);
   });
 
+  describe('onNavigate in the collapsed menu', () => {
+    const FIVE: BreadcrumbItem[] = [
+      { label: 'A', href: '/a' },
+      { label: 'B', href: '/b' },
+      { label: 'C', href: '/c' },
+      { label: 'D', href: '/d' },
+      { label: 'E' },
+    ];
+
+    function spyAssign() {
+      const original = window.location;
+      const assign = vi.fn();
+      Object.defineProperty(window, 'location', { configurable: true, value: { ...original, assign } });
+      return { assign, restore: () => Object.defineProperty(window, 'location', { configurable: true, value: original }) };
+    }
+
+    it('calls onNavigate with the href and item instead of location.assign', () => {
+      const { assign, restore } = spyAssign();
+      try {
+        const onNavigate = vi.fn();
+        render(<Breadcrumbs items={FIVE} collapse="always" maxItems={3} onNavigate={onNavigate} />);
+        fireEvent.click(screen.getByRole('button', { name: 'More' }));
+        fireEvent.click(screen.getByRole('menuitem', { name: 'B' }));
+        expect(onNavigate).toHaveBeenCalledTimes(1);
+        expect(onNavigate).toHaveBeenCalledWith('/b', FIVE[1]);
+        expect(assign).not.toHaveBeenCalled();
+      } finally {
+        restore();
+      }
+    });
+
+    it('never passes a javascript: href to onNavigate', () => {
+      const { assign, restore } = spyAssign();
+      try {
+        const onNavigate = vi.fn();
+        const items = [FIVE[0], { label: 'Evil', href: 'javascript:alert(1)' }, ...FIVE.slice(2)];
+        render(<Breadcrumbs items={items} collapse="always" maxItems={3} onNavigate={onNavigate} />);
+        fireEvent.click(screen.getByRole('button', { name: 'More' }));
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Evil' }));
+        expect(onNavigate).not.toHaveBeenCalled();
+        expect(assign).not.toHaveBeenCalled();
+      } finally {
+        restore();
+      }
+    });
+  });
+
   it('never collapses with collapse=never', () => {
     render(<Breadcrumbs items={TRAIL} collapse="never" />);
     expect(screen.queryByRole('button', { name: 'More' })).toBeNull();

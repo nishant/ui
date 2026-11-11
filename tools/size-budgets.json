@@ -48,7 +48,7 @@
       "name": "DatePicker",
       "from": "nish-ui",
       "import": "DatePicker",
-      "maxKB": 18.7
+      "maxKB": 18.8
     },
     {
       "name": "RangeCalendar",
@@ -139,7 +139,7 @@
       "name": "SystemCanvas",
       "from": "nish-ui/system-canvas",
       "import": "SystemCanvas",
-      "maxKB": 25.9
+      "maxKB": 26.0
     },
     {
       "name": "Inbox",

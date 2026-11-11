@@ -291,6 +291,14 @@ const FIELD_JUNK_RE = /[^\d\s/.,-]/;
 const ISO_FIELD_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DIGITS_RE = /\d+/g;
 
+/** A 1- or 2-digit year as the CLDR rule reads it: the year in the window from 80 years before `thisYear` to 19 after it that ends in those digits. With thisYear 2026: 99 -> 1999, 30 -> 2030, 45 -> 2045, 46 -> 1946. */
+export function expandTwoDigitYear(yy: number, thisYear: number = new Date().getFullYear()): number {
+  let y = Math.floor(thisYear / 100) * 100 + yy;
+  if (y > thisYear + 19) y -= 100;
+  else if (y < thisYear - 80) y += 100;
+  return y;
+}
+
 /** Parses typed text: ISO, or the locale's numeric order with / . - , or space; null when it is not a real day. */
 export function parseDateField(text: string, locale: string): string | null {
   const t = text.replace(BIDI_MARKS_RE, '').trim();
@@ -327,7 +335,7 @@ export function parseDateField(text: string, locale: string): string | null {
   });
   let y = Number(found.year);
   if (found.year.length === 3 || found.year.length > 4) return null;
-  if (found.year.length <= 2) y = 2000 + y;
+  if (found.year.length <= 2) y = expandTwoDigitYear(y);
   const m = Number(found.month);
   const d = Number(found.day);
   if (y < 1 || m < 1 || m > 12 || d < 1 || d > daysInMonth(y, m)) return null;

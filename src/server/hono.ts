@@ -82,6 +82,8 @@ export interface LoginOptions {
   /** Which forwarding headers name the client for rate limiting. Default 'none': only the socket. */
   trustProxy?: TrustProxy;
   failDelayMs?: number; // 0
+  /** Failed logins allowed across every client inside windowMs before each further failure waits delayMs more (on top of failDelayMs). Adds delay, never locks anyone out. Off by default; for example { max: 200 } is 200 failures a minute. */
+  failBudget?: { max: number; windowMs?: number; delayMs?: number };
   messages?: { tooMany?: string; wrong?: string }; // 'Too many tries. Wait a minute and try again.' / 'That password is not right.'
   /** Body of the 429 and 401 answers. Default (kind, message) => ({ error: message }). */
   errorBody?: (kind: 'tooMany' | 'wrong', message: string) => Record<string, unknown>;
@@ -92,12 +94,14 @@ export interface LoginOptions {
 /** POST handler: limiter key clientIpOf(c, trustProxy) (an IPv6 address keys on its /64), or NO_ADDRESS_KEY (one shared bucket) when the
  *  request has no address; limiter.hit(key) first, before any await, false -> 429; body via
  *  c.req.json() (failure = {}); password must be a string of at most 1024 chars and match (exact
- *  unless caseInsensitive), else wait failDelayMs, 401; success -> limiter.reset, startSession,
+ *  unless caseInsensitive), else wait failDelayMs (plus failBudget.delayMs once more than failBudget.max
+ *  failures landed across all clients inside its window; delay only, never a lockout), 401; success -> limiter.reset, startSession,
  *  onSuccess. */
 export function loginHandler(o: LoginOptions): Handler {
   const tooMany = o.messages?.tooMany ?? 'Too many tries. Wait a minute and try again.';
   const wrong = o.messages?.wrong ?? 'That password is not right.';
   const errorBody = o.errorBody ?? ((_kind, message) => ({ error: message }));
+  let budget = { count: 0, reset: 0 };
   return async (c) => {
     const ip = clientIpOf(c, o.trustProxy);
     const key = ip === null ? NO_ADDRESS_KEY : limiterBucket(ip);
@@ -115,7 +119,14 @@ export function loginHandler(o: LoginOptions): Handler {
       provided.length <= 1024 &&
       passwordMatches(expected, provided, { caseInsensitive: o.caseInsensitive ?? false });
     if (!ok) {
-      const delay = o.failDelayMs ?? 0;
+      let delay = o.failDelayMs ?? 0;
+      const b = o.failBudget;
+      if (b && b.max >= 0) {
+        const now = Date.now();
+        if (now >= budget.reset) budget = { count: 0, reset: now + (b.windowMs ?? 60_000) };
+        budget.count += 1;
+        if (budget.count > b.max) delay += b.delayMs ?? 1_000;
+      }
       if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
       return c.json(errorBody('wrong', wrong), 401);
     }

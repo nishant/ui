@@ -66,11 +66,15 @@ export const breadcrumbs: ComponentDoc = {
   { label: 'Acme' },
 ]} />
 
-// With a router
-<Breadcrumbs items={items} renderLink={(item, props) => <Link to={props.href} {...props} />} />`,
+// With a router (onNavigate covers the collapsed "…" menu)
+<Breadcrumbs
+  items={items}
+  renderLink={(item, props) => <Link to={props.href} {...props} />}
+  onNavigate={(href) => navigate(href)}
+/>`,
   guidelines: [
     'List the trail root first. The last item is the current page and is never a link.',
-    'Collapsing keeps the first crumb and the last maxItems - 2. In the menu, an item with onClick runs it; one with only an href navigates with window.location, so give router users an onClick.',
+    'Collapsing keeps the first crumb and the last maxItems - 2. In the menu, an item with onClick runs it; one with only an href calls onNavigate(href, item) when given, else navigates with window.location, so router apps pass onNavigate.',
     'Crumbs passed as children are never collapsed; the last child gets aria-current="page".',
     'The chevron mirrors in right-to-left layouts. The landmark label and the "…" button label come from NishProvider strings.',
   ],

@@ -78,6 +78,42 @@ describe('AppErrorBoundary', () => {
     expect(screen.getByRole('button', { name: 'Reload page' })).toBeTruthy();
   });
 
+  it.each([
+    'Failed to fetch dynamically imported module: x.js',
+    'Importing a module script failed.',
+    'error loading dynamically imported module: x.js',
+    'Unable to preload CSS for /assets/a.css',
+    'FAILED TO FETCH DYNAMICALLY IMPORTED MODULE: x.js',
+  ])('treats "%s" as a chunk error', (message) => {
+    thrown = new Error(message);
+    render(
+      <AppErrorBoundary>
+        <Bomb />
+      </AppErrorBoundary>,
+    );
+    expect(screen.getByText('A new version is available')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reload page' })).toBeTruthy();
+  });
+
+  it('reports once when a child throws in the same render that changes resetKeys', () => {
+    shouldThrow = false;
+    const onError = vi.fn();
+    const { rerender } = render(
+      <AppErrorBoundary resetKeys={['a']} onError={onError}>
+        <Bomb />
+      </AppErrorBoundary>,
+    );
+    expect(screen.getByText('All good')).toBeTruthy();
+    shouldThrow = true;
+    rerender(
+      <AppErrorBoundary resetKeys={['b']} onError={onError}>
+        <Bomb />
+      </AppErrorBoundary>,
+    );
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
   it('shows the message and stack outside production', () => {
     vi.stubEnv('NODE_ENV', 'development');
     thrown.stack = 'Error: Boom\n    at Bomb (bomb.tsx:1:1)';

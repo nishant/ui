@@ -33,6 +33,8 @@ export interface BreadcrumbsProps extends Omit<ComponentPropsWithoutRef<'nav'>, 
   children?: ReactNode;
   /** Renders a crumb with a href as a router link: `(item, props) => <Link to={props.href} {...props} />`. */
   renderLink?: (item: BreadcrumbItem, props: BreadcrumbLinkProps) => ReactNode;
+  /** Called instead of a full page load when a crumb inside the collapsed "…" menu is chosen (the menu rows are buttons, so renderLink cannot render them): `(href) => navigate(href)`. Without it the page navigates with location.assign. */
+  onNavigate?: (href: string, item: BreadcrumbItem) => void;
   /** The separator between crumbs. Default: a chevron that mirrors in RTL. */
   separator?: ReactNode;
   /** More crumbs than this collapse the middle ones into a "…" menu (default 4). */
@@ -110,6 +112,7 @@ export function Breadcrumbs({
   items,
   children,
   renderLink,
+  onNavigate,
   separator,
   maxItems = 4,
   collapse = 'auto',
@@ -177,7 +180,10 @@ export function Breadcrumbs({
                   if (h.onClick) h.onClick(e as unknown as MouseEvent<HTMLElement>);
                   else {
                     const href = h.href !== undefined ? safeUrl(h.href) : null;
-                    if (href !== null && typeof window !== 'undefined') window.location.assign(href);
+                    if (href !== null) {
+                      if (onNavigate) onNavigate(href, h);
+                      else if (typeof window !== 'undefined') window.location.assign(href);
+                    }
                   }
                 }}
               >

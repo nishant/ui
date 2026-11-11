@@ -21,7 +21,7 @@ interface State {
   error: Error | null;
 }
 
-const CHUNK_MESSAGE = /Failed to fetch dynamically imported module|Importing a module script failed/;
+const CHUNK_MESSAGE = /failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module|unable to preload css/i;
 
 function isChunkError(e: Error): boolean {
   return e.name === 'ChunkLoadError' || CHUNK_MESSAGE.test(e.message);
@@ -58,8 +58,8 @@ class Boundary extends Component<BoundaryProps, State> {
     this.props.onError?.(error instanceof Error ? error : new Error(String(error)), { componentStack: info.componentStack });
   }
 
-  componentDidUpdate(prev: BoundaryProps): void {
-    if (this.state.error && changed(prev.resetKeys, this.props.resetKeys)) this.reset();
+  componentDidUpdate(prev: BoundaryProps, prevState: State): void {
+    if (this.state.error && prevState.error && changed(prev.resetKeys, this.props.resetKeys)) this.reset();
   }
 
   reset = (): void => {

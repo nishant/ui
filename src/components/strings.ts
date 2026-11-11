@@ -22,6 +22,8 @@ export interface NishStrings {
   copy: string;
   /** CopyButton: label after copying. */
   copied: string;
+  /** CopyButton: label when copying failed. */
+  copyFailed: string;
   /** AppHeader: hub pill title. */
   hubTitle: string;
   /** AppHeader: hub pill text. */
@@ -379,6 +381,7 @@ export const DISPLAY_STRINGS = {
   moreCount: (count) => `${count} more`,
   copy: 'Copy',
   copied: 'Copied',
+  copyFailed: 'Copy failed',
   legend: 'Legend',
   noData: 'No data',
   noDataNamed: (label) => `${label}: no data`,

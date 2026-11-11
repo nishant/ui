@@ -653,7 +653,7 @@ test.describe('<nish-command-palette>', () => {
     expect(await page.locator('dialog[open]').count()).toBe(1);
   });
 
-  test('every query word must match label, hint or keywords', async ({ page }) => {
+  test('ranks label then keywords; hints are not searched', async ({ page }) => {
     await load(page);
     await page.locator('#cp-open').focus();
     await page.keyboard.press('Control+k');
@@ -662,8 +662,14 @@ test.describe('<nish-command-palette>', () => {
     await expect(page.locator('#cp [role="option"]')).toHaveText(['Jobs/jobs']);
     await input.fill('work');
     await expect(page.locator('#cp [role="option"]')).toHaveCount(1);
-    await input.fill('toggle dark');
+    await input.fill('dark');
     await expect(page.locator('#cp [role="option"]')).toHaveText(['Toggle theme']);
+    await input.fill('toggle dark');
+    await expect(page.locator('#cp [role="option"]')).toHaveCount(0);
+    await expect(page.locator('#cp .nish-command-empty')).toHaveText('Nothing found');
+    await input.fill('/jobs');
+    await expect(page.locator('#cp [role="option"]')).toHaveCount(0);
+    await expect(page.locator('#cp .nish-command-empty')).toHaveText('Nothing found');
     await input.fill('jobs dark');
     await expect(page.locator('#cp [role="option"]')).toHaveCount(0);
     await expect(page.locator('#cp .nish-command-empty')).toHaveText('Nothing found');

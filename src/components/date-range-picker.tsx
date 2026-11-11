@@ -85,7 +85,7 @@ export interface DateRangePickerProps extends Omit<
 /** A date range field: type both dates in the reader's own numeric order (or ISO), or pick them
  *  from a RangeCalendar in a Popover. The value is { from, to } as YYYY-MM-DD strings. `ref`,
  *  `id`, `aria-*`, `name` and `required` belong to the input; `className` and other attributes
- *  go to the wrapper. */
+ *  go to the wrapper. A typed 2-digit year means the year within 80 years before and 19 after this year (CLDR): in 2026, 99 is 1999 and 30 is 2030. */
 export function DateRangePicker({
   ref,
   value: valueProp,

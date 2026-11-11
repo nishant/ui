@@ -6,9 +6,23 @@ a minor adds, and a patch fixes.
 
 ## [Unreleased]
 
+### Added
+
+- `Breadcrumbs` `onNavigate(href, item)`: called for an item picked in the collapsed "..." menu, so router apps navigate client-side instead of a full page load.
+- `NishStrings` `copyFailed`, the default `failedLabel` of `CopyButton`.
+- `LoginOptions` `failBudget`: an optional budget of failed logins across all keys that adds delay instead of locking.
+
 ### Changed
 
-- Internal: ROADMAP tracks the 29 audit phase 3 findings still open; no package change.
+- `<nish-command-palette>` ranks like `CommandPalette`: hints are not searched and a multi-word query is one phrase.
+- Internal: the command-palette spec tests the new ranking; ROADMAP names every audit finding still open (UI-392, 400, 402, 405, 418, 504, 519, 523, 534, 035).
+
+### Fixed
+
+- `AppErrorBoundary` `onError` fires once when a child throws in the update that changes `resetKeys`, and chunk-load errors from Firefox and Vite CSS preload are recognised (case-insensitive).
+- Two-digit years in `DatePicker` / `DateRangePicker` follow the CLDR window (99 is 1999 in 2026).
+- A controlled `Disclosure` stays as `open` says when the summary is clicked.
+- `SystemCanvas` follow caption announces only mode changes, through an sr-only live region.
 
 ## [3.2.0] - 2026-11-11
 
