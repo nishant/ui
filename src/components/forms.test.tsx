@@ -872,6 +872,20 @@ describe('Chip', () => {
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
+  it('a tag chip remove button grows its hit area with a 44px ::after, not a bigger box', () => {
+    const onRemove = vi.fn();
+    render(
+      <Chip variant="tag" onRemove={onRemove}>
+        urgent
+      </Chip>,
+    );
+    const btn = screen.getByRole('button', { name: 'Remove urgent' });
+    expect(btn.className).toContain('pointer-coarse:after:size-11');
+    expect(btn.className).not.toContain('pointer-coarse:min-h-11');
+    fireEvent.click(btn);
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
   it('a tag chip has no remove button without onRemove; sm pads less; non-string children say "Remove"', () => {
     const { container, rerender } = render(<Chip variant="tag">a</Chip>);
     expect(screen.queryByRole('button')).toBeNull();

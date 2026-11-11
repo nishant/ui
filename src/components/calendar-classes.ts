@@ -195,6 +195,12 @@ export function isoToday(now: Date = new Date()): string {
 
 const resolved = new Map<string, string>();
 
+/** Milliseconds from now to the next local midnight (DST-safe: built from local calendar fields). */
+export function msUntilNextMidnight(now: Date): number {
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  return next.getTime() - now.getTime();
+}
+
 export function resolveLocale(locale?: string | null): string {
   if (!locale) return 'en-US';
   const hit = resolved.get(locale);
@@ -488,7 +494,7 @@ export function calendarDayClass({ filled, today, disabled, band = null }: DayLo
   return cn(
     DAY_BASE,
     !filled && !band && !disabled && 'hover:bg-th-elevated hover:text-th-hi',
-    today && !filled && 'font-semibold text-th-accent ring-1 ring-inset ring-th-accent/50',
+    today && !filled && 'font-semibold text-th-accent ring-1 ring-inset ring-th-accent/50 forced-colors:outline forced-colors:outline-1 forced-colors:-outline-offset-1 forced-colors:outline-[CanvasText]',
     band && today && !filled && 'ring-th-accent',
     band === 'start' && 'rounded-e-none',
     band === 'end' && 'rounded-s-none',

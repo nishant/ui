@@ -27,7 +27,7 @@ import { isRtl, useIsoLayoutEffect } from './client';
 import { useStrings } from './provider';
 import { FIELD_STRINGS } from './strings';
 import { warnDev } from './display-classes';
-import { chipClass, setRef, type ChipClassOptions, type ChipVariant } from './forms-classes';
+import { chipClass, setRef, TAG_REMOVE_HIT, type ChipClassOptions, type ChipVariant } from './forms-classes';
 
 // Pure helpers live in forms-classes.ts (no directive, callable from a server component);
 // they are re-exported here so existing import paths keep working.
@@ -830,7 +830,7 @@ export function Chip({ ref, variant = 'toggle', pressed, onRemove, removeLabel, 
         {children}
         {trailing}
         {onRemove ? (
-          <IconButton label={name} size="xs" onClick={onRemove} className="rounded-full">
+          <IconButton label={name} size="xs" onClick={onRemove} className={cn('rounded-full', TAG_REMOVE_HIT)}>
             <XIcon size={12} />
           </IconButton>
         ) : null}

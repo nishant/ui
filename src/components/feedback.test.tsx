@@ -190,13 +190,28 @@ describe('ErrorState', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('Retry calls onRetry and is disabled while retrying', () => {
+  it('Retry calls onRetry and is aria-disabled while retrying', () => {
     const onRetry = vi.fn();
     const { rerender } = render(<ErrorState message="Boom" onRetry={onRetry} />);
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
     rerender(<ErrorState message="Boom" onRetry={onRetry} retrying />);
-    expect((screen.getByRole('button', { name: 'Retry' }) as HTMLButtonElement).disabled).toBe(true);
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    expect(retry.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(retry);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('Retry keeps focus while retrying', () => {
+    const onRetry = vi.fn();
+    const { rerender } = render(<ErrorState onRetry={onRetry} />);
+    screen.getByRole('button', { name: 'Retry' }).focus();
+    rerender(<ErrorState onRetry={onRetry} retrying />);
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    expect(document.activeElement).toBe(retry);
+    expect(retry.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(retry);
+    expect(onRetry).not.toHaveBeenCalled();
   });
 
   it('message and retry text come from the provider; props win', () => {

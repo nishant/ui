@@ -170,7 +170,11 @@ export function Slider<V extends SliderValue = number>({
     const cur = live.current;
     let i = 0;
     if (cur.length === 2) {
-      if (v <= cur[0]!) i = 0;
+      if (cur[0] === cur[1]) {
+        if (cur[0] === min) i = 1;
+        else if (cur[1] === max) i = 0;
+        else i = v >= cur[0]! ? 1 : 0;
+      } else if (v <= cur[0]!) i = 0;
       else if (v >= cur[1]!) i = 1;
       else i = v - cur[0]! <= cur[1]! - v ? 0 : 1;
     }

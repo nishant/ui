@@ -310,3 +310,26 @@ describe('Calendar strings and warnings', () => {
     expect(screen.getByRole('grid').querySelector('[data-date="9999-12-15"]')).toBeTruthy();
   });
 });
+
+describe('Calendar midnight and min/max dropdowns', () => {
+  it('moves today past midnight', () => {
+    vi.setSystemTime(new Date(2026, 10, 5, 23, 59, 50));
+    render(<Calendar />);
+    expect(day('2026-11-05').getAttribute('aria-current')).toBe('date');
+    act(() => {
+      vi.advanceTimersByTime(11000);
+    });
+    expect(day('2026-11-06').getAttribute('aria-current')).toBe('date');
+    expect(day('2026-11-05').hasAttribute('aria-current')).toBe(false);
+  });
+
+  it('disables months before min and ignores a forced change', () => {
+    render(<Calendar captionLayout="dropdowns" min="2026-11-03" />);
+    const select = screen.getByLabelText('Month') as HTMLSelectElement;
+    const opts = Array.from(select.options);
+    expect(opts.slice(0, 10).every((o) => o.disabled)).toBe(true);
+    expect(opts[10]!.disabled).toBe(false);
+    fireEvent.change(select, { target: { value: '3' } });
+    expect(screen.getByRole('grid', { name: 'November 2026' })).toBeTruthy();
+  });
+});

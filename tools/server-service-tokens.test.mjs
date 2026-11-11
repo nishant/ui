@@ -39,6 +39,8 @@ test('direct loopback only', () => {
   assert.equal(isDirectLoopback(headers({ host: 'localhost:8805' }), 8805), true);
   // IPv6 loopback is accepted too (service callers on ::1), with the app's port.
   assert.equal(isDirectLoopback(headers({ host: '[::1]:8805' }), 8805), true);
+  assert.equal(isDirectLoopback(headers({ host: 'LOCALHOST:8805' }), 8805), true);
+  assert.equal(isDirectLoopback(headers({ host: '[::1]:8805', origin: 'http://[::1]:8805' }), 8805), false);
   assert.equal(isDirectLoopback(headers({ host: '[::1]:8804' }), 8805), false);
   assert.equal(isDirectLoopback(headers({ host: '[::1]:8805', 'x-forwarded-for': '1.2.3.4' }), 8805), false);
   assert.equal(isDirectLoopback(headers({ host: '127.0.0.1:8804' }), 8805), false);

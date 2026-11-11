@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FilterBar, FilterSheet } from './filters';
 
@@ -156,5 +157,26 @@ describe('FilterBar sheet across breakpoints', () => {
     resize(1024);
     resize(360);
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+describe('FilterBar server render', () => {
+  it.each([
+    ['md', 'md:hidden', 'contents max-md:hidden'],
+    ['lg', 'lg:hidden', 'contents max-lg:hidden'],
+  ] as const)('chooses the layout by CSS (sheetBelow %s)', (sheetBelow, hide, wrap) => {
+    const html = renderToString(
+      <FilterBar activeCount={2} onClear={() => {}} sheetBelow={sheetBelow}>
+        <button type="button">Status</button>
+      </FilterBar>,
+    );
+    expect(html.match(/>Status</g)?.length).toBe(1);
+    expect(html).toMatch(new RegExp('<button[^>]*class="[^"]*' + hide + '[^"]*"[^>]*>.*Filters'));
+    expect(html).toContain('class="' + wrap + '"');
+  });
+
+  it('renders a summary of 0 in the live region', () => {
+    render(<FilterBar summary={0} />);
+    expect(document.querySelector('[aria-live="polite"]')?.textContent).toBe('0');
   });
 });

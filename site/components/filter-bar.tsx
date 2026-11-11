@@ -241,7 +241,7 @@ export function Jobs({ jobs }) {
 // React Router: pass an adapter backed by useSearchParams.
 // useUrlState(DEFAULTS, { adapter, prefix: 'j' })  ->  ?j.q=rust&j.status=open`,
   guidelines: [
-    'In a server-rendered app FilterBar first paints the inline row (the media query is false on the server) and collapses to the Filters button after hydration. To avoid the flash on phones, render it only on the client, for example behind a mounted check or a dynamic import with ssr: false.',
+    'In a server-rendered app FilterBar picks its layout with CSS at the breakpoint on the server and the first client render, so phones see the Filters button from the first paint; then the media query takes over.',
     'Filter state belongs to the page. FilterBar only lays the controls out; useUrlState is the usual place to keep them.',
     'useUrlState replaces the history entry (no Back-button trail of keystrokes) and leaves the hash, history.state and unknown query keys alone. Values equal to the default are left out of the URL.',
     'A list is written as repeated keys (?loc=Austin%2C+TX&loc=Dallas), so a value may hold a comma. For links written in the older comma form (?tags=a,b), pass comma: true, or the keys that used it (comma: ["tags"]).',

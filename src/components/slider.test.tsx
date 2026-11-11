@@ -262,6 +262,16 @@ describe('Slider (single)', () => {
 });
 
 describe('Slider (range)', () => {
+  it('drags the high thumb when both thumbs are stacked at min', () => {
+    const { container } = render(<Slider aria-label="r" defaultValue={[0, 0]} min={0} max={100} />);
+    sizeTrack(container);
+    const root = container.firstElementChild as HTMLElement;
+    fireEvent.pointerDown(root, { clientX: 100, button: 0, pointerId: 1 });
+    fireEvent.pointerMove(root, { clientX: 200, pointerId: 1 });
+    expect(thumbs()[0]!.getAttribute('aria-valuenow')).toBe('0');
+    expect(Number(thumbs()[1]!.getAttribute('aria-valuenow'))).toBeGreaterThan(0);
+  });
+
   it('renders two thumbs named Minimum and Maximum', () => {
     render(<Slider aria-label="Price" defaultValue={[20, 80]} />);
     expect(thumbs()).toHaveLength(2);

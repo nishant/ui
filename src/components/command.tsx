@@ -245,6 +245,8 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, e
   // Dynamic results: the latest response for the latest query wins.
   const [dynamic, setDynamic] = useState<CommandItem[]>([]);
   const [pending, setPending] = useState(isFn);
+  // Enter pressed while results are pending: act on the newest results once they arrive.
+  const enterQueued = useRef(false);
   useEffect(() => {
     const fn = itemsRef.current;
     if (typeof fn !== 'function') return;
@@ -271,6 +273,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, e
         if (stale) return;
         setDynamic([]);
         setPending(false);
+        enterQueued.current = false;
       },
     );
     return () => {
@@ -310,6 +313,18 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, e
     }
   };
 
+  useEffect(() => {
+    if (pending || !enterQueued.current) return;
+    enterQueued.current = false;
+    const item = flat[0];
+    if (item) select(item);
+    else if (query.trim() && onSubmitQuery) {
+      onClose();
+      onSubmitQuery(query.trim());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, flat]);
+
   const onKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing) return;
     if (e.key === 'ArrowDown') {
@@ -323,6 +338,10 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, e
       setActive(0);
     } else if (e.key === 'Enter') {
       e.preventDefault();
+      if (isFn && pending) {
+        enterQueued.current = true;
+        return;
+      }
       const item = flat[active];
       if (item) select(item);
       else if (!pending && query.trim() && onSubmitQuery) {

@@ -24,6 +24,7 @@ import {
   monthGrid,
   monthNames,
   monthOf,
+  msUntilNextMidnight,
   monthTitle,
   parseIso,
   parseMonth,
@@ -112,7 +113,26 @@ export interface CalendarBaseProps extends CalendarSharedProps {
 }
 
 const warned = new Set<string>();
-const noopSubscribe = (): (() => void) => () => {};
+/** Re-reads today at the next local midnight and when the tab becomes visible again. */
+const subscribeToday = (onChange: () => void): (() => void) => {
+  if (typeof window === 'undefined') return () => {};
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const schedule = () => {
+    timer = setTimeout(() => {
+      onChange();
+      schedule();
+    }, msUntilNextMidnight(new Date()) + 1000);
+  };
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') onChange();
+  };
+  schedule();
+  document.addEventListener('visibilitychange', onVisible);
+  return () => {
+    clearTimeout(timer);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
+};
 const EMPTY_GRID: null[][] = Array.from({ length: 6 }, () => Array.from({ length: 7 }, () => null));
 const pad2 = (n: number): string => String(n).padStart(2, '0');
 const pad4 = (n: number): string => String(n).padStart(4, '0');
@@ -177,14 +197,14 @@ export function CalendarBase({
   const [focusedDate, setFocusedDate] = useState<string | null>(null);
 
   const today = useSyncExternalStore(
-    noopSubscribe,
+    subscribeToday,
     () => isoToday(),
     () => null,
   );
   const shown = monthControlled ?? ownMonth ?? (today ? monthOf(today) : null);
 
   const setMonth = (raw: string) => {
-    const next = clampIso(raw, '0001-01', '9999-12');
+    const next = clampIso(raw, min ? monthOf(min) : '0001-01', max ? monthOf(max) : '9999-12');
     if (next === shown) return;
     if (monthControlled === null) setOwnMonth(next);
     onMonthChange?.(next);
@@ -287,7 +307,15 @@ export function CalendarBase({
               onChange={(e) => shownYear !== null && setMonth(`${pad4(shownYear)}-${pad2(Number(e.target.value))}`)}
             >
               {monthNames(loc).map((name, i) => (
-                <option key={i} value={i + 1}>
+                <option
+                  key={i}
+                  value={i + 1}
+                  disabled={
+                    shownYear !== null &&
+                    ((min !== null && `${pad4(shownYear)}-${pad2(i + 1)}` < monthOf(min)) ||
+                      (max !== null && `${pad4(shownYear)}-${pad2(i + 1)}` > monthOf(max)))
+                  }
+                >
                   {name}
                 </option>
               ))}
@@ -300,7 +328,7 @@ export function CalendarBase({
               onChange={(e) => shownMonthNo !== null && setMonth(`${pad4(Number(e.target.value))}-${pad2(shownMonthNo)}`)}
             >
               {years.map((y) => (
-                <option key={y} value={y}>
+                <option key={y} value={y} disabled={(min !== null && y < Number(min.slice(0, 4))) || (max !== null && y > Number(max.slice(0, 4)))}>
                   {y}
                 </option>
               ))}
