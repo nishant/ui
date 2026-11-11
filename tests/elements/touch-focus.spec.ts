@@ -46,6 +46,13 @@ test.describe('44px targets under a coarse pointer', () => {
               .filter((el) => el.checkVisibility() && el.getBoundingClientRect().width > 0)
               .map((el) => {
                 const r = el.getBoundingClientRect();
+                // A tag chip's remove button keeps its small visible box; its 44px target is the centred ::after.
+                if (el.hasAttribute('data-nish-remove')) {
+                  const after = getComputedStyle(el, '::after');
+                  const w = parseFloat(after.width);
+                  const h = parseFloat(after.height);
+                  return { name: `${el.className} "remove"`, width: w, height: h, scrollWidth: 0 };
+                }
                 return { name: `${el.className} "${el.textContent?.trim()}"`, width: r.width, height: r.height, scrollWidth: el.scrollWidth };
               });
           }, TARGETS);
