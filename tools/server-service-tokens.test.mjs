@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { checkServiceRequest, createServiceTokens, isDirectLoopback, loadServiceTokens, mintServiceToken } from '../dist/server/index.js';
+import { checkServiceRequest, createServiceTokens, isDirectCall, isDirectLoopback, loadServiceTokens, mintServiceToken } from '../dist/server/index.js';
 
 const headers = (h) => (n) => h[n];
 
@@ -55,4 +55,18 @@ test('checkServiceRequest', () => {
   assert.equal(checkServiceRequest(headers({ host: '127.0.0.1:8803', authorization: `Bearer ${token}` }), o), null);
   assert.deepEqual(checkServiceRequest(headers({ host: 'status.nish.software', authorization: `Bearer ${token}` }), o), { status: 403, error: 'Forbidden' });
   assert.deepEqual(checkServiceRequest(headers({ host: '127.0.0.1:8803' }), o), { status: 401, error: 'Unauthorized' });
+});
+
+test('isDirectCall and checkServiceRequest remoteAddress', () => {
+  const { token, sha256 } = mintServiceToken('status');
+  const tokens = createServiceTokens([{ id: 'a', name: 'A', scopes: ['read'], sha256, created: 'x' }]);
+  const h = headers({ host: '127.0.0.1:8803', authorization: `Bearer ${token}` });
+  const o = { tokens, scope: 'read', port: 8803 };
+  assert.equal(isDirectCall({ headers: { host: '127.0.0.1:8803' }, remoteAddress: '::1', port: 8803 }), true);
+  assert.equal(isDirectCall({ headers: new Headers({ host: '127.0.0.1:8803' }), remoteAddress: '10.0.0.1', port: 8803 }), false);
+  assert.equal(isDirectCall({ headers: { host: '127.0.0.1:8803', origin: 'http://x' }, remoteAddress: '127.0.0.1', port: 8803 }), false);
+  assert.equal(checkServiceRequest(h, { ...o, remoteAddress: '127.0.0.1' }), null);
+  assert.deepEqual(checkServiceRequest(h, { ...o, remoteAddress: '10.0.0.1' }), { status: 403, error: 'Forbidden' });
+  assert.deepEqual(checkServiceRequest(h, { ...o, remoteAddress: null }), { status: 403, error: 'Forbidden' });
+  assert.equal(checkServiceRequest(h, o), null);
 });

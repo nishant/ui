@@ -150,6 +150,7 @@ import { ServiceTokensSection, useServiceTokens } from '@nish/ui/service-tokens'
 const t = useServiceTokens();
 <ServiceTokensSection tokens={t.tokens} error={t.error} onRetry={t.reload} onRevoke={t.revoke} />`,
   guidelines: [
+    "Guard service routes with isDirectCall (@nish/ui/server), the shared direct-call-on-this-PC check that also tests the socket peer. checkServiceRequest takes remoteAddress (hono: remoteAddressOf(c)) to check the peer too; isDirectLoopback is deprecated because it checks headers only.",
     "Put it on the app's settings page; the server routes must sit behind the app's login and its cross-site write guard.",
     "Revoking is final: a revoked token stays revoked, and access comes back with a new token from npm run tokens in nishant/mcp.",
     "Pass useServiceTokens() straight in. With your own state, make onRevoke reject on failure so the dialog stays open with the error.",

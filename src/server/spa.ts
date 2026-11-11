@@ -1,4 +1,5 @@
 // A static single-page-app file handler on web-standard Request and Response.
+import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
@@ -10,6 +11,10 @@ export interface SpaOptions {
   notBuilt?: string; // 'UI not built: run npm run build'
   /** Sends `X-Frame-Options: SAMEORIGIN` unless false (for an app that is meant to be framed). */
   frameOptions?: false;
+  /** Sends a Content-Security-Policy on HTML answers. Off by default. 'strict' or an object builds
+   *  default-src 'self'; script-src 'self' <sha256 of every inline <script> in the HTML>; style-src 'self' 'unsafe-inline'; img-src 'self' data: <img>; connect-src 'self' <connect>; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self' (or <frameAncestors>).
+   *  reportOnly sends Content-Security-Policy-Report-Only instead, to try a policy first. */
+  csp?: 'strict' | { connect?: string[]; img?: string[]; script?: string[]; frameAncestors?: string[]; reportOnly?: boolean };
 }
 
 /** Sent on every answer. */
@@ -52,7 +57,48 @@ async function isFile(path: string): Promise<boolean> {
   }
 }
 
+type CspOptions = { connect?: string[]; img?: string[]; script?: string[]; frameAncestors?: string[]; reportOnly?: boolean };
 
+function checkSources(list: string[] | undefined): string[] {
+  const out = list ?? [];
+  for (const v of out) {
+    if (/[;,\r\n]/.test(v)) throw new Error(`@nish/ui/server: bad csp source: ${v}`);
+  }
+  return out;
+}
+
+/** 'sha256-...' source for the content of every inline <script> (no src attribute) in the HTML. */
+function inlineScriptHashes(html: string): string[] {
+  const lower = html.toLowerCase();
+  const hashes = new Set<string>();
+  let i = lower.indexOf('<script');
+  while (i >= 0) {
+    const tagEnd = lower.indexOf('>', i);
+    if (tagEnd < 0) break;
+    const next = lower.charAt(i + 7);
+    const isTag = next === '>' || next === '/' || /\s/.test(next);
+    const close = lower.indexOf('</script', tagEnd + 1);
+    if (isTag) {
+      const attrs = lower.slice(i + 7, tagEnd);
+      if (!/(?:^|[\s"'/])src\s*=/.test(attrs) && close >= 0) {
+        const content = html.slice(tagEnd + 1, close);
+        if (content.length > 0) hashes.add(`'sha256-${createHash('sha256').update(content, 'utf8').digest('base64')}'`);
+      }
+    }
+    if (close < 0) break;
+    i = lower.indexOf('<script', close);
+  }
+  return [...hashes];
+}
+
+/**
+ * Serves a built single-page app: files under `dir`, the index for any other extensionless path.
+ *
+ * `csp` adds a Content-Security-Policy to HTML answers only. Every inline script in the HTML being
+ * served is hashed automatically, so the theme-init script that nishThemeInit() injects into the
+ * built index.html is allowed without copying its hash. An app that uses the nonce placeholder
+ * setup (`__NISH_CSP_NONCE__`) should leave `csp` off and send its own header.
+ */
 export function createSpaHandler(o: SpaOptions): (req: Request) => Promise<Response> {
   const dir = resolve(o.dir);
   const indexName = o.index ?? 'index.html';
@@ -63,12 +109,47 @@ export function createSpaHandler(o: SpaOptions): (req: Request) => Promise<Respo
   const safety: Record<string, string> = { ...SECURITY_HEADERS };
   if (o.frameOptions !== false) safety['X-Frame-Options'] = 'SAMEORIGIN';
 
+  const cspOpt: CspOptions | undefined = o.csp === 'strict' ? {} : o.csp;
+  const cspConnect = checkSources(cspOpt?.connect);
+  const cspImg = checkSources(cspOpt?.img);
+  const cspScript = checkSources(cspOpt?.script);
+  const cspFrame = checkSources(cspOpt?.frameAncestors);
+  const cspHeader = cspOpt?.reportOnly ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
+  const policies = new Map<string, { mtimeMs: number; policy: string }>();
+
+  const buildPolicy = (html: string): string =>
+    [
+      "default-src 'self'",
+      ['script-src', "'self'", ...inlineScriptHashes(html), ...cspScript].join(' '),
+      "style-src 'self' 'unsafe-inline'",
+      ['img-src', "'self'", 'data:', ...cspImg].join(' '),
+      ['connect-src', "'self'", ...cspConnect].join(' '),
+      "font-src 'self'",
+      "object-src 'none'",
+      "base-uri 'none'",
+      "form-action 'self'",
+      ['frame-ancestors', ...(cspFrame.length ? cspFrame : ["'self'"])].join(' '),
+    ].join('; ');
+
   const text = (body: string, status: number): Response =>
     new Response(body, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', ...safety } });
 
   const send = async (file: string, cache: string, head: boolean): Promise<Response> => {
+    const type = contentType(file);
+    const headers: Record<string, string> = { 'Content-Type': type, 'Cache-Control': cache, ...safety };
+    if (cspOpt && type.startsWith('text/html')) {
+      const mtimeMs = (await stat(file)).mtimeMs;
+      const html = await readFile(file);
+      let hit = policies.get(file);
+      if (!hit || hit.mtimeMs !== mtimeMs) {
+        hit = { mtimeMs, policy: buildPolicy(html.toString('utf8')) };
+        policies.set(file, hit);
+      }
+      headers[cspHeader] = hit.policy;
+      return new Response(head ? null : html, { status: 200, headers });
+    }
     const body = head ? null : await readFile(file);
-    return new Response(body, { status: 200, headers: { 'Content-Type': contentType(file), 'Cache-Control': cache, ...safety } });
+    return new Response(body, { status: 200, headers });
   };
 
   return async (req) => {

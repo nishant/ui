@@ -3316,12 +3316,12 @@
       min-height: 0;
       position: relative;
     }
-    /* The same invisible hit area as the React link Button (LINK_HIT): 44px without moving the layout. */
+    /* The same invisible hit area as the React link Button (LINK_HIT): a 16px line grows 14px per side to 44px without moving the layout. */
     :where(.nish-btn--link)::after {
       content: '';
       position: absolute;
       inset-inline: -0.5rem;
-      inset-block: -0.75rem;
+      inset-block: -0.875rem;
     }
     /* Grown to 44px without growing the toast (the React toast's negative margins). */
     :where(.nish-toast-action) {

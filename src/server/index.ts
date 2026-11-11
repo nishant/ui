@@ -5,6 +5,7 @@ export * from './limiter';
 export * from './env';
 export * from './process';
 export * from './spa';
+export * from './direct-call';
 export * from './inbox/client';
 export * from './inbox/action';
 export * from './service-tokens';

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mountServiceTokenRoutes } from './hono';
 import {
   checkServiceRequest,
+  createServiceTokens,
   hashServiceToken,
   jsonRevocationStore,
   loadManagedServiceTokens,
@@ -33,6 +34,21 @@ const seedFile = (d: string, entries: ServiceTokenEntry[]) => {
 const bearer = (t: string) => `Bearer ${t}`;
 
 afterEach(() => vi.restoreAllMocks());
+
+describe('checkServiceRequest remoteAddress', () => {
+  const tokens = createServiceTokens([{ id: 'a', name: 'A', scopes: ['read'], sha256: mcp.sha256, created: 'x' }]);
+  const headers: Record<string, string> = { host: '127.0.0.1:3000', authorization: bearer(mcp.token) };
+  const check = (o: object) => checkServiceRequest((n) => headers[n], { tokens, scope: 'read', port: 3000, ...o });
+  it('a loopback peer goes on to the token check', () => {
+    for (const remoteAddress of ['127.0.0.1', '::1', '::ffff:127.0.0.1']) expect(check({ remoteAddress })).toBeNull();
+  });
+  it('a non-loopback, null or empty peer is 403', () => {
+    for (const remoteAddress of ['10.0.0.5', null, '', undefined]) expect(check({ remoteAddress })).toEqual({ status: 403, error: 'Forbidden' });
+  });
+  it('an absent remoteAddress keeps the header-only check', () => {
+    expect(check({})).toBeNull();
+  });
+});
 
 describe('loadManagedServiceTokens', () => {
   it('revoke makes verify and checkServiceRequest answer 401', () => {

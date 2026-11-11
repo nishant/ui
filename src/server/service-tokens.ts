@@ -275,6 +275,7 @@ const PROXY_HEADERS = ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto
 /**
  * True only for a request made straight to the app on loopback: Host is 127.0.0.1, localhost or
  * [::1] with the app's port, there are no proxy headers and no Origin (browsers never get in).
+ * @deprecated Checks only headers; prefer isDirectCall, which also checks the socket peer.
  */
 export function isDirectLoopback(get: (name: string) => string | undefined, port: number): boolean {
   const host = (get('host') ?? '').toLowerCase();
@@ -283,12 +284,18 @@ export function isDirectLoopback(get: (name: string) => string | undefined, port
   return PROXY_HEADERS.every((h) => get(h) === undefined);
 }
 
-/** Framework-free check: the status and body a guard should answer with, or null to continue. */
+const LOOPBACK_PEERS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
+/** Framework-free check: the status and body a guard should answer with, or null to continue.
+ *  Apps should pass `remoteAddress`, the socket peer (hono: `remoteAddressOf(c)`): when the property is present
+ *  the request is also refused with 403 unless the peer is 127.0.0.1, ::1 or ::ffff:127.0.0.1 (null or empty is
+ *  refused). Omitting it keeps the old header-only check. */
 export function checkServiceRequest(
   get: (name: string) => string | undefined,
-  o: { tokens: ServiceTokens; scope: string; port: number },
+  o: { tokens: ServiceTokens; scope: string; port: number; remoteAddress?: string | null },
 ): { status: 401 | 403; error: string } | null {
   if (!isDirectLoopback(get, o.port)) return { status: 403, error: 'Forbidden' };
+  if ('remoteAddress' in o && (!o.remoteAddress || !LOOPBACK_PEERS.has(o.remoteAddress))) return { status: 403, error: 'Forbidden' };
   const r = o.tokens.verify(get('authorization'), o.scope);
   if (!r.ok) return { status: r.status, error: r.status === 401 ? 'Unauthorized' : 'Forbidden' };
   return null;

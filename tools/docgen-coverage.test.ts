@@ -191,10 +191,10 @@ const UNDOCUMENTED_SUBPATH_EXPORTS: Record<string, string[]> = {
     'TH_COLOR_NAMES',
   ],
   './server': [
-    'createSessionToken', 'verifySessionToken', 'passwordMatches', 'readCookie', 'createSessionAuth', 'SESSION_DAYS', 'MIN_SECRET_BYTES', 'isLoopback', 'clientIp', 'createLimiter', 'appRoot', 'loadAppEnv', 'envNumber', 'installProcessHandlers', 'errorResponse', 'createSpaHandler', 'parseInboxEvent', 'INBOX_ACTION_HEADER', 'INBOX_ACTION_TIMEOUT_MS', 'INBOX_DEFAULT_SETTINGS', 'INBOX_SOURCE_LABELS', 'isInboxCall', 'parseInboxActionCall', 'newActionToken', 'hashActionToken', 'actionTokenMatches', 'inboxAction', 'INBOX_ACTION_PATH', 'ACTION_TOKEN_FIELD', 'inboxActionTarget', 'mintServiceToken', 'loadServiceTokens', 'jsonRevocationStore', 'createServiceTokens', 'isDirectLoopback', 'hashServiceToken', 'isCrossSiteWrite',
+    'createSessionToken', 'verifySessionToken', 'passwordMatches', 'readCookie', 'createSessionAuth', 'SESSION_DAYS', 'MIN_SECRET_BYTES', 'isLoopback', 'clientIp', 'createLimiter', 'appRoot', 'loadAppEnv', 'envNumber', 'installProcessHandlers', 'errorResponse', 'createSpaHandler', 'parseInboxEvent', 'INBOX_ACTION_HEADER', 'INBOX_ACTION_TIMEOUT_MS', 'INBOX_DEFAULT_SETTINGS', 'INBOX_SOURCE_LABELS', 'isInboxCall', 'parseInboxActionCall', 'newActionToken', 'hashActionToken', 'inboxAction', 'INBOX_ACTION_PATH', 'inboxActionTarget', 'mintServiceToken', 'loadServiceTokens', 'jsonRevocationStore', 'createServiceTokens', 'hashServiceToken', 'isCrossSiteWrite',
   ],
   './server/hono': [
-    'remoteAddressOf', 'clientIpOf', 'isAuthed', 'startSession', 'endSession', 'loginHandler', 'mountSessionRoutes', 'crossSiteGuard', 'serveSpa', 'onErrorHandler', 'mountInboxAction', 'NO_ADDRESS_KEY',
+    'clientIpOf', 'isAuthed', 'startSession', 'endSession', 'loginHandler', 'mountSessionRoutes', 'crossSiteGuard', 'serveSpa', 'onErrorHandler', 'mountInboxAction', 'NO_ADDRESS_KEY',
   ],
 };
 

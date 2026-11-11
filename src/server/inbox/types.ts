@@ -78,7 +78,11 @@ export interface InboxEventInput {
   resolve?: boolean;
   /** ISO 8601 time the event happened. Defaults to now; future times are clamped to now. */
   occurredAt?: string;
-  /** Flat extra data, JSON-encoded at most 4096 bytes. */
+  /**
+   * Flat extra data, JSON-encoded at most 4096 bytes. Only data.actionToken (ACTION_TOKEN_FIELD) is private
+   * (stripped before the browser and /api/v1 see the item); every other key is visible in the inbox UI and API.
+   * /ingest trusts every local caller, so action routes must verify actionToken (actionTokenMatches) on every call.
+   */
   data?: InboxData;
   /** Up to 3 buttons shown on the item, ids unique. A repeat with the same dedupeKey replaces them. */
   actions?: Array<Omit<InboxAction, 'method'> & { method?: 'POST' }>;

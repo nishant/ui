@@ -173,7 +173,8 @@ test('mountInboxAction: guard, body, token and run result', async () => {
 
   const badToken = await post(call({ actionToken: 'wrong' }));
   assert.equal(badToken.status, 401);
-  assert.match(lines.join('\n'), /inbox action approve on k1: refused \(no current action token\)/);
+  assert.match(lines.join('\n'), /inbox action approve: refused \(no current action token\)/);
+  assert.doesNotMatch(lines.join(String.fromCharCode(10)), /k1/);
   assert.equal(runs.length, 0);
 
   const ok = await post(call({ actionToken: token }));

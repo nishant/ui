@@ -6,8 +6,18 @@ a minor adds, and a patch fixes.
 
 ## [Unreleased]
 
+### Added
+
+- `serveSpa` / `createSpaHandler` `csp` option: `'strict'` (or `{ connect, img, script, frameAncestors, reportOnly }`) sends a Content-Security-Policy on HTML answers, with a sha256 for every inline script in the built index.html, so the theme-init script is allowed without copying its hash. Off by default.
+- `isDirectCall({ headers, remoteAddress, port })` in `@nish/ui/server`, the one check for a direct call to the app on this PC (loopback peer, Host 127.0.0.1:<port>, no proxy, Origin or browser fetch headers). `isInboxCall` uses it. `checkServiceRequest` takes an optional `remoteAddress` and then also requires a loopback peer; pass `remoteAddressOf(c)`. `isDirectLoopback` is deprecated.
+
 ### Fixed
 
+- Login rate limiter: when the table is full of locked keys, the oldest locked key is evicted instead of refusing every new client, so flooding it no longer locks everyone out.
+- Inbox actions: `parseInboxActionCall` refuses a dedupeKey over 200 characters or with control characters, and a refused call no longer logs its dedupeKey.
+- Link buttons (React `LINK_HIT` and static `.nish-btn--link`) reach a 44px touch target, not 40px.
+- The standalone static files (`theme.js`, `theme.global.js`, `format.js`, ...) no longer end in a `sourceMappingURL` comment for a map that is never shipped.
+- Fold check: the `node-version` input defaults to 24; the docs template pins a release tag and Node 24; re-runs on the same base reuse cached base screenshots instead of rebuilding the base branch.
 - `IconButton`: `active={false}` now sets `aria-pressed="false"`, so an off toggle is announced as a toggle.
 - `Button` (xs, sm, md), `Chip` and `Breadcrumbs` links reach 44px wide on touch screens, not just 44px tall.
 - Static `.nish-btn--link` gets a 44px touch hit area, matching the React link `Button`.
@@ -42,6 +52,7 @@ a minor adds, and a patch fixes.
 
 ### Docs
 
+- The inbox-client contract says that action secrets go only in `data.actionToken` and that /ingest trusts every local caller, so action routes must verify the token.
 - Docs site: scrollable tables, device frames and demo rows are keyboard-focusable regions; wrong or stale samples, guidelines and stories corrected on about 60 component pages; the Default column reads destructured defaults inside the component body; frames load lazily; `<meta charset>` stays in the first 1024 bytes.
 - Tests and tooling: new unit tests for the combobox and command filters, `useHeightVar` and overlay placement; many weak browser, SSR and consumer assertions tightened; a missing `dist/` fails in CI instead of skipping; the canvas routing time gate retries once before failing.
 - Docs site: the web app manifest is `manifest.json`, so any static host serves it as JSON (it had no content type). `useScrollEdges` has unit tests for LTR, RTL, no overflow and unmount.

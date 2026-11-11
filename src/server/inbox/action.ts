@@ -2,59 +2,43 @@
 // before it runs anything. Framework-free; the Hono route is in @nish/ui/server/hono.
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { isInboxActionTarget } from './client';
+import { isDirectCall, type HeaderBag } from '../direct-call';
 import type { InboxAction, InboxActionCall, InboxData } from './types';
 
 export const INBOX_ACTION_PATH = '/api/inbox/action';
 export const ACTION_TOKEN_FIELD = 'actionToken';
 export const inboxActionTarget = (port: number, path?: string) => `http://127.0.0.1:${port}${path ?? INBOX_ACTION_PATH}`;
 
-export type HeaderBag = Headers | Record<string, string | string[] | undefined>;
-
-const LOOPBACK_PEERS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
-const FORBIDDEN_HEADERS = ['forwarded', 'via', 'x-real-ip', 'true-client-ip', 'cdn-loop', 'origin'];
-const FORBIDDEN_PREFIXES = ['x-forwarded-', 'cf-'];
 const ACTION_ID_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const HASH_RE = /^[0-9a-f]{64}$/;
 
-function headerNames(headers: HeaderBag): string[] {
-  if (typeof (headers as Headers).forEach === 'function' && typeof (headers as Headers).get === 'function') {
-    const names: string[] = [];
-    (headers as Headers).forEach((_v, k) => names.push(k.toLowerCase()));
-    return names;
-  }
-  return Object.entries(headers as Record<string, string | string[] | undefined>)
-    .filter(([, v]) => v !== undefined)
-    .map(([k]) => k.toLowerCase());
-}
+export type { HeaderBag } from '../direct-call';
 
-function headerValue(headers: HeaderBag, name: string): string | undefined {
-  if (typeof (headers as Headers).get === 'function') return (headers as Headers).get(name) ?? undefined;
+function inboxHeader(headers: HeaderBag): string | undefined {
+  if (typeof (headers as Headers).get === 'function') return (headers as Headers).get('x-inbox-action') ?? undefined;
   for (const [k, v] of Object.entries(headers as Record<string, string | string[] | undefined>)) {
-    if (k.toLowerCase() === name) return Array.isArray(v) ? v[0] : v;
+    if (k.toLowerCase() === 'x-inbox-action') return Array.isArray(v) ? v[0] : v;
   }
   return undefined;
 }
 
-/** True only when every rule holds:
- *  remoteAddress is 127.0.0.1, ::1 or ::ffff:127.0.0.1; header host === `127.0.0.1:${port}`;
- *  none of these headers is present: forwarded, via, x-real-ip, true-client-ip, cdn-loop, origin, and any name
- *  starting with x-forwarded- or cf-; no sec-fetch-* header (site, dest, user: browsers only) except
- *  sec-fetch-mode with the exact value 'cors', which Node's own fetch (undici) always sends;
- *  header x-inbox-action === '1'.
- *  Header names compared lowercase; Headers and Node IncomingHttpHeaders both accepted. */
+/** True only when isDirectCall holds (loopback peer, Host 127.0.0.1:port, no proxy/Origin/browser fetch-metadata
+ *  headers; see isDirectCall for the full rules) and header x-inbox-action === '1'. */
 export function isInboxCall(req: { headers: HeaderBag; remoteAddress: string | null | undefined; port: number }): boolean {
-  if (!req.remoteAddress || !LOOPBACK_PEERS.has(req.remoteAddress)) return false;
-  if (headerValue(req.headers, 'host') !== `127.0.0.1:${req.port}`) return false;
-  for (const name of headerNames(req.headers)) {
-    if (FORBIDDEN_HEADERS.includes(name)) return false;
-    if (FORBIDDEN_PREFIXES.some((p) => name.startsWith(p))) return false;
-    if (name.startsWith('sec-fetch-') && !(name === 'sec-fetch-mode' && headerValue(req.headers, name) === 'cors')) return false;
+  return isDirectCall(req) && inboxHeader(req.headers) === '1';
+}
+
+function validDedupeKey(k: unknown): k is string {
+  if (typeof k !== 'string' || k.length < 1 || k.length > 200) return false;
+  for (let i = 0; i < k.length; i++) {
+    const c = k.charCodeAt(i);
+    if (c < 0x20 || c === 0x7f) return false;
   }
-  return headerValue(req.headers, 'x-inbox-action') === '1';
+  return true;
 }
 
 /** The body as an InboxActionCall for `source`, or null: itemId a positive safe integer, actionId
- *  matching /^[a-z0-9][a-z0-9-]{0,31}$/, source === `source`, kind a string, dedupeKey string or null,
+ *  matching /^[a-z0-9][a-z0-9-]{0,31}$/, source === `source`, kind a string, dedupeKey null or a string of 1..200 chars with no control characters (below 0x20 or 0x7f),
  *  data a plain object. */
 export function parseInboxActionCall(body: unknown, source: string): (InboxActionCall & { data: InboxData }) | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) return null;
@@ -63,7 +47,7 @@ export function parseInboxActionCall(body: unknown, source: string): (InboxActio
   if (typeof b.actionId !== 'string' || !ACTION_ID_RE.test(b.actionId)) return null;
   if (b.source !== source) return null;
   if (typeof b.kind !== 'string') return null;
-  if (b.dedupeKey !== null && typeof b.dedupeKey !== 'string') return null;
+  if (b.dedupeKey !== null && !validDedupeKey(b.dedupeKey)) return null;
   const data = b.data;
   if (typeof data !== 'object' || data === null || Array.isArray(data)) return null;
   return {
