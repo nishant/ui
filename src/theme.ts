@@ -787,7 +787,7 @@ export function openSheet(dialog: HTMLDialogElement): () => void {
     if (typeof matchMedia !== 'undefined' && matchMedia('(min-width: 640px)').matches) return;
     const r = dialog.getBoundingClientRect();
     const onHeader = e.target instanceof Element && e.target.closest('.nish-sheet-header') != null;
-    if (!onHeader && e.clientY - r.top > 28) return;
+    if (!onHeader && e.clientY - r.top > 44) return;
     dragging = true;
     startY = lastY = e.clientY;
     lastT = e.timeStamp;

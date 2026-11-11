@@ -1850,10 +1850,10 @@
     animation: nish-sheet-in 240ms var(--nish-ease-out, ease-out) both;
   }
   :where(.nish-sheet)::before {
-    /* The grab handle: openSheet() starts a drag only in the top 28px, so the styled target is 28px (the 40x4 bar like the React Modal). */
+    /* The grab handle: a 44px target (openSheet() starts a drag in the same top 44px) with a 40x4 bar, like the React Modal. */
     content: '';
     flex-shrink: 0;
-    height: 28px;
+    height: 44px;
     background: linear-gradient(var(--nish-line-strong), var(--nish-line-strong)) center / 40px 4px no-repeat;
   }
   :where(.nish-sheet)::backdrop {

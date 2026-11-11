@@ -30,6 +30,8 @@ a minor adds, and a patch fixes.
 
 ### Fixed
 
+- `openSheet` starts a swipe-down from the whole 44px grab handle, not only its top 28px.
+
 - `loginHandler` reads the body capped at 16 KB and answers 413 for a larger declared or actual body (UI-369).
 - `AppShell` and `Card` heading refs are memoised, so React no longer detaches and re-attaches the merged ref every render.
 - Toast: focus returns to where it was before the toast took it when the toast closes, and a toast region already in the page is reused.

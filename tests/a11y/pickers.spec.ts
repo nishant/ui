@@ -94,7 +94,7 @@ test.describe('pickers: keyboard', () => {
     await page.getByRole('button', { name: 'Next slide' }).click();
     await page.waitForSelector('[aria-label="2 of 4"][data-state="active"]');
     expect(await page.evaluate(() => window.scrollY)).toBe(before);
-    await page.locator('section[aria-label="Trips"] [role=group][tabindex="0"]').focus();
+    await page.locator('section[aria-label="Trips"] [tabindex="0"]').focus();
     await page.keyboard.press('End');
     await page.waitForSelector('[aria-label="4 of 4"][data-state="active"]');
   });

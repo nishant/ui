@@ -472,16 +472,16 @@ describe('openSheet', () => {
       expect(dialog.style.transition).toBe('');
     });
 
-    it('starts on the handle strip (top 28px) of the dialog body, but not lower', () => {
+    it('starts on the handle strip (top 44px) of the dialog body, but not lower', () => {
       const { dialog, child } = makeSheet(400);
       openSheet(dialog);
-      // the dialog top is 100: clientY 128 is 28px down, 129 is 29px down
-      child.dispatchEvent(pointer('pointerdown', { y: 129 }));
+      // the dialog top is 100: clientY 144 is 44px down, 145 is 45px down
+      child.dispatchEvent(pointer('pointerdown', { y: 145 }));
       dialog.dispatchEvent(pointer('pointermove', { y: 200, t: 10 }));
       expect(dialog.style.transform).toBe('');
-      child.dispatchEvent(pointer('pointerdown', { y: 128 }));
+      child.dispatchEvent(pointer('pointerdown', { y: 144 }));
       dialog.dispatchEvent(pointer('pointermove', { y: 200, t: 20 }));
-      expect(dialog.style.transform).toBe('translateY(72px)');
+      expect(dialog.style.transform).toBe('translateY(56px)');
     });
 
     it('starts from the header however far down it is', () => {
