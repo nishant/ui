@@ -1,0 +1,14 @@
+import{o as e}from"./index-CZR_oHil.js";import{u as t}from"./docs-BooYRHlr.js";import{t as n}from"./jsx-BV7y9WFc.js";import{r}from"./primitives-_LTRlLi3.js";import{r as i}from"./feedback-BGBQfny8.js";var a=e(),o={id:`error-state`,name:`ErrorState`,exports:[`ErrorState`],summary:`A failed load with an optional Retry. It is a live region (role="alert"), so screen readers announce it when it appears.`,importLine:`import { ErrorState } from '@nish/ui';`,controls:[{key:`message`,label:`Message`,type:`text`},{key:`retry`,label:`onRetry`,type:`boolean`},{key:`retrying`,label:`Retrying`,type:`boolean`},{key:`compact`,label:`Compact`,type:`boolean`}],initial:{message:`Could not reach the API. Check that the server is running.`,retry:!0,retrying:!1,compact:!1},render:e=>(0,a.jsx)(`div`,{className:`w-full max-w-lg`,children:(0,a.jsx)(i,{message:String(e.message),onRetry:e.retry?()=>t.info(`Retrying`):void 0,retrying:!!e.retrying,compact:!!e.compact})}),code:e=>n(`ErrorState`,{message:String(e.message),onRetry:e.retry?`{refetch}`:void 0,retrying:e.retrying?`{isFetching}`:void 0,compact:e.compact}),html:{height:250,code:`<div class="nish-error-state" role="alert">
+  <p>Could not reach the API. Check that the server is running.</p>
+  <button class="nish-btn nish-btn--sm">Retry</button>
+</div>`},stories:[{id:`default`,name:`Default message`,render:()=>(0,a.jsx)(i,{className:`w-full`})},{id:`retry`,name:`With Retry`,render:()=>(0,a.jsx)(i,{className:`w-full`,message:`Could not load positions. The broker API returned 503.`,onRetry:()=>void 0})},{id:`retrying`,name:`Retrying`,render:()=>(0,a.jsx)(i,{className:`w-full`,message:`Could not load positions. The broker API returned 503.`,onRetry:()=>void 0,retrying:!0})},{id:`compact`,name:`Compact, in a widget`,render:()=>(0,a.jsx)(r,{padded:!1,className:`h-40 w-full`,children:(0,a.jsx)(i,{compact:!0,message:`Weather is unavailable right now.`,onRetry:()=>void 0})})}],usage:`import { ErrorState, SkeletonLines } from '@nish/ui';
+
+if (query.isLoading) return <SkeletonLines />;
+if (query.isError)
+  return (
+    <ErrorState
+      message={\`Could not load positions: \${query.error.message}\`}
+      onRetry={() => query.refetch()}
+      retrying={query.isFetching}
+    />
+  );`,guidelines:[`Say what failed and, when you know, what to do. "Failed to load" is the fallback, not the goal.`,`Pass onRetry whenever trying again can help; pass retrying so the button shows progress. retryLabel changes the button text; set the message and button words once for every ErrorState with NishProvider strings (failedToLoad, retry).`]};export{o as errorState};

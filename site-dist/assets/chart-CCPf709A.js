@@ -1,0 +1,25 @@
+import{ct as e,o as t,y as n}from"./index-CZR_oHil.js";import{B as r}from"./docs-BooYRHlr.js";import{r as i}from"./primitives-_LTRlLi3.js";import{a,i as o,n as s,r as c,t as l}from"./chart-values-D3jzT2r9.js";var u=e();function d(){let[e,t]=(0,u.useState)(s);return r(()=>{let e=()=>t(c());return e(),n(e)},[]),e}var f=t(),p=[[12,18,9],[15,14,11],[9,20,14],[17,16,10],[21,12,15]],m=[`Jun`,`Jul`,`Aug`,`Sep`,`Oct`];function h({series:e=3}){let t={l:24,b:20,t:8},n=(320-t.l)/p.length,r=(n-12)/e,i=e=>t.t+(1-e/24)*(140-t.t-t.b);return(0,f.jsxs)(`svg`,{viewBox:`0 0 320 140`,className:`w-full max-w-md`,role:`img`,"aria-label":`Applications by month and source`,children:[[0,8,16,24].map(e=>(0,f.jsxs)(`g`,{children:[(0,f.jsx)(`line`,{x1:t.l,x2:320,y1:i(e),y2:i(e),stroke:e===0?l.zero:l.grid,strokeWidth:1}),(0,f.jsx)(`text`,{x:t.l-4,y:i(e)+3,textAnchor:`end`,fontSize:9,fill:l.text,children:e})]},e)),p.map((a,s)=>(0,f.jsxs)(`g`,{children:[a.slice(0,e).map((e,a)=>(0,f.jsx)(`rect`,{x:t.l+s*n+6+a*r,y:i(e),width:r-2,height:i(0)-i(e),rx:2,fill:o(a)},a)),(0,f.jsx)(`text`,{x:t.l+s*n+n/2,y:134,textAnchor:`middle`,fontSize:9,fill:l.text,children:m[s]})]},s))]})}function g(){let e=d();return(0,f.jsxs)(`div`,{className:`grid w-full gap-2 text-xs`,children:[(0,f.jsx)(`div`,{className:`flex flex-wrap gap-1.5`,children:e.series.map((e,t)=>(0,f.jsxs)(`span`,{className:`inline-flex items-center gap-1 font-mono text-th-hi3`,children:[(0,f.jsx)(`span`,{className:`size-3 rounded-sm`,style:{background:e},"aria-hidden":`true`}),e||`…`]},t))}),(0,f.jsxs)(`p`,{className:`font-mono text-th-hi3`,children:[`grid `,e.grid,` · axis `,e.axis,` · text `,e.text]})]})}var _={id:`chart`,name:`Chart colors`,exports:[],source:`src/chart.ts`,summary:`@nish/ui/chart: theme colors for charts with no chart library. var() strings for SVG and CSS charts, resolved values and a hook for canvas charts.`,importLine:`import { seriesColor, CHART, tooltipStyle, chartTheme, useChartTheme } from '@nish/ui/chart';`,controls:[{key:`series`,label:`Series`,type:`number`,min:1,max:3}],initial:{series:3},render:e=>(0,f.jsx)(h,{series:Number(e.series)}),code:()=>`<rect fill={seriesColor(i)} />
+<line stroke={CHART.grid} />
+<Tooltip contentStyle={tooltipStyle} /> // Recharts`,api:{functions:[`seriesColor`,`chartTheme`,`useChartTheme`],interfaces:[`ChartTheme`]},html:{height:180,code:`<!-- The eight categorical series colors -->
+<ul class="nish-legend" style="list-style:none;margin:0;padding:0">
+  <li class="nish-legend-item" style="--c: var(--nish-chart-1)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 1</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-2)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 2</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-3)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 3</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-4)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 4</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-5)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 5</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-6)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 6</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-7)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 7</li>
+  <li class="nish-legend-item" style="--c: var(--nish-chart-8)"><i class="nish-legend-swatch" aria-hidden="true"></i>Series 8</li>
+</ul>`},stories:[{id:`bars`,name:`SVG with var() strings`,render:()=>(0,f.jsx)(h,{})},{id:`resolved`,name:`Resolved for canvas (useChartTheme)`,note:`Re-renders on a theme change.`,render:()=>(0,f.jsx)(g,{})},{id:`tooltip`,name:`tooltipStyle`,render:()=>(0,f.jsxs)(`div`,{style:a,className:`px-2.5 py-1.5`,children:[(0,f.jsx)(`p`,{className:`font-medium`,children:`Sep`}),(0,f.jsxs)(`p`,{className:`flex items-center gap-1.5`,children:[(0,f.jsx)(`span`,{className:`size-2 rounded-full`,style:{background:o(0)},"aria-hidden":`true`}),`LinkedIn: 17`]})]})},{id:`card`,name:`In a card`,render:()=>(0,f.jsxs)(i,{className:`w-full max-w-md`,children:[(0,f.jsx)(`p`,{className:`text-sm font-semibold text-th-hi`,children:`Applications by source`}),(0,f.jsx)(`div`,{className:`mt-3`,children:(0,f.jsx)(h,{})})]})}],usage:`import { seriesColor, CHART, tooltipStyle, useChartTheme } from '@nish/ui/chart';
+
+// Recharts / SVG: var() strings follow the theme on their own.
+<Line stroke={seriesColor(0)} />
+<CartesianGrid stroke={CHART.grid} />
+<Tooltip contentStyle={tooltipStyle} />
+
+// uPlot / canvas: resolved colors, redraw when they change.
+const t = useChartTheme();
+useEffect(() => {
+  plot.series.forEach((s, i) => { if (i) s.stroke = () => t.series[i - 1]; });
+  plot.redraw();
+}, [t]);`,guidelines:[`Series colors come from seriesColor(i), never a hand-picked hex.`,`Status meaning (up/down bars, alerts) uses the -fill roles (t.ok, t.loss), not chart colors.`,`Canvas charts must redraw on a theme change: use useChartTheme or onThemeChange.`]};export{_ as chartDoc};
