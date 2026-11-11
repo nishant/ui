@@ -28,13 +28,48 @@ describe('Button', () => {
     expect(classes(b)).toContain('border-th-line-strong');
   });
 
-  it('loading disables the button and sets aria-busy', () => {
+  it('loading marks the button aria-disabled and sets aria-busy', () => {
     render(<Button loading>Save</Button>);
     const b = screen.getByRole('button') as HTMLButtonElement;
-    expect(b.disabled).toBe(true);
+    expect(b.getAttribute('aria-disabled')).toBe('true');
     expect(b.getAttribute('aria-busy')).toBe('true');
     expect(b.hasAttribute('data-disabled')).toBe(true);
     expect(b.querySelector('svg[data-nish-spin]')).not.toBeNull();
+  });
+
+  it('loading keeps focus and blocks click and form submit without the native disabled attribute', () => {
+    const onClick = vi.fn();
+    const onSubmit = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Button loading type="submit" onClick={onClick}>
+          Save
+        </Button>
+      </form>,
+    );
+    const b = screen.getByRole('button') as HTMLButtonElement;
+    expect(b.disabled).toBe(false);
+    expect(b.getAttribute('aria-disabled')).toBe('true');
+    b.focus();
+    expect(document.activeElement).toBe(b);
+    fireEvent.click(b);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('an explicit disabled stays native even while loading', () => {
+    render(
+      <Button loading disabled>
+        Save
+      </Button>,
+    );
+    expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('Card titleAs sets the heading level and CardHeader actions can shrink', () => {
+    render(<Card title="T" titleAs="h3" action={<span>act</span>} />);
+    expect(screen.getByRole('heading', { level: 3, name: 'T' })).toBeTruthy();
+    expect(screen.getByText('act').parentElement?.className).not.toContain('shrink-0');
   });
 
   it('not loading has no aria-busy and is enabled', () => {
@@ -179,7 +214,8 @@ describe('buttonClass', () => {
 
   it('matches the class Button renders', () => {
     render(<Button variant="soft">A</Button>);
-    expect(classes(screen.getByRole('button'))).toContain(buttonClass({ variant: 'soft' }).split(' ')[0]!);
+    const rendered = classes(screen.getByRole('button'));
+    for (const token of buttonClass({ variant: 'soft' }).split(' ').filter(Boolean)) expect(rendered).toContain(token);
   });
 });
 

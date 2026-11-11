@@ -267,7 +267,9 @@ export function HoverCard({
                 onPointerEnter?.(e);
               }}
               onPointerLeave={(e) => {
-                hide();
+                // Same rule as the trigger's mouseleave: keyboard focus on the trigger keeps the card.
+                const active = document.activeElement;
+                if (!(active && wrapperRef.current?.contains(active) && keyboardFocused(active))) hide();
                 onPointerLeave?.(e);
               }}
               style={{

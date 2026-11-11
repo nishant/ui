@@ -23,6 +23,7 @@ jobs:
       # The release dispatches this run right after `npm publish`, and npm can take minutes to serve
       # the new tarball. Bump PRs opened before that fail `npm ci` with E404, so wait for it first.
       - name: Wait until npm serves the tarball
+        if: github.event_name != 'schedule'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_INPUT: ${{ github.event_name == 'push' && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.tag || 'latest') }}
@@ -64,6 +65,9 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     concurrency:
+      # One group per repo, so a now=true dispatch and the hourly run never work on the same repo at once
+      # (both would force-push ui/<tag> and call `gh pr create`). GitHub keeps one pending run per group and
+      # cancels older pending ones, so a now=true dispatch queued behind a running job can be dropped: re-run it.
       group: fanout-${{ matrix.repo }}
       cancel-in-progress: false
     env:

@@ -1,6 +1,6 @@
 // The one source of truth for every design token. scripts/build.mjs turns this into
 // dist/tokens.css (--nish-* custom properties), tools/contrast.mjs checks it, and
-// src/theme.ts reads PRESETS from it. Edit values here, never in generated CSS.
+// src/theme.ts builds PRESETS from THEMES. Edit values here, never in generated CSS.
 //
 // Colors are plain hex so static pages can use them as-is; Tailwind opacity
 // modifiers (bg-th-surface/50) work through color-mix in Tailwind 4.

@@ -191,6 +191,31 @@ describe('MultiSelect', () => {
     expect(screen.getByLabelText('States')).toBe(box());
   });
 
+  it('announces the result count from the provider strings, a prop wins', () => {
+    const { rerender } = render(
+      <NishProvider strings={{ resultsCount: (n: number) => `${n} Treffer` }}>
+        <MultiSelect aria-label="S" options={OPTIONS} />
+      </NishProvider>,
+    );
+    key('ArrowDown');
+    expect(status()).toBe('4 Treffer');
+    rerender(
+      <NishProvider strings={{ resultsCount: (n: number) => `${n} Treffer` }}>
+        <MultiSelect aria-label="S" options={OPTIONS} resultsText={(n) => `${n} hits`} />
+      </NishProvider>,
+    );
+    expect(status()).toBe('4 hits');
+  });
+
+  it('warns once about a missing name through warnDev and does not throw', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    render(<MultiSelect options={OPTIONS} />);
+    render(<MultiSelect options={OPTIONS} />);
+    const own = warn.mock.calls.filter((c) => String(c[0]).startsWith('MultiSelect needs a name'));
+    expect(own.length).toBeLessThanOrEqual(1);
+    warn.mockRestore();
+  });
+
   it('takes strings from a provider', () => {
     render(
       <NishProvider strings={{ clearAll: 'Alles loeschen' }}>

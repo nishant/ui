@@ -68,15 +68,13 @@ export interface ComboboxProps
   clearLabel?: string;
   /** The loading row and its announcement. Default "Searching…" (NishProvider strings). */
   loadingText?: string;
-  /** The polite announcement of the result count. Default "3 results" / "1 result". */
+  /** The polite announcement of the result count. Default: the `resultsCount` string ("3 results" / "1 result"). */
   resultsText?: (count: number) => string;
   className?: string;
 }
 
 const MAX_SHOWN = COMBOBOX_MAX_SHOWN;
 const DEBOUNCE_MS = COMBOBOX_DEBOUNCE_MS;
-
-const defaultResultsText = (n: number): string => `${n} ${n === 1 ? 'result' : 'results'}`;
 
 /** A text input with a listbox of suggestions (ARIA 1.2 combobox). Pick from the options,
  *  or with `allowCustom` commit what was typed. The list sits under the input and works
@@ -108,7 +106,7 @@ export function Combobox({
   size = 'md',
   clearLabel,
   loadingText,
-  resultsText = defaultResultsText,
+  resultsText,
   className,
   ...rest
 }: ComboboxProps) {
@@ -183,10 +181,25 @@ export function Combobox({
     if (open) listRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [open]);
 
-  const reset = useCallback(() => {
+  // Clearing the typed text also resets a server-filtered list, so the next open starts from the full list.
+  const reset = () => {
+    if (dirty && onQueryChange) {
+      window.clearTimeout(debounceRef.current);
+      onQueryChange('');
+    }
     setDirty(false);
     setText('');
-  }, []);
+  };
+
+  // The listbox is named by the field's visible label, not by the input (an input names itself by its value).
+  const [fieldLabel, setFieldLabel] = useState<{ id?: string; text?: string }>({});
+  useEffect(() => {
+    if (!open || ariaLabel || ariaLabelledBy) return;
+    const doc = inputRef.current?.ownerDocument;
+    const el = doc ? Array.from(doc.getElementsByTagName('label')).find((l) => l.htmlFor === inputId) : undefined;
+    const next = el ? (el.id ? { id: el.id } : { text: el.textContent?.trim() || undefined }) : {};
+    setFieldLabel((prev) => (prev.id === next.id && prev.text === next.text ? prev : next));
+  }, [open, ariaLabel, ariaLabelledBy, inputId]);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -384,15 +397,15 @@ export function Combobox({
         </button>
       ) : null}
       <div role="status" aria-live="polite" className="sr-only">
-        {open ? (loading ? searching : visible.length === 0 ? empty : resultsText(visible.length)) : ''}
+        {open ? (loading ? searching : visible.length === 0 ? empty : (resultsText ?? strings.resultsCount)(visible.length)) : ''}
       </div>
       {open ? (
         <ul
           ref={listRef}
           id={listId}
           role="listbox"
-          aria-label={ariaLabel}
-          aria-labelledby={ariaLabel ? undefined : (ariaLabelledBy ?? inputId)}
+          aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : fieldLabel.text)}
+          aria-labelledby={ariaLabel ? undefined : (ariaLabelledBy ?? fieldLabel.id)}
           className="absolute inset-x-0 top-full z-[var(--nish-z-dropdown,40)] mt-1 max-h-[min(16rem,40dvh)] overflow-auto rounded-xl border border-th-line bg-th-elevated shadow-pop"
         >
           {visible.map((o, i) => {

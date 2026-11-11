@@ -56,7 +56,7 @@ export interface PaginationProps extends Omit<ComponentPropsWithoutRef<'nav'>, '
   nextLabel?: string;
   /** Label of one page button. Default: `pageLabel` from the strings. */
   pageLabel?: (page: number) => string;
-  /** The compact text. Default: "Page 3 of 10" (English; pass your own for other languages). */
+  /** The compact text. Default: the `pageOfCount` string ("Page 3 of 10"). */
   compactLabel?: (page: number, pageCount: number) => string;
   ref?: Ref<HTMLElement>;
 }
@@ -219,7 +219,7 @@ export function Pagination({
         {prev}
         {compact ? (
           <li className="px-2 text-sm tabular-nums text-th-hi2">
-            {(compactLabel ?? ((p, c) => `${strings.pageLabel(p)} of ${c}`))(page, count)}
+            {(compactLabel ?? strings.pageOfCount)(page, count)}
           </li>
         ) : (
           paginationRange(page, count, siblings, boundaries).map((slot) =>

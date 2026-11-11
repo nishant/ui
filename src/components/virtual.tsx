@@ -109,12 +109,12 @@ export function useVirtualRows(options: VirtualRowsOptions): VirtualRows {
     () =>
       buildOffsets(
         count,
-        (i) => (measured.size === 0 ? undefined : measured.get(getKey(i))) ?? (typeof itemSize === 'number' ? itemSize : itemSize(i)),
+        (i) => (!measure || measured.size === 0 ? undefined : measured.get(getKey(i))) ?? (typeof itemSize === 'number' ? itemSize : itemSize(i)),
         gap,
       ),
     // getKey only matters once something is measured, so an unstable getKey must not rebuild fixed-size offsets
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [count, itemSize, measure ? getKey : null, gap, measured],
+    [count, itemSize, measure, measure ? getKey : null, gap, measured],
   );
   const total = offsets[count];
   const offsetOf = useCallback((i: number) => offsets[i], [offsets]);
@@ -260,7 +260,9 @@ export function useVirtualRows(options: VirtualRowsOptions): VirtualRows {
 
   const scrollToIndex = useCallback(
     // eslint-disable-next-line react-hooks/preserve-manual-memoization -- reads the latest-value ref on purpose; the callback must stay stable
-    (index: number, { align = 'auto', behavior = 'auto' }: ScrollToIndexOptions = {}) => {
+    (index: number, { align = 'auto', behavior: wanted = 'auto' }: ScrollToIndexOptions = {}) => {
+      // A JS behavior overrides the reduced-motion CSS, so honour the preference here.
+      const behavior = wanted === 'smooth' && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : wanted;
       /** Scrolls the remaining distance to the row, unless it is within minMove px. */
       const jump = (minMove: number): void => {
         const { offsets: o, count: n, gap: g } = latest.current;
@@ -389,7 +391,10 @@ export function VirtualList({
       {...rest}
       ref={mergeRefs(ref, rootRef)}
       style={rootStyle}
-      tabIndex={self ? (count > 0 ? 0 : undefined) : rest.tabIndex}
+      tabIndex={self ? (rest.tabIndex ?? (count > 0 ? 0 : undefined)) : rest.tabIndex}
+      role={self && labelled && count > 0 && rest.role === undefined ? 'region' : rest.role}
+      aria-label={self && labelled && count > 0 && !ariaLabelledBy ? ariaLabel : undefined}
+      aria-labelledby={self && labelled && count > 0 ? ariaLabelledBy : undefined}
       className={cn('relative', self && 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-th-accent', className)}
     >
       {count === 0 && empty != null ? (

@@ -281,3 +281,38 @@ describe('Tr', () => {
     expect(r.className).toContain('extra');
   });
 });
+
+describe('row tone in forced colors', () => {
+  it('draws the forced-colors edge on a row-header (th) first cell too', () => {
+    const { container } = render(
+      <table>
+        <tbody>
+          <Tr tone="warn">
+            <th scope="row">h</th>
+          </Tr>
+        </tbody>
+      </table>,
+    );
+    expect(container.querySelector('tr')?.className).toContain('forced-colors:[&>th:first-child]:border-s-[3px]');
+  });
+});
+
+describe('TableWrap overflow watching', () => {
+  it('observes a child that replaces the first one', async () => {
+    const seen: Element[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe(el: Element) { seen.push(el); }
+        disconnect() {}
+        unobserve() {}
+      },
+    );
+    const { rerender, container } = render(<TableWrap label="T"><div key="a" data-k="a" /></TableWrap>);
+    rerender(<TableWrap label="T"><div key="b" data-k="b" /></TableWrap>);
+    await Promise.resolve();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(seen).toContain(container.querySelector('[data-k="b"]'));
+    vi.unstubAllGlobals();
+  });
+});

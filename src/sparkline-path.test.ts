@@ -11,8 +11,8 @@ describe('sparklineGeometry decimation', () => {
     const g = sparklineGeometry(v, 120, 30);
     expect(count(g.lines[0])).toBeLessThanOrEqual(240);
     // the top (y=2) and bottom (y=28) of the box are reached by the spike and the dip
-    expect(g.lines[0]).toContain(',2');
-    expect(g.lines[0]).toContain(',28');
+    expect(g.lines[0]).toMatch(/,2(?![\d.])/);
+    expect(g.lines[0]).toMatch(/,28(?![\d.])/);
   });
   it('does not throw on 300k values', () => {
     const v = Array.from({ length: 300000 }, (_, i) => i % 97);

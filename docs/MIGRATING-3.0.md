@@ -1,7 +1,7 @@
 # Moving from nish-ui 2.x to 3.0
 
 3.0 removes two things that 2.x kept for compatibility. Both are found by TypeScript: after the upgrade,
-`tsc --noEmit` lists every line to change. Everything else is the same as 2.1. The full list of changes is in
+`tsc --noEmit` lists every line to change. Everything else is the same as 2.2 (the subpath imports and `onCheckedChange` already work from 2.1). The full list of changes is in
 the [changelog](https://design.nish.software/#/changelog).
 
 Requirements: the same as 2.x (Node 20.19 or later, React 19, Tailwind 4 if you use `tailwind.css`).

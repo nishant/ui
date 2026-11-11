@@ -11,7 +11,6 @@ export const MAX_K = 2;
 export const PHONE_K = 0.55;
 export const PHONE_MAX_W = 600; // viewports narrower than this keep the readable phone zoom when fit is small
 export const FIT_PAD = 48;
-export const TITLE_ROOM = 36; // world px above y=0 taken by the column titles
 export const LABEL_K = 0.8;
 export const ANIM_MS = 300;
 export const FOLLOW_MS = 700; // follow mode's fly

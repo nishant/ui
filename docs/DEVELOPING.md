@@ -2,7 +2,7 @@
 
 How this repo is laid out and how to run it. Using the package: [README](../README.md).
 Releasing it: [RELEASING.md](RELEASING.md). Contributing: [CONTRIBUTING.md](../CONTRIBUTING.md).
-Moving from 1.x: [MIGRATING-2.0.md](MIGRATING-2.0.md).
+Moving from 1.x: [MIGRATING-2.0.md](MIGRATING-2.0.md). Moving from 2.x: [MIGRATING-3.0.md](MIGRATING-3.0.md).
 
 ## Checks
 

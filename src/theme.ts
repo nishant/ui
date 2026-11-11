@@ -73,7 +73,11 @@ function storageKey(): string {
  *  initTheme(), and set the same map on window.__nishExtraThemes before theme-init.js
  *  runs, so the first paint knows them too. */
 export function registerThemes(themes: Record<string, Scheme>): void {
-  Object.assign(state().extra, themes);
+  // The cookie readers only match [a-z0-9-]+, so any other name would not survive a reload.
+  for (const [name, scheme] of Object.entries(themes)) {
+    if (/^[a-z0-9-]+$/.test(name)) state().extra[name] = scheme;
+    else console.warn(`[nish-ui] registerThemes: skipped "${name}" (use lowercase letters, digits and hyphens)`);
+  }
 }
 
 const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
@@ -85,7 +89,7 @@ export function isThemeName(v: unknown): v is ThemeName {
 function readCookie(): string | null {
   if (typeof document === 'undefined') return null;
   try {
-    const m = document.cookie.match(new RegExp(`(?:^|;\\s*)${storageKey()}=([a-z0-9-]+)`));
+    const m = document.cookie.match(new RegExp(`(?:^|;\\s*)${storageKey()}=([a-z0-9-]+)(?:;|$)`));
     return m ? m[1]! : null;
   } catch {
     return null; // cookies blocked (sandboxed iframe)
@@ -387,7 +391,8 @@ export function mountThemeToggle(button: HTMLElement, opts: MountThemeToggleOpti
       if (svg.getAttribute('data-icon') === icon) svg.removeAttribute('display');
       else svg.setAttribute('display', 'none');
     });
-    const elsewhere = TOGGLE_ORDER.includes(choice) ? '' : ` (${elsewhereWords})`;
+    // A theme this page registered itself was not set on another site.
+    const elsewhere = TOGGLE_ORDER.includes(choice) || has(state().extra, choice) ? '' : ` (${elsewhereWords})`;
     const label = sentence(`${themeLabel(choice, words)}${elsewhere}`, themeLabel(nextChoice(choice), words));
     button.setAttribute('aria-label', label);
     button.setAttribute('title', label);
@@ -458,7 +463,8 @@ let hideCurrent: (() => void) | null = null;
  *  focus. Returns a function that hides it now. Needs nish-components.css. */
 export function showToast(content: string | Node, opts: ShowToastOptions = {}): () => void {
   hideCurrent?.();
-  if (!toastRegion || !toastRegion.isConnected) {
+  if (!toastRegion || !toastRegion.isConnected) toastRegion = document.querySelector<HTMLElement>('.nish-toast-region');
+  if (!toastRegion) {
     toastRegion = document.createElement('div');
     toastRegion.setAttribute('role', 'status');
     toastRegion.setAttribute('aria-live', 'polite');
@@ -482,10 +488,14 @@ export function showToast(content: string | Node, opts: ShowToastOptions = {}): 
   let remaining = opts.duration === 'sticky' ? Infinity : (opts.duration ?? TOAST_MS);
   let started = 0;
   let holds = 0;
+  let returnTo: HTMLElement | null = null;
   const hide = () => {
     if (timer != null) clearTimeout(timer);
     timer = null;
+    const hadFocus = box.contains(document.activeElement);
     box.remove();
+    // The focused box is gone: give focus back to where it was before it entered the toast.
+    if (hadFocus && returnTo?.isConnected) returnTo.focus();
     if (hideCurrent === hide) hideCurrent = null;
   };
   const run = (ms: number) => {
@@ -533,7 +543,11 @@ export function showToast(content: string | Node, opts: ShowToastOptions = {}): 
   // Mouse only: a tap fires enter with no leave, which would pin the toast forever.
   box.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && pause());
   box.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && resume());
-  box.addEventListener('focusin', (e) => !box.contains(e.relatedTarget as Node | null) && pause());
+  box.addEventListener('focusin', (e) => {
+    if (box.contains(e.relatedTarget as Node | null)) return;
+    if (e.relatedTarget instanceof HTMLElement) returnTo = e.relatedTarget;
+    pause();
+  });
   box.addEventListener('focusout', (e) => !box.contains(e.relatedTarget as Node | null) && resume());
   box.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') hide();
@@ -568,6 +582,13 @@ export interface ConfirmDialogOptions {
 }
 
 let dialogSeq = 0;
+
+/** True when the pointer event landed on the dialog's backdrop: its target is the dialog, outside its box. */
+function onBackdrop(dialog: HTMLElement, e: MouseEvent): boolean {
+  if (e.target !== dialog) return false;
+  const r = dialog.getBoundingClientRect();
+  return !(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+}
 
 /** A yes-or-no question in place of `window.confirm`, for pages without React: a
  *  native <dialog class="nish-dialog"> opened with showModal(), so the browser traps
@@ -634,12 +655,14 @@ export function confirmDialog(opts: ConfirmDialogOptions): Promise<boolean> {
       finish(false);
     });
     dialog.addEventListener('close', () => finish(false));
-    // A press on the backdrop targets the dialog itself, outside its box.
+    // A press on the backdrop targets the dialog itself, outside its box. The press must start there too,
+    // or a text selection dragged out of the box would cancel.
+    let pressedOnBackdrop: boolean | null = null;
+    dialog.addEventListener('pointerdown', (e) => (pressedOnBackdrop = onBackdrop(dialog, e)));
     dialog.addEventListener('click', (e) => {
-      if (e.target !== dialog) return;
-      const r = dialog.getBoundingClientRect();
-      const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-      if (!inside) finish(false);
+      const down = pressedOnBackdrop;
+      pressedOnBackdrop = null;
+      if (down !== false && onBackdrop(dialog, e)) finish(false);
     });
     document.body.append(dialog);
     dialog.showModal();
@@ -739,11 +762,15 @@ export function openSheet(dialog: HTMLDialogElement): () => void {
     // Keep Escape from an outer framework dialog; the cancel event does the closing.
     if (e.key === 'Escape') e.stopPropagation();
   };
+  let pressedOnBackdrop: boolean | null = null;
+  const onPress = (e: PointerEvent) => {
+    pressedOnBackdrop = onBackdrop(dialog, e);
+  };
   const onClick = (e: MouseEvent) => {
     if (e.target === dialog) {
-      const r = dialog.getBoundingClientRect();
-      const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-      if (!inside) closeNow();
+      const down = pressedOnBackdrop;
+      pressedOnBackdrop = null;
+      if (down !== false && onBackdrop(dialog, e)) closeNow();
       return;
     }
     if (e.target instanceof Element && e.target.closest('[data-sheet-close]')) closeNow();
@@ -760,7 +787,7 @@ export function openSheet(dialog: HTMLDialogElement): () => void {
     if (typeof matchMedia !== 'undefined' && matchMedia('(min-width: 640px)').matches) return;
     const r = dialog.getBoundingClientRect();
     const onHeader = e.target instanceof Element && e.target.closest('.nish-sheet-header') != null;
-    if (!onHeader && e.clientY - r.top > 28) return;
+    if (!onHeader && e.clientY - r.top > 44) return;
     dragging = true;
     startY = lastY = e.clientY;
     lastT = e.timeStamp;
@@ -798,6 +825,7 @@ export function openSheet(dialog: HTMLDialogElement): () => void {
     dialog.removeEventListener('cancel', onCancel);
     dialog.removeEventListener('keydown', onKey);
     dialog.removeEventListener('click', onClick);
+    dialog.removeEventListener('pointerdown', onPress);
     dialog.removeEventListener('pointerdown', onDown);
     dialog.removeEventListener('pointermove', onMove);
     dialog.removeEventListener('pointerup', onUp);
@@ -808,6 +836,7 @@ export function openSheet(dialog: HTMLDialogElement): () => void {
   dialog.addEventListener('cancel', onCancel);
   dialog.addEventListener('keydown', onKey);
   dialog.addEventListener('click', onClick);
+  dialog.addEventListener('pointerdown', onPress);
   dialog.addEventListener('pointerdown', onDown);
   dialog.addEventListener('pointermove', onMove);
   dialog.addEventListener('pointerup', onUp);
@@ -1083,8 +1112,8 @@ export function mountScrollspy(
  *  restored now. Updates the `.nish-checklist-progress` element before the list (or the
  *  first one in its parent) to "{done} of {total}" and its `--p` meter. Without
  *  `data-store` it still counts. Storage failures are ignored. Returns a function that
- *  removes the listener. */
-export function mountChecklist(list: HTMLElement): () => void {
+ *  removes the listener. Pass `format` for another language than "{done} of {total}". */
+export function mountChecklist(list: HTMLElement, opts: { format?: (done: number, total: number) => string } = {}): () => void {
   if (typeof document === 'undefined') return () => undefined;
   const key = list.dataset.store || null;
   const boxes = () => Array.from(list.querySelectorAll<HTMLInputElement>('li[data-id] input[type="checkbox"]'));
@@ -1110,7 +1139,7 @@ export function mountChecklist(list: HTMLElement): () => void {
     const all = boxes();
     const done = all.filter((b) => b.checked).length;
     if (progress) {
-      progress.textContent = `${done} of ${all.length}`;
+      progress.textContent = opts.format ? opts.format(done, all.length) : `${done} of ${all.length}`;
       (progress as HTMLElement).style.setProperty('--p', `${all.length ? (done / all.length) * 100 : 0}%`);
     }
   };

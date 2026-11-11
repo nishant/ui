@@ -318,12 +318,33 @@ describe('formatter cache', () => {
     }
   });
 
-  it('formats 10 000 date-times in under 100 ms', () => {
+  it('builds no new Intl.DateTimeFormat for 10 000 date-times', () => {
+    const DTF = Intl.DateTimeFormat;
+    let built = 0;
     const d = at(2026, 10, 28, 7, 42);
     dateTime(d);
-    const start = performance.now();
-    for (let i = 0; i < 10_000; i++) dateTime(d);
-    expect(performance.now() - start).toBeLessThan(100);
+    Intl.DateTimeFormat = new Proxy(DTF, {
+      construct(target, args) {
+        built++;
+        return Reflect.construct(target, args);
+      },
+    });
+    try {
+      for (let i = 0; i < 10_000; i++) dateTime(d);
+      expect(built).toBe(0);
+    } finally {
+      Intl.DateTimeFormat = DTF;
+    }
+  });
+});
+
+describe('audit burn3 fixes', () => {
+  it('signedMoney takes a zero label for another language', () => {
+    expect(signedMoney(0, { zero: 'Keine Änderung' })).toBe('Keine Änderung');
+    expect(signedMoney(1, { zero: 'x' })).toBe('+$1.00');
+  });
+  it('compact digits is a maximum', () => {
+    expect(num(12000, { compact: true, digits: 2 })).toBe('12k');
   });
 });
 

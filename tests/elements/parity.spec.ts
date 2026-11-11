@@ -118,7 +118,7 @@ const TRACK_PADDING = ['box.paddingTop', 'box.paddingRight', 'box.paddingBottom'
 const HEADER_PADDING = TRACK_PADDING;
 const callout = (tone: string): Case =>
   wave2(`callout-${tone}`, {
-    react: { box: '.case', title: '.case p.font-medium', body: '.case .basis-60 > div' },
+    react: { box: '.case', title: '.case .font-medium', body: '.case .basis-60 > span.text-th-hi2' },
     element: { box: '.case', title: '.nish-callout-title', body: '.case div > p:not(.nish-callout-title)' },
   });
 const chip = (id: string, react = '#stage button', element = 'nish-chip-group button'): Case =>

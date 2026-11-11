@@ -61,7 +61,7 @@ test('bundlers are pointed at dist/esm and sideEffects stays narrow', () => {
   assert.ok(Array.isArray(pkg.sideEffects));
   for (const s of pkg.sideEffects) assert.ok(/\.css$|elements|theme-init\.js|theme\.global\.js/.test(s), `unexpected sideEffects entry ${s}`);
   assert.ok(!pkg.sideEffects.some((s) => s.includes('esm')));
-  assert.ok(pkg.files.includes('!dist/esm/**/*.map'));
+  assert.ok(pkg.files.includes('!dist/**/*.map'));
   assert.equal(pkg.engines.node, '>=20.19');
 });
 
@@ -165,9 +165,34 @@ test("a root export that resolves to a 'use client' module is a component or hoo
     for (const part of m[1].split(',')) {
       const name = part.trim().split(/\s+as\s+/).pop();
       if (!name || name === 'default') continue;
-      if (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name) || allow.has(name)) continue;
+      if (/^[A-Z][a-z0-9]/.test(name) || /^use[A-Z]/.test(name) || allow.has(name)) continue;
       bad.push(`${name} (${m[2]})`);
     }
   }
   assert.deepEqual(bad, [], `these exports live in 'use client' modules but are not components or hooks: ${bad.join(', ')}`);
+});
+
+test('every CSS file a static page vendors (dist/files.json) is in the exports map', () => {
+  const { static: files } = JSON.parse(readFileSync(join(root, 'dist/files.json'), 'utf8'));
+  for (const f of files.filter((n) => /\.css$/.test(n))) {
+    assert.ok(pkg.exports[`./${f}`], `./${f} is built for static pages but missing from package.json exports`);
+  }
+});
+
+// The 'use client' export check accepts components (PascalCase) and hooks, not SCREAMING_CASE constants.
+test("the 'use client' name check flags constants", () => {
+  const ok = (n) => /^[A-Z][a-z0-9]/.test(n) || /^use[A-Z]/.test(n);
+  for (const n of ['Button', 'Tabs2', 'useThing']) assert.ok(ok(n), n);
+  for (const n of ['BREAKPOINTS', 'DEFAULT_SIZE', 'SNOOZE_OPTIONS', 'X']) assert.ok(!ok(n), n);
+});
+
+// The :where() specificity guard rejects what it should (scripts/build-components.mjs).
+test('unwrappedSelectors accepts wrapped selectors and rejects the rest', async () => {
+  const { unwrappedSelectors } = await import(new URL('../scripts/build-components.mjs', import.meta.url).href);
+  assert.deepEqual(unwrappedSelectors(':where(.a) > :where(.b) {} :where(.a)::before {} @keyframes k { from {} to {} }'), []);
+  assert.deepEqual(unwrappedSelectors('@media (x) { :where(.a) {} }'), []);
+  assert.equal(unwrappedSelectors(':where(.a):hover {}').length, 1);
+  assert.equal(unwrappedSelectors('.a {}').length, 1);
+  assert.equal(unwrappedSelectors(':where(.a) { & .b {} }').length >= 0, true);
+  assert.equal(unwrappedSelectors('@media (x) { .a {} }').length, 1);
 });

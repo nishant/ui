@@ -60,9 +60,9 @@ export interface CommandPaletteProps {
   placeholder?: string;
   /** Text shown when nothing matches. Default 'No results'. */
   emptyText?: string;
-  /** Screen-reader announcement of the result count. Default "3 results". */
+  /** Screen-reader announcement of the result count. Default: the `resultsCount` string ("3 results"). */
   resultsLabel?: (count: number) => string;
-  /** Accessible name of the "opens in a new tab" mark on external rows. Default 'opens in a new tab'. */
+  /** Accessible name of the "opens in a new tab" mark on external rows. Default: the `opensInNewTab` string ('opens in a new tab'). */
   externalLabel?: string;
   /** Open with Ctrl/Cmd+K, and with `/` when focus is not in a field (default true). */
   hotkey?: boolean;
@@ -146,10 +146,6 @@ function SearchIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function defaultResultsLabel(count: number): string {
-  return `${count} result${count === 1 ? '' : 's'}`;
-}
-
 function isTypingTarget(t: EventTarget | null): boolean {
   if (!(t instanceof HTMLElement)) return false;
   const tag = t.tagName;
@@ -169,7 +165,7 @@ export function useCommandHotkey(open: () => void, enabled = true): void {
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) return;
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && (e.key.toLowerCase() === 'k' || (e.code === 'KeyK' && !/^[a-z]$/i.test(e.key)))) {
         e.preventDefault();
         ref.current();
       } else if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !isTypingTarget(e.target)) {
@@ -210,7 +206,7 @@ export function CommandPalette({
       placeholder={placeholder ?? s.searchPlaceholder}
       emptyText={emptyText ?? s.noResults}
       resultsLabel={resultsLabel}
-      externalLabel={externalLabel ?? 'opens in a new tab'}
+      externalLabel={externalLabel ?? s.opensInNewTab}
       onQuery={onQuery}
       footer={footer}
       onSubmitQuery={onSubmitQuery}
@@ -403,7 +399,7 @@ function PaletteDialog({ onClose, items, placeholder, emptyText, resultsLabel, e
       className="sm:max-w-[560px]"
     >
       <div aria-live="polite" className="sr-only">
-        {showEmpty ? '' : (resultsLabel ?? defaultResultsLabel)(flat.length)}
+        {showEmpty ? '' : (resultsLabel ?? s.resultsCount)(flat.length)}
       </div>
       <div
         ref={listRef}

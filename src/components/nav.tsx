@@ -12,7 +12,7 @@ import {
 } from 'react';
 import { cn } from '../cn';
 import { mergeRefs } from './data-classes';
-import { FORCED_MARK } from './display-classes';
+import { FORCED_MARK, warnDev } from './display-classes';
 import { chipClass } from './forms';
 import { useMediaQuery } from './hooks';
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from './icons';
@@ -250,7 +250,7 @@ export function NavRail({
       ref={mergeRefs(ref, refProp)}
       aria-label={label ?? strings.sections}
       className={cn(
-        'hidden w-[72px] shrink-0 flex-col items-center gap-1 border-e border-th-line bg-th-surface py-3 pl-[env(safe-area-inset-left)]',
+        'hidden w-[72px] shrink-0 flex-col items-center gap-1 border-e border-th-line bg-th-surface py-3 ltr:pl-[env(safe-area-inset-left)] rtl:pr-[env(safe-area-inset-right)]',
         RAIL_SHOW[showFrom],
         hideFrom ? RAIL_HIDE[hideFrom] : null,
         className,
@@ -345,7 +345,7 @@ export function NavSidebar({
       ref={mergeRefs(ref, refProp)}
       data-state={collapsed ? 'closed' : 'open'}
       className={cn(
-        'flex h-full shrink-0 flex-col border-e border-th-line bg-th-surface py-3 pl-[env(safe-area-inset-left)] transition-[width] duration-200 motion-reduce:transition-none',
+        'flex h-full shrink-0 flex-col border-e border-th-line bg-th-surface py-3 ltr:pl-[env(safe-area-inset-left)] rtl:pr-[env(safe-area-inset-right)] transition-[width] duration-200 motion-reduce:transition-none',
         collapsed ? 'w-16' : 'w-56',
         className,
       )}
@@ -479,6 +479,9 @@ export function ScrollRow({
 // useScrollSpy and SectionNav
 // ---------------------------------------------------------------------------------
 
+/** How long useScrollSpy waits for a missing section to mount before it stops watching the page. */
+const SCROLL_SPY_GIVE_UP_MS = 10000;
+
 /** The id of the section crossing the middle band of the viewport: the last one that
  *  entered it. At the very top of the page, or before any section has been seen, it is
  *  the first id. Sections are looked up with `document.getElementById`.
@@ -525,6 +528,15 @@ export function useScrollSpy(ids: string[], { rootMargin = '-45% 0px -50% 0px' }
     // for the missing ones until all are observed.
     const seen = new Set<string>();
     let mo: MutationObserver | null = null;
+    let frame = 0;
+    let giveUp: ReturnType<typeof setTimeout> | undefined;
+    const stopLooking = () => {
+      mo?.disconnect();
+      mo = null;
+      clearTimeout(giveUp);
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+    };
     const attach = () => {
       for (const id of list) {
         if (seen.has(id)) continue;
@@ -534,15 +546,25 @@ export function useScrollSpy(ids: string[], { rootMargin = '-45% 0px -50% 0px' }
           io.observe(el);
         }
       }
-      if (seen.size === list.length && mo) {
-        mo.disconnect();
-        mo = null;
-      }
+      if (seen.size === list.length) stopLooking();
     };
     attach();
     if (seen.size < list.length && typeof MutationObserver !== 'undefined') {
-      mo = new MutationObserver(attach);
+      // At most one lookup per frame, however many mutations the page makes, and no looking for ever:
+      // an id that never appears (a typo) must not cost every DOM change for the component's life.
+      mo = new MutationObserver(() => {
+        if (frame) return;
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          attach();
+        });
+      });
       mo.observe(document.body, { childList: true, subtree: true });
+      giveUp = setTimeout(() => {
+        const missing = list.filter((id) => !seen.has(id));
+        stopLooking();
+        if (missing.length) warnDev(`useScrollSpy: no element with id ${missing.map((id) => `"${id}"`).join(', ')} appeared, so it is not tracked.`);
+      }, SCROLL_SPY_GIVE_UP_MS);
     }
     const onScroll = () => {
       if (window.scrollY < 8) setActive(list[0]);
@@ -550,7 +572,7 @@ export function useScrollSpy(ids: string[], { rootMargin = '-45% 0px -50% 0px' }
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       io.disconnect();
-      mo?.disconnect();
+      stopLooking();
       window.removeEventListener('scroll', onScroll);
     };
   }, [key, rootMargin]);
@@ -578,8 +600,8 @@ export interface SectionNavProps extends Omit<ComponentPropsWithoutRef<'nav'>, '
   /** Write `#id` with history.replaceState on click (default true). Pass false in apps that
    *  use hash routing. */
   updateHash?: boolean;
-  /** Accessible name. Default "On this page" (not "Sections", which the app navs use, so
-   *  the two landmarks differ). Translate it per instance. */
+  /** Accessible name. Default: the `onThisPage` string ("On this page", not "Sections", which the app
+   *  navs use, so the two landmarks differ). */
   label?: string;
 }
 
@@ -592,12 +614,13 @@ export function SectionNav({
   sticky = true,
   onSelect,
   updateHash = true,
-  label = 'On this page',
+  label,
   className,
   style,
   ref: refProp,
   ...rest
 }: SectionNavProps) {
+  const strings = useStrings(SHELL_STRINGS);
   const ref = useRef<HTMLElement>(null);
   const spy = useScrollSpy(items.map((i) => i.id));
   // After a chip tap the tapped chip stays lit, even after the scroll ends (the spy's middle
@@ -664,7 +687,7 @@ export function SectionNav({
     <nav
       {...rest}
       ref={mergeRefs(ref, refProp)}
-      aria-label={label}
+      aria-label={label ?? strings.onThisPage}
       data-nish-bar={sticky ? '' : undefined}
       style={sticky ? { top: 'var(--nish-header-h, 0px)', ...style } : style}
       className={cn('z-[var(--nish-z-sticky,20)] border-b border-th-line bg-th-bg py-2', sticky && 'sticky', className)}

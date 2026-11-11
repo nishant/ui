@@ -3,7 +3,7 @@
 A reusable GitHub Actions workflow that shows what a pull request does to an app's pages on
 the devices Nish uses: the Galaxy Z Fold 7 cover screen (360), unfolded (840) and a desktop
 (1440), each in light and dark. Every fleet app's `ui/*` and Dependabot PRs run it; the
-[fan-out](../README.md) reads its result to decide whether to merge.
+[fan-out](https://github.com/nishant/ui/blob/master/docs/RELEASING.md#cutting-a-release) reads its result to decide whether to merge.
 
 ## What it checks
 

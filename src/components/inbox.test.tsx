@@ -294,6 +294,16 @@ describe('Inbox rows', () => {
     rerender(<Inbox {...all} selectedId={1} />);
     expect(scroll).toHaveBeenCalledTimes(2);
   });
+
+  it('scrolls to the same selectedId again after the selection was cleared', () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    const { rerender, all } = setup({ selectedId: 2 });
+    expect(scroll).toHaveBeenCalledTimes(1);
+    rerender(<Inbox {...all} selectedId={null} />);
+    rerender(<Inbox {...all} selectedId={2} />);
+    expect(scroll).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('Inbox row actions on a wide screen', () => {
@@ -543,10 +553,11 @@ describe('Inbox list states', () => {
   it('Load more shows with hasMore, reports clicks and is busy while loading', () => {
     const onLoadMore = vi.fn();
     const { rerender, all } = setup({ hasMore: true, onLoadMore });
+    expect(screen.getByRole('button', { name: 'Load more' }).hasAttribute('aria-busy')).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
     expect(onLoadMore).toHaveBeenCalledTimes(1);
     rerender(<Inbox {...all} hasMore onLoadMore={onLoadMore} loadingMore />);
-    expect(screen.getByRole('button', { name: /Load more/ }).getAttribute('aria-busy') ?? screen.getByRole('button', { name: /Load more/ }).hasAttribute('disabled')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Load more/ }).getAttribute('aria-busy')).toBe('true');
     rerender(<Inbox {...all} hasMore onLoadMore={onLoadMore} loading />);
     expect(screen.queryByRole('button', { name: /Load more/ })).toBeNull();
     rerender(<Inbox {...all} hasMore onLoadMore={onLoadMore} error="x" />);

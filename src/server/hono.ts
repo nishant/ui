@@ -72,6 +72,9 @@ export function requireSession(auth: SessionAuth, opts?: { message?: string }): 
   };
 }
 
+/** The most a login body may be, in bytes (declared) or characters (read): a password is at most 1024 characters. */
+const LOGIN_BODY_MAX = 16 * 1024;
+
 export interface LoginOptions {
   auth: SessionAuth;
   password: string | (() => string);
@@ -93,7 +96,7 @@ export interface LoginOptions {
 
 /** POST handler: limiter key clientIpOf(c, trustProxy) (an IPv6 address keys on its /64), or NO_ADDRESS_KEY (one shared bucket) when the
  *  request has no address; limiter.hit(key) first, before any await, false -> 429; body via
- *  c.req.json() (failure = {}); password must be a string of at most 1024 chars and match (exact
+ *  c.req.text() capped at 16 KB (a larger Content-Length or body = 413) then JSON.parse (failure = {}); password must be a string of at most 1024 chars and match (exact
  *  unless caseInsensitive), else wait failDelayMs (plus failBudget.delayMs once more than failBudget.max
  *  failures landed across all clients inside its window; delay only, never a lockout), 401; success -> limiter.reset, startSession,
  *  onSuccess. */
@@ -107,8 +110,12 @@ export function loginHandler(o: LoginOptions): Handler {
     const key = ip === null ? NO_ADDRESS_KEY : limiterBucket(ip);
     if (!o.limiter.hit(key)) return c.json(errorBody('tooMany', tooMany), 429);
     let body: unknown = {};
+    const declared = Number(c.req.header('content-length') ?? 0);
+    if (declared > LOGIN_BODY_MAX) return c.json({ error: 'Request too large.' }, 413);
     try {
-      body = await c.req.json();
+      const text = await c.req.text();
+      if (text.length > LOGIN_BODY_MAX) return c.json({ error: 'Request too large.' }, 413);
+      body = JSON.parse(text);
     } catch {
       body = {};
     }

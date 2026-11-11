@@ -123,6 +123,9 @@ export class NishSectionNav extends NishElement {
     const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.#stopSpy?.lock(id);
     target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    // preventDefault cancelled the fragment navigation that moves focus: do it here.
+    if (!target.hasAttribute('tabindex') && !target.matches('a[href],button,input,select,textarea,summary')) target.tabIndex = -1;
+    target.focus({ preventScroll: true });
     if (this.updateHash) {
       try {
         history.replaceState(history.state, '', `#${a.hash.slice(1)}`);

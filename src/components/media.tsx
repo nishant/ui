@@ -25,7 +25,7 @@ const THUMB_BOX: Record<MediaThumbShape, Record<MediaThumbSize, string>> = {
 export interface MediaThumbProps extends Omit<ComponentPropsWithoutRef<'span'>, 'children'> {
   /** The image URL. Relative, http(s) URLs load; javascript:, data: and other schemes show the fallback. */
   src?: string;
-  /** wide: 16:9 (64x36, or 96x54 at md). round and square: 36px, or 48px at md. */
+  /** wide: 16:9 (64x36 at sm; at md 72x41, or 96x54 from 420px wide). round and square: 36px, or 48px at md. */
   shape?: MediaThumbShape;
   /** sm for dense lists, md otherwise. */
   size?: MediaThumbSize;

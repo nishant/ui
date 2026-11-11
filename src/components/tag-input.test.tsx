@@ -92,6 +92,15 @@ describe('TagInput', () => {
     expect(onValueChange).toHaveBeenCalledWith(['one', 'two', 'three']);
   });
 
+  it('pastes at the caret and over the selection', () => {
+    const onValueChange = vi.fn();
+    render(<TagInput aria-label="Tags" onValueChange={onValueChange} />);
+    fireEvent.change(box(), { target: { value: 'abXYcd' } });
+    box().setSelectionRange(2, 4);
+    fireEvent.paste(box(), { clipboardData: { getData: () => '1,2' } });
+    expect(onValueChange).toHaveBeenCalledWith(['ab1', '2cd']);
+  });
+
   it('leaves a paste with no separator to the browser', () => {
     const onValueChange = vi.fn();
     render(<TagInput aria-label="Tags" onValueChange={onValueChange} />);

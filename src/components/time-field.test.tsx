@@ -205,7 +205,7 @@ describe('TimeField keys', () => {
   });
 
   it('Home and End go to the first and last value of each box', () => {
-    const { h, m, onValueChange } = setup({ defaultValue: '09:30' });
+    const { h, m, onValueChange } = setup({ defaultValue: '09:30', hourCycle: 24 });
     key(h, 'Home');
     expect(onValueChange).toHaveBeenLastCalledWith('00:30');
     key(h, 'End');
@@ -214,6 +214,18 @@ describe('TimeField keys', () => {
     expect(onValueChange).toHaveBeenLastCalledWith('23:00');
     key(m, 'End');
     expect(onValueChange).toHaveBeenLastCalledWith('23:59');
+  });
+
+  it('Home and End on a 12-hour hour box land on aria-valuemin and aria-valuemax', () => {
+    const { h, onValueChange } = setup({ defaultValue: '09:30', hourCycle: 12 });
+    key(h, 'Home');
+    expect(h.value).toBe('1');
+    expect(h.getAttribute('aria-valuemin')).toBe('1');
+    expect(onValueChange).toHaveBeenLastCalledWith('01:30');
+    key(h, 'End');
+    expect(h.value).toBe('12');
+    expect(h.getAttribute('aria-valuemax')).toBe('12');
+    expect(onValueChange).toHaveBeenLastCalledWith('00:30');
   });
 
   it('End on the minutes follows the step', () => {

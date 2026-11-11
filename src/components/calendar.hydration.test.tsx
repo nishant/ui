@@ -5,11 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { calendarNullMonth } from '../../tests/ssr/cases';
 
 describe('Calendar with no value and no month', () => {
+  const actFlag = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+  const prevAct = actFlag.IS_REACT_ACT_ENVIRONMENT;
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 10, 5, 12));
   });
   afterEach(() => {
+    actFlag.IS_REACT_ACT_ENVIRONMENT = prevAct;
     vi.useRealTimers();
     vi.restoreAllMocks();
   });

@@ -566,7 +566,9 @@ test('parseInboxActionCall', () => {
   assert.equal(parseInboxActionCall({ ...ok, dedupeKey: 'k'.repeat(200) }, 'status').dedupeKey, 'k'.repeat(200));
   const { dedupeKey: _d, ...noKey } = ok;
   assert.equal(parseInboxActionCall(noKey, 'status'), null);
-  for (const data of [null, undefined, [], 'x', 3]) assert.equal(parseInboxActionCall({ ...ok, data }, 'status'), null);
+  assert.deepEqual(parseInboxActionCall({ ...ok, data: null }, 'status').data, {});
+  assert.deepEqual(parseInboxActionCall({ ...ok, data: undefined }, 'status').data, {});
+  for (const data of [[], 'x', 3]) assert.equal(parseInboxActionCall({ ...ok, data }, 'status'), null);
   assert.deepEqual(parseInboxActionCall({ ...ok, data: {} }, 'status').data, {});
 });
 

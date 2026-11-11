@@ -70,9 +70,19 @@ export function TableWrap({
     update();
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(update);
-    ro.observe(el);
-    for (const c of Array.from(el.children)) ro.observe(c);
-    return () => ro.disconnect();
+    // Children can be replaced (a skeleton swapped for the table): watch the new ones too.
+    const watch = () => {
+      ro.disconnect();
+      ro.observe(el);
+      for (const c of Array.from(el.children)) ro.observe(c);
+    };
+    watch();
+    const mo = typeof MutationObserver === 'undefined' ? null : new MutationObserver(() => { watch(); update(); });
+    mo?.observe(el, { childList: true });
+    return () => {
+      ro.disconnect();
+      mo?.disconnect();
+    };
   }, []);
   const name = label ?? rest['aria-label'];
   const css = {

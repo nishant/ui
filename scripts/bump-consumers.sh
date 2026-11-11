@@ -23,19 +23,13 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 # repo  package-dir  kind  base-branch  pr-ci  gate
-#   kind   npm | pnpm: rewrite package.json and the lockfile; arora: run sync-nish-ui.py
+#   kind   arora: run sync-nish-ui.py (the only kind left; the fan-out moves every other repo)
 #   pr-ci  yes when the repo runs checks on pull requests; the merge waits for them
 #   gate   run from the repo root before pushing ("-" for none). Repos without PR checks
 #          build here instead, since their only check runs after the merge.
 consumers=(
   "taarora/arora-home packages/arora-ui arora main yes -"
 )
-
-# The apps' CI runs Node 18/22, whose npm 10 `npm ci` rejects a lockfile written by npm 11:
-# npm 11 drops optional peer entries npm 10 requires (startpage's deploy failed on exactly
-# that, twice). So lockfiles are written, and the gate's `npm ci` run, with npm 10.
-npm10() { npx -y npm@10 "$@"; }
-export -f npm10
 
 # Commit as the gh account when this machine has no git identity of its own (the hosting
 # PC sets one per repo, not globally).
@@ -49,16 +43,6 @@ py=""
 for p in python3 python; do
   if "$p" -c 'import sys' >/dev/null 2>&1; then py="$p"; break; fi
 done
-
-# Rewrites the "@nish/ui" dependency in package.json ($1) to $url, from any of the three forms
-# (github:, the codeload tarball, the npm alias). Prints nothing;
-# the caller asks git whether the file changed.
-rewrite() {
-  sed -E -i.bak \
-    "s~(\"@nish/ui\"[[:space:]]*:[[:space:]]*\")(github:nishant/ui#v[^\"]+|https://codeload\.github\.com/nishant/ui/tar\.gz/refs/tags/v[^\"]+|npm:nish-ui@[^\"]+)(\")~\1$url\3~" \
-    "$1"
-  rm -f "$1.bak"
-}
 
 opened=()  # "repo number pr-ci branch" for each PR this run opened
 failed=()
@@ -107,32 +91,8 @@ A new @nish/ui release: https://github.com/nishant/ui/blob/$tag/CHANGELOG.md. Op
 - \`scripts/sync-nish-ui.py $tag\`: fetch, contrast and red/green checks passed
 - **Not run:** the suites locally; CI runs them on this PR and the merge waits for them"
   else
-    pkg="$root/$dir/package.json"
-    if [ ! -f "$pkg" ] || ! grep -q '"@nish/ui"' "$pkg"; then
-      echo "skip: $dir/package.json has no @nish/ui dependency"
-      continue
-    fi
-    rewrite "$pkg"
-    if git -C "$root" diff --quiet -- "$dir/package.json"; then
-      echo "skip: already on $tag, or the @nish/ui spec is a form this script does not know:"
-      grep '"@nish/ui"' "$pkg" || true
-      continue
-    fi
-    grep '"@nish/ui"' "$pkg"
-    if [ "$mode" = "--dry-run" ]; then continue; fi
-    branch="ui/$tag"
-    title="Move @nish/ui to $tag"
-    body="Release notes: https://github.com/nishant/ui/blob/$tag/CHANGELOG.md"
-    if [ "$kind" = pnpm ]; then
-      (cd "$root/$dir" && pnpm install --lockfile-only --silent)
-    else
-      (cd "$root/$dir" && npm10 install --package-lock-only --ignore-scripts --silent)
-    fi
-    if [ "$gate" != "-" ] && ! (cd "$root" && bash -c "$gate"); then
-      echo "skip: \`$gate\` failed on $tag; nothing pushed"
-      failed+=("$repo: $gate")
-      continue
-    fi
+    echo "skip: $repo has kind $kind; this script only moves arora-home (the fan-out moves the rest)"
+    continue
   fi
 
   (
@@ -166,11 +126,6 @@ for entry in "${opened[@]}"; do
     done
     if ! (cd "$work/$name" && "$py" skills/merge-pr/scripts/pr_status.py "$num" --wait); then
       echo "left open: pr_status.py says no"; failed+=("$repo#$num: checks"); continue
-    fi
-  elif [ "$ci" = yes ]; then
-    sleep 15  # let the pull_request runs register, or gh reports "no checks"
-    if ! gh pr checks "$num" --repo "$repo" --watch --fail-fast >/dev/null; then
-      echo "left open: checks failed"; failed+=("$repo#$num: checks"); continue
     fi
   fi
   if ! gh pr merge "$num" --repo "$repo" --merge; then

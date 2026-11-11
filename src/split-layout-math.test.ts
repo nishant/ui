@@ -351,6 +351,7 @@ describe('presets by aspect, narrow layouts, swapping', () => {
     expect(sizesOf(at(1.2, 0.05))).toEqual([0.2, 0.8]);
     expect(sizesOf(at(1.2, 0.95))[0]).toBeCloseTo(0.8, 9);
     expect(sizesOf(at(1.2, 0.5))).toEqual([0.5, 0.5]);
+    expect(sizesOf(at(1.2, NaN))).toEqual([0.5, 0.5]);
     expect(narrowLayout(1, { dir: 'row', split: 0.5 }, 1)).toEqual(leaf(0));
     expect((narrowLayout(2, { dir: 'col', split: 0.5 }, 3) as { dir: string }).dir).toBe('col');
   });

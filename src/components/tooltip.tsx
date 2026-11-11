@@ -150,9 +150,10 @@ export function Tooltip({ tip, children, className, side = 'top', as = 'span', f
   }, []);
 
   const wrapperFocusable = focusable ?? !inner;
+  const own = (rest as { tabIndex?: number; 'aria-describedby'?: string }) ?? {};
   const a11y = {
-    tabIndex: wrapperFocusable ? 0 : undefined,
-    'aria-describedby': open && !inner ? id : undefined,
+    tabIndex: own.tabIndex ?? (wrapperFocusable ? 0 : undefined),
+    'aria-describedby': [own['aria-describedby'], open && !inner ? id : undefined].filter(Boolean).join(' ') || undefined,
     'data-state': open ? 'open' : 'closed',
   };
   const hint = variant === 'hint' && 'cursor-help underline decoration-th-hi3 decoration-dotted underline-offset-2';

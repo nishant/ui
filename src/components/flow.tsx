@@ -187,10 +187,10 @@ const NODE_STATUS: Record<FlowStepStatus, string> = {
 };
 
 
-function pickStepFx(from: FlowStepStatus, to: FlowStepStatus): string | null {
+function pickStepFx(_from: FlowStepStatus, to: FlowStepStatus): string | null {
   if (to === 'done') return 'done';
   if (to === 'failed') return 'failed';
-  return from === to ? null : null;
+  return null;
 }
 
 /** Horizontal labels clamp to two lines; a text label gets its full text as a tooltip
@@ -198,7 +198,7 @@ function pickStepFx(from: FlowStepStatus, to: FlowStepStatus): string | null {
 function withFullText(text: ReactNode, label: ReactElement) {
   if (typeof text !== 'string') return label;
   return (
-    <Tooltip tip={text} className="nish-flow-label-tip max-w-full min-w-0">
+    <Tooltip tip={text} focusable={false} className="nish-flow-label-tip max-w-full min-w-0">
       {label}
     </Tooltip>
   );
@@ -536,7 +536,11 @@ export function AgentNode({ label, state, model, activity, meta, onClick, stateL
     done: s.agentDone,
     failed: s.agentFailed,
   };
-  const aria = `${label}: ${stateLabels?.[state] ?? stateWord[state]}`;
+  // aria-label replaces a button's content, so it carries the activity, meta and model too.
+  const extras = [model, typeof meta === 'string' || typeof meta === 'number' ? String(meta) : null, activity].filter(
+    (x): x is string => typeof x === 'string' && x !== '',
+  );
+  const aria = [`${label}: ${stateLabels?.[state] ?? stateWord[state]}`, ...extras].join(', ');
   const classes = cn(
     'nish-flow-agent block min-h-16 w-full min-w-0 rounded-xl border bg-th-surface p-3 text-start',
     AGENT_STATE[state],
@@ -792,7 +796,8 @@ const FEED_DOT_FORCED = 'forced-colors:bg-[color:CanvasText]';
 export function ActivityFeed({ items, max = 50, now, label, empty, className, ref, ...rest }: ActivityFeedProps) {
   const s = useStrings(PROGRESS_STRINGS, FLOW_STRINGS);
   const { locale } = useNishContext();
-  const internalNow = useNow(15000);
+  // A caller-supplied `now` needs no clock: the longest interval never fires in practice.
+  const internalNow = useNow(now != null ? 2147483647 : 15000);
   const clock = now ?? internalNow;
   const shown = useMemo(() => [...items].sort((a, b) => b.at - a.at).slice(0, Math.max(0, max)), [items, max]);
   const fresh = useFreshIds(

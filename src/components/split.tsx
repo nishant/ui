@@ -17,7 +17,6 @@ export { presetOptions, type LayoutPresetOption } from './split-classes';
 import {
   computeDividers,
   computeRects,
-
   resizeAt,
   type Divider,
   type LayoutNode,
@@ -157,7 +156,9 @@ export function SplitDividers({ layout, w, h, gap, onResize, onDragChange, minPa
 
   const fraction = (d: Divider): number => {
     const node = nodeAt(layout, d.path);
-    return node && node.type === 'split' ? (node.sizes[d.index] ?? 0.5) : 0.5;
+    if (!node || node.type !== 'split') return 0.5;
+    // Where the divider sits: the room taken by every pane up to and including the one before it.
+    return Math.min(1, node.sizes.slice(0, d.index + 1).reduce((a, b) => a + b, 0));
   };
 
   const down = (e: PointerEvent<HTMLDivElement>) => {
@@ -363,6 +364,8 @@ export function SplitStage({
   }, []);
 
   useEffect(() => {
+    // Not before the first measurement: a 0x0 stage is not a size.
+    if (size.w === 0 && size.h === 0) return;
     onSizeRef.current?.(size);
   }, [size]);
 
@@ -533,7 +536,7 @@ export function LayoutPresetPicker({
       )}
     >
       <div className="min-w-0 flex-1">
-        <ScrollRow label={label}>
+        <ScrollRow>
           <div
             ref={group}
             role="radiogroup"

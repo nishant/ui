@@ -31,17 +31,7 @@ const GAP_MIN = 72; // "bands": smallest and largest gap between two rows
 const GAP_MAX = 240;
 const COLUMN_TITLE_ROOM = 36;
 
-/** Where every group and node sits, in world units (px at zoom 1). Pure and deterministic.
- *
- *  "columns" (default): columns are the distinct `column` values in ascending order, groups
- *  stack in the order given, nodes sit in a 2-column grid inside their group (1 column for a
- *  group of one), and each column is centered against the tallest. The first sub-column starts
- *  60 px in and `width` includes 60 px after the last, which is room for the edge lanes
- *  outside the cards.
- *
- *  "bands": bands are the distinct `band ?? column` values in ascending order, stacked top to
- *  bottom; each band wraps its groups (by `column`, then input order) into rows no wider than
- *  `width`. The gaps between rows grow with the number of edge ends that need lanes there. */
+/** Options for `layoutSystem`. */
 export interface LayoutOptions {
   /** Default "columns". */
   mode?: "columns" | "bands";
@@ -194,6 +184,17 @@ function layoutBands(
   return out;
 }
 
+/** Where every group and node sits, in world units (px at zoom 1). Pure and deterministic.
+ *
+ *  "columns" (default): columns are the distinct `column` values in ascending order, groups
+ *  stack in the order given, nodes sit in a 2-column grid inside their group (1 column for a
+ *  group of one), and each column is centered against the tallest. The first sub-column starts
+ *  60 px in and `width` includes 60 px after the last, which is room for the edge lanes
+ *  outside the cards.
+ *
+ *  "bands": bands are the distinct `band ?? column` values in ascending order, stacked top to
+ *  bottom; each band wraps its groups (by `column`, then input order) into rows no wider than
+ *  `width`. The gaps between rows grow with the number of edge ends that need lanes there. */
 export function layoutSystem(
   groups: CanvasGroup[],
   o: LayoutOptions = {},

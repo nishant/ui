@@ -48,7 +48,7 @@ export function nishThemeInit(o: NishThemeInitOptions = {}): NishThemeInitPlugin
   // render-blocking <head> script.
   const themeInit = readFileSync(file, 'utf8').replace(/^[ \t]*\/\/.*(?:\r?\n|$)/gm, '').trim();
   const legacy = o.legacyKey
-    ? `try{var k=${JSON.stringify(o.legacyKey)},v=localStorage.getItem(k);if(v&&!localStorage.getItem('nish-theme')&&!/(?:^|; )nish-theme=/.test(document.cookie))localStorage.setItem('nish-theme',v)}catch(e){}`
+    ? `try{var k=${JSON.stringify(o.legacyKey)},v=localStorage.getItem(k),n=document.documentElement.getAttribute('data-nish-storage-key');if(!n||!/^[A-Za-z0-9_-]+$/.test(n))n='nish-theme';if(v&&!localStorage.getItem(n)&&!new RegExp('(?:^|; *)'+n+'=').test(document.cookie))localStorage.setItem(n,v)}catch(e){}`
     : '';
   const code = [legacy, o.prelude, themeInit].filter(Boolean).join('\n');
 

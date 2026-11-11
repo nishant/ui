@@ -37,6 +37,11 @@ afterEach(() => {
 });
 
 describe('SplitDividers accessibility', () => {
+  it('in a split of three, each divider reports where it sits', () => {
+    render(frame(<SplitDividers layout={three} w={800} h={450} gap={4} onResize={() => {}} />));
+    expect(screen.getAllByRole('separator').map((d) => d.getAttribute('aria-valuenow'))).toEqual(['25', '50']);
+  });
+
   it('each divider reports its position as a percentage with a text value', () => {
     render(frame(<SplitDividers layout={two('row', 0.4)} w={800} h={450} gap={4} onResize={() => {}} />));
     const sep = screen.getByRole('separator');
@@ -293,6 +298,7 @@ describe('SplitStage root element', () => {
     const { container } = render(<SplitStage layout={null} items={['a']} slots={['a']} renderPane={() => <i />} onSize={onSize} />);
     expect(container.querySelectorAll('[data-split-pane]')).toHaveLength(0);
     expect(onSize).toHaveBeenLastCalledWith({ w: 800, h: 450 });
+    expect(onSize).not.toHaveBeenCalledWith({ w: 0, h: 0 });
   });
 
   it('skips items that are not in a slot', () => {
@@ -337,6 +343,13 @@ describe('SplitStage root element', () => {
     expect(transition({})).toContain('180ms');
     expect(transition({ animate: false })).toBe('none');
     expect(transition({ dragging: true })).toBe('none');
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('prefers-reduced-motion'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    expect(transition({})).toBe('none');
   });
 
   it('mirrors pane positions in a right-to-left area', () => {

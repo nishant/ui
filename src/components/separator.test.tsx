@@ -23,6 +23,11 @@ describe('Separator', () => {
     expect(el.className).not.toContain('h-px');
   });
 
+  it('names a non-decorative separator by its label', () => {
+    render(<Separator decorative={false} label="or" />);
+    expect(screen.getByRole('separator', { name: 'or' })).toBeTruthy();
+  });
+
   it('draws a horizontal rule across', () => {
     render(<Separator decorative={false} />);
     const el = screen.getByRole('separator');

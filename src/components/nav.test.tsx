@@ -264,6 +264,14 @@ describe('shortLabel', () => {
     expect(within(dialog).queryByText('Engines')).toBeNull();
   });
 
+  it('pads the safe-area inset on the side the rail sits on, in both directions', () => {
+    const { container } = render(<NavRail items={items} />);
+    const cls = (container.querySelector('aside, nav') as HTMLElement).className;
+    expect(cls).toContain('ltr:pl-[env(safe-area-inset-left)]');
+    expect(cls).toContain('rtl:pr-[env(safe-area-inset-right)]');
+    expect(cls.split(' ')).not.toContain('pl-[env(safe-area-inset-left)]');
+  });
+
   it('makes the rail tooltip the full label without a hint, the hint with one, and nothing when equal', () => {
     const { unmount } = render(<NavRail items={items} />);
     hover(screen.getByRole('link', { name: /Engines/, hidden: true }));
@@ -601,6 +609,66 @@ describe('useScrollSpy and SectionNav', () => {
     render(<SectionNav items={sections} />);
     fireEvent.click(screen.getByRole('button', { name: /Two/ }));
     expect(document.getElementById('two')?.scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
+  });
+
+  it('jumps without animation when reduced motion is requested', () => {
+    window.matchMedia = ((q: string) => ({ matches: q.includes('reduce'), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    render(<SectionNav items={sections} />);
+    fireEvent.click(screen.getByRole('button', { name: /Two/ }));
+    expect(document.getElementById('two')?.scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'auto' });
+  });
+
+  it('takes its default name from the provider strings, and the label prop wins', () => {
+    const { rerender } = render(
+      <NishProvider strings={{ onThisPage: 'Sur cette page' }}>
+        <SectionNav items={sections} />
+      </NishProvider>,
+    );
+    expect(screen.getByRole('navigation', { name: 'Sur cette page' })).toBeTruthy();
+    rerender(
+      <NishProvider strings={{ onThisPage: 'Sur cette page' }}>
+        <SectionNav items={sections} label="Ici" />
+      </NishProvider>,
+    );
+    expect(screen.getByRole('navigation', { name: 'Ici' })).toBeTruthy();
+  });
+
+  it('picks up a section that mounts later, one lookup per frame', () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useScrollSpy(['one', 'late']));
+    expect(observers[0]?.observed.map((e) => e.id)).toEqual(['one']);
+    const late = document.createElement('section');
+    late.id = 'late';
+    document.body.appendChild(late);
+    return Promise.resolve().then(() => {
+      act(() => {
+        vi.advanceTimersByTime(40);
+      });
+      expect(observers[0]?.observed.map((e) => e.id)).toEqual(['one', 'late']);
+      expect(result.current).toBe('one');
+      late.remove();
+    });
+  });
+
+  it('stops watching the page after a while when an id never appears, and names it in a warning', () => {
+    vi.useFakeTimers();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect');
+    renderHook(() => useScrollSpy(['one', 'ghost-id-xyz']));
+    expect(disconnect).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+    expect(disconnect).toHaveBeenCalled();
+    expect(warn.mock.calls.some((c) => String(c[0]).includes('"ghost-id-xyz"'))).toBe(true);
+  });
+
+  it('disconnects the mutation observer on unmount', () => {
+    const disconnect = vi.spyOn(MutationObserver.prototype, 'disconnect');
+    const { unmount } = renderHook(() => useScrollSpy(['one', 'ghost-id-abc']));
+    expect(disconnect).not.toHaveBeenCalled();
+    unmount();
+    expect(disconnect).toHaveBeenCalled();
   });
 
   it('releases the locked chip on a wheel event', () => {

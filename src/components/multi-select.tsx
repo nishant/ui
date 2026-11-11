@@ -4,6 +4,7 @@ import { cn } from '../cn';
 import { CheckIcon, XIcon } from './icons';
 import { Spinner } from './feedback';
 import { Chip } from './forms';
+import { warnDev } from './display-classes';
 import { fieldClass } from './primitives';
 import { useStrings } from './provider';
 import { FIELD_STRINGS, MULTI_SELECT_STRINGS } from './strings';
@@ -60,7 +61,7 @@ export interface MultiSelectProps
   loading?: boolean;
   /** The loading row and its announcement. Default "Searching…" (NishProvider strings). */
   loadingText?: string;
-  /** The polite announcement of the result count. Default "3 results" / "1 result". */
+  /** The polite announcement of the result count. Default: the `resultsCount` string ("3 results" / "1 result"). */
   resultsText?: (count: number) => string;
   /** md (default) or sm. Both grow to 44px on touch screens. */
   size?: 'sm' | 'md';
@@ -69,8 +70,6 @@ export interface MultiSelectProps
   /** Extra classes for the wrapper around the field box and the list. */
   className?: string;
 }
-
-const defaultResultsText = (n: number): string => `${n} ${n === 1 ? 'result' : 'results'}`;
 
 /** An editable combobox that picks several options. Picked values show as removable tags,
  *  the list stays open after a pick, and every value posts as its own hidden input. `ref`,
@@ -100,7 +99,7 @@ export function MultiSelect({
   onQueryChange,
   loading = false,
   loadingText,
-  resultsText = defaultResultsText,
+  resultsText,
   size = 'md',
   clearLabel,
   className,
@@ -173,8 +172,8 @@ export function MultiSelect({
   useEffect(() => () => window.clearTimeout(debounceRef.current), []);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production' && !ariaLabel && !ariaLabelledBy && id == null) {
-      console.warn('MultiSelect needs a name: pass aria-label, aria-labelledby, or an id with a <label htmlFor>.');
+    if (!ariaLabel && !ariaLabelledBy && id == null) {
+      warnDev('MultiSelect needs a name: pass aria-label, aria-labelledby, or an id with a <label htmlFor>.');
     }
   }, [ariaLabel, ariaLabelledBy, id]);
 
@@ -354,7 +353,7 @@ export function MultiSelect({
 
   const activeId = open && current >= 0 && visible[current] ? `${listId}-opt-${current}` : undefined;
   const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true';
-  const status = announcement || (open ? (loading ? searching : visible.length === 0 ? empty : resultsText(visible.length)) : '');
+  const status = announcement || (open ? (loading ? searching : visible.length === 0 ? empty : (resultsText ?? strings.resultsCount)(visible.length)) : '');
 
   return (
     <div

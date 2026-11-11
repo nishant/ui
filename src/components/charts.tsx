@@ -157,10 +157,14 @@ export function LineChart({
   const yFmt = yFormat ?? ((v: number) => chartNumber(v, loc));
   const xFmt = xFormat ?? ((v: number) => chartNumber(v, loc));
   const [wrapRef, width, wrapEl] = useWidth<HTMLDivElement>();
+  // One callback for the chart's life: an inline mergeRefs would detach and re-attach the ref on every render.
+  const rootRef = useMemo(() => mergeRefs(wrapRef, ref), [wrapRef, ref]);
   const rtl = useChartRtl(wrapEl);
   const gradId = `nish-area-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const [active, setActive] = useState<number | null>(null);
   const fromKey = useRef(false);
+  // Mirrors fromKey for render: only a keyboard move is announced.
+  const [viaKey, setViaKey] = useState(false);
 
   const lines = useMemo<LineSeries[]>(() => (series ?? (data ? [{ label, tone, points: data }] : [])), [series, data, label, tone]);
 
@@ -289,6 +293,7 @@ export function LineChart({
 
   const onPointer = (e: PointerEvent<SVGSVGElement>) => {
     fromKey.current = false;
+    setViaKey(false);
     moveTo(e.clientX, e.currentTarget);
   };
 
@@ -296,6 +301,7 @@ export function LineChart({
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
       fromKey.current = true;
+      setViaKey(true);
       // The plot is mirrored in RTL, so the right arrow goes back along the data.
       const dir = (e.key === 'ArrowRight' ? 1 : -1) * (rtl ? -1 : 1);
       setActive((a) => (a == null ? (dir > 0 ? 0 : xs.length - 1) : Math.min(xs.length - 1, Math.max(0, a + dir))));
@@ -308,9 +314,14 @@ export function LineChart({
   const tipRight = cx < width / 2;
 
   const tableXs = xs.slice(0, 200);
+  // Spoken when the crosshair moves by keyboard; a pointer move stays silent.
+  const announce =
+    ax != null && viaKey
+      ? `${xFmt(ax)}: ${tipRows.map((r) => (lines.length > 1 ? `${r.s.label} ${yFmt(r.y as number)}` : yFmt(r.y as number))).join(', ')}`
+      : '';
 
   return (
-    <div {...rest} ref={mergeRefs(wrapRef, ref)} className={cn('relative w-full select-none', className)} style={{ height, ...rest.style }}>
+    <div {...rest} ref={rootRef} className={cn('relative w-full select-none', className)} style={{ height, ...rest.style }}>
       {width > 0 && (
         <svg
           width={width}
@@ -415,6 +426,9 @@ export function LineChart({
           ))}
         </div>
       )}
+      <div className="sr-only" aria-live="polite">
+        {announce}
+      </div>
       <table className="sr-only">
         <caption>{label}</caption>
         <thead>
@@ -436,6 +450,13 @@ export function LineChart({
               ))}
             </tr>
           ))}
+          {xs.length > tableXs.length && (
+            <tr>
+              <th scope="row" colSpan={lines.length + 1}>
+                {t.chartTruncated(tableXs.length, xs.length)}
+              </th>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -492,6 +513,7 @@ export function BarChart({
   const loc = locale ?? config.locale ?? 'en-US';
   const fmt = valueFormat ?? ((v: number) => chartNumber(v, loc));
   const [wrapRef, width, wrapEl] = useWidth<HTMLDivElement>();
+  const rootRef = useMemo(() => mergeRefs(wrapRef, ref), [wrapRef, ref]);
   const rtl = useChartRtl(wrapEl);
   const coarse = useMediaQuery('(pointer: coarse)');
   const [pickedBar, setSelected] = useState<number | null>(null);
@@ -545,7 +567,7 @@ export function BarChart({
   };
 
   return (
-    <div {...rest} ref={mergeRefs(wrapRef, ref)} className={cn('w-full', className)}>
+    <div {...rest} ref={rootRef} className={cn('w-full', className)}>
       {width > 0 && (
         <svg
           width={width}
@@ -625,7 +647,7 @@ export interface RangeBarProps extends Omit<ComponentPropsWithoutRef<'div'>, 'ch
   high: number;
   /** Marks a value (e.g. the current price) with a dot. */
   current?: number;
-  /** The accessible name. Default (English): "Range low to high, current x, within min to max". */
+  /** The accessible name. Default: the `rangeLabel` string (English: "Range low to high, current x, within min to max"). */
   label?: string;
   /** The locale of the numbers in the default name. Default: the provider's locale, else en-US. */
   locale?: string;
@@ -637,6 +659,7 @@ export interface RangeBarProps extends Omit<ComponentPropsWithoutRef<'div'>, 'ch
  *  the current value: daily temperature ranges, a price's day range. The track starts at
  *  the start edge, so it mirrors in right-to-left layouts. */
 export function RangeBar({ min, max, low, high, current, label, locale, className, ref, ...rest }: RangeBarProps) {
+  const t = useStrings(DISPLAY_STRINGS);
   const config = useNishContext();
   const loc = locale ?? config.locale ?? 'en-US';
   const num = (v: number) => chartNumber(v, loc);
@@ -649,7 +672,7 @@ export function RangeBar({ min, max, low, high, current, label, locale, classNam
       {...rest}
       ref={ref}
       role="img"
-      aria-label={label ?? `Range ${num(low)} to ${num(high)}${current != null ? `, current ${num(current)}` : ''}, within ${num(min)} to ${num(max)}`}
+      aria-label={label ?? t.rangeLabel(num(low), num(high), current != null ? num(current) : null, num(min), num(max))}
       className={cn('relative h-1.5 w-full rounded-full bg-th-line forced-colors:bg-[color:GrayText]', className)}
     >
       <div

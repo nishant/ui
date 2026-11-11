@@ -173,7 +173,10 @@ function ToastFallback({ t, focusedRef }: { t: ToastItem; focusedRef: { current:
   return (
     <div
       data-nish-toast-fallback=""
-      className="pointer-events-auto flex w-full max-w-md items-start gap-2.5 rounded-xl border border-th-line-strong bg-th-elevated px-3.5 py-3 shadow-pop animate-[nish-rise-in_160ms_var(--nish-ease-out)]"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) focusedRef.current = null;
+      }}
+      className={`pointer-events-auto flex w-full max-w-md items-start gap-2.5 rounded-xl border ${{ success: 'border-th-ok/35', error: 'border-th-loss/40', warn: 'border-th-warn/40', info: 'border-th-line-strong' }[t.tone]} bg-th-elevated px-3.5 py-3 shadow-pop animate-[nish-rise-in_160ms_var(--nish-ease-out)]`}
     >
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium leading-snug text-th-hi">{t.title}</p>

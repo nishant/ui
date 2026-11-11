@@ -1,5 +1,5 @@
 import { act, cleanup, createEvent, fireEvent, render, screen } from '@testing-library/react';
-import { createRef } from 'react';
+import { createRef, useState } from 'react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -649,10 +649,9 @@ describe('ConfirmDialog', () => {
   });
 
   it('puts first focus on Cancel for danger and on the confirm button for primary', async () => {
-    const { rerender } = render(<ConfirmDialog title="T" confirmLabel="Go" onConfirm={() => {}} />);
+    render(<ConfirmDialog title="T" confirmLabel="Go" onConfirm={() => {}} />);
     await flush();
     expect(document.activeElement?.textContent).toBe('Cancel');
-    rerender(<ConfirmDialog title="T" tone="primary" confirmLabel="Go" onConfirm={() => {}} />);
     cleanup();
     render(<ConfirmDialog title="T" tone="primary" confirmLabel="Go" onConfirm={() => {}} />);
     await flush();
@@ -1374,5 +1373,72 @@ describe('overlay barrel', () => {
       .sort();
     expect(barrelFns).toEqual(expected.map(([n]) => n).sort());
     for (const [n, fn] of expected) expect((barrel as Record<string, unknown>)[n]).toBe(fn);
+  });
+});
+
+describe('burn3 overlay fixes', () => {
+  function scrollable() {
+    Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get: () => 500 });
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 100 });
+  }
+  afterEach(() => {
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollHeight;
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientHeight;
+  });
+
+  it('names a scrollable Modal body by its heading when the title is not a string', () => {
+    scrollable();
+    render(<Modal title={<span>Rich</span>} onClose={() => {}}>body</Modal>);
+    const region = screen.getByRole('region');
+    expect(region.getAttribute('tabindex')).toBe('0');
+    expect(region.getAttribute('aria-labelledby')).toBeTruthy();
+  });
+
+  it('gives a scrollable Drawer body with a node title a name, and no tab stop when it has none', () => {
+    scrollable();
+    render(<Drawer open title={<b>Rich</b>} onOpenChange={() => {}}>body</Drawer>);
+    expect(screen.getByRole('region').getAttribute('aria-labelledby')).toBeTruthy();
+    cleanup();
+    render(<Modal header={<div>H</div>} aria-label="x" onClose={() => {}}>body</Modal>);
+    expect(screen.getByRole('region').getAttribute('aria-label')).toBe('x');
+  });
+
+  it('a scrim press that dismisses a popover on top does not also close the Modal', () => {
+    const onClose = vi.fn();
+    function Inner() {
+      const anchor = createRef<HTMLButtonElement>();
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button ref={anchor} type="button">anchor</button>
+          <Popover open={open} onOpenChange={setOpen} anchor={anchor} aria-label="Pop">pop body</Popover>
+        </>
+      );
+    }
+    render(
+      <Modal title="M" onClose={onClose}>
+        <Inner />
+      </Modal>,
+    );
+    expect(screen.getByText('pop body')).toBeTruthy();
+    const scrim = screen.getByRole('dialog', { name: 'M' }).parentElement!;
+    fireEvent.pointerDown(scrim);
+    fireEvent.mouseDown(scrim);
+    expect(screen.queryByText('pop body')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.pointerDown(scrim);
+    fireEvent.mouseDown(scrim);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a consumer tabIndex and aria-describedby on the Tooltip trigger', () => {
+    render(
+      <Tooltip tip="Tip" tabIndex={-1} aria-describedby="help" data-testid="t">
+        <span>Hover</span>
+      </Tooltip>,
+    );
+    const trigger = screen.getByTestId('t');
+    expect(trigger.getAttribute('tabindex')).toBe('-1');
+    expect(trigger.getAttribute('aria-describedby')).toBe('help');
   });
 });

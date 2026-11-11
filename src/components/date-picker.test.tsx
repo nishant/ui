@@ -157,6 +157,7 @@ describe('DatePicker typing', () => {
     const notPrevented = fireEvent.keyDown(input(), { key: 'Enter' });
     expect(notPrevented).toBe(false);
     expect(spy).toHaveBeenCalledWith('2026-11-05');
+    // jsdom never runs implicit submission, so the prevented keydown above is the real proof; this only guards a stray submit event.
     expect(submit).not.toHaveBeenCalled();
   });
 

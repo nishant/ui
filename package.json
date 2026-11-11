@@ -40,7 +40,6 @@
   ],
   "files": [
     "dist",
-    "!dist/esm/**/*.map",
     "!dist/**/*.map",
     "tsconfig"
   ],
@@ -214,6 +213,8 @@
     "./fonts.css": "./dist/fonts.css",
     "./base.css": "./dist/base.css",
     "./nish-components.css": "./dist/nish-components.css",
+    "./nish.min.css": "./dist/nish.min.css",
+    "./nish-components.min.css": "./dist/nish-components.min.css",
     "./tokens.json": "./dist/tokens.json",
     "./tokens.dtcg.json": "./dist/tokens.dtcg.json",
     "./fonts/*": "./dist/fonts/*",

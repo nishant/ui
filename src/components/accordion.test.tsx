@@ -220,3 +220,44 @@ describe('Accordion', () => {
     expect(html).toContain('aria-expanded="true"');
   });
 });
+
+describe('Accordion fixes', () => {
+  it('builds ids that work for a value with spaces', () => {
+    render(
+      <Accordion defaultValue="two words">
+        <AccordionItem value="two words" title="Spaced">Body</AccordionItem>
+      </Accordion>,
+    );
+    const t = trigger('Spaced');
+    const panel = document.getElementById(t.getAttribute('aria-controls')!);
+    expect(panel).toBeTruthy();
+    expect(panel!.getAttribute('aria-labelledby')).toBe(t.id);
+    expect(screen.getByRole('region', { name: 'Spaced' })).toBe(panel);
+  });
+  it('arrow keys stay in their own accordion and skip a nested one', () => {
+    render(
+      <Accordion type="multiple" defaultValue={['o1']}>
+        <AccordionItem value="o1" title="Outer1">
+          <Accordion type="multiple" defaultValue={['i1']}>
+            <AccordionItem value="i1" title="Inner1">x</AccordionItem>
+          </Accordion>
+        </AccordionItem>
+        <AccordionItem value="o2" title="Outer2">y</AccordionItem>
+      </Accordion>,
+    );
+    trigger('Outer1').focus();
+    fireEvent.keyDown(trigger('Outer1'), { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(trigger('Outer2'));
+    fireEvent.keyDown(trigger('Outer2'), { key: 'End' });
+    expect(document.activeElement).toBe(trigger('Outer2'));
+    fireEvent.keyDown(trigger('Inner1'), { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(trigger('Inner1'));
+  });
+  it('marks the open header aria-disabled when a single accordion cannot collapse', () => {
+    const { rerender } = render(<Accordion defaultValue="a">{items()}</Accordion>);
+    expect(trigger('Alpha').getAttribute('aria-disabled')).toBe('true');
+    expect(trigger('Beta').hasAttribute('aria-disabled')).toBe(false);
+    rerender(<Accordion defaultValue="a" collapsible>{items()}</Accordion>);
+    expect(trigger('Alpha').hasAttribute('aria-disabled')).toBe(false);
+  });
+});

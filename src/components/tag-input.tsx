@@ -196,7 +196,11 @@ export function TagInput({
     if (!SPLIT.test(pasted)) return;
     e.preventDefault();
     const parts = pasted.split(SPLIT);
-    parts[0] = text + parts[0];
+    const el = e.currentTarget;
+    const start = Math.min(el.selectionStart ?? text.length, text.length);
+    const end = Math.min(el.selectionEnd ?? start, text.length);
+    parts[0] = text.slice(0, start) + parts[0];
+    parts[parts.length - 1] += text.slice(end);
     const { error: err, refused } = add(parts);
     setText(err ? refused.join(', ') : '');
   };

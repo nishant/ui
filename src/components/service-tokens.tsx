@@ -46,8 +46,11 @@ export function useServiceTokens(
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The url the tokens, error and loading flag above belong to: after a url change they are stale until the new load lands.
+  const [ownerUrl, setOwnerUrl] = useState(url);
   const [nonce, setNonce] = useState(0);
   const seq = useRef(0);
+  const ownerRef = useRef(url);
 
   useEffect(() => {
     const mine = ++seq.current;
@@ -55,7 +58,10 @@ export function useServiceTokens(
     apiFetch<ServiceTokenListResponse>(url, { signal: ctl.signal })
       .then((r) => {
         if (seq.current !== mine) return;
+        ownerRef.current = url;
+        setOwnerUrl(url);
         setTokens(r.tokens);
+        setError(null);
         setLoading(false);
       })
       .catch((e: unknown) => {
@@ -64,6 +70,10 @@ export function useServiceTokens(
           (e instanceof Error && e.name === "AbortError")
         )
           return;
+        // A failed load for a new url must not keep the old url's list; a failed reload of the same url does.
+        if (ownerRef.current !== url) setTokens(undefined);
+        ownerRef.current = url;
+        setOwnerUrl(url);
         setError(e instanceof Error ? e.message : strings.failedToLoad);
         setLoading(false);
       });
@@ -85,6 +95,8 @@ export function useServiceTokens(
         { method: "POST", body: {} },
       );
       seq.current++;
+      ownerRef.current = url;
+      setOwnerUrl(url);
       setTokens(r.tokens);
       setError(null);
       setLoading(false);
@@ -92,6 +104,8 @@ export function useServiceTokens(
     [url],
   );
 
+  // After a url change, show the new url's loading state instead of the old url's list or error.
+  if (ownerUrl !== url) return { tokens: undefined, loading: true, error: null, reload, revoke };
   return { tokens, loading, error, reload, revoke };
 }
 
@@ -112,13 +126,13 @@ export interface ServiceTokensSectionProps
   /** Anchor id on the section. Default "service-tokens". */
   id?: string;
   className?: string;
-  /** Shown when the list is empty. Default "No service tokens. No machine client can read this app." */
+  /** Shown when the list is empty. Default: the `tokenEmpty` string ("No service tokens. No machine client can read this app."). */
   emptyMessage?: ReactNode;
-  /** The body of the revoke confirmation. Default explains that the token stops working and cannot be restored. */
+  /** The body of the revoke confirmation. Default: the `tokenRevokeBody` string, which explains that the token stops working and cannot be restored. */
   revokeBody?: ReactNode;
-  /** The "created <date>" part of a token's description. Default `created ${when}`. */
+  /** The "created <date>" part of a token's description. Default: the `tokenCreated` string ("created <when>"). */
   createdLabel?: (when: string) => string;
-  /** Added to the description of a token that comes from the SERVICE_TOKENS environment variable. Default "from SERVICE_TOKENS". */
+  /** Added to the description of a token that comes from the SERVICE_TOKENS environment variable. Default: the `tokenFromEnv` string ("from SERVICE_TOKENS"). */
   envSourceLabel?: string;
 }
 
@@ -150,10 +164,10 @@ export function ServiceTokensSection({
   description: descriptionProp,
   id = "service-tokens",
   className,
-  emptyMessage = "No service tokens. No machine client can read this app.",
+  emptyMessage,
   revokeBody,
-  createdLabel = (when: string) => `created ${when}`,
-  envSourceLabel = "from SERVICE_TOKENS",
+  createdLabel,
+  envSourceLabel,
   ...rest
 }: ServiceTokensSectionProps) {
   const strings = useStrings(TOKEN_STRINGS, STATUS_STRINGS, ERROR_STRINGS, OVERLAY_STRINGS);
@@ -238,13 +252,13 @@ export function ServiceTokensSection({
     content = (
       <>
         {errorRow}
-        <p className="px-4 py-6 text-sm text-th-hi3">{emptyMessage}</p>
+        <p className="px-4 py-6 text-sm text-th-hi3">{emptyMessage ?? strings.tokenEmpty}</p>
       </>
     );
   } else {
     const rows = sorted.map((t) => {
-      const parts = [t.id, t.scopes.join(", "), createdLabel(when(t.created))];
-      if (t.source === "env") parts.push(envSourceLabel);
+      const parts = [t.id, t.scopes.join(", "), (createdLabel ?? strings.tokenCreated)(when(t.created))];
+      if (t.source === "env") parts.push(envSourceLabel ?? strings.tokenFromEnv);
       return (
         <SettingRow
           key={`${t.id}:${t.name}:${t.created}`}
@@ -304,13 +318,7 @@ export function ServiceTokensSection({
           title={strings.tokenRevokeTitle(target.name)}
           body={
             <>
-              {revokeBody ?? (
-                <p>
-                  Anything using this token gets &quot;Unauthorized&quot; from
-                  now on. This cannot be undone: to restore access, issue a new
-                  token with npm run tokens in nishant/mcp.
-                </p>
-              )}
+              {revokeBody ?? <p>{strings.tokenRevokeBody}</p>}
               {failure ? (
                 <p role="alert" className="mt-3 text-th-loss">
                   {failure}

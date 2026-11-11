@@ -53,10 +53,15 @@
   .nish-scroll-fade[data-at-end='false'] {
     --nish-fade-end: transparent;
   }
-  .nish-no-scrollbar {
+  /* Scrolls, but draws no scrollbar: tab strips, chip rows, carousels. .nish-no-scrollbar is
+     the preferred name; .scrollbar-none is the same utility under its older name. */
+  .nish-no-scrollbar,
+  .scrollbar-none {
     scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  .nish-no-scrollbar::-webkit-scrollbar {
+  .nish-no-scrollbar::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
   /* Bottom padding that clears bottom bars (the nav already includes the safe area). It is in
@@ -192,15 +197,6 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
-  }
-
-  /* Scrolls, but draws no scrollbar: tab strips, chip rows, carousels. */
-  .scrollbar-none {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
   }
 
   /* First thing in <body>: <a class="nish-skip-link" href="#main">Skip to content</a>.
@@ -1103,7 +1099,12 @@
   .nish-prose :where(table) {
     width: 100%;
     border-collapse: collapse;
-    display: block;
+    /* Stays display:table so the table role and row/column navigation survive (WebKit and
+       VoiceOver drop them on display:block). Long words wrap instead of scrolling the page;
+       a wide table can sit in a wrapper that scrolls: any element with data-nish-table-wrap. */
+    overflow-wrap: anywhere;
+  }
+  .nish-prose :where([data-nish-table-wrap]) {
     overflow-x: auto;
   }
   .nish-prose :where(th, td) {
@@ -1141,14 +1142,15 @@
   @media (prefers-reduced-motion: reduce) {
     .nish-spin,
     [data-nish-spin],
-    .nish-spinner {
+    .nish-spinner,
+    .nish-btn[aria-busy='true']::after {
       animation: nish-pulse 1.6s ease-in-out infinite !important;
       animation-iteration-count: infinite !important;
       animation-duration: 1.6s !important;
     }
   }
 
-  /* SystemCanvas (src/components/canvas.tsx). The viewport is the graph paper: its
+  /* SystemCanvas (src/components/canvas/system-canvas.tsx). The viewport is the graph paper: its
      background position and size follow the pan and zoom (the component writes them directly, no inherited
      variables). Every rule that moves, loops or fades is
      inside prefers-reduced-motion: no-preference; under reduced motion the active look is
@@ -1489,7 +1491,7 @@
     border-radius: 14px;
     border: 1px solid var(--nish-line);
     background: var(--nish-surface);
-    box-shadow: var(--nish-shadow-md, 0 4px 14px rgb(0 0 0 / 0.18));
+    box-shadow: var(--nish-shadow-pop);
     cursor: default;
   }
   .nish-canvas-zoom {
@@ -1650,6 +1652,19 @@
     .nish-flow-conn {
       forced-color-adjust: none;
       background-color: GrayText;
+    }
+    /* Canvas live and active states are drawn with background, border colour and shadow,
+       which forced colors flatten: redraw them with Highlight and a thicker border. */
+    .nish-canvas-live {
+      forced-color-adjust: none;
+      background: Highlight;
+      box-shadow: none;
+    }
+    .nish-canvas-group[data-live],
+    .nish-canvas-node[data-active] {
+      forced-color-adjust: none;
+      border-color: Highlight;
+      border-width: 2px;
     }
   }
 

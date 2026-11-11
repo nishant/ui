@@ -314,6 +314,10 @@ export function createInboxClient(options: InboxClientOptions): InboxClient {
       }
       if (queue[0] === head) queue.shift();
       if (result.kind === 'ok') sentSinceDown++;
+      else if (!loggedInvalid.has(result.error)) {
+        loggedInvalid.add(result.error);
+        log(`queued event dropped: ${result.error}`);
+      }
     }
     retryStep = 0;
     if (down) {

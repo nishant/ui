@@ -345,3 +345,31 @@ describe('VirtualTable server render', () => {
     expect(html).toContain('data-virtual-spacer');
   });
 });
+
+describe('VirtualTable scroll offset and measure', () => {
+  it('scrollToIndex start aligns the row under the sticky header (exact delta)', () => {
+    const api = createRef<VirtualListHandle>();
+    render(<VirtualTable label="Rows" rows={makeRows(2000)} columns={columns} rowKey={rowKey} height={BOX} apiRef={api} />);
+    act(() => api.current!.scrollToIndex(1000, { align: 'start' }));
+    // 1000 rows of 41px; the 40px header covers the top of the box and the tbody already starts under it.
+    expect(scrollBy.mock.calls[0][0]).toEqual({ top: 41000, behavior: 'auto' });
+  });
+
+  it('measure mode leaves rows without a fixed height or truncation and registers them with the observer', () => {
+    const observed: Element[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe(el: Element) { observed.push(el); }
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    const { container } = render(<VirtualTable label="Rows" rows={makeRows(20)} columns={columns} rowKey={rowKey} height={BOX} measure />);
+    const row = container.querySelector('tbody tr[data-index="0"]') as HTMLElement;
+    expect(observed).toContain(row);
+    expect(row.querySelector('td')?.style.height).toBe('');
+    expect(row.querySelector('td')?.className).not.toContain('truncate');
+    vi.unstubAllGlobals();
+  });
+});

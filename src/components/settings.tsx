@@ -79,7 +79,7 @@ export interface SettingRowProps extends Omit<ComponentPropsWithRef<'div'>, 'chi
   stacked?: boolean;
   /** Keep the control at the end of the label row at every width (Switch, Checkbox). */
   inline?: boolean;
-  /** Tighter row (44px tall, no side padding, label beside the control at every width).
+  /** Tighter row (44px tall, label beside the control at every width). No side padding inside a compact SettingsSection; keeps px-4 in a normal section.
    *  Default: on inside a compact SettingsSection. */
   compact?: boolean;
   /** A muted status after the control: "Saved", "Saving…", or an error (tone="error" → text-th-loss). */
@@ -111,6 +111,22 @@ export function SettingRow({
   const auto = useId();
   const labelId = `${auto}-label`;
   const descId = `${auto}-desc`;
+  const controlRef = useRef<HTMLDivElement | null>(null);
+  const hasDescription = description != null;
+  // With htmlFor the control sits outside this row's markup, so tie the description to it after mount.
+  useEffect(() => {
+    if (!htmlFor || !hasDescription) return;
+    const el = controlRef.current?.ownerDocument.getElementById(htmlFor);
+    if (!el) return;
+    const had = (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+    if (had.includes(descId)) return;
+    el.setAttribute('aria-describedby', [...had, descId].join(' '));
+    return () => {
+      const now = (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter((t) => t && t !== descId);
+      if (now.length) el.setAttribute('aria-describedby', now.join(' '));
+      else el.removeAttribute('aria-describedby');
+    };
+  }, [htmlFor, hasDescription, descId]);
   const side = inline || (compact && !stacked);
   const layout = stacked
     ? 'flex flex-col gap-2'
@@ -140,6 +156,7 @@ export function SettingRow({
         ) : null}
       </div>
       <div
+        ref={controlRef}
         {...(htmlFor ? {} : { role: 'group', 'aria-labelledby': labelId, 'aria-describedby': description != null ? descId : undefined })}
         className={cn('flex min-w-0 items-center gap-2', stacked ? 'w-full' : side ? 'justify-end' : 'w-full sm:w-auto sm:justify-end')}
       >

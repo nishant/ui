@@ -4,7 +4,7 @@ import { whenHistorySettled } from './overlay-core';
 /** @internal Dev warning for an href that `safeUrl` refused. */
 export function warnUnsafe(href: string): void {
   try {
-    if (process.env.NODE_ENV !== 'production') console.warn(`CommandPalette: ignored an unsafe href (${href.slice(0, 40)}).`);
+    if (process.env.NODE_ENV !== 'production') console.warn(`nish-ui: ignored an unsafe href (${href.slice(0, 40)}).`);
   } catch {
     // No process or no console.
   }

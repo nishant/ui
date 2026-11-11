@@ -155,7 +155,7 @@ export function Segmented<T extends string>({
         const rtl = isRtl(groupRef.current);
         const from = refs.current.findIndex((el) => el === document.activeElement);
         const at = from >= 0 ? from : selected;
-        if (e.key === 'Escape' && tipAt != null) { setTipAt(null); return; }
+        if (e.key === 'Escape' && tipAt != null) { e.preventDefault(); e.stopPropagation(); setTipAt(null); return; }
         if (e.key === (rtl ? 'ArrowLeft' : 'ArrowRight') || e.key === 'ArrowDown') { e.preventDefault(); move(at, 1); }
         else if (e.key === (rtl ? 'ArrowRight' : 'ArrowLeft') || e.key === 'ArrowUp') { e.preventDefault(); move(at, -1); }
         else if (e.key === 'Home') { e.preventDefault(); if (enabled.length) pick(enabled[0]); }

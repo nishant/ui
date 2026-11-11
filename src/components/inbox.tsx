@@ -298,7 +298,12 @@ export function Inbox({
 
   // The one effect: bring the linked item into view, once per selection.
   useEffect(() => {
-    if (selectedId == null || scrolled.current === selectedId) return;
+    if (selectedId == null) {
+      // Cleared: the same id scrolls into view again when it is selected next.
+      scrolled.current = null;
+      return;
+    }
+    if (scrolled.current === selectedId) return;
     const el = document.getElementById(rowId(selectedId));
     if (!el) return;
     scrolled.current = selectedId;

@@ -28,7 +28,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// The BottomNav is the nav landmark that is a direct child of the fragment's root and has a More button.
+// The BottomNav is the 'Sections' nav landmark with the fixed class.
 function bottomNav(): HTMLElement {
   const navs = screen.getAllByRole('navigation', { name: 'Sections', hidden: true });
   const found = navs.find((n) => n.className.includes('fixed'));
@@ -430,6 +430,22 @@ describe('AppShell: layout props', () => {
     unmount();
     render(<AppShell name="S" nav={FIVE} navPending={2}>x</AppShell>);
     expect(document.querySelectorAll('.nish-skeleton')).toHaveLength(0);
+  });
+
+  it('navPending with tabs="pill" puts the placeholders in the first row, with no second-row nav', () => {
+    render(<AppShell name="S" tabs="pill" navPending={2}>x</AppShell>);
+    const header = screen.getByRole('banner');
+    expect(header.querySelectorAll('.nish-skeleton')).toHaveLength(2);
+    const sk = header.querySelector('.nish-skeleton') as HTMLElement;
+    expect(sk.closest('nav')).toBeNull();
+    expect(sk.parentElement?.className).toContain('lg:flex');
+  });
+
+  it('keeps 4 BottomNav cells plus More when moreItems exist and nav has 5', () => {
+    render(<AppShell name="S" nav={FIVE} moreItems={[{ key: 'x', label: 'Extra', href: '/x', icon: null }]}>x</AppShell>);
+    const bn = within(bottomNav());
+    expect(bn.getByRole('button', { name: 'More' })).toBeTruthy();
+    expect(bn.getAllByRole('link').length + bn.getAllByRole('button').length).toBeLessThanOrEqual(5);
   });
 });
 

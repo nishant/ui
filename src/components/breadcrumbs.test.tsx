@@ -105,6 +105,14 @@ describe('Breadcrumbs', () => {
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Docs', 'Guides', 'Forms']);
   });
 
+  it('maxItems below 3 never shows more than three crumbs and the current crumb truncates in a block child', () => {
+    render(<Breadcrumbs items={TRAIL} collapse="always" maxItems={2} />);
+    const cur = document.querySelector('[aria-current="page"]') as HTMLElement;
+    expect(cur.className).toContain('truncate');
+    expect(cur.parentElement?.className).toContain('inline-flex');
+    expect(document.querySelectorAll('li').length).toBeLessThanOrEqual(5);
+  });
+
   it('maxItems sets how many crumbs stay visible', () => {
     render(<Breadcrumbs items={TRAIL} collapse="always" maxItems={3} />);
     // first, the menu, last one

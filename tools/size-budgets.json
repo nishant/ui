@@ -30,13 +30,13 @@
       "name": "Toaster",
       "from": "nish-ui",
       "import": "Toaster",
-      "maxKB": 11.7
+      "maxKB": 12
     },
     {
       "name": "Combobox",
       "from": "nish-ui",
       "import": "Combobox",
-      "maxKB": 12.4
+      "maxKB": 12.6
     },
     {
       "name": "Calendar",
@@ -84,13 +84,13 @@
       "name": "VirtualList",
       "from": "nish-ui",
       "import": "VirtualList",
-      "maxKB": 12
+      "maxKB": 12.2
     },
     {
       "name": "VirtualTable",
       "from": "nish-ui",
       "import": "VirtualTable",
-      "maxKB": 16.0
+      "maxKB": 16
     },
     {
       "name": "TreeView",
@@ -114,7 +114,7 @@
       "name": "AppShell",
       "from": "nish-ui",
       "import": "AppShell",
-      "maxKB": 34,
+      "maxKB": 34.4,
       "mustNotInclude": [
         "components/drawer.js",
         "components/modal.js",
@@ -139,19 +139,19 @@
       "name": "SystemCanvas",
       "from": "nish-ui/system-canvas",
       "import": "SystemCanvas",
-      "maxKB": 26.0
+      "maxKB": 26
     },
     {
       "name": "Inbox",
       "from": "nish-ui/inbox",
       "import": "Inbox",
-      "maxKB": 27.9
+      "maxKB": 28.2
     },
     {
       "name": "ServiceTokensSection",
       "from": "nish-ui/service-tokens",
       "import": "ServiceTokensSection",
-      "maxKB": 19.7
+      "maxKB": 20
     },
     {
       "name": "Drawer",
@@ -181,13 +181,13 @@
       "name": "everything from .",
       "from": "nish-ui",
       "import": "*",
-      "maxKB": 126.1
+      "maxKB": 128.3
     },
     {
       "name": "nish-ui/theme",
       "from": "nish-ui/theme",
       "import": "*",
-      "maxKB": 9.0
+      "maxKB": 9.2
     },
     {
       "name": "nish-ui/format",

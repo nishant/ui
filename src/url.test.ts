@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { safeUrl } from './url';
 
 describe('safeUrl', () => {
+  it('refuses a URL with leading or trailing non-C0 Unicode whitespace', () => {
+    expect(safeUrl('/page ')).toBeNull();
+    expect(safeUrl('　/page')).toBeNull();
+  });
+
   it.each([
     ['/a?b#c', '/a?b#c'],
     ['#top', '#top'],

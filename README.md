@@ -293,6 +293,10 @@ Entry points:
 | `nish-ui/tailwind-core.css` | The same without the component scan |
 | `nish-ui/nish.css` | The theme and base styles without Tailwind |
 | `nish-ui/nish-components.css` | `.nish-btn`, `.nish-card` and the other classes |
+| `nish-ui/nish.min.css`, `nish-ui/nish-components.min.css` | The same two files, minified |
+| `nish-ui/tokens.css` | Only the design tokens as CSS variables (`--nish-*`) |
+| `nish-ui/fonts.css` | Only the `@font-face` rules for the bundled fonts |
+| `nish-ui/base.css` | Only the base element styles; `nish.css` is these three together |
 | `nish-ui/theme` | Theme switching and static-page helpers, React-free |
 | `nish-ui/format` | Money, percent, date formatters (locale-aware) |
 | `nish-ui/chart` | Chart colors for any library |
@@ -331,10 +335,10 @@ Measured with esbuild (minified, React external) from `dist/esm` on every pull r
 | Import | Gzip |
 |---|---|
 | `cn` | under 10 KB |
-| `Button` | under 11 KB |
+| `Button` | under 10 KB |
 | `AppShell` | under 34 KB |
-| `useMediaQuery` | under 1.5 KB |
-| `nish-ui/theme` | under 12 KB |
+| `useMediaQuery` | under 1 KB |
+| `nish-ui/theme` | under 9 KB |
 | `nish-ui/format` | under 4 KB |
 
 The JavaScript is one file per source module with `/* @__PURE__ */` annotations and a

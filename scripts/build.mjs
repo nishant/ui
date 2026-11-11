@@ -186,9 +186,8 @@ testStandalone();
 await testSourceScan();
 await testVitePlugin();
 
-// --- tokens.js: @nish/ui/tokens, plain data for Node scripts (no React) ------------
-// src/tokens.mjs imports nothing, so it ships as is, with its hand-written types.
-copyFileSync(join(src, 'tokens.mjs'), join(dist, 'tokens.js'));
+// --- @nish/ui/tokens: plain data for Node scripts (no React) ------------
+// src/tokens.mjs imports nothing, so it ships as is (dist/esm/tokens.mjs), with its hand-written types.
 copyFileSync(join(src, 'tokens.d.mts'), join(dist, 'tokens.d.ts'));
 await testTokensEntry();
 await testCn();
@@ -200,7 +199,6 @@ writeFileSync(join(dist, 'tokens.json'), JSON.stringify(tokensJson, null, 2) + '
 writeFileSync(join(dist, 'tokens.dtcg.json'), JSON.stringify(buildDtcg(), null, 2) + '\n');
 
 // The Inter license travels with the font files it covers.
-mkdirSync(join(dist, 'fonts'), { recursive: true });
 copyFileSync(join(root, 'node_modules/@fontsource-variable/inter/LICENSE'), join(dist, 'fonts/LICENSE-Inter.txt'));
 
 // What a static site vendors, with the hashed font names, so a sync script never has
@@ -410,13 +408,14 @@ async function testVitePlugin() {
 /** @nish/ui/tokens must load in plain Node with nothing else installed: it may not
  *  import anything, and it must carry the documented exports. */
 async function testTokensEntry() {
-  const code = readFileSync(join(dist, 'tokens.js'), 'utf8');
-  if (/^\s*import\s|\brequire\(/m.test(code)) throw new Error('dist/tokens.js must not import anything');
-  const mod = await import(pathToFileURL(join(dist, 'tokens.js')).href);
+  const file = join(dist, 'esm/tokens.mjs'); // what the ./tokens export points at
+  const code = readFileSync(file, 'utf8');
+  if (/^\s*import\s|\brequire\(/m.test(code)) throw new Error('dist/esm/tokens.mjs must not import anything');
+  const mod = await import(pathToFileURL(file).href);
   const want = ['THEMES', 'SCALE', 'COLOR_ROLES', 'SOFT_ROLES', 'HUE_ROLES', 'SHADOWS', 'DEFAULT_THEME'];
   const missing = want.filter((k) => mod[k] === undefined);
-  if (missing.length) throw new Error(`dist/tokens.js is missing ${missing.join(', ')}`);
-  if (mod.THEMES[mod.DEFAULT_THEME]?.colors.bg !== THEMES[DEFAULT_THEME].colors.bg) throw new Error('dist/tokens.js THEMES differ from src');
+  if (missing.length) throw new Error(`dist/esm/tokens.mjs is missing ${missing.join(', ')}`);
+  if (mod.THEMES[mod.DEFAULT_THEME]?.colors.bg !== THEMES[DEFAULT_THEME].colors.bg) throw new Error('dist/esm/tokens.mjs THEMES differ from src');
 }
 
 /** tailwind-merge must keep a th-* color next to the small type sizes and the custom
@@ -602,7 +601,8 @@ function testStandalone() {
     try {
       code = readFileSync(join(dist, f), 'utf8');
     } catch {
-      continue; // chart.js is optional
+      if (f === 'chart.js') continue; // chart.js is optional
+      throw new Error(`dist/${f} is missing`);
     }
     const rel = code.match(/\b(?:from|import)\s*\(?\s*["']\.{1,2}\/[^"']+["']/);
     if (rel) throw new Error(`dist/${f} must stand alone but imports ${rel[0]}`);

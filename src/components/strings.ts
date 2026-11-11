@@ -12,6 +12,8 @@ export interface NishStrings {
   back: string;
   /** ContextMenu: the menu's accessible name when no menuLabel is given. */
   contextMenu: string;
+  /** CommandPalette: accessible name of the external-link mark on a row that opens in a new tab. */
+  opensInNewTab: string;
   /** VirtualTable: live-region message after the sort changes (dir null when cleared). */
   sortAnnounce: (header: string, dir: 'asc' | 'desc' | null) => string;
   /** Toast, Callout: dismiss button. */
@@ -46,6 +48,8 @@ export interface NishStrings {
   removeNamed: (name: string) => string;
   /** Combobox, CommandPalette: empty list. */
   noMatches: string;
+  /** Combobox, MultiSelect, CommandPalette: polite announcement of how many results are showing. */
+  resultsCount: (count: number) => string;
   /** Combobox, FilterBar, FilterSheet: clear button. */
   clear: string;
   /** Combobox: loading row. */
@@ -130,6 +134,8 @@ export interface NishStrings {
   actions: string;
   /** ConnectionBanner: offline message. */
   offline: string;
+  /** ConnectionBanner: default message when the server probe fails. */
+  serverUnreachable: string;
   /** ResponsiveTable, AsyncPanel: empty state. */
   nothingHere: string;
   /** ResponsiveTable: skeleton label. */
@@ -142,6 +148,10 @@ export interface NishStrings {
   noData: string;
   /** LineChart, BarChart: aria label of an empty chart. */
   noDataNamed: (label: string) => string;
+  /** RangeBar: default accessible name, with locale-formatted numbers (current is null when not set). */
+  rangeLabel: (low: string, high: string, current: string | null, min: string, max: string) => string;
+  /** LineChart: last row of the hidden data table when it was cut short. */
+  chartTruncated: (shown: number, total: number) => string;
   /** FilterBar, FilterSheet: title. */
   filters: string;
   /** FilterBar: clear all filters. */
@@ -154,6 +164,8 @@ export interface NishStrings {
   newCount: (value: string | number) => string;
   /** BottomNav, NavRail, SectionNav: landmark. */
   sections: string;
+  /** SectionNav: default landmark name. */
+  onThisPage: string;
   /** MoreSheet: theme row. */
   theme: string;
   /** NavRail: sidebar landmark. */
@@ -246,6 +258,8 @@ export interface NishStrings {
   followActivity: string;
   /** SystemCanvas legend: menu label. */
   canvasLines: string;
+  /** SystemCanvas: role description of the canvas region. */
+  canvasRole: string;
   /** ServiceTokens: title. */
   serviceTokens: string;
   /** ServiceTokens: intro text. */
@@ -264,6 +278,14 @@ export interface NishStrings {
   tokenRevokeTitle: (name: string) => string;
   /** ServiceTokens: revoke failure with no message. */
   tokenRevokeFailed: string;
+  /** ServiceTokens: empty-list message. */
+  tokenEmpty: string;
+  /** ServiceTokens: body of the revoke confirm dialog. */
+  tokenRevokeBody: string;
+  /** ServiceTokens: created-at text on a row. */
+  tokenCreated: (when: string) => string;
+  /** ServiceTokens: source tag for a token that comes from the SERVICE_TOKENS environment variable. */
+  tokenFromEnv: string;
   /** Inbox: mark-handled action. */
   inboxMarkHandled: string;
   /** Inbox: snooze action. */
@@ -288,6 +310,8 @@ export interface NishStrings {
   nextPage: string;
   /** Pagination: page button aria label. */
   pageLabel: (n: number) => string;
+  /** Pagination: compact text, for example "Page 3 of 10". */
+  pageOfCount: (page: number, count: number) => string;
   /** Pagination: nav landmark. */
   paginationLabel: string;
   /** Breadcrumbs: nav landmark. */
@@ -326,11 +350,13 @@ export const OVERLAY_STRINGS = {
   menu: 'Menu',
   back: 'Back: ',
   contextMenu: 'Actions',
+  opensInNewTab: 'opens in a new tab',
 } satisfies Partial<NishStrings>;
 
-/** @internal Defaults for AppShell, AppHeader, BottomNav, NavRail, MoreSheet, Breadcrumbs, Inbox. */
+/** @internal Defaults for AppShell, AppHeader, BottomNav, NavRail, NavSidebar, SectionNav, MoreSheet, nav-items, Breadcrumbs, Inbox and the Callout/display badges. */
 export const SHELL_STRINGS = {
   sections: 'Sections',
+  onThisPage: 'On this page',
   more: 'More',
   hubTitle: 'Back to nish.software',
   hubLabel: '← nish.software',
@@ -342,7 +368,7 @@ export const SHELL_STRINGS = {
   newCount: (value) => `${value} new`,
 } satisfies Partial<NishStrings>;
 
-/** @internal Defaults for Spinner, Skeleton, ErrorState, AsyncPanel, ConnectionBanner, StickyActionBar, ResponsiveTable. */
+/** @internal Defaults for Spinner, Skeleton, ErrorState, AsyncPanel, ConnectionBanner, StickyActionBar, ResponsiveTable, VirtualTable, Inbox, AppShell and ServiceTokens (retry). */
 export const STATUS_STRINGS = {
   loading: 'Loading',
   failedToLoad: 'Failed to load',
@@ -350,6 +376,7 @@ export const STATUS_STRINGS = {
   nothingHere: 'Nothing here yet',
   loadingNamed: (label) => `Loading ${label}`,
   offline: "You're offline",
+  serverUnreachable: "Can't reach the server",
   actions: 'Actions',
 } satisfies Partial<NishStrings>;
 
@@ -364,7 +391,7 @@ export const THEME_STRINGS = {
   themePresetPlaceholder: 'Preset…',
 } satisfies Partial<NishStrings>;
 
-/** @internal Defaults for AppErrorBoundary and the service-tokens retry button. */
+/** @internal Defaults for AppErrorBoundary. */
 export const ERROR_STRINGS = {
   errorStaleTitle: 'A new version is available',
   errorStaleBody: 'Reload the page to get the latest version.',
@@ -385,6 +412,9 @@ export const DISPLAY_STRINGS = {
   legend: 'Legend',
   noData: 'No data',
   noDataNamed: (label) => `${label}: no data`,
+  rangeLabel: (low, high, current, min, max) =>
+    `Range ${low} to ${high}${current != null ? `, current ${current}` : ''}, within ${min} to ${max}`,
+  chartTruncated: (shown, total) => `First ${shown} of ${total} points`,
 } satisfies Partial<NishStrings>;
 
 /** @internal Defaults for Field, SearchInput, Chip, Combobox, MultiSelect, TagInput, FilterBar, CommandPalette. */
@@ -396,6 +426,7 @@ export const FIELD_STRINGS = {
   removeNamed: (name) => `Remove ${name}`,
   clear: 'Clear',
   noMatches: 'No matches',
+  resultsCount: (n) => `${n} ${n === 1 ? 'result' : 'results'}`,
   searching: 'Searching…',
   removeTag: (tag) => `Remove ${tag}`,
   maxTags: (max) => `You can add up to ${max}`,
@@ -514,6 +545,7 @@ export const CANVAS_STRINGS = {
   fitToScreen: 'Fit to screen',
   followActivity: 'Follow activity',
   canvasLines: 'Lines',
+  canvasRole: 'canvas',
 } satisfies Partial<NishStrings>;
 
 /** @internal Defaults for ServiceTokens. */
@@ -528,6 +560,11 @@ export const TOKEN_STRINGS = {
   tokenRevokeNamed: (name) => `Revoke ${name}`,
   tokenRevokeTitle: (name) => `Revoke ${name}?`,
   tokenRevokeFailed: 'Could not revoke the token.',
+  tokenEmpty: 'No service tokens. No machine client can read this app.',
+  tokenRevokeBody:
+    'Anything using this token gets "Unauthorized" from now on. This cannot be undone: to restore access, issue a new token with npm run tokens in nishant/mcp.',
+  tokenCreated: (when) => `created ${when}`,
+  tokenFromEnv: 'from SERVICE_TOKENS',
 } satisfies Partial<NishStrings>;
 
 /** @internal Defaults for Inbox. */
@@ -548,6 +585,7 @@ export const PAGING_STRINGS = {
   previousPage: 'Previous page',
   nextPage: 'Next page',
   pageLabel: (n) => `Page ${n}`,
+  pageOfCount: (page, count) => `Page ${page} of ${count}`,
   paginationLabel: 'Pagination',
   breadcrumbs: 'Breadcrumbs',
 } satisfies Partial<NishStrings>;

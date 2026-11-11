@@ -323,6 +323,21 @@ describe('AgentNode', () => {
     expect(screen.getByText('Reading').closest('.nish-flow-ticker')).not.toBeNull();
   });
 
+  it('a clickable node names its activity, meta and model, not just the state', () => {
+    render(<AgentNode label="X" state="running" model="claude-opus-4" meta="12s" activity="Reading" onClick={() => {}} />);
+    const name = screen.getByRole('button').getAttribute('aria-label') ?? '';
+    expect(name).toContain('Reading');
+    expect(name).toContain('12s');
+    expect(name).toContain('claude-opus-4');
+  });
+
+  it('ActivityFeed starts no 15s clock when now is passed', () => {
+    const spy = vi.spyOn(globalThis, 'setInterval');
+    render(<ActivityFeed items={[{ id: 'a', text: 'x', at: 1000 }]} now={5000} />);
+    expect(spy.mock.calls.some((c) => c[1] === 15000)).toBe(false);
+    spy.mockRestore();
+  });
+
   it('an unknown model shows its own name; no model and no activity renders no second row', () => {
     const { container, rerender } = render(<AgentNode label="X" state="running" model="gpt-x" />);
     expect(screen.getByText('gpt-x')).toBeTruthy();

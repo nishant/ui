@@ -77,6 +77,28 @@ describe('StickyBar', () => {
   });
 });
 
+describe('merged refs stay attached across renders', () => {
+  it('StickyBar and StickyActionBar do not re-call a caller callback ref on re-render', () => {
+    const calls: unknown[] = [];
+    const cb = (el: HTMLElement | null) => void calls.push(el);
+    const { rerender } = render(
+      <>
+        <StickyBar ref={cb}>x</StickyBar>
+        <StickyActionBar open ref={cb} primary={<button type="button">Save</button>} />
+      </>,
+    );
+    const before = calls.length;
+    expect(before).toBe(2);
+    rerender(
+      <>
+        <StickyBar ref={cb}>y</StickyBar>
+        <StickyActionBar open ref={cb} message="changed" primary={<button type="button">Save</button>} />
+      </>,
+    );
+    expect(calls.length).toBe(before);
+  });
+});
+
 describe('StickyActionBar', () => {
   it('renders nothing and publishes no height while closed', () => {
     setHeight(60);
@@ -276,7 +298,7 @@ describe('PageContainer', () => {
     expect(off.some((c) => c.includes('--nish-bottom-inset'))).toBe(false);
   });
 
-  it('lets a containerClassName bottom padding replace the default one', () => {
+  it('lets a className bottom padding replace the default one', () => {
     render(<PageContainer className="pb-10" data-testid="pc">x</PageContainer>);
     const classes = screen.getByTestId('pc').className.split(/\s+/);
     expect(classes).toContain('pb-10');
@@ -336,6 +358,23 @@ describe('ConnectionBanner', () => {
     );
     expect(screen.getByRole('status').textContent).toContain('Sin red');
     expect(screen.getByRole('button', { name: 'Otra vez' })).toBeTruthy();
+  });
+
+  it('takes the default probe-failed message from a provider, and a message prop wins', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    const { rerender } = render(
+      <NishProvider strings={{ serverUnreachable: 'Serveur injoignable' }}>
+        <ConnectionBanner healthUrl="/health" />
+      </NishProvider>,
+    );
+    await act(async () => {});
+    expect(screen.getByRole('status').textContent).toContain('Serveur injoignable');
+    rerender(
+      <NishProvider strings={{ serverUnreachable: 'Serveur injoignable' }}>
+        <ConnectionBanner healthUrl="/health" message="Mine" />
+      </NishProvider>,
+    );
+    expect(screen.getByRole('status').textContent).toContain('Mine');
   });
 
   it('shows the banner when the browser goes offline and hides it again online', () => {
