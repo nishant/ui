@@ -9,8 +9,12 @@ Open work only. Delete an entry in the PR that finishes it; git history is the r
 - **Fold callers still on @master** (2026-11-10, audit XR-031 remainder): callers run fold-check from `@master`, and the reusable workflow checks out its Fold tools at ui master even for a pinned caller. Move callers to a tag pin (the fan-out holds PRs touching `.github/workflows`, so it cannot do it) and make the tools checkout follow the called ref.
 - **eslint 10 for `@nish/ui/eslint`** (2026-11-10, audit XR-037): move to eslint 10 + `@eslint/js` 10 in one hand-made PR, confirm the shared config and `eslint-plugin-react-hooks` load, declare the supported range in `peerDependencies`, release; apps then drop their overrides.
 - **Adopt `isDirectCall` in apps** (2026-11-10, audit XR-033 follow-up, after release): trackers replaces its local `isDirectLoopback` with `isDirectCall` (audit XR-048), and apps pass `remoteAddressOf(c)` to `checkServiceRequest`.
-- **Release the audit phase 2 and phase 3 fixes** (2026-11-09, audit-p2, audit-p3): both sets are merged to master and sit under `## [Unreleased]` in CHANGELOG.md; not released (v3.1.0 had just fanned out). Tomorrow: rename `## [Unreleased]` to `## [3.1.1] - <date>` in a PR, merge it, then `gh workflow run release.yml -R nishant/ui -f bump=patch`.
 - **Finish the 2026-11-08 audit** (2026-11-09, audit-1108): the report is `C:\Code\.audit\2026-11-08\ui.md` on the PC (ids
+  Phase 3 (2026-11-09) closed 183 of its 212 findings; 29 are still open: 1 medium, 17 low, 11 nit (none critical or high).
+  Medium: UI-392 (docs-site all-pages visual config skips 360 and 840 for every page except inbox). The lows and nits
+  are mostly flaky or leaky test and harness code (fixed sleeps, tight timeouts, leftover temp dirs and signal handlers),
+  gallery script bugs (backslash paths, stale shots, 44px targets) and stale doc comments. Full list: the 'Phase 3
+  findings (2026-11-09)' section of `C:\Code\.audit\2026-11-08\ui.md` (PC only); UI-400, UI-402 and UI-490 are below.
   `UI-nnn`). What is left:
   - UI-135: `src/components/breadcrumbs.tsx:176`: the collapsed "..." menu calls `window.location.assign`; route a menu
     item with an href through `renderLink` (or an `onNavigate` prop) so router apps navigate client-side, and test it.
