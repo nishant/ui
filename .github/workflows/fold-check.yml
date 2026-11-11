@@ -168,8 +168,16 @@ jobs:
         continue-on-error: true
         run: node .fold-ui/tools/visual-check.mjs "head/$WD/$CONFIG" --port 5301 --png --no-fail --out fold/base
 
-      - name: Save the base screenshots
+      # visual-check runs with --no-fail, so a crashed or timed-out base still exits 0. Only a
+      # sound report (shots present, none errored or failed to load) may be cached.
+      - name: Check the base screenshots are sound
+        id: basesound
         if: steps.basecache.outputs.cache-hit != 'true' && steps.shotbase.outcome == 'success'
+        continue-on-error: true
+        run: node -e "const r=require('./fold/base/report.json');process.exit(r.shots?.length&&!r.shots.some(s=>s.error||(!s.file&&(s.problems||[]).some(p=>String(p).startsWith('load:'))))?0:1)"
+
+      - name: Save the base screenshots
+        if: steps.basecache.outputs.cache-hit != 'true' && steps.shotbase.outcome == 'success' && steps.basesound.outcome == 'success'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: fold/base
