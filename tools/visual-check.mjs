@@ -286,7 +286,26 @@ for (const pg of config.pages) {
         await page.waitForTimeout(pg.settle ?? 400);
 
         Object.assign(shot, await page.evaluate(inspect));
-        const axe = await new AxeBuilder({ page }).withRules(['color-contrast', 'target-size']).analyze();
+        // Third-party embeds (a TradingView chart, a map) are another site's page: their contrast and
+        // tap targets are not the app's to fix, and they load at their own pace, so a scan inside them
+        // flips between runs. Skip iframes whose src is on another origin.
+        const external = await page.evaluate(() => {
+          let n = 0;
+          for (const f of document.querySelectorAll('iframe[src]')) {
+            try {
+              if (new URL(f.getAttribute('src'), location.href).origin !== location.origin) {
+                f.setAttribute('data-visual-check-external', '');
+                n++;
+              }
+            } catch {
+              // An unparsable src is left in the scan.
+            }
+          }
+          return n;
+        });
+        const builder = new AxeBuilder({ page }).withRules(['color-contrast', 'target-size']);
+        if (external) builder.exclude('iframe[data-visual-check-external]');
+        const axe = await builder.analyze();
         shot.axe = axe.violations.map((v) => ({
           rule: v.id,
           impact: v.impact,
