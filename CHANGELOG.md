@@ -30,6 +30,7 @@ a minor adds, and a patch fixes.
 
 ### Fixed
 
+- Fold check / `tools/visual-check.mjs`: the axe contrast and tap-target scan skips iframes from another origin (a TradingView chart, a map). Their content is not the app's to fix and loads at its own pace, so it flipped trading's ticker page between runs and held its 3.2.0 bump.
 - `openSheet` starts a swipe-down from the whole 44px grab handle, not only its top 28px.
 - `loginHandler` reads the body capped at 16 KB and answers 413 for a larger declared or actual body (UI-369).
 - `AppShell` and `Card` heading refs are memoised, so React no longer detaches and re-attaches the merged ref every render.
