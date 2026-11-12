@@ -297,7 +297,9 @@ for (const pg of config.pages) {
                 f.setAttribute('data-visual-check-external', '');
                 n++;
               }
-            } catch {}
+            } catch {
+              // An unparsable src is left in the scan.
+            }
           }
           return n;
         });
