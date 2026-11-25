@@ -1,0 +1,19 @@
+{
+  "static": [
+    "nish.css",
+    "nish-components.css",
+    "nish.min.css",
+    "nish-components.min.css",
+    "theme-init.js",
+    "theme.js",
+    "theme.global.js",
+    "elements.js",
+    "elements-forms.js",
+    "elements-data.js",
+    "elements-charts.js",
+    "elements-all.js",
+    "fonts/inter-latin-wght-normal.3100e775.woff2",
+    "fonts/inter-latin-ext-wght-normal.34b9c504.woff2"
+  ],
+  "themeInitHash": "sha256-rGP+jF8KBMsf35Md4+Zv+b6LagiGzxoV8QzAVcU6RIg="
+}

@@ -1,0 +1,1 @@
+function e(e,t,n){return!n||e.includes(n)||(t?.includes(n)??!1)}export{e as t};

@@ -1,0 +1,3 @@
+function e(e,t,n,r=``){let i=[];for(let[e,n]of Object.entries(t))n!==void 0&&n!==!1&&n!==null&&(n===!0?i.push(e):typeof n==`string`&&n.startsWith(`{`)?i.push(`${e}=${n}`):typeof n==`string`?i.push(n.includes(`"`)||n.includes(`\\`)||/[\r\n]/.test(n)?`${e}={${JSON.stringify(n)}}`:`${e}="${n}"`):i.push(`${e}={${JSON.stringify(n)}}`));let a=i.length?`<${e} ${i.join(` `)}`:`<${e}`,o=n==null?`${a} />`:`${a}>${n}</${e}>`;if(o.length<=80||!i.length)return r+o;let s=[`${r}<${e}`,...i.map(e=>`${r}  ${e}`)];return n==null?[...s,`${r}/>`].join(`
+`):[...s,`${r}>`,`${r}  ${n}`,`${r}</${e}>`].join(`
+`)}export{e as t};
