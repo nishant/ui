@@ -24,7 +24,7 @@
       "name": "Modal",
       "from": "nish-ui",
       "import": "Modal",
-      "maxKB": 14.3
+      "maxKB": 14.5
     },
     {
       "name": "Toaster",
@@ -145,19 +145,19 @@
       "name": "Inbox",
       "from": "nish-ui/inbox",
       "import": "Inbox",
-      "maxKB": 28.2
+      "maxKB": 28.5
     },
     {
       "name": "ServiceTokensSection",
       "from": "nish-ui/service-tokens",
       "import": "ServiceTokensSection",
-      "maxKB": 20
+      "maxKB": 20.2
     },
     {
       "name": "Drawer",
       "from": "nish-ui",
       "import": "Drawer",
-      "maxKB": 14.8
+      "maxKB": 15
     },
     {
       "name": "Tooltip",
@@ -181,7 +181,7 @@
       "name": "everything from .",
       "from": "nish-ui",
       "import": "*",
-      "maxKB": 128.3
+      "maxKB": 128.6
     },
     {
       "name": "nish-ui/theme",

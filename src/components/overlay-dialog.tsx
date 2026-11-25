@@ -5,7 +5,31 @@ import { useLatest } from './latest';
 import { useStrings } from './provider';
 import { OVERLAY_STRINGS } from './strings';
 import { SHEET_EXIT_MS } from './overlay-classes';
+import { URL_STATE_EVENT } from './url-state';
 import { ov, isTop, syncLayerAttr, pushInert, popInert, acquireGuard, releaseGuard, prefersReducedMotion, closeVetoes, focusables, lockScroll, queueHistoryPush, cancelHistoryPush } from './overlay-core';
+
+/** @internal After a layer's history entry is dropped, puts the query and hash written onto it
+ *  (`to`) on the entry that is current now, when that entry is still the page the layer opened
+ *  on (`from`). A path change while the layer was open is a navigation, so it is left alone. */
+export function carryUrl(from: string, to: string): void {
+  if (!from || to === from) return;
+  let a: URL;
+  let b: URL;
+  try {
+    a = new URL(from);
+    b = new URL(to);
+  } catch {
+    return;
+  }
+  if (a.origin !== b.origin || a.pathname !== b.pathname || location.href !== from) return;
+  try {
+    history.replaceState(history.state, '', b.pathname + b.search + b.hash);
+  } catch {
+    // A sandboxed frame can refuse replaceState: the query then stays as it was.
+    return;
+  }
+  window.dispatchEvent(new Event(URL_STATE_EVENT));
+}
 
 /** @internal The internals every modal surface shares (Modal, Drawer, ConfirmDialog): stack
  *  membership, focus in, Tab trap, Escape, focus return and the html + body lock. */
@@ -31,11 +55,20 @@ export function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () =
     const layerId = `nish-layer-${++s.layerSeq}`;
     let pushed = false;
     let rePushTimer = 0;
+    // The URL when the entry was pushed, and the latest one written onto the entry while it
+    // was on top (useUrlState replaces the query in place). Dropping the entry, by back or by
+    // close, would lose those writes, so they are carried over to the entry below.
+    let pushedUrl = '';
+    let layerUrl = '';
     const pushEntry = () => {
       const prev = history.state && typeof history.state === 'object' ? (history.state as object) : {};
       history.pushState({ ...prev, nishLayer: layerId }, '');
       pushed = true;
+      pushedUrl = layerUrl = location.href;
     };
+    function onUrlState() {
+      if (pushed && (history.state as { nishLayer?: string } | null)?.nishLayer === layerId) layerUrl = location.href;
+    }
     // pushState waits until every history.back() this module issued has landed.
     const queuedPush = () => queueHistoryPush(pushEntry);
     // The guard goes on before this layer's own popstate listener, so swallowed events
@@ -46,6 +79,7 @@ export function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () =
       if (!pushed) return;
       if ((history.state as { nishLayer?: string } | null)?.nishLayer === layerId) return;
       pushed = false;
+      carryUrl(pushedUrl, layerUrl);
       if (!isTop(self)) {
         // A popover or menu is on top of this dialog: back only used up its entry, so
         // push it again and leave the dialog open.
@@ -60,7 +94,10 @@ export function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () =
         if (!pushed) queuedPush();
       }, SHEET_EXIT_MS + 60);
     }
-    if (closeOnBack) window.addEventListener('popstate', onPop);
+    if (closeOnBack) {
+      window.addEventListener('popstate', onPop);
+      window.addEventListener(URL_STATE_EVENT, onUrlState);
+    }
     // React's autoFocus focuses the element itself and writes no attribute, so let it
     // run first; only if focus is still outside the panel, pick [data-autofocus] /
     // [autofocus], else the panel.
@@ -105,6 +142,7 @@ export function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () =
       window.clearTimeout(rePushTimer);
       cancelHistoryPush(pushEntry);
       window.removeEventListener('popstate', onPop);
+      window.removeEventListener(URL_STATE_EVENT, onUrlState);
       const at = s.layerStack.indexOf(self);
       if (at >= 0) s.layerStack.splice(at, 1);
       s.dialogCount--;
@@ -115,8 +153,12 @@ export function useDialog(panelRef: RefObject<HTMLElement | null>, onClose: () =
       opener?.focus?.();
       // Closed by anything but back: drop the entry this layer pushed.
       if (pushed && (history.state as { nishLayer?: string } | null)?.nishLayer === layerId) {
+        const from = pushedUrl;
+        const to = location.href;
         s.pendingBacks++;
         history.back();
+        // Queued behind the back, so it runs once the entry below is current again.
+        if (to !== from) queueHistoryPush(() => carryUrl(from, to));
       }
       // After the back above, so the guard stays until its popstate has landed.
       if (closeOnBack) releaseGuard();

@@ -16,6 +16,8 @@ import {
   menuItemClass,
 } from './overlay';
 import { NishProvider } from './provider';
+import { carryUrl } from './overlay-dialog';
+import { useUrlState } from './url-state';
 
 let reduced = true;
 let phone = false;
@@ -1244,6 +1246,49 @@ describe('DropdownMenu', () => {
       </DropdownMenu>,
     );
     expect(await screen.findByRole('dialog', { name: 'Pick one' })).toBeTruthy();
+  });
+
+  it('keeps a useUrlState write made from a phone sheet after the sheet drops its history entry', async () => {
+    phone = true;
+    history.replaceState(null, '', '/history');
+    function Picker() {
+      const [q, setQ] = useUrlState({ range: '7d' });
+      return (
+        <>
+          <output data-testid="range">{q.range}</output>
+          <DropdownMenu sheetBelow="sm" trigger={<button type="button">Range</button>}>
+            <MenuItem onSelect={() => setQ({ range: '30d' })}>30 days</MenuItem>
+          </DropdownMenu>
+        </>
+      );
+    }
+    render(<Picker />);
+    fireEvent.click(screen.getByRole('button', { name: 'Range' }));
+    await screen.findByRole('dialog');
+    await flush(10);
+    expect((history.state as { nishLayer?: string } | null)?.nishLayer).toMatch(/^nish-layer-/);
+    fireEvent.click(screen.getByRole('menuitem', { name: '30 days' }));
+    // The sheet's exit, its history.back() and the carry-over.
+    await flush(400);
+    expect((history.state as { nishLayer?: string } | null)?.nishLayer).toBeUndefined();
+    expect(location.search).toBe('?range=30d');
+    expect(screen.getByTestId('range').textContent).toBe('30d');
+    history.replaceState(null, '', '/');
+  });
+
+  it('carryUrl moves a query written on a layer entry to the current entry on the same page only', () => {
+    history.replaceState(null, '', '/a?x=1');
+    const base = location.href;
+    carryUrl(base, new URL('/a?x=2#h', base).href);
+    expect(location.pathname + location.search + location.hash).toBe('/a?x=2#h');
+    // A different path is a navigation: left alone.
+    history.replaceState(null, '', '/a');
+    carryUrl(location.href, new URL('/b?x=3', base).href);
+    expect(location.pathname + location.search).toBe('/a');
+    // The current entry is no longer the one the layer opened on: left alone.
+    carryUrl(new URL('/a?y=1', base).href, new URL('/a?y=2', base).href);
+    expect(location.search).toBe('');
+    history.replaceState(null, '', '/');
   });
 
   it('stays a floating panel on phones without sheetBelow', () => {
