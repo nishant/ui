@@ -9,7 +9,9 @@ export interface UrlStateAdapter {
   subscribe(onChange: () => void): () => void;
 }
 
-const EVENT = 'nish:urlstate';
+/** @internal Fired on window after each write, and by a closing layer that carries a write over. */
+export const URL_STATE_EVENT = 'nish:urlstate';
+const EVENT = URL_STATE_EVENT;
 
 /** location.search + history.replaceState. Keeps the hash and history.state, listens to
  *  popstate and to a 'nish:urlstate' window event fired after each set. */

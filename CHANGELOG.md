@@ -4,7 +4,7 @@ Every release of `@nish/ui`, newest first. Versions follow semver. Before 1.0, a
 bump (0.x.0) could require apps to change code. From 1.0.0, a major means app code must change,
 a minor adds, and a patch fixes.
 
-## [Unreleased]
+## [3.3.0] - 2026-11-25
 
 ### Added
 
@@ -30,6 +30,7 @@ a minor adds, and a patch fixes.
 
 ### Fixed
 
+- A `useUrlState` write made from inside a closeOnBack layer (a `DropdownMenu` phone sheet, `Drawer`, `Modal`) is kept when the layer closes. The layer's `history.back()` used to drop the entry the query was written to, so picking a range from a phone sheet snapped back to the old value. The layer now carries query and hash changes over to the entry below, on the same page only.
 - Fold check / `tools/visual-check.mjs`: the axe contrast and tap-target scan skips iframes from another origin (a TradingView chart, a map). Their content is not the app's to fix and loads at its own pace, so it flipped trading's ticker page between runs and held its 3.2.0 bump.
 - `openSheet` starts a swipe-down from the whole 44px grab handle, not only its top 28px.
 - `loginHandler` reads the body capped at 16 KB and answers 413 for a larger declared or actual body (UI-369).
